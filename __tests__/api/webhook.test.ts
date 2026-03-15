@@ -1,10 +1,9 @@
 // __tests__/api/webhook.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { createHmac } from 'crypto'
 
 vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
-vi.mock('@/lib/assemblyai', () => ({ parseWebhookBody: vi.fn() }))
+vi.mock('@/lib/assemblyai', () => ({ parseWebhookBody: vi.fn(), WEBHOOK_AUTH_HEADER_NAME: 'X-Webhook-Secret' }))
 vi.mock('@/lib/pipeline', () => ({ runClaudeAnalysis: vi.fn() }))
 
 import { createServerClient } from '@/lib/supabase-server'
@@ -13,15 +12,14 @@ import { runClaudeAnalysis } from '@/lib/pipeline'
 
 const WEBHOOK_SECRET = 'test-secret'
 
-function signedRequest(body: object, secret = WEBHOOK_SECRET) {
+function requestWithSecret(body: object, secret = WEBHOOK_SECRET) {
   const raw = JSON.stringify(body)
-  const sig = createHmac('sha256', secret).update(raw).digest('hex')
   return new NextRequest('http://localhost/api/webhooks/assemblyai', {
     method: 'POST',
     body: raw,
     headers: {
       'content-type': 'application/json',
-      'x-assemblyai-signature': sig,
+      'x-webhook-secret': secret,
     },
   })
 }
@@ -31,9 +29,9 @@ beforeEach(() => {
 })
 
 describe('POST /api/webhooks/assemblyai', () => {
-  it('returns 401 for invalid signature', async () => {
+  it('returns 401 for invalid webhook secret', async () => {
     const { POST } = await import('@/app/api/webhooks/assemblyai/route')
-    const req = signedRequest({ transcript_id: 'job1' }, 'wrong-secret')
+    const req = requestWithSecret({ transcript_id: 'job1' }, 'wrong-secret')
     const res = await POST(req)
     expect(res.status).toBe(401)
   })
@@ -51,7 +49,7 @@ describe('POST /api/webhooks/assemblyai', () => {
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
 
     const { POST } = await import('@/app/api/webhooks/assemblyai/route')
-    const req = signedRequest({ transcript_id: 'unknown-job' })
+    const req = requestWithSecret({ transcript_id: 'unknown-job' })
     const res = await POST(req)
     expect(res.status).toBe(200)
   })
@@ -80,7 +78,7 @@ describe('POST /api/webhooks/assemblyai', () => {
     })
 
     const { POST } = await import('@/app/api/webhooks/assemblyai/route')
-    const req = signedRequest({ transcript_id: 'known-job', status: 'completed', utterances: [] })
+    const req = requestWithSecret({ transcript_id: 'known-job', status: 'completed', utterances: [] })
     const res = await POST(req)
     expect(res.status).toBe(200)
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'identifying' }))
@@ -108,7 +106,7 @@ describe('POST /api/webhooks/assemblyai', () => {
     })
 
     const { POST } = await import('@/app/api/webhooks/assemblyai/route')
-    const req = signedRequest({ transcript_id: 'known-job', status: 'completed', utterances: [] })
+    const req = requestWithSecret({ transcript_id: 'known-job', status: 'completed', utterances: [] })
     await POST(req)
     expect(vi.mocked(runClaudeAnalysis)).toHaveBeenCalledWith('session-1')
   })
