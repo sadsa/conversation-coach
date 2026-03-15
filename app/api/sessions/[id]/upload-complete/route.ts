@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let jobId: string
   try {
     jobId = await createJob(audioUrl)
-  } catch (err) {
+  } catch (_err) {
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
