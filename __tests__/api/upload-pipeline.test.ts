@@ -63,3 +63,142 @@ describe('POST /api/sessions/:id/upload-failed', () => {
     expect(res.status).toBe(200)
   })
 })
+
+describe('POST /api/sessions/:id/speaker', () => {
+  it('returns 409 when session is not identifying', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { status: 'ready' }, error: null }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(runClaudeAnalysis).mockResolvedValue(undefined)
+    const { POST } = await import('@/app/api/sessions/[id]/speaker/route')
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ speaker_label: 'A' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(409)
+  })
+
+  it('saves speaker label and returns analysing when status is identifying', async () => {
+    const updateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { status: 'identifying' }, error: null }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({ eq: updateEq }),
+      })),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(runClaudeAnalysis).mockResolvedValue(undefined)
+    const { POST } = await import('@/app/api/sessions/[id]/speaker/route')
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ speaker_label: 'A' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('analysing')
+  })
+})
+
+describe('POST /api/sessions/:id/analyse', () => {
+  it('returns 409 when analysis is already in progress', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { status: 'analysing', error_stage: null }, error: null }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const { POST } = await import('@/app/api/sessions/[id]/analyse/route')
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(409)
+  })
+
+  it('returns 400 when no transcript is available', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { status: 'error', error_stage: 'uploading' }, error: null }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const { POST } = await import('@/app/api/sessions/[id]/analyse/route')
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('POST /api/sessions/:id/retry', () => {
+  it('generates new upload URL for uploading stage', async () => {
+    vi.mocked(presignedUploadUrl).mockResolvedValue({ key: 'audio/new.mp3', url: 'https://r2.example/new' })
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+    const mockDb = {
+      from: vi.fn().mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { error_stage: 'uploading', audio_r2_key: 'audio/old.mp3', assemblyai_job_id: null },
+              error: null,
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      })),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const { POST } = await import('@/app/api/sessions/[id]/retry/route')
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.upload_url).toBe('https://r2.example/new')
+  })
+
+  it('creates new AssemblyAI job for transcribing stage', async () => {
+    vi.mocked(createJob).mockResolvedValue('new-job-id')
+    vi.mocked(publicUrl).mockReturnValue('https://r2.example/audio.mp3')
+    const mockDb = {
+      from: vi.fn().mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { error_stage: 'transcribing', audio_r2_key: 'audio/test.mp3', assemblyai_job_id: null },
+              error: null,
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      })),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const { POST } = await import('@/app/api/sessions/[id]/retry/route')
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('transcribing')
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio.mp3')
+  })
+})
