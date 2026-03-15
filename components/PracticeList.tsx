@@ -77,7 +77,7 @@ export function PracticeList({ items, onToggleReviewed, onDelete }: Props) {
                     <span className="font-medium">{item.correction}</span>
                   </>
                 ) : (
-                  <span className="text-green-300">"{item.original}"</span>
+                  <span className="text-green-300">&ldquo;{item.original}&rdquo;</span>
                 )}
               </p>
               <p className="text-xs text-gray-500 mt-1">{item.explanation}</p>
