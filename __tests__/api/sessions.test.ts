@@ -12,6 +12,8 @@ vi.mock('@/lib/r2', () => ({
 import { createServerClient } from '@/lib/supabase-server'
 import { presignedUploadUrl } from '@/lib/r2'
 import { GET, POST } from '@/app/api/sessions/route'
+import { GET as getDetail, PATCH } from '@/app/api/sessions/[id]/route'
+import { GET as getStatus } from '@/app/api/sessions/[id]/status/route'
 
 const mockSelect = vi.fn()
 const mockInsert = vi.fn()
@@ -76,5 +78,112 @@ describe('POST /api/sessions', () => {
     })
     const res = await POST(req)
     expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /api/sessions/:id', () => {
+  it('returns session detail with segments and annotations', async () => {
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 's1', title: 'Test', status: 'ready', error_stage: null,
+                    duration_seconds: 60, detected_speaker_count: 2, user_speaker_label: 'A',
+                    created_at: '2026-03-15' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+        }
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const req = new NextRequest('http://localhost')
+    const res = await getDetail(req, { params: { id: 's1' } })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.session.id).toBe('s1')
+    expect(body.segments).toEqual([])
+    expect(body.annotations).toEqual([])
+  })
+
+  it('returns 404 for unknown session', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const req = new NextRequest('http://localhost')
+    const res = await getDetail(req, { params: { id: 'unknown' } })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('PATCH /api/sessions/:id', () => {
+  it('updates title and returns ok', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ title: 'New Title' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: { id: 's1' } })
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 400 for empty title', async () => {
+    vi.mocked(createServerClient).mockReturnValue({} as unknown as ReturnType<typeof createServerClient>)
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ title: '' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: { id: 's1' } })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /api/sessions/:id/status', () => {
+  it('returns status and error_stage', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { status: 'ready', error_stage: null },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    const req = new NextRequest('http://localhost')
+    const res = await getStatus(req, { params: { id: 's1' } })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('ready')
+    expect(body.error_stage).toBeNull()
   })
 })
