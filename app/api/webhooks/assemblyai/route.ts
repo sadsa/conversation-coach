@@ -1,23 +1,25 @@
 // app/api/webhooks/assemblyai/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac, timingSafeEqual } from 'crypto'
+import { timingSafeEqual } from 'crypto'
 import { createServerClient } from '@/lib/supabase-server'
-import { parseWebhookBody } from '@/lib/assemblyai'
+import { parseWebhookBody, WEBHOOK_AUTH_HEADER_NAME } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 
-function verifySignature(body: string, signature: string, secret: string): boolean {
-  const expected = createHmac('sha256', secret).update(body).digest('hex')
-  if (expected.length !== signature.length) return false
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+function verifyWebhookSecret(headerValue: string | null, secret: string): boolean {
+  if (!headerValue || !secret) return false
+  const a = Buffer.from(headerValue, 'utf8')
+  const b = Buffer.from(secret, 'utf8')
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
 }
 
 export async function POST(req: NextRequest) {
   const raw = await req.text()
-  const signature = req.headers.get('x-assemblyai-signature') ?? ''
-  const secret = process.env.ASSEMBLYAI_WEBHOOK_SECRET!
+  const headerValue = req.headers.get(WEBHOOK_AUTH_HEADER_NAME.toLowerCase())
+  const secret = process.env.ASSEMBLYAI_WEBHOOK_SECRET ?? ''
 
-  if (!verifySignature(raw, signature, secret)) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  if (!verifyWebhookSecret(headerValue, secret)) {
+    return NextResponse.json({ error: 'Invalid webhook secret' }, { status: 401 })
   }
 
   const body = JSON.parse(raw) as Record<string, unknown>
