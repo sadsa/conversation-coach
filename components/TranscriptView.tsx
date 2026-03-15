@@ -24,11 +24,6 @@ export function TranscriptView({ segments, annotations, userSpeakerLabel, onAddT
     return acc
   }, {})
 
-  const visibleAnnotations = (segId: string) => {
-    const all = annotationsBySegment[segId] ?? []
-    return filter === 'all' ? all : all.filter(a => a.type === filter)
-  }
-
   const counts = { grammar: 0, naturalness: 0, strength: 0 }
   annotations.forEach(a => counts[a.type]++)
 
@@ -55,7 +50,6 @@ export function TranscriptView({ segments, annotations, userSpeakerLabel, onAddT
       <div className="space-y-4">
         {segments.map(seg => {
           const isUser = userSpeakerLabel === null || seg.speaker === userSpeakerLabel
-          const segAnnotations = visibleAnnotations(seg.id)
 
           return (
             <div key={seg.id}>
