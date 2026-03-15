@@ -25,12 +25,14 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Session not in analysable state' }, { status: 400 })
   }
 
-  // Delete existing annotations and annotation-derived practice items
-  await db.from('annotations').delete().eq('session_id', params.id)
+  // Delete annotation-derived practice items first, then annotations.
+  // Order matters: the FK on practice_items.annotation_id uses ON DELETE SET NULL,
+  // so deleting annotations first would null out annotation_id before the filter runs.
   await db.from('practice_items')
     .delete()
     .eq('session_id', params.id)
     .not('annotation_id', 'is', null)
+  await db.from('annotations').delete().eq('session_id', params.id)
 
   await db.from('sessions').update({
     status: 'analysing',

@@ -1,13 +1,14 @@
 // app/api/webhooks/assemblyai/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { createServerClient } from '@/lib/supabase-server'
 import { parseWebhookBody } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 
 function verifySignature(body: string, signature: string, secret: string): boolean {
   const expected = createHmac('sha256', secret).update(body).digest('hex')
-  return expected === signature
+  if (expected.length !== signature.length) return false
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
 }
 
 export async function POST(req: NextRequest) {

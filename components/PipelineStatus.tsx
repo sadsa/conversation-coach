@@ -1,6 +1,6 @@
 // components/PipelineStatus.tsx
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
 
@@ -30,6 +30,7 @@ interface Props {
 
 export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, durationSeconds }: Props) {
   const router = useRouter()
+  const [currentStatus, setCurrentStatus] = useState(initialStatus)
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -48,6 +49,7 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
       .then(r => r.json())
       .then(data => {
         statusRef.current = data.status
+        setCurrentStatus(data.status)
         if (data.status === 'identifying' || data.status === 'ready') {
           redirect(data.status)
         }
@@ -58,6 +60,7 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
         .then(r => r.json())
         .then(data => {
           statusRef.current = data.status
+          setCurrentStatus(data.status)
           redirect(data.status)
         })
     }, 5000)
@@ -93,7 +96,7 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     )
   }
 
-  const currentIndex = STAGES.indexOf(initialStatus)
+  const currentIndex = STAGES.indexOf(currentStatus)
 
   return (
     <div className="space-y-6">
