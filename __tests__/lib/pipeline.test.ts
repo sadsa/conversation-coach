@@ -1,0 +1,70 @@
+// __tests__/lib/pipeline.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
+vi.mock('@/lib/claude', () => ({ analyseUserTurns: vi.fn() }))
+vi.mock('@/lib/r2', () => ({ deleteObject: vi.fn() }))
+
+import { createServerClient } from '@/lib/supabase-server'
+import { analyseUserTurns } from '@/lib/claude'
+import { deleteObject } from '@/lib/r2'
+import { runClaudeAnalysis } from '@/lib/pipeline'
+
+describe('runClaudeAnalysis', () => {
+  it('inserts annotations and practice items with annotation_id, then sets status ready', async () => {
+    const insertAnnotationsMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        data: [{ id: 'ann-1' }],
+        error: null,
+      }),
+    })
+    const insertPracticeMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { user_speaker_label: 'A', audio_r2_key: 'audio/test.mp3' },
+                  error: null,
+                }),
+              }),
+            }),
+            update: updateMock,
+          }
+        }
+        if (table === 'transcript_segments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [{ id: 'seg-1', speaker: 'A', text: 'Yo fui al mercado.' }],
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'annotations') return { insert: insertAnnotationsMock }
+        if (table === 'practice_items') return { insert: insertPracticeMock }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(analyseUserTurns).mockResolvedValue([
+      { segment_id: 'seg-1', type: 'grammar', original: 'Yo fui', start_char: 0, end_char: 6, correction: 'Fui', explanation: 'Drop pronoun.' },
+    ])
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+
+    await runClaudeAnalysis('session-1')
+
+    expect(insertAnnotationsMock).toHaveBeenCalled()
+    // practice_items insert should include annotation_id
+    const practiceCall = insertPracticeMock.mock.calls[0][0]
+    expect(practiceCall[0]).toHaveProperty('annotation_id', 'ann-1')
+    expect(updateMock).toHaveBeenCalledWith({ status: 'ready' })
+  })
+})
