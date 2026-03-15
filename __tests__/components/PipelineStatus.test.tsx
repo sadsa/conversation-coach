@@ -1,9 +1,19 @@
 // __tests__/components/PipelineStatus.test.tsx
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PipelineStatus } from '@/components/PipelineStatus'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+
+// Prevent useEffect fetch calls from throwing unhandled rejections in jsdom,
+// which lacks a base URL and causes "Failed to parse URL" errors.
+beforeAll(() => {
+  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'transcribing' }) })))
+})
+
+afterAll(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('PipelineStatus', () => {
   it('shows the current stage label', () => {
