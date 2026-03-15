@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   let parsed
   try {
     parsed = parseWebhookBody(body)
-  } catch (err) {
+  } catch (_err) {
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
