@@ -8,6 +8,8 @@ const SYSTEM_PROMPT = `You are an expert Spanish language coach specialising in 
 3. Strengths — things the speaker did well, especially correct use of voseo, lunfardo, or natural Argentine expressions (type: "strength")
 
 For each finding:
+- "segment_id": the ID from the [ID: ...] prefix of the turn being annotated
+- "type": one of "grammar", "naturalness", or "strength"
 - "original": copy the exact substring from the turn's text
 - "start_char" / "end_char": character offsets of "original" within that turn's text
 - "correction": the improved version (null for strengths)
@@ -46,10 +48,13 @@ export async function analyseUserTurns(turns: UserTurn[]): Promise<ClaudeAnnotat
     messages: [{ role: 'user', content: userContent }],
   })
 
-  const text = response.content
+  const raw = response.content
     .filter(b => b.type === 'text')
     .map(b => (b as { type: 'text'; text: string }).text)
     .join('')
 
+  const text = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
+
+  console.log('[claude] raw response:', text.slice(0, 500))
   return JSON.parse(text) as ClaudeAnnotation[]
 }
