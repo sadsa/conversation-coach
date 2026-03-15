@@ -57,6 +57,13 @@ export async function cancelJob(jobId: string): Promise<void> {
   }
 }
 
+/** Fetch the full transcript object for a completed job. */
+export async function getTranscript(jobId: string): Promise<Record<string, unknown>> {
+  const client = getClient()
+  const transcript = await client.transcripts.get(jobId)
+  return transcript as unknown as Record<string, unknown>
+}
+
 /** Parse the raw AssemblyAI webhook body into typed segments. */
 export function parseWebhookBody(body: Record<string, unknown>): ParsedWebhook {
   if (body.status === 'error') {

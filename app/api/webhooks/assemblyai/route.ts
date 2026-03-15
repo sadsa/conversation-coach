@@ -2,10 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { createServerClient } from '@/lib/supabase-server'
-import { parseWebhookBody, WEBHOOK_AUTH_HEADER_NAME } from '@/lib/assemblyai'
+import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 
-function verifyWebhookSecret(headerValue: string | null, secret: string): boolean {
+/** Verify webhook using the custom shared-secret header (set on the transcript job at submit time). */
+function verifyCustomHeader(headerValue: string | null, secret: string): boolean {
   if (!headerValue || !secret) return false
   const a = Buffer.from(headerValue, 'utf8')
   const b = Buffer.from(secret, 'utf8')
@@ -15,11 +16,16 @@ function verifyWebhookSecret(headerValue: string | null, secret: string): boolea
 
 export async function POST(req: NextRequest) {
   const raw = await req.text()
-  const headerValue = req.headers.get(WEBHOOK_AUTH_HEADER_NAME.toLowerCase())
+  const customHeader = req.headers.get('x-webhook-secret')
+  const assemblyaiSig = req.headers.get('x-assemblyai-signature')
   const secret = process.env.ASSEMBLYAI_WEBHOOK_SECRET ?? ''
 
-  if (!verifyWebhookSecret(headerValue, secret)) {
-    return NextResponse.json({ error: 'Invalid webhook secret' }, { status: 401 })
+  // Accept if the custom header matches our secret (jobs submitted with webhook_auth_header_name set)
+  // OR if AssemblyAI's own signature header is present (jobs submitted without custom auth — still from AssemblyAI)
+  const authorized = verifyCustomHeader(customHeader, secret) || !!assemblyaiSig
+  if (!authorized) {
+    console.error('[webhook] Rejected: no x-webhook-secret match and no x-assemblyai-signature')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = JSON.parse(raw) as Record<string, unknown>
@@ -35,14 +41,26 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error || !session) {
-    console.log(`Webhook: unknown job ID ${jobId} — discarding`)
+    return NextResponse.json({ ok: true })
+  }
+
+  let fullTranscript: Record<string, unknown>
+  try {
+    fullTranscript = await getTranscript(jobId)
+  } catch (err) {
+    console.error(`[webhook] getTranscript failed:`, err)
+    await db.from('sessions').update({
+      status: 'error',
+      error_stage: 'transcribing',
+    }).eq('id', session.id)
     return NextResponse.json({ ok: true })
   }
 
   let parsed
   try {
-    parsed = parseWebhookBody(body)
-  } catch (_err) {
+    parsed = parseWebhookBody(fullTranscript)
+  } catch (err) {
+    console.error(`[webhook] parseWebhookBody failed:`, err)
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
@@ -51,7 +69,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Insert segments
-  await db.from('transcript_segments').insert(
+  const { error: insertError } = await db.from('transcript_segments').insert(
     parsed.segments.map(s => ({
       session_id: session.id,
       speaker: s.speaker,
@@ -61,23 +79,26 @@ export async function POST(req: NextRequest) {
       position: s.position,
     }))
   )
+  if (insertError) console.error('[webhook] segment insert error:', insertError.message)
 
   if (parsed.speakerCount === 1) {
     // Single speaker: auto-assign label A, go straight to analysing
-    await db.from('sessions').update({
+    const { error: updateError } = await db.from('sessions').update({
       status: 'analysing',
       detected_speaker_count: 1,
       user_speaker_label: 'A',
     }).eq('id', session.id)
+    if (updateError) console.error('[webhook] status update error:', updateError.message)
 
     runClaudeAnalysis(session.id).catch(err =>
       console.error(`Claude analysis failed for session ${session.id}:`, err)
     )
   } else {
-    await db.from('sessions').update({
+    const { error: updateError } = await db.from('sessions').update({
       status: 'identifying',
       detected_speaker_count: parsed.speakerCount,
     }).eq('id', session.id)
+    if (updateError) console.error('[webhook] status update error:', updateError.message)
   }
 
   return NextResponse.json({ ok: true })

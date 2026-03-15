@@ -31,6 +31,7 @@ interface Props {
 export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, durationSeconds }: Props) {
   const router = useRouter()
   const [currentStatus, setCurrentStatus] = useState(initialStatus)
+  const [currentErrorStage, setCurrentErrorStage] = useState(initialErrorStage)
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -54,6 +55,7 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
           redirect(data.status)
         }
       })
+      .catch(console.error)
 
     intervalRef.current = setInterval(() => {
       fetch(`/api/sessions/${sessionId}/status`)
@@ -61,8 +63,10 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
         .then(data => {
           statusRef.current = data.status
           setCurrentStatus(data.status)
+          setCurrentErrorStage(data.error_stage ?? null)
           redirect(data.status)
         })
+        .catch(console.error)
     }, 5000)
 
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
@@ -81,8 +85,8 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     }
   }
 
-  if (initialStatus === 'error') {
-    const msg = ERROR_MESSAGES[initialErrorStage ?? ''] ?? 'Something went wrong.'
+  if (currentStatus === 'error') {
+    const msg = ERROR_MESSAGES[currentErrorStage ?? ''] ?? 'Something went wrong.'
     return (
       <div className="space-y-4">
         <p className="text-red-400">{msg}</p>
