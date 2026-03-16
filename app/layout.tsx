@@ -1,11 +1,14 @@
 // app/layout.tsx
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Conversation Coach',
   description: 'Analyse your Spanish conversations',
   manifest: '/manifest.json',
+}
+
+export const viewport: Viewport = {
   themeColor: '#0f0f0f',
 }
 
@@ -16,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* SW registration: runtime behaviour, not a document-head metadata concern */}
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
+            navigator.serviceWorker.register('/sw.js').catch(function(err) {
+              console.warn('SW registration failed:', err);
+            });
           }
         ` }} />
       </head>
