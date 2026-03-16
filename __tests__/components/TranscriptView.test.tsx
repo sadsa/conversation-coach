@@ -28,7 +28,7 @@ const defaultProps = {
 describe('TranscriptView', () => {
   it('dims native speaker turns (speaker B when user is A)', () => {
     const { container } = render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
     const dimmed = container.querySelector('.opacity-40')
     expect(dimmed).toBeTruthy()
@@ -37,7 +37,7 @@ describe('TranscriptView', () => {
 
   it('shows annotation card when highlight is clicked', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
@@ -45,7 +45,7 @@ describe('TranscriptView', () => {
 
   it('hides annotation card when same highlight is clicked again', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     await userEvent.click(screen.getByText('Yo fui'))
@@ -54,7 +54,7 @@ describe('TranscriptView', () => {
 
   it('filters annotations by type', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
     await userEvent.click(screen.getByRole('button', { name: /natural/i }))
     expect(screen.queryByText('Yo fui')).toBeTruthy()
