@@ -34,7 +34,7 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
     const res = await fetch(`/api/sessions/${params.id}/speaker`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ speaker_labels: [...selectedLabels] }),
+      body: JSON.stringify({ speaker_labels: Array.from(selectedLabels) }),
     })
     if (res.status === 409) {
       router.push(`/sessions/${params.id}/status`)

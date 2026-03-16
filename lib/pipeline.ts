@@ -9,7 +9,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
 
   const { data: session } = await db
     .from('sessions')
-    .select('user_speaker_label, audio_r2_key')
+    .select('user_speaker_labels, audio_r2_key')
     .eq('id', sessionId)
     .single()
 
@@ -22,7 +22,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     .order('position')
 
   const userTurns = (segments ?? [])
-    .filter((s: TranscriptSegment) => s.speaker === session.user_speaker_label)
+    .filter((s: TranscriptSegment) => (session.user_speaker_labels ?? []).includes(s.speaker))
     .map((s: TranscriptSegment) => ({ id: s.id, text: s.text }))
 
   let annotations

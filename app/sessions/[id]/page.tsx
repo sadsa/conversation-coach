@@ -82,7 +82,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
       <TranscriptView
         segments={segments}
         annotations={annotations}
-        userSpeakerLabel={session.user_speaker_label}
+        userSpeakerLabels={session.user_speaker_labels}
         onAddToPractice={handleAddToPractice}
       />
     </div>

@@ -17,7 +17,7 @@ export interface Session {
   audio_r2_key: string | null
   assemblyai_job_id: string | null
   detected_speaker_count: number | null
-  user_speaker_label: 'A' | 'B' | null
+  user_speaker_labels: ('A' | 'B')[] | null
   created_at: string
   updated_at: string
 }
@@ -69,7 +69,7 @@ export interface SessionListItem {
 export interface SessionDetail {
   session: Pick<Session,
     'id' | 'title' | 'status' | 'error_stage' | 'duration_seconds' |
-    'detected_speaker_count' | 'user_speaker_label' | 'created_at'
+    'detected_speaker_count' | 'user_speaker_labels' | 'created_at'
   >
   segments: TranscriptSegment[]
   annotations: Annotation[]

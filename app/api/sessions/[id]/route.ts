@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data: session, error: sessionError } = await db
     .from('sessions')
-    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_label, created_at')
+    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at')
     .eq('id', params.id)
     .single()
 

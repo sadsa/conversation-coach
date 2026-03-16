@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
-vi.mock('@/lib/assemblyai', () => ({ parseWebhookBody: vi.fn(), WEBHOOK_AUTH_HEADER_NAME: 'X-Webhook-Secret' }))
+vi.mock('@/lib/assemblyai', () => ({ parseWebhookBody: vi.fn(), getTranscript: vi.fn(), WEBHOOK_AUTH_HEADER_NAME: 'X-Webhook-Secret' }))
 vi.mock('@/lib/pipeline', () => ({ runClaudeAnalysis: vi.fn() }))
 
 import { createServerClient } from '@/lib/supabase-server'
-import { parseWebhookBody } from '@/lib/assemblyai'
+import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 
 const WEBHOOK_SECRET = 'test-secret'
@@ -26,6 +26,7 @@ function requestWithSecret(body: object, secret = WEBHOOK_SECRET) {
 
 beforeEach(() => {
   process.env.ASSEMBLYAI_WEBHOOK_SECRET = WEBHOOK_SECRET
+  vi.mocked(getTranscript).mockResolvedValue({} as Record<string, unknown>)
 })
 
 describe('POST /api/webhooks/assemblyai', () => {
