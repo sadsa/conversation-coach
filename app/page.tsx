@@ -114,6 +114,8 @@ function readPendingShare(): Promise<File | null> {
       const db = req.result
       const tx = db.transaction('pending-share', 'readwrite')
       const store = tx.objectStore('pending-share')
+      tx.onerror = () => resolve(null)
+      tx.onabort = () => resolve(null)
       const getReq = store.get('file')
       getReq.onsuccess = () => {
         const file = (getReq as IDBRequest<File | undefined>).result ?? null
