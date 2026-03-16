@@ -19,11 +19,8 @@ export interface ParsedWebhook {
 }
 
 /** Base URL of the app (must be reachable by AssemblyAI for webhooks).
- *  Uses VERCEL_PROJECT_PRODUCTION_URL (stable production URL) in preference to
- *  VERCEL_URL (deployment-specific preview URL which may be access-protected).
- *  Falls back to APP_URL for local dev tunnels (e.g. ngrok). */
+ *  Uses VERCEL_URL in production; falls back to APP_URL for local dev tunnels (e.g. ngrok). */
 function getWebhookBaseUrl(): string {
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   const appUrl = process.env.APP_URL
   if (appUrl) return appUrl.replace(/\/$/, '')
