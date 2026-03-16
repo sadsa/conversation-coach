@@ -8,11 +8,11 @@ function makeFile(name: string, type: string, size = 100): File {
 }
 
 describe('DropZone — OPUS support', () => {
-  it('accepts a .opus file by extension', () => {
+  it('accepts a .opus file by extension when MIME type is unrecognized', () => {
     const onFile = vi.fn()
     render(<DropZone onFile={onFile} />)
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
-    const file = makeFile('audio.opus', 'audio/ogg')
+    const file = makeFile('audio.opus', 'audio/unknown')
     fireEvent.change(input, { target: { files: [file] } })
     expect(onFile).toHaveBeenCalledWith(file)
     expect(screen.queryByText(/unsupported format/i)).toBeNull()
@@ -23,6 +23,15 @@ describe('DropZone — OPUS support', () => {
     render(<DropZone onFile={onFile} />)
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const file = makeFile('voice_note.opus', 'audio/ogg')
+    fireEvent.change(input, { target: { files: [file] } })
+    expect(onFile).toHaveBeenCalledWith(file)
+  })
+
+  it('accepts a .opus file with audio/opus MIME type', () => {
+    const onFile = vi.fn()
+    render(<DropZone onFile={onFile} />)
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const file = makeFile('audio.opus', 'audio/opus')
     fireEvent.change(input, { target: { files: [file] } })
     expect(onFile).toHaveBeenCalledWith(file)
   })
