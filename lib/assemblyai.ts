@@ -18,12 +18,12 @@ export interface ParsedWebhook {
   segments: ParsedSegment[]
 }
 
-/** Base URL of the app (must be reachable by AssemblyAI for webhooks). Use APP_URL or Vercel sets VERCEL_URL. */
+/** Base URL of the app (must be reachable by AssemblyAI for webhooks). Prefers VERCEL_URL in production; falls back to APP_URL for local dev tunnels. */
 function getWebhookBaseUrl(): string {
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   const appUrl = process.env.APP_URL
   if (appUrl) return appUrl.replace(/\/$/, '')
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  throw new Error('Set APP_URL (e.g. https://your-app.vercel.app) so AssemblyAI can send webhooks. For local dev use a tunnel (e.g. ngrok) and set APP_URL to its URL.')
+  throw new Error('Set APP_URL to your tunnel URL (e.g. ngrok) so AssemblyAI can send webhooks.')
 }
 
 /** Header AssemblyAI sends with webhook requests when webhook_auth_header_* is set. */
