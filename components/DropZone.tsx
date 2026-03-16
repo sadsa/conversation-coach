@@ -2,7 +2,7 @@
 'use client'
 import { useRef, useState } from 'react'
 
-const ACCEPTED_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/ogg']
+const ACCEPTED_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'audio/opus']
 const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.opus']
 const MAX_BYTES = 500 * 1024 * 1024 // 500 MB
 
