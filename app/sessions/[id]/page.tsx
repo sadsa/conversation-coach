@@ -4,17 +4,22 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { InlineEdit } from '@/components/InlineEdit'
-import type { SessionDetail, Annotation } from '@/lib/types'
+import type { SessionDetail } from '@/lib/types'
 
 export default function TranscriptPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [detail, setDetail] = useState<SessionDetail | null>(null)
   const [title, setTitle] = useState('')
+  const [addedAnnotationIds, setAddedAnnotationIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch(`/api/sessions/${params.id}`)
       .then(r => r.json())
-      .then((d: SessionDetail) => { setDetail(d); setTitle(d.session.title) })
+      .then((d: SessionDetail) => {
+        setDetail(d)
+        setTitle(d.session.title)
+        setAddedAnnotationIds(new Set(d.addedAnnotationIds))
+      })
   }, [params.id])
 
   async function handleRename(newTitle: string) {
@@ -26,19 +31,8 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
     setTitle(newTitle)
   }
 
-  async function handleAddToPractice(annotation: Annotation) {
-    await fetch('/api/practice-items', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        session_id: params.id,
-        annotation_id: annotation.id,
-        type: annotation.type,
-        original: annotation.original,
-        correction: annotation.correction,
-        explanation: annotation.explanation,
-      }),
-    })
+  function handleAnnotationAdded(annotationId: string) {
+    setAddedAnnotationIds(prev => new Set([...prev, annotationId]))
   }
 
   async function handleReanalyse() {
@@ -82,8 +76,10 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
       <TranscriptView
         segments={segments}
         annotations={annotations}
-        userSpeakerLabels={session.user_speaker_labels}
-        onAddToPractice={handleAddToPractice}
+        userSpeakerLabel={session.user_speaker_labels?.[0] ?? null}
+        sessionId={params.id}
+        addedAnnotationIds={addedAnnotationIds}
+        onAnnotationAdded={handleAnnotationAdded}
       />
     </div>
   )
