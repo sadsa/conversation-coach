@@ -73,6 +73,7 @@ export interface SessionDetail {
   >
   segments: TranscriptSegment[]
   annotations: Annotation[]
+  addedAnnotationIds: string[]
 }
 
 export interface StatusResponse {
