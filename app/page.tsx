@@ -1,6 +1,6 @@
 // app/page.tsx
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { DropZone } from '@/components/DropZone'
 import { SessionList } from '@/components/SessionList'
@@ -29,7 +29,7 @@ export default function HomePage() {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s))
   }
 
-  async function handleFile(file: File) {
+  const handleFile = useCallback(async (file: File) => {
     setUploading(true)
     setError(null)
     const sessionTitle = title.trim() || file.name.replace(/\.[^.]+$/, '')
@@ -66,7 +66,15 @@ export default function HomePage() {
     })
 
     router.push(`/sessions/${session_id}/status`)
-  }
+  }, [title, router])
+
+  // Check for a file shared via the PWA share target
+  useEffect(() => {
+    if (typeof indexedDB === 'undefined') return
+    readPendingShare().then(file => {
+      if (file) handleFile(file)
+    })
+  }, [handleFile])
 
   return (
     <div className="space-y-8">
@@ -94,6 +102,28 @@ export default function HomePage() {
       </div>
     </div>
   )
+}
+
+function readPendingShare(): Promise<File | null> {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('conversation-coach-db', 1)
+    req.onupgradeneeded = (e) => {
+      (e.target as IDBOpenDBRequest).result.createObjectStore('pending-share')
+    }
+    req.onsuccess = () => {
+      const db = req.result
+      const tx = db.transaction('pending-share', 'readwrite')
+      const store = tx.objectStore('pending-share')
+      const getReq = store.get('file')
+      getReq.onsuccess = () => {
+        const file = (getReq as IDBRequest<File | undefined>).result ?? null
+        if (file) store.delete('file')
+        tx.oncomplete = () => resolve(file)
+      }
+      getReq.onerror = () => resolve(null)
+    }
+    req.onerror = () => resolve(null)
+  })
 }
 
 async function getAudioDuration(file: File): Promise<number> {
