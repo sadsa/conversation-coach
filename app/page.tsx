@@ -65,6 +65,7 @@ export default function HomePage() {
       body: JSON.stringify({ duration_seconds }),
     })
 
+    setUploading(false)
     router.push(`/sessions/${session_id}/status`)
   }, [title, router])
 
