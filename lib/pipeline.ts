@@ -36,9 +36,8 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     throw err
   }
 
-  // Write annotations and retrieve their IDs
   if (annotations.length > 0) {
-    const { data: insertedAnnotations, error: annotationError } = await db.from('annotations').insert(
+    const { error: annotationError } = await db.from('annotations').insert(
       annotations.map(a => ({
         session_id: sessionId,
         segment_id: a.segment_id,
@@ -49,23 +48,11 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
         correction: a.correction,
         explanation: a.explanation,
       }))
-    ).select('id')
-
-    if (annotationError || !insertedAnnotations) {
-      throw new Error(`Failed to insert annotations: ${annotationError?.message ?? 'no data returned'}`)
-    }
-
-    // Write practice items (denormalised copy) with annotation_id so re-analysis can delete them
-    await db.from('practice_items').insert(
-      annotations.map((a, i) => ({
-        session_id: sessionId,
-        annotation_id: insertedAnnotations[i]?.id ?? null,
-        type: a.type,
-        original: a.original,
-        correction: a.correction,
-        explanation: a.explanation,
-      }))
     )
+
+    if (annotationError) {
+      throw new Error(`Failed to insert annotations: ${annotationError.message}`)
+    }
   }
 
   // Delete audio from R2
