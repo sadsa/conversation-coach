@@ -11,10 +11,12 @@ interface Props {
   segments: TranscriptSegment[]
   annotations: Annotation[]
   userSpeakerLabels: ('A' | 'B')[] | null
-  onAddToPractice: (annotation: Annotation) => void
+  sessionId: string
+  addedAnnotationIds: Set<string>
+  onAnnotationAdded: (annotationId: string) => void
 }
 
-export function TranscriptView({ segments, annotations, userSpeakerLabels, onAddToPractice }: Props) {
+export function TranscriptView({ segments, annotations, userSpeakerLabels, sessionId, addedAnnotationIds, onAnnotationAdded }: Props) {
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -75,7 +77,13 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, onAdd
                 </span>
               </div>
               {activeAnnotation && annotationsBySegment[seg.id]?.find(a => a.id === activeAnnotation.id) && (
-                <AnnotationCard annotation={activeAnnotation} onAddToPractice={onAddToPractice} onClose={() => setActiveAnnotation(null)} />
+                <AnnotationCard
+                  annotation={activeAnnotation}
+                  sessionId={sessionId}
+                  isAdded={addedAnnotationIds.has(activeAnnotation.id)}
+                  onAnnotationAdded={onAnnotationAdded}
+                  onClose={() => setActiveAnnotation(null)}
+                />
               )}
             </div>
           )
