@@ -9,6 +9,7 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [detail, setDetail] = useState<SessionDetail | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [selectedSpeaker, setSelectedSpeaker] = useState<'A' | 'B' | null>(null)
 
   useEffect(() => {
     fetch(`/api/sessions/${params.id}`)
@@ -16,7 +17,8 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
       .then(setDetail)
   }, [params.id])
 
-  async function handleSelect(label: 'A' | 'B') {
+  async function handleToggle(label: 'A' | 'B') {
+    setSelectedSpeaker(label)
     setSubmitting(true)
     const res = await fetch(`/api/sessions/${params.id}/speaker`, {
       method: 'POST',
@@ -57,7 +59,8 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
             key={label}
             label={label}
             samples={speakerSamples[label]}
-            onSelect={handleSelect}
+            onToggle={handleToggle}
+            selected={selectedSpeaker === label}
             disabled={submitting}
           />
         ))}
