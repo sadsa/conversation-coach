@@ -15,7 +15,6 @@ describe('runClaudeAnalysis', () => {
     const insertAnnotationsMock = vi.fn().mockReturnValue({
       select: vi.fn().mockResolvedValue({ data: [{ id: 'ann-1' }], error: null }),
     })
-    const insertPracticeMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
@@ -48,7 +47,6 @@ describe('runClaudeAnalysis', () => {
           }
         }
         if (table === 'annotations') return { insert: insertAnnotationsMock }
-        if (table === 'practice_items') return { insert: insertPracticeMock }
         return {}
       }),
     }
@@ -68,7 +66,6 @@ describe('runClaudeAnalysis', () => {
     const insertAnnotationsMock = vi.fn().mockReturnValue({
       select: vi.fn().mockResolvedValue({ data: [{ id: 'ann-1' }], error: null }),
     })
-    const insertPracticeMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
@@ -101,7 +98,6 @@ describe('runClaudeAnalysis', () => {
           }
         }
         if (table === 'annotations') return { insert: insertAnnotationsMock }
-        if (table === 'practice_items') return { insert: insertPracticeMock }
         return {}
       }),
     }
@@ -115,14 +111,13 @@ describe('runClaudeAnalysis', () => {
     expect(segments).toHaveLength(2)
   })
 
-  it('inserts annotations and practice items with annotation_id, then sets status ready', async () => {
+  it('inserts annotations then sets status ready', async () => {
     const insertAnnotationsMock = vi.fn().mockReturnValue({
       select: vi.fn().mockResolvedValue({
         data: [{ id: 'ann-1' }],
         error: null,
       }),
     })
-    const insertPracticeMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
 
     const mockDb = {
@@ -153,7 +148,6 @@ describe('runClaudeAnalysis', () => {
           }
         }
         if (table === 'annotations') return { insert: insertAnnotationsMock }
-        if (table === 'practice_items') return { insert: insertPracticeMock }
         return {}
       }),
     }
@@ -166,9 +160,6 @@ describe('runClaudeAnalysis', () => {
     await runClaudeAnalysis('session-1')
 
     expect(insertAnnotationsMock).toHaveBeenCalled()
-    // practice_items insert should include annotation_id
-    const practiceCall = insertPracticeMock.mock.calls[0][0]
-    expect(practiceCall[0]).toHaveProperty('annotation_id', 'ann-1')
     expect(updateMock).toHaveBeenCalledWith({ status: 'ready' })
   })
 })
