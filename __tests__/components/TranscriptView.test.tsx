@@ -7,6 +7,9 @@ import type { TranscriptSegment, Annotation } from '@/lib/types'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
+// Prevent actual fetch calls from AnnotationCard during TranscriptView tests
+vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response)
+
 const segments: TranscriptSegment[] = [
   { id: 'seg-1', session_id: 's1', speaker: 'A', text: 'Yo fui al mercado.', start_ms: 0, end_ms: 2000, position: 0 },
   { id: 'seg-2', session_id: 's1', speaker: 'B', text: '¿Qué compraste?', start_ms: 2500, end_ms: 4000, position: 1 },
@@ -16,26 +19,25 @@ const annotations: Annotation[] = [
     original: 'Yo fui', start_char: 0, end_char: 6, correction: 'Fui', explanation: 'Drop pronoun.' },
 ]
 
+const defaultProps = {
+  sessionId: 's1',
+  addedAnnotationIds: new Set<string>(),
+  onAnnotationAdded: vi.fn(),
+}
+
 describe('TranscriptView', () => {
-  it('dims native speaker turns (speaker B when user is ["A"])', () => {
+  it('dims native speaker turns (speaker B when user is A)', () => {
     const { container } = render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
     )
     const dimmed = container.querySelector('.opacity-40')
     expect(dimmed).toBeTruthy()
     expect(dimmed?.textContent).toContain('¿Qué compraste?')
   })
 
-  it('does not dim any segments when userSpeakerLabels is ["A","B"]', () => {
-    const { container } = render(
-      <TranscriptView segments={segments} annotations={[]} userSpeakerLabels={['A', 'B']} onAddToPractice={() => {}} />
-    )
-    expect(container.querySelector('.opacity-40')).toBeNull()
-  })
-
   it('shows annotation card when highlight is clicked', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
@@ -43,7 +45,7 @@ describe('TranscriptView', () => {
 
   it('hides annotation card when same highlight is clicked again', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     await userEvent.click(screen.getByText('Yo fui'))
@@ -52,7 +54,7 @@ describe('TranscriptView', () => {
 
   it('filters annotations by type', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" {...defaultProps} />
     )
     await userEvent.click(screen.getByRole('button', { name: /natural/i }))
     expect(screen.queryByText('Yo fui')).toBeTruthy()
