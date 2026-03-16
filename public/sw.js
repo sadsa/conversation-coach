@@ -16,13 +16,14 @@ function openDB() {
   })
 }
 
-function storeFile(file) {
-  return new Promise(async (resolve, reject) => {
-    const db = await openDB()
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put(file, 'file')
-    tx.oncomplete = () => resolve()
+async function storeFile(file) {
+  const db = await openDB()
+  const tx = db.transaction(STORE_NAME, 'readwrite')
+  tx.objectStore(STORE_NAME).put(file, 'file')
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve
     tx.onerror = (e) => reject(e.target.error)
+    tx.onabort = (e) => reject(e.target.error)
   })
 }
 
@@ -44,9 +45,11 @@ self.addEventListener('fetch', (e) => {
     const file = formData.get('audio')
 
     // 2. Write to IndexedDB — MUST complete before redirect so page.tsx can read it
-    if (file instanceof File) {
-      await storeFile(file)
+    if (!(file instanceof File)) {
+      console.warn('[sw] share-target: no audio file in form data')
+      return Response.redirect('/', 303)
     }
+    await storeFile(file)
 
     // 3. Open or focus the app window
     const allClients = await self.clients.matchAll({
@@ -54,7 +57,7 @@ self.addEventListener('fetch', (e) => {
       includeUncontrolled: true,
     })
     if (allClients.length > 0) {
-      await allClients[0].focus()
+      await allClients[allClients.length - 1].focus()
     } else {
       await self.clients.openWindow('/')
     }
