@@ -75,7 +75,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabel, onAddT
                 </span>
               </div>
               {activeAnnotation && annotationsBySegment[seg.id]?.find(a => a.id === activeAnnotation.id) && (
-                <AnnotationCard annotation={activeAnnotation} onAddToPractice={onAddToPractice} />
+                <AnnotationCard annotation={activeAnnotation} onAddToPractice={onAddToPractice} onClose={() => setActiveAnnotation(null)} />
               )}
             </div>
           )

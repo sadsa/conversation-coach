@@ -7,14 +7,24 @@ const TYPE_LABEL = { grammar: '🔴 Grammar', naturalness: '🟡 Naturalness', s
 interface Props {
   annotation: Annotation
   onAddToPractice: (annotation: Annotation) => void
+  onClose: () => void
 }
 
-export function AnnotationCard({ annotation, onAddToPractice }: Props) {
+export function AnnotationCard({ annotation, onAddToPractice, onClose }: Props) {
   return (
     <div className="mt-2 ml-6 border border-gray-700 rounded-lg p-4 text-sm space-y-2 bg-gray-900">
-      <p className="font-semibold text-xs uppercase tracking-wide text-gray-400">
-        {TYPE_LABEL[annotation.type]}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-xs uppercase tracking-wide text-gray-400">
+          {TYPE_LABEL[annotation.type]}
+        </p>
+        <button
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-300 transition-colors"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
       <p>
         {annotation.correction ? (
           <span className="font-medium">{annotation.correction}</span>
