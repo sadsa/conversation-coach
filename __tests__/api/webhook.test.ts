@@ -109,6 +109,7 @@ describe('POST /api/webhooks/assemblyai', () => {
     const { POST } = await import('@/app/api/webhooks/assemblyai/route')
     const req = requestWithSecret({ transcript_id: 'known-job', status: 'completed', utterances: [] })
     await POST(req)
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ user_speaker_labels: ['A'] }))
     expect(vi.mocked(runClaudeAnalysis)).toHaveBeenCalledWith('session-1')
   })
 })
