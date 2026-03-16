@@ -26,7 +26,21 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .select('*')
     .eq('session_id', params.id)
 
-  return NextResponse.json({ session, segments: segments ?? [], annotations: annotations ?? [] })
+  const { data: practiceItems } = await db
+    .from('practice_items')
+    .select('annotation_id')
+    .eq('session_id', params.id)
+
+  const addedAnnotationIds = (practiceItems ?? [])
+    .map((p: { annotation_id: string | null }) => p.annotation_id)
+    .filter((id): id is string => id !== null)
+
+  return NextResponse.json({
+    session,
+    segments: segments ?? [],
+    annotations: annotations ?? [],
+    addedAnnotationIds,
+  })
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
