@@ -17,19 +17,25 @@ const annotations: Annotation[] = [
 ]
 
 describe('TranscriptView', () => {
-  it('dims native speaker turns (speaker B when user is A)', () => {
+  it('dims native speaker turns (speaker B when user is ["A"])', () => {
     const { container } = render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
     )
-    // seg-2 (speaker B) should have opacity-40 class
     const dimmed = container.querySelector('.opacity-40')
     expect(dimmed).toBeTruthy()
     expect(dimmed?.textContent).toContain('¿Qué compraste?')
   })
 
+  it('does not dim any segments when userSpeakerLabels is ["A","B"]', () => {
+    const { container } = render(
+      <TranscriptView segments={segments} annotations={[]} userSpeakerLabels={['A', 'B']} onAddToPractice={() => {}} />
+    )
+    expect(container.querySelector('.opacity-40')).toBeNull()
+  })
+
   it('shows annotation card when highlight is clicked', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
@@ -37,7 +43,7 @@ describe('TranscriptView', () => {
 
   it('hides annotation card when same highlight is clicked again', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     await userEvent.click(screen.getByText('Yo fui'))
@@ -46,11 +52,9 @@ describe('TranscriptView', () => {
 
   it('filters annotations by type', async () => {
     render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabel="A" onAddToPractice={() => {}} />
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} onAddToPractice={() => {}} />
     )
-    // Click naturalness filter — no naturalness annotations, so mark should still render but be unclickable as annotation
     await userEvent.click(screen.getByRole('button', { name: /natural/i }))
-    // The mark for grammar should not be rendered as annotated under naturalness filter
-    expect(screen.queryByText('Yo fui')).toBeTruthy() // text still visible, just not highlighted
+    expect(screen.queryByText('Yo fui')).toBeTruthy()
   })
 })

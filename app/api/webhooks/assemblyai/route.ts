@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     const { error: updateError } = await db.from('sessions').update({
       status: 'analysing',
       detected_speaker_count: 1,
-      user_speaker_label: 'A',
+      user_speaker_labels: ['A'],
     }).eq('id', session.id)
     if (updateError) console.error('[webhook] status update error:', updateError.message)
 

@@ -80,7 +80,7 @@ describe('POST /api/sessions/:id/speaker', () => {
     const { POST } = await import('@/app/api/sessions/[id]/speaker/route')
     const req = new NextRequest('http://localhost', {
       method: 'POST',
-      body: JSON.stringify({ speaker_label: 'A' }),
+      body: JSON.stringify({ speaker_labels: ['A'] }),
       headers: { 'content-type': 'application/json' },
     })
     const res = await POST(req, { params: { id: 'session-1' } })
@@ -104,7 +104,7 @@ describe('POST /api/sessions/:id/speaker', () => {
     const { POST } = await import('@/app/api/sessions/[id]/speaker/route')
     const req = new NextRequest('http://localhost', {
       method: 'POST',
-      body: JSON.stringify({ speaker_label: 'A' }),
+      body: JSON.stringify({ speaker_labels: ['A'] }),
       headers: { 'content-type': 'application/json' },
     })
     const res = await POST(req, { params: { id: 'session-1' } })

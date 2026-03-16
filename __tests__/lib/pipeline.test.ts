@@ -28,7 +28,7 @@ describe('runClaudeAnalysis', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { user_speaker_label: 'A', audio_r2_key: 'audio/test.mp3' },
+                  data: { user_speaker_labels: ['A'], audio_r2_key: 'audio/test.mp3' },
                   error: null,
                 }),
               }),

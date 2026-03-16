@@ -91,7 +91,7 @@ describe('GET /api/sessions/:id', () => {
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: { id: 's1', title: 'Test', status: 'ready', error_stage: null,
-                    duration_seconds: 60, detected_speaker_count: 2, user_speaker_label: 'A',
+                    duration_seconds: 60, detected_speaker_count: 2, user_speaker_labels: ['A'],
                     created_at: '2026-03-15' },
                   error: null,
                 }),

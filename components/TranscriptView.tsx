@@ -10,11 +10,11 @@ type Filter = 'all' | 'grammar' | 'naturalness' | 'strength'
 interface Props {
   segments: TranscriptSegment[]
   annotations: Annotation[]
-  userSpeakerLabel: 'A' | 'B' | null
+  userSpeakerLabels: ('A' | 'B')[] | null
   onAddToPractice: (annotation: Annotation) => void
 }
 
-export function TranscriptView({ segments, annotations, userSpeakerLabel, onAddToPractice }: Props) {
+export function TranscriptView({ segments, annotations, userSpeakerLabels, onAddToPractice }: Props) {
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -49,7 +49,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabel, onAddT
       {/* Segments */}
       <div className="space-y-4">
         {segments.map(seg => {
-          const isUser = userSpeakerLabel === null || seg.speaker === userSpeakerLabel
+          const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
 
           return (
             <div key={seg.id}>
