@@ -82,7 +82,7 @@ describe('POST /api/sessions', () => {
 })
 
 describe('GET /api/sessions/:id', () => {
-  it('returns session detail with segments and annotations', async () => {
+  it('returns session detail with segments, annotations, and addedAnnotationIds', async () => {
     const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'sessions') {
@@ -99,6 +99,14 @@ describe('GET /api/sessions/:id', () => {
             }),
           }
         }
+        if (table === 'practice_items') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [{ annotation_id: 'ann-1' }], error: null }),
+            }),
+          }
+        }
+        // transcript_segments and annotations
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
@@ -116,6 +124,7 @@ describe('GET /api/sessions/:id', () => {
     expect(body.session.id).toBe('s1')
     expect(body.segments).toEqual([])
     expect(body.annotations).toEqual([])
+    expect(body.addedAnnotationIds).toEqual(['ann-1'])
   })
 
   it('returns 404 for unknown session', async () => {
