@@ -12,9 +12,7 @@ import { runClaudeAnalysis } from '@/lib/pipeline'
 
 describe('runClaudeAnalysis', () => {
   it('filters segments by user_speaker_labels ["B"] only', async () => {
-    const insertAnnotationsMock = vi.fn().mockReturnValue({
-      select: vi.fn().mockResolvedValue({ data: [{ id: 'ann-1' }], error: null }),
-    })
+    const insertAnnotationsMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
@@ -63,9 +61,7 @@ describe('runClaudeAnalysis', () => {
   })
 
   it('includes all segments when user_speaker_labels is ["A", "B"]', async () => {
-    const insertAnnotationsMock = vi.fn().mockReturnValue({
-      select: vi.fn().mockResolvedValue({ data: [{ id: 'ann-1' }], error: null }),
-    })
+    const insertAnnotationsMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
@@ -112,12 +108,7 @@ describe('runClaudeAnalysis', () => {
   })
 
   it('inserts annotations then sets status ready', async () => {
-    const insertAnnotationsMock = vi.fn().mockReturnValue({
-      select: vi.fn().mockResolvedValue({
-        data: [{ id: 'ann-1' }],
-        error: null,
-      }),
-    })
+    const insertAnnotationsMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
 
     const mockDb = {
