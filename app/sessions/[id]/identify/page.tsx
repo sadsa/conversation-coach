@@ -8,8 +8,8 @@ import type { SessionDetail } from '@/lib/types'
 export default function IdentifyPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [detail, setDetail] = useState<SessionDetail | null>(null)
+  const [selectedLabels, setSelectedLabels] = useState<Set<'A' | 'B'>>(new Set())
   const [submitting, setSubmitting] = useState(false)
-  const [selectedSpeaker, setSelectedSpeaker] = useState<'A' | 'B' | null>(null)
 
   useEffect(() => {
     fetch(`/api/sessions/${params.id}`)
@@ -17,16 +17,26 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
       .then(setDetail)
   }, [params.id])
 
-  async function handleToggle(label: 'A' | 'B') {
-    setSelectedSpeaker(label)
+  function handleToggle(label: 'A' | 'B') {
+    setSelectedLabels(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) {
+        next.delete(label)
+      } else {
+        next.add(label)
+      }
+      return next
+    })
+  }
+
+  async function handleConfirm() {
     setSubmitting(true)
     const res = await fetch(`/api/sessions/${params.id}/speaker`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ speaker_label: label }),
+      body: JSON.stringify({ speaker_labels: [...selectedLabels] }),
     })
     if (res.status === 409) {
-      // Session status changed — redirect to status page for re-evaluation
       router.push(`/sessions/${params.id}/status`)
       return
     }
@@ -48,9 +58,9 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Who are you?</h1>
+        <h1 className="text-xl font-semibold">Select all speakers that are you</h1>
         <p className="text-sm text-gray-400 mt-1">
-          Two speakers detected. Pick the one that sounds like you.
+          Tap a speaker to select it. You can select both if they&apos;re all you.
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -60,10 +70,19 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
             label={label}
             samples={speakerSamples[label]}
             onToggle={handleToggle}
-            selected={selectedSpeaker === label}
+            selected={selectedLabels.has(label)}
             disabled={submitting}
           />
         ))}
+      </div>
+      <div className="flex justify-end">
+        <button
+          onClick={handleConfirm}
+          disabled={selectedLabels.size === 0 || submitting}
+          className="px-6 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+        >
+          Confirm →
+        </button>
       </div>
     </div>
   )
