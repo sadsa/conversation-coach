@@ -32,7 +32,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   }
 
   function handleAnnotationAdded(annotationId: string) {
-    setAddedAnnotationIds(prev => new Set([...prev, annotationId]))
+    setAddedAnnotationIds(prev => { const next = new Set(prev); next.add(annotationId); return next })
   }
 
   async function handleReanalyse() {
@@ -76,7 +76,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
       <TranscriptView
         segments={segments}
         annotations={annotations}
-        userSpeakerLabel={session.user_speaker_labels?.[0] ?? null}
+        userSpeakerLabels={session.user_speaker_labels ?? null}
         sessionId={params.id}
         addedAnnotationIds={addedAnnotationIds}
         onAnnotationAdded={handleAnnotationAdded}
