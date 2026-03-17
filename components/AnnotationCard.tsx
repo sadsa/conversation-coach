@@ -52,7 +52,11 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
       </div>
       <p>
         {annotation.correction ? (
-          <span className="font-medium">{annotation.correction}</span>
+          <>
+            <span className="line-through text-gray-500">{annotation.original}</span>
+            {' → '}
+            <span className="font-medium">{annotation.correction}</span>
+          </>
         ) : (
           <span className="text-green-300">Keep this! &ldquo;{annotation.original}&rdquo;</span>
         )}
