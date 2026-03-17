@@ -31,6 +31,7 @@ describe('AnnotationCard', () => {
   it('renders correction for grammar annotation', () => {
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
     expect(screen.getByText('Fui')).toBeInTheDocument()
+    expect(screen.getByText('Yo fui')).toBeInTheDocument()   // ← add this line
     expect(screen.getByText('Drop the subject pronoun.')).toBeInTheDocument()
   })
 
