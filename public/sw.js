@@ -40,29 +40,22 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname !== '/share-target' || e.request.method !== 'POST') return
 
   const work = (async () => {
-    // 1. Parse the shared file from the multipart POST body
-    const formData = await e.request.formData()
-    const file = formData.get('audio')
+    try {
+      // 1. Parse the shared file from the multipart POST body
+      const formData = await e.request.formData()
+      const file = formData.get('audio')
 
-    // 2. Write to IndexedDB — MUST complete before redirect so page.tsx can read it
-    if (!(file instanceof File)) {
-      console.warn('[sw] share-target: no audio file in form data')
-      return Response.redirect('/', 303)
-    }
-    await storeFile(file)
-
-    // 3. Open or focus the app window
-    const allClients = await self.clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true,
-    })
-    if (allClients.length > 0) {
-      await allClients[allClients.length - 1].focus()
-    } else {
-      await self.clients.openWindow('/')
+      // 2. Write to IndexedDB — MUST complete before redirect so page.tsx can read it
+      if (!(file instanceof File)) {
+        console.warn('[sw] share-target: no audio file in form data', { type: typeof file, value: file })
+        return Response.redirect('/', 303)
+      }
+      await storeFile(file)
+    } catch (err) {
+      console.error('[sw] share-target error:', err)
     }
 
-    // 4. Redirect to home — browser navigates the app
+    // Always redirect home, even on error
     return Response.redirect('/', 303)
   })()
 
