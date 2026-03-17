@@ -48,7 +48,9 @@ describe('TranscriptView', () => {
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
-    await userEvent.click(screen.getByText('Yo fui'))
+    // After card opens, 'Yo fui' appears in both the transcript mark and the AnnotationCard strikethrough.
+    // Click the first match (the <mark> in the transcript) to toggle the card closed.
+    await userEvent.click(screen.getAllByText('Yo fui')[0])
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
