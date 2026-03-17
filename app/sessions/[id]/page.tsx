@@ -67,12 +67,6 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         </button>
       </div>
 
-      {session.detected_speaker_count === 1 && (
-        <div className="border border-yellow-700 bg-yellow-900/20 rounded-lg px-4 py-3 text-sm text-yellow-300">
-          Couldn&apos;t distinguish two speakers — try a higher quality recording.
-        </div>
-      )}
-
       <TranscriptView
         segments={segments}
         annotations={annotations}
