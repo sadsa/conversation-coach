@@ -61,4 +61,13 @@ describe('TranscriptView', () => {
     await userEvent.click(screen.getByRole('button', { name: /natural/i }))
     expect(screen.queryByText('Yo fui')).toBeTruthy()
   })
+
+  it('renders speaker label as a stacked paragraph above segment text', () => {
+    render(
+      <TranscriptView segments={segments} annotations={[]} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    const label = screen.getByText('You')
+    expect(label.tagName).toBe('P')
+    expect(label).toHaveClass('uppercase')
+  })
 })

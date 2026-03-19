@@ -55,17 +55,16 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
 
           return (
             <div key={seg.id}>
-              <div className={`flex gap-4 ${!isUser ? 'opacity-40' : ''}`}>
-                <span className="text-xs text-gray-500 w-14 text-right pt-0.5 shrink-0">
+              <div className={!isUser ? 'opacity-40' : ''}>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">
                   {isUser ? 'You' : 'Them'}
-                </span>
+                </p>
                 <span className="text-sm leading-relaxed">
                   {isUser && (annotationsBySegment[seg.id] ?? []).length > 0 ? (
                     <AnnotatedText
                       text={seg.text}
                       annotations={annotationsBySegment[seg.id] ?? []}
                       onAnnotationClick={a => {
-                        // Only toggle card if annotation passes the current filter
                         if (filter === 'all' || a.type === filter) {
                           setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
                         }
