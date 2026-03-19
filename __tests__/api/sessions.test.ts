@@ -79,6 +79,33 @@ describe('POST /api/sessions', () => {
     const res = await POST(req)
     expect(res.status).toBe(400)
   })
+
+  it('stores original_filename when provided', async () => {
+    // Arrange: mock DB insert to capture the inserted row
+    const insertMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'sess-1', audio_r2_key: 'audio/sess-1.mp3' },
+          error: null,
+        }),
+      }),
+    })
+    const mockDb = {
+      from: vi.fn().mockReturnValue({ insert: insertMock }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(presignedUploadUrl).mockResolvedValue('https://r2.example.com/upload')
+
+    const req = new NextRequest('http://localhost/api/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Untitled', extension: 'ogg', original_filename: 'PTT-20260315-001.ogg' }),
+    })
+    await POST(req)
+
+    const insertedRow = insertMock.mock.calls[0][0]
+    expect(insertedRow).toMatchObject({ original_filename: 'PTT-20260315-001.ogg' })
+  })
 })
 
 describe('GET /api/sessions/:id', () => {
