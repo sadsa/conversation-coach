@@ -94,7 +94,7 @@ describe('POST /api/sessions', () => {
       from: vi.fn().mockReturnValue({ insert: insertMock }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-    vi.mocked(presignedUploadUrl).mockResolvedValue('https://r2.example.com/upload')
+    vi.mocked(presignedUploadUrl).mockResolvedValue({ key: 'audio/sess-1.mp3', url: 'https://r2.example.com/upload' })
 
     const req = new NextRequest('http://localhost/api/sessions', {
       method: 'POST',
