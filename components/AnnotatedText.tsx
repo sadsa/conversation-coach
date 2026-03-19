@@ -2,9 +2,9 @@
 import type { Annotation } from '@/lib/types'
 
 const TYPE_CLASS: Record<string, string> = {
-  grammar: 'bg-red-500/25 decoration-red-400',
-  naturalness: 'bg-yellow-500/25 decoration-yellow-400',
-  strength: 'bg-green-500/25 decoration-green-400',
+  grammar:     'bg-[#3b1a1a] text-[#fca5a5] decoration-[#f87171]',
+  naturalness: 'bg-[#3b2e0a] text-[#fde68a] decoration-[#fbbf24]',
+  strength:    'bg-[#0f2e1a] text-[#86efac] decoration-[#4ade80]',
 }
 
 interface Props {
@@ -52,7 +52,7 @@ export function AnnotatedText({ text, annotations, onAnnotationClick }: Props) {
           return (
             <mark
               key={i}
-              className={`underline decoration-2 cursor-pointer rounded-sm px-0.5 ${cls}`}
+              className={`underline decoration-2 cursor-pointer rounded-sm px-1 ${cls}`}
               onClick={() => onAnnotationClick(span.annotation!)}
             >
               {slice}
