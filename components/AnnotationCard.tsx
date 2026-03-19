@@ -37,7 +37,7 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
   }
 
   return (
-    <div className="mt-2 border border-gray-700 rounded-lg p-4 text-sm space-y-2 bg-gray-900">
+    <div className="mt-2 ml-0 border border-gray-700 rounded-lg p-4 text-sm space-y-2 bg-gray-900">
       <div className="flex items-center justify-between">
         <p className="font-semibold text-xs uppercase tracking-wide text-gray-400">
           {TYPE_LABEL[annotation.type]}
