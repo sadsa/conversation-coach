@@ -2,7 +2,8 @@
 'use client'
 import { useState } from 'react'
 import { AnnotatedText } from '@/components/AnnotatedText'
-import { AnnotationCard } from '@/components/AnnotationCard'
+import { Modal } from '@/components/Modal'
+import { AnnotationCard, TYPE_LABEL } from '@/components/AnnotationCard'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
 type Filter = 'all' | 'grammar' | 'naturalness' | 'strength'
@@ -75,19 +76,23 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
                   )}
                 </span>
               </div>
-              {activeAnnotation && annotationsBySegment[seg.id]?.find(a => a.id === activeAnnotation.id) && (
-                <AnnotationCard
-                  annotation={activeAnnotation}
-                  sessionId={sessionId}
-                  isAdded={addedAnnotationIds.has(activeAnnotation.id)}
-                  onAnnotationAdded={onAnnotationAdded}
-                  onClose={() => setActiveAnnotation(null)}
-                />
-              )}
             </div>
           )
         })}
       </div>
+      {activeAnnotation && (
+        <Modal
+          title={<span>{TYPE_LABEL[activeAnnotation.type]}</span>}
+          onClose={() => setActiveAnnotation(null)}
+        >
+          <AnnotationCard
+            annotation={activeAnnotation}
+            sessionId={sessionId}
+            isAdded={addedAnnotationIds.has(activeAnnotation.id)}
+            onAnnotationAdded={onAnnotationAdded}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

@@ -1,18 +1,22 @@
+// components/AnnotationCard.tsx
 'use client'
 import { useState } from 'react'
-import type { Annotation } from '@/lib/types'
+import type { Annotation, AnnotationType } from '@/lib/types'
 
-const TYPE_LABEL = { grammar: '🔴 Grammar', naturalness: '🟡 Naturalness', strength: '🟢 Strength' }
+export const TYPE_LABEL: Record<AnnotationType, string> = {
+  grammar: '🔴 Grammar',
+  naturalness: '🟡 Naturalness',
+  strength: '🟢 Strength',
+}
 
 interface Props {
   annotation: Annotation
   sessionId: string
   isAdded: boolean
   onAnnotationAdded: (annotationId: string) => void
-  onClose: () => void
 }
 
-export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdded, onClose }: Props) {
+export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdded }: Props) {
   const [added, setAdded] = useState(isAdded)
 
   async function handleAdd() {
@@ -37,42 +41,27 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
   }
 
   return (
-    <div className="mt-2 ml-0 border border-gray-700 rounded-lg p-4 text-sm space-y-2 bg-gray-900">
-      <div className="flex items-center justify-between">
-        <p className="font-semibold text-xs uppercase tracking-wide text-gray-400">
-          {TYPE_LABEL[annotation.type]}
-        </p>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-300 transition-colors"
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
-      <p>
+    <div className="space-y-3">
+      <p className="text-base">
         {annotation.correction ? (
           <>
             <span className="line-through text-gray-500">{annotation.original}</span>
             {' → '}
-            <span className="font-medium">{annotation.correction}</span>
+            <span className="font-semibold text-lg">{annotation.correction}</span>
           </>
         ) : (
           <span className="text-green-300">Keep this! &ldquo;{annotation.original}&rdquo;</span>
         )}
       </p>
-      <p className="text-gray-400">{annotation.explanation}</p>
+      <p className="text-sm text-gray-400 leading-relaxed">{annotation.explanation}</p>
       {added ? (
-        <button
-          disabled
-          className="text-xs text-gray-500 cursor-not-allowed"
-        >
+        <button disabled className="w-full py-3 rounded-xl bg-gray-700 text-sm text-gray-500 cursor-not-allowed">
           ✓ Added to practice list
         </button>
       ) : (
         <button
           onClick={handleAdd}
-          className="text-xs text-violet-400 hover:text-violet-300 underline"
+          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-base font-semibold text-white transition-colors"
         >
           Add to practice list
         </button>
