@@ -11,7 +11,7 @@ For each finding:
 - "segment_id": the ID from the [ID: ...] prefix of the turn being annotated
 - "type": one of "grammar", "naturalness", or "strength"
 - "original": copy the exact substring from the turn's text
-- "start_char" / "end_char": character offsets of "original" within that turn's text
+- "start_char" / "end_char": character offsets of "original" within the turn's text content only — do NOT count the [ID: ...] prefix line; offset 0 is the first character of the text itself
 - "correction": the improved version (null for strengths)
 - "explanation": a concise plain-language explanation tuned to Argentine Spanish conventions
 

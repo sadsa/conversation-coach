@@ -36,9 +36,25 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     throw err
   }
 
-  if (annotations.length > 0) {
+  // Build a map so we can validate/correct character offsets from Claude
+  const segmentTextById = new Map(userTurns.map(t => [t.id, t.text]))
+
+  const correctedAnnotations = annotations.map(a => {
+    const segText = segmentTextById.get(a.segment_id)
+    if (!segText) return a
+    // If the slice doesn't match, find the correct position using indexOf
+    if (segText.slice(a.start_char, a.end_char) !== a.original) {
+      const idx = segText.indexOf(a.original)
+      if (idx !== -1) {
+        return { ...a, start_char: idx, end_char: idx + a.original.length }
+      }
+    }
+    return a
+  })
+
+  if (correctedAnnotations.length > 0) {
     const { error: annotationError } = await db.from('annotations').insert(
-      annotations.map(a => ({
+      correctedAnnotations.map(a => ({
         session_id: sessionId,
         segment_id: a.segment_id,
         type: a.type,
