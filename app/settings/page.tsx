@@ -1,6 +1,6 @@
 // app/settings/page.tsx
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const MIN = 14
 const MAX = 22
@@ -8,10 +8,12 @@ const STEP = 2
 const KEY = 'fontSize'
 
 export default function SettingsPage() {
-  const [size, setSize] = useState<number>(() => {
-    if (typeof window === 'undefined') return 16
-    return parseInt(localStorage.getItem(KEY) ?? '16', 10)
-  })
+  const [size, setSize] = useState<number>(16)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(KEY)
+    if (stored) setSize(parseInt(stored, 10))
+  }, [])
 
   function apply(newSize: number) {
     setSize(newSize)
