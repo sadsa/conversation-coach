@@ -21,7 +21,7 @@ describe('runClaudeAnalysis', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { user_speaker_labels: ['B'], audio_r2_key: 'audio/test.mp3' },
+                  data: { user_speaker_labels: ['B'], audio_r2_key: 'audio/test.mp3', original_filename: 'PTT-20260315.ogg' },
                   error: null,
                 }),
               }),
@@ -49,7 +49,7 @@ describe('runClaudeAnalysis', () => {
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-    vi.mocked(analyseUserTurns).mockResolvedValue([])
+    vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test Session', annotations: [] })
     vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-b')
@@ -70,7 +70,7 @@ describe('runClaudeAnalysis', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { user_speaker_labels: ['A', 'B'], audio_r2_key: 'audio/test.mp3' },
+                  data: { user_speaker_labels: ['A', 'B'], audio_r2_key: 'audio/test.mp3', original_filename: 'PTT-20260315.ogg' },
                   error: null,
                 }),
               }),
@@ -98,7 +98,7 @@ describe('runClaudeAnalysis', () => {
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-    vi.mocked(analyseUserTurns).mockResolvedValue([])
+    vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test Session', annotations: [] })
     vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-ab')
@@ -118,7 +118,7 @@ describe('runClaudeAnalysis', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { user_speaker_labels: ['A'], audio_r2_key: 'audio/test.mp3' },
+                  data: { user_speaker_labels: ['A'], audio_r2_key: 'audio/test.mp3', original_filename: 'PTT-20260315.ogg' },
                   error: null,
                 }),
               }),
@@ -143,14 +143,52 @@ describe('runClaudeAnalysis', () => {
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-    vi.mocked(analyseUserTurns).mockResolvedValue([
+    vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test Session', annotations: [
       { segment_id: 'seg-1', type: 'grammar', original: 'Yo fui', start_char: 0, end_char: 6, correction: 'Fui', explanation: 'Drop pronoun.' },
-    ])
+    ] })
     vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-1')
 
     expect(insertAnnotationsMock).toHaveBeenCalled()
-    expect(updateMock).toHaveBeenCalledWith({ status: 'ready' })
+    expect(updateMock).toHaveBeenCalledWith({ status: 'ready', title: 'Test Session' })
+  })
+
+  it('saves the generated title to the session on success', async () => {
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { user_speaker_labels: ['A'], audio_r2_key: null, original_filename: null },
+                error: null,
+              }),
+            }),
+          }),
+          update: updateMock,
+        }
+        if (table === 'transcript_segments') return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: [{ id: 'seg-a', speaker: 'A', text: 'Hola.' }], error: null }),
+            }),
+          }),
+        }
+        if (table === 'annotations') return { insert: vi.fn().mockResolvedValue({ error: null }) }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Charla con Ana', annotations: [] })
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+
+    await runClaudeAnalysis('session-title-test')
+
+    // The final status update should include the generated title
+    const updateCalls = updateMock.mock.calls
+    const readyUpdate = updateCalls.find(([payload]: [Record<string, unknown>]) => payload.status === 'ready')
+    expect(readyUpdate[0]).toMatchObject({ status: 'ready', title: 'Charla con Ana' })
   })
 })

@@ -3,13 +3,14 @@ import { createServerClient } from '@/lib/supabase-server'
 import { analyseUserTurns } from '@/lib/claude'
 import { deleteObject } from '@/lib/r2'
 import type { TranscriptSegment } from '@/lib/types'
+import type { ClaudeAnnotation } from '@/lib/claude'
 
 export async function runClaudeAnalysis(sessionId: string): Promise<void> {
   const db = createServerClient()
 
   const { data: session } = await db
     .from('sessions')
-    .select('user_speaker_labels, audio_r2_key')
+    .select('user_speaker_labels, audio_r2_key, original_filename')
     .eq('id', sessionId)
     .single()
 
@@ -25,9 +26,12 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     .filter((s: TranscriptSegment) => (session.user_speaker_labels ?? []).includes(s.speaker))
     .map((s: TranscriptSegment) => ({ id: s.id, text: s.text }))
 
-  let annotations
+  let annotations: ClaudeAnnotation[] = []
+  let title = 'Untitled'
   try {
-    annotations = await analyseUserTurns(userTurns)
+    const result = await analyseUserTurns(userTurns, session.original_filename ?? null)
+    annotations = result.annotations
+    title = result.title
   } catch (err) {
     await db.from('sessions').update({
       status: 'error',
@@ -42,7 +46,6 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
   const correctedAnnotations = annotations.map(a => {
     const segText = segmentTextById.get(a.segment_id)
     if (!segText) return a
-    // If the slice doesn't match, find the correct position using indexOf
     if (segText.slice(a.start_char, a.end_char) !== a.original) {
       const idx = segText.indexOf(a.original)
       if (idx !== -1) {
@@ -77,5 +80,5 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     await db.from('sessions').update({ audio_r2_key: null }).eq('id', sessionId)
   }
 
-  await db.from('sessions').update({ status: 'ready' }).eq('id', sessionId)
+  await db.from('sessions').update({ status: 'ready', title }).eq('id', sessionId)
 }
