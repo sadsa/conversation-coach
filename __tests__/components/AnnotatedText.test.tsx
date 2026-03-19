@@ -44,4 +44,12 @@ describe('AnnotatedText', () => {
     render(<AnnotatedText text={text} annotations={annotations} onAnnotationClick={() => {}} />)
     expect(screen.getByText(' al mercado.')).toBeInTheDocument()
   })
+
+  it('applies dark-chip colour classes to grammar annotations', () => {
+    render(<AnnotatedText text={text} annotations={annotations} onAnnotationClick={() => {}} />)
+    const mark = screen.getByText('Yo fui')
+    expect(mark).toHaveClass('bg-[#3b1a1a]')
+    expect(mark).toHaveClass('text-[#fca5a5]')
+    expect(mark).toHaveClass('decoration-[#f87171]')
+  })
 })
