@@ -70,14 +70,32 @@ describe('POST /api/sessions', () => {
     expect(body.upload_url).toBe('https://r2.example/presigned')
   })
 
-  it('returns 400 when title is missing', async () => {
+  it('defaults to "Untitled" when title is missing', async () => {
+    vi.mocked(presignedUploadUrl).mockResolvedValue({ key: 'audio/uuid.mp3', url: 'https://r2.example/presigned' })
+    const insertMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'new-id' },
+          error: null,
+        }),
+      }),
+    })
+    const mockDb = {
+      from: vi.fn().mockReturnValue({ insert: insertMock }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
     const req = new NextRequest('http://localhost/api/sessions', {
       method: 'POST',
       body: JSON.stringify({}),
       headers: { 'content-type': 'application/json' },
     })
     const res = await POST(req)
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(201)
+
+    // Verify the inserted row has title 'Untitled'
+    const insertedRow = insertMock.mock.calls[0][0]
+    expect(insertedRow.title).toBe('Untitled')
   })
 
   it('stores original_filename when provided', async () => {
