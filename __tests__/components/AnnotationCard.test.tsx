@@ -20,7 +20,7 @@ const defaultProps = {
   sessionId: 's1',
   isAdded: false,
   onAnnotationAdded: vi.fn(),
-  onClose: vi.fn(),
+  // onClose removed — now owned by Modal
 }
 
 beforeEach(() => {
@@ -49,7 +49,6 @@ describe('AnnotationCard', () => {
   it('does not call fetch when isAdded is true and button is clicked', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} isAdded={true} />)
-    // button is disabled, click should be a no-op
     await userEvent.click(screen.getByRole('button', { name: /added to practice/i }))
     expect(fetchSpy).not.toHaveBeenCalled()
   })
@@ -65,11 +64,8 @@ describe('AnnotationCard', () => {
       />
     )
     await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
-    expect(fetchSpy).toHaveBeenCalledWith('/api/practice-items', expect.objectContaining({
-      method: 'POST',
-    }))
+    expect(fetchSpy).toHaveBeenCalledWith('/api/practice-items', expect.objectContaining({ method: 'POST' }))
     expect(onAnnotationAdded).toHaveBeenCalledWith('ann-1')
-    // button should now show "Added"
     expect(screen.getByRole('button', { name: /added to practice/i })).toBeDisabled()
   })
 
@@ -77,14 +73,6 @@ describe('AnnotationCard', () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false } as Response)
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
     await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
-    // button should still be enabled (not switched to Added state)
     expect(screen.getByRole('button', { name: /add to practice/i })).not.toBeDisabled()
-  })
-
-  it('calls onClose when close button is clicked', async () => {
-    const onClose = vi.fn()
-    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} onClose={onClose} />)
-    await userEvent.click(screen.getByRole('button', { name: /close/i }))
-    expect(onClose).toHaveBeenCalled()
   })
 })

@@ -7,7 +7,6 @@ import type { TranscriptSegment, Annotation } from '@/lib/types'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
-// Prevent actual fetch calls from AnnotationCard during TranscriptView tests
 vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response)
 
 const segments: TranscriptSegment[] = [
@@ -35,22 +34,24 @@ describe('TranscriptView', () => {
     expect(dimmed?.textContent).toContain('¿Qué compraste?')
   })
 
-  it('shows annotation card when highlight is clicked', async () => {
+  it('shows modal with annotation content when highlight is clicked', async () => {
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    await userEvent.click(screen.getByText('Yo fui'))
+    // Explanation is rendered inside AnnotationCard inside the Modal
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
+    // Modal close button should be present
+    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument()
+  })
+
+  it('closes modal when X button is clicked', async () => {
     render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
     await userEvent.click(screen.getByText('Yo fui'))
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
-  })
-
-  it('hides annotation card when same highlight is clicked again', async () => {
-    render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
-    )
-    await userEvent.click(screen.getByText('Yo fui'))
-    // After card opens, 'Yo fui' appears in both the transcript mark and the AnnotationCard strikethrough.
-    // Click the first match (the <mark> in the transcript) to toggle the card closed.
-    await userEvent.click(screen.getAllByText('Yo fui')[0])
+    await userEvent.click(screen.getByRole('button', { name: /close/i }))
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
