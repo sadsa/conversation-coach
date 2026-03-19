@@ -22,17 +22,13 @@ export async function POST(req: NextRequest) {
     original_filename?: string
   }
 
-  if (!title?.trim()) {
-    return NextResponse.json({ error: 'title is required' }, { status: 400 })
-  }
-
   const ext = (extension ?? 'mp3').replace(/^\./, '')
   const { key, url } = await presignedUploadUrl(ext)
 
   const db = createServerClient()
   const { data, error } = await db
     .from('sessions')
-    .insert({ title: title.trim(), audio_r2_key: key, original_filename: original_filename ?? null })
+    .insert({ title: (title ?? 'Untitled').trim() || 'Untitled', audio_r2_key: key, original_filename: original_filename ?? null })
     .select('id')
     .single()
 

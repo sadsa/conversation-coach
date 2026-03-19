@@ -69,6 +69,6 @@ export async function analyseUserTurns(
   const parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
   return {
     title: parsed.title?.trim() || 'Untitled',
-    annotations: parsed.annotations,
+    annotations: parsed.annotations ?? [],
   }
 }
