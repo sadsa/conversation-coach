@@ -7,7 +7,7 @@ const SYSTEM_PROMPT = `You are an expert Spanish language coach specialising in 
 2. Unnatural phrasing — things that are technically correct but would sound more natural said differently in everyday Argentine speech (type: "naturalness")
 3. Strengths — things the speaker did well, especially correct use of voseo, lunfardo, or natural Argentine expressions (type: "strength")
 
-For each finding:
+For each annotation:
 - "segment_id": the ID from the [ID: ...] prefix of the turn being annotated
 - "type": one of "grammar", "naturalness", or "strength"
 - "original": copy the exact substring from the turn's text
@@ -17,7 +17,12 @@ For each finding:
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
 
-Respond ONLY with a JSON array. No other text.`
+For the title:
+- Summarise the conversation topic in 5 words or fewer using natural Spanish/English mix (e.g. "Football con Kevin", "Planificando el fin de semana").
+- If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title (e.g. "WhatsApp: Football con Kevin").
+- Otherwise use the topic only.
+
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [...] }. No other text.`
 
 export interface UserTurn {
   id: string
@@ -34,10 +39,14 @@ export interface ClaudeAnnotation {
   explanation: string
 }
 
-export async function analyseUserTurns(turns: UserTurn[]): Promise<ClaudeAnnotation[]> {
+export async function analyseUserTurns(
+  turns: UserTurn[],
+  originalFilename: string | null,
+): Promise<{ title: string; annotations: ClaudeAnnotation[] }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  const userContent = turns
+  const filenamePrefix = originalFilename ? `Original filename: ${originalFilename}\n\n` : ''
+  const userContent = filenamePrefix + turns
     .map(t => `[ID: ${t.id}]\n${t.text}`)
     .join('\n\n')
 
@@ -56,5 +65,10 @@ export async function analyseUserTurns(turns: UserTurn[]): Promise<ClaudeAnnotat
   const text = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
 
   console.log('[claude] raw response:', text.slice(0, 500))
-  return JSON.parse(text) as ClaudeAnnotation[]
+
+  const parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
+  return {
+    title: parsed.title?.trim() || 'Untitled',
+    annotations: parsed.annotations,
+  }
 }
