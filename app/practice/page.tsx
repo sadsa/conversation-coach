@@ -34,7 +34,12 @@ export default function PracticePage() {
           {items.length} item{items.length !== 1 ? 's' : ''} across all sessions
         </p>
       </div>
-      <PracticeList items={items} />
+      <PracticeList
+        items={items}
+        onDeleted={ids =>
+          setItems(prev => prev.filter(i => !ids.includes(i.id)))
+        }
+      />
     </div>
   )
 }
