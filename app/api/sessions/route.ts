@@ -16,7 +16,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { title, extension } = body as { title?: string; extension?: string }
+  const { title, extension, original_filename } = body as {
+    title?: string
+    extension?: string
+    original_filename?: string
+  }
 
   if (!title?.trim()) {
     return NextResponse.json({ error: 'title is required' }, { status: 400 })
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
   const db = createServerClient()
   const { data, error } = await db
     .from('sessions')
-    .insert({ title: title.trim(), audio_r2_key: key })
+    .insert({ title: title.trim(), audio_r2_key: key, original_filename: original_filename ?? null })
     .select('id')
     .single()
 

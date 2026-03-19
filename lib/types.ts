@@ -20,6 +20,7 @@ export interface Session {
   user_speaker_labels: ('A' | 'B')[] | null
   created_at: string
   updated_at: string
+  original_filename: string | null
 }
 
 export interface TranscriptSegment {

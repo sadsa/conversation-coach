@@ -9,7 +9,6 @@ import type { SessionListItem } from '@/lib/types'
 export default function HomePage() {
   const router = useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>([])
-  const [title, setTitle] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,7 +31,6 @@ export default function HomePage() {
   const handleFile = useCallback(async (file: File) => {
     setUploading(true)
     setError(null)
-    const sessionTitle = title.trim() || file.name.replace(/\.[^.]+$/, '')
     const ext = file.name.split('.').pop() ?? 'mp3'
 
     // Get duration from audio metadata
@@ -42,7 +40,7 @@ export default function HomePage() {
     const createRes = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: sessionTitle, extension: ext }),
+      body: JSON.stringify({ title: 'Untitled', extension: ext, original_filename: file.name }),
     })
     if (!createRes.ok) { setError('Failed to create session'); setUploading(false); return }
     const { session_id, upload_url } = await createRes.json() as { session_id: string; upload_url: string }
@@ -67,7 +65,7 @@ export default function HomePage() {
 
     setUploading(false)
     router.push(`/sessions/${session_id}/status`)
-  }, [title, router])
+  }, [router])
 
   // Check for a file shared via the PWA share target
   useEffect(() => {
@@ -85,13 +83,6 @@ export default function HomePage() {
       </div>
 
       <div className="space-y-3">
-        <input
-          type="text"
-          placeholder="Session title (optional)"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-violet-500"
-        />
         <DropZone onFile={handleFile} />
         {uploading && <p className="text-sm text-violet-400">Uploading…</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
