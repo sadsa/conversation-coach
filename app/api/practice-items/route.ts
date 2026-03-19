@@ -2,24 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const type = searchParams.get('type')
-  const reviewed = searchParams.get('reviewed')
-
+export async function GET(_req: NextRequest) {
   const db = createServerClient()
-  let query = db
+  const { data, error } = await db
     .from('practice_items')
-    .select(`
-      id, session_id, annotation_id, type, original, correction,
-      explanation, reviewed, created_at, updated_at,
-      sessions(title, created_at)
-    `)
-
-  if (type) query = (query as typeof query).eq('type', type)
-  if (reviewed !== null) query = (query as typeof query).eq('reviewed', reviewed === 'true')
-
-  const { data, error } = await (query as typeof query).order('created_at', { ascending: false })
+    .select('id, session_id, annotation_id, type, original, correction, explanation, reviewed, created_at, updated_at')
+    .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
