@@ -101,3 +101,40 @@ describe('PracticeList — item modal', () => {
     expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
   })
 })
+
+describe('PracticeList — bulk toolbar', () => {
+  it('shows filter buttons when not in bulk mode', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /grammar/i })).toBeInTheDocument()
+  })
+
+  it('hides filter buttons when in bulk mode', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
+    expect(screen.queryByRole('button', { name: /^all$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^grammar$/i })).not.toBeInTheDocument()
+  })
+
+  it('shows selected count in bulk mode', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
+  })
+
+  it('exits bulk mode when back button is clicked', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
+    await userEvent.click(screen.getByRole('button', { name: /exit selection/i }))
+    expect(screen.queryByText('1 selected')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^all$/i })).toBeInTheDocument()
+  })
+
+  it('select-all selects filtered items', async () => {
+    render(<PracticeList items={[grammarItem, strengthItem]} />)
+    const checkboxes = screen.getAllByRole('checkbox', { name: /select item/i })
+    await userEvent.click(checkboxes[0])
+    await userEvent.click(screen.getByRole('button', { name: /select all/i }))
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+  })
+})

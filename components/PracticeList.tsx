@@ -162,39 +162,74 @@ export function PracticeList({ items, onDeleted }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap text-sm">
-        {(['all', 'grammar', 'naturalness', 'strength'] as Filter[]).map(f => (
+      {/* Bulk action toolbar — sticky, shown only in bulk mode */}
+      {isBulkMode && (
+        <div className="sticky top-0 z-30 flex items-center gap-3 px-3 py-2 bg-indigo-950 border border-indigo-800 rounded-xl text-sm">
+          {/* Back / exit button */}
           <button
-            key={f}
-            onClick={() => setTypeFilter(f)}
-            className={`px-3 py-1 rounded-full border transition-colors capitalize ${
-              typeFilter === f
-                ? 'border-violet-500 text-violet-300 bg-violet-500/10'
-                : 'border-gray-700 text-gray-400'
-            }`}
+            onClick={exitBulkMode}
+            aria-label="Exit selection mode"
+            className="text-indigo-300 hover:text-indigo-100 p-1"
           >
-            {f}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              className="w-5 h-5" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </button>
-        ))}
-      </div>
 
-      {(isBulkMode || selectedIds.size > 0) && (
-        <div className="flex items-center gap-3 px-3 py-2 bg-indigo-950 border border-indigo-800 rounded-xl text-sm">
-          <span className="text-indigo-300">{selectedIds.size} selected</span>
+          <span className="text-indigo-300 text-sm flex-1">{selectedIds.size} selected</span>
+
+          {/* Select all */}
           <button
             onClick={() => setSelectedIds(new Set(filtered.map(i => i.id)))}
-            className="text-indigo-400 hover:text-indigo-200"
+            aria-label="Select all"
+            className="text-indigo-400 hover:text-indigo-200 p-1"
           >
-            Select all
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              className="w-5 h-5" aria-hidden="true">
+              <polyline points="9 11 12 14 22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
           </button>
-          <div className="flex-1" />
-          <button onClick={exitBulkMode} className="text-gray-400 hover:text-gray-200">Cancel</button>
+
+          {/* Delete */}
           <button
             onClick={deleteSelected}
-            className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-white font-medium"
+            aria-label={`Delete ${selectedIds.size} selected items`}
+            disabled={selectedIds.size === 0}
+            className="text-red-400 hover:text-red-300 disabled:opacity-40 p-1"
           >
-            Delete {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              className="w-5 h-5" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
           </button>
+        </div>
+      )}
+
+      {/* Filter row — hidden while in bulk mode */}
+      {!isBulkMode && (
+        <div className="flex gap-2 flex-wrap text-sm">
+          {(['all', 'grammar', 'naturalness', 'strength'] as Filter[]).map(f => (
+            <button
+              key={f}
+              onClick={() => setTypeFilter(f)}
+              className={`px-3 py-1 rounded-full border transition-colors capitalize ${
+                typeFilter === f
+                  ? 'border-violet-500 text-violet-300 bg-violet-500/10'
+                  : 'border-gray-700 text-gray-400'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       )}
 
