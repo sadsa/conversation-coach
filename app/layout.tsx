@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
+import { BottomNav } from '@/components/BottomNav'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -33,18 +34,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-gray-950 text-gray-100">
         <FontSizeProvider />
-        <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <nav className="border-b border-gray-800 px-6 py-4">
           <a href="/" className="text-lg font-semibold tracking-tight">Conversation Coach</a>
-          <div className="flex items-center gap-4">
-            <a href="/practice" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
-              Practice Items
-            </a>
-            <a href="/settings" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
-              Settings
-            </a>
-          </div>
         </nav>
-        <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
+        <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
+        <BottomNav />
       </body>
     </html>
   )
