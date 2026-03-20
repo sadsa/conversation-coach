@@ -31,7 +31,7 @@ export function InlineEdit({ value, onSave, className = '' }: Props) {
   if (!editing) {
     return (
       <span
-        className={`cursor-pointer hover:underline decoration-dotted min-w-0 truncate ${className}`}
+        className={`cursor-pointer hover:underline decoration-dotted min-w-0 ${className}`}
         onClick={() => setEditing(true)}
         title="Click to rename"
       >
