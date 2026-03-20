@@ -143,7 +143,7 @@ export function PracticeList({ items, onDeleted }: Props) {
   }
 
   async function deleteSelected() {
-    const ids = [...selectedIds]
+    const ids = Array.from(selectedIds)
     await Promise.allSettled(ids.map(id => fetch(`/api/practice-items/${id}`, { method: 'DELETE' })))
     onDeleted?.(ids)
     exitBulkMode()
