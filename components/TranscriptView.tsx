@@ -60,7 +60,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">
                   {isUser ? 'You' : 'Them'}
                 </p>
-                <span className="text-sm leading-relaxed">
+                <span className="text-sm leading-relaxed break-words">
                   {isUser && (annotationsBySegment[seg.id] ?? []).length > 0 ? (
                     <AnnotatedText
                       text={seg.text}
