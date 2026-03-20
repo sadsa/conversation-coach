@@ -6,8 +6,6 @@ import { Modal } from '@/components/Modal'
 import { AnnotationCard, TYPE_LABEL } from '@/components/AnnotationCard'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
-type Filter = 'all' | 'grammar' | 'naturalness' | 'strength'
-
 interface Props {
   segments: TranscriptSegment[]
   annotations: Annotation[]
@@ -19,7 +17,6 @@ interface Props {
 
 export function TranscriptView({ segments, annotations, userSpeakerLabels, sessionId, addedAnnotationIds, onAnnotationAdded }: Props) {
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
 
   const annotationsBySegment = annotations.reduce<Record<string, Annotation[]>>((acc, a) => {
     if (!acc[a.segment_id]) acc[a.segment_id] = []
@@ -27,28 +24,8 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
     return acc
   }, {})
 
-  const counts = { grammar: 0, naturalness: 0, strength: 0 }
-  annotations.forEach(a => counts[a.type]++)
-
   return (
     <div className="space-y-4">
-      {/* Filter bar */}
-      <div className="flex gap-2 text-sm flex-wrap">
-        {(['all', 'grammar', 'naturalness', 'strength'] as Filter[]).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1 rounded-full border transition-colors ${
-              filter === f
-                ? 'border-violet-500 text-violet-300 bg-violet-500/10'
-                : 'border-gray-700 text-gray-400 hover:border-gray-500'
-            }`}
-          >
-            {f === 'all' ? 'All' : f === 'grammar' ? `🔴 Grammar (${counts.grammar})` : f === 'naturalness' ? `🟡 Natural (${counts.naturalness})` : `🟢 Strengths (${counts.strength})`}
-          </button>
-        ))}
-      </div>
-
       {/* Segments */}
       <div className="space-y-4">
         {segments.map(seg => {
@@ -66,9 +43,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
                       text={seg.text}
                       annotations={annotationsBySegment[seg.id] ?? []}
                       onAnnotationClick={a => {
-                        if (filter === 'all' || a.type === filter) {
-                          setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
-                        }
+                        setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
                       }}
                     />
                   ) : (

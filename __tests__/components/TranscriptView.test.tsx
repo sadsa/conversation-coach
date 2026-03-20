@@ -55,14 +55,6 @@ describe('TranscriptView', () => {
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
-  it('filters annotations by type', async () => {
-    render(
-      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
-    )
-    await userEvent.click(screen.getByRole('button', { name: /natural/i }))
-    expect(screen.queryByText('Yo fui')).toBeTruthy()
-  })
-
   it('renders speaker label as a stacked paragraph above segment text', () => {
     render(
       <TranscriptView segments={segments} annotations={[]} userSpeakerLabels={['A']} {...defaultProps} />
