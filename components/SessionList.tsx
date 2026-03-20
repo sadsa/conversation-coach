@@ -31,11 +31,11 @@ export function SessionList({ sessions, onRename }: Props) {
   return (
     <ul className="divide-y divide-gray-800">
       {sessions.map(s => (
-        <li key={s.id} className="flex items-center justify-between py-3">
+        <li key={s.id} className="flex items-center justify-between py-3 min-w-0">
           <InlineEdit
             value={s.title}
             onSave={title => onRename(s.id, title)}
-            className="font-medium"
+            className="font-medium min-w-0 truncate"
           />
           <Link
             href={s.status === 'ready' ? `/sessions/${s.id}` : `/sessions/${s.id}/status`}

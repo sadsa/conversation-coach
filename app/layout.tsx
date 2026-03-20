@@ -32,11 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           })();
         ` }} />
       </head>
-      <body className="min-h-screen bg-gray-950 text-gray-100">
+      <body className="min-h-screen bg-gray-950 text-gray-100 overflow-x-hidden">
         <FontSizeProvider />
-        <nav className="border-b border-gray-800 px-6 py-4">
-          <a href="/" className="text-lg font-semibold tracking-tight">Conversation Coach</a>
-        </nav>
         <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
         <BottomNav />
       </body>
