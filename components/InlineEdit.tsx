@@ -31,7 +31,7 @@ export function InlineEdit({ value, onSave, className = '' }: Props) {
   if (!editing) {
     return (
       <span
-        className={`cursor-pointer hover:underline decoration-dotted ${className}`}
+        className={`cursor-pointer hover:underline decoration-dotted min-w-0 truncate ${className}`}
         onClick={() => setEditing(true)}
         title="Click to rename"
       >
@@ -50,7 +50,7 @@ export function InlineEdit({ value, onSave, className = '' }: Props) {
         if (e.key === 'Enter') commit()
         if (e.key === 'Escape') { setDraft(value); setEditing(false) }
       }}
-      className={`bg-transparent border-b border-gray-400 outline-none ${className}`}
+      className={`bg-transparent border-b border-gray-400 outline-none min-w-0 w-full ${className}`}
     />
   )
 }
