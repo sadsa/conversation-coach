@@ -3,6 +3,8 @@
 import { useState, useRef } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import type { PracticeItem, AnnotationType } from '@/lib/types'
+import { Modal } from '@/components/Modal'
+import { TYPE_LABEL } from '@/components/AnnotationCard'
 
 const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
   grammar: 'bg-red-400',
@@ -18,12 +20,14 @@ function SwipeableItem({
   isSelected,
   onToggleSelect,
   onDelete,
+  onOpen,
 }: {
   item: PracticeItem
   isBulkMode: boolean
   isSelected: boolean
   onToggleSelect: (id: string) => void
   onDelete: (id: string) => void
+  onOpen: (item: PracticeItem) => void
 }) {
   const [translateX, setTranslateX] = useState(0)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -79,7 +83,13 @@ function SwipeableItem({
         className="relative flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-xl"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onClick={() => isBulkMode && onToggleSelect(item.id)}
+        onClick={() => {
+          if (isBulkMode) {
+            onToggleSelect(item.id)
+          } else if (translateX === 0) {
+            onOpen(item)
+          }
+        }}
       >
         {/* Bulk-select checkbox — always on desktop, only in bulk mode on mobile */}
         <input
@@ -117,6 +127,7 @@ export function PracticeList({ items, onDeleted }: Props) {
   const [typeFilter, setTypeFilter] = useState<Filter>('all')
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
 
   const filtered = items.filter(item =>
     typeFilter === 'all' || item.type === typeFilter
@@ -200,9 +211,32 @@ export function PracticeList({ items, onDeleted }: Props) {
             isSelected={selectedIds.has(item.id)}
             onToggleSelect={handleToggleSelect}
             onDelete={deleteItem}
+            onOpen={setOpenItem}
           />
         ))}
       </ul>
+
+      {openItem && (
+        <Modal
+          title={TYPE_LABEL[openItem.type]}
+          onClose={() => setOpenItem(null)}
+        >
+          <div className="space-y-3 text-sm">
+            <div>
+              {openItem.correction ? (
+                <>
+                  <span className="line-through text-gray-500">{openItem.original}</span>
+                  <span className="mx-2 text-gray-500">→</span>
+                  <span className="font-medium text-green-300">{openItem.correction}</span>
+                </>
+              ) : (
+                <span className="text-green-300">&ldquo;{openItem.original}&rdquo;</span>
+              )}
+            </div>
+            <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

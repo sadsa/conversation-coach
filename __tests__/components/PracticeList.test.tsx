@@ -51,3 +51,53 @@ describe('PracticeList', () => {
     expect(screen.queryByRole('button', { name: /reviewed/i })).not.toBeInTheDocument()
   })
 })
+
+describe('PracticeList — item modal', () => {
+  it('does not show a modal initially', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
+  })
+
+  it('opens a modal when an item is clicked', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    // Click the item card (not the checkbox)
+    await userEvent.click(screen.getByText('Fui'))
+    expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument()
+  })
+
+  it('modal shows the explanation text', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByText('Fui'))
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
+  })
+
+  it('modal shows correction for grammar items', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByText('Fui'))
+    // Modal should show original and correction
+    expect(screen.getAllByText('Yo fui').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Fui').length).toBeGreaterThan(0)
+  })
+
+  it('modal shows original text for strength items (no correction)', async () => {
+    render(<PracticeList items={[strengthItem]} />)
+    await userEvent.click(screen.getByText(/Dale, vamos/))
+    expect(screen.getByText('Natural Argentine expression.')).toBeInTheDocument()
+  })
+
+  it('closes the modal when backdrop is clicked', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByText('Fui'))
+    await userEvent.click(screen.getByTestId('modal-backdrop'))
+    expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
+  })
+
+  it('does not open modal when in bulk mode', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    // Enter bulk mode by clicking the checkbox
+    await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
+    // Now clicking the item should toggle selection, not open modal
+    await userEvent.click(screen.getByText('Fui'))
+    expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
+  })
+})
