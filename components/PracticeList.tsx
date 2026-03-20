@@ -1,6 +1,6 @@
 // components/PracticeList.tsx
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import type { PracticeItem, AnnotationType } from '@/lib/types'
 import { Modal } from '@/components/Modal'
@@ -26,11 +26,59 @@ function SwipeableItem({
   isBulkMode: boolean
   isSelected: boolean
   onToggleSelect: (id: string) => void
-  onDelete: (id: string) => void
+  onDelete: (id: string) => Promise<boolean>
   onOpen: (item: PracticeItem) => void
 }) {
   const [translateX, setTranslateX] = useState(0)
+  const [rowHeight, setRowHeight] = useState<number | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const rowRef = useRef<HTMLLIElement>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => { mountedRef.current = false }
+  }, [])
+
+  async function triggerDelete() {
+    if (isAnimating || !rowRef.current) return
+    setIsAnimating(true)
+
+    // Phase 1: slide item fully off-screen left (200ms)
+    setTranslateX(-window.innerWidth)
+
+    // Fire DELETE in parallel
+    const deletePromise = onDelete(item.id)
+
+    // Wait for slide-out animation
+    await new Promise(r => setTimeout(r, 200))
+    if (!mountedRef.current) return
+
+    // Phase 2: measure height, then collapse row
+    const h = rowRef.current?.offsetHeight ?? 0
+    setRowHeight(h)
+    // Double rAF ensures the explicit height is painted before we transition to 0
+    await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    if (!mountedRef.current) return
+    setRowHeight(0)
+
+    // Wait for both collapse animation and DELETE to finish
+    const [, deleteResult] = await Promise.allSettled([
+      new Promise(r => setTimeout(r, 200)),
+      deletePromise,
+    ])
+    if (!mountedRef.current) return
+
+    const succeeded = deleteResult.status === 'fulfilled' && deleteResult.value === true
+
+    if (!succeeded) {
+      // Restore item on failure
+      setRowHeight(null)
+      setTranslateX(0)
+      setIsAnimating(false)
+    }
+    // On success: parent removes item from list via onDeleted (called inside onDelete)
+  }
 
   const handlers = useSwipeable({
     delta: 10,
@@ -44,7 +92,7 @@ function SwipeableItem({
       else setTranslateX(0)
     },
     onSwipedLeft: (e) => {
-      if (e.absX > 80) onDelete(item.id)
+      if (e.absX > 80) triggerDelete()
       else setTranslateX(0)
     },
     onSwipedRight: () => setTranslateX(0),
@@ -66,7 +114,15 @@ function SwipeableItem({
   }
 
   return (
-    <li className="relative overflow-hidden rounded-xl">
+    <li
+      ref={rowRef}
+      className="relative overflow-hidden rounded-xl"
+      style={
+        rowHeight !== null
+          ? { height: rowHeight, transition: 'height 0.2s ease', overflow: 'hidden' }
+          : undefined
+      }
+    >
       {/* Swipe-to-delete background */}
       <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-5 rounded-xl">
         <span className="text-white text-sm font-medium">Delete</span>
@@ -76,7 +132,11 @@ function SwipeableItem({
         {...handlers}
         style={{
           transform: `translateX(${translateX}px)`,
-          transition: translateX === 0 ? 'transform 0.2s' : 'none',
+          transition: isAnimating
+            ? 'transform 0.2s ease'
+            : translateX === 0
+            ? 'transform 0.2s'
+            : 'none',
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
@@ -91,6 +151,17 @@ function SwipeableItem({
           }
         }}
       >
+        {/* Hidden test seam for triggering delete in tests */}
+        <button
+          data-testid={`delete-item-${item.id}`}
+          className="sr-only"
+          onClick={e => { e.stopPropagation(); triggerDelete() }}
+          tabIndex={-1}
+          aria-hidden="true"
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore — inert is a valid HTML attribute not yet in React's types
+          inert=""
+        />
         {/* Bulk-select checkbox — always on desktop, only in bulk mode on mobile */}
         <input
           type="checkbox"
@@ -128,14 +199,26 @@ export function PracticeList({ items, onDeleted }: Props) {
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!toastMessage) return
+    const t = setTimeout(() => setToastMessage(null), 3000)
+    return () => clearTimeout(t)
+  }, [toastMessage])
 
   const filtered = items.filter(item =>
     typeFilter === 'all' || item.type === typeFilter
   )
 
-  async function deleteItem(id: string) {
-    await fetch(`/api/practice-items/${id}`, { method: 'DELETE' })
+  async function deleteItem(id: string): Promise<boolean> {
+    const res = await fetch(`/api/practice-items/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      setToastMessage("Couldn't delete item — try again.")
+      return false
+    }
     onDeleted?.([id])
+    return true
   }
 
   function handleToggleSelect(id: string) {
@@ -155,8 +238,19 @@ export function PracticeList({ items, onDeleted }: Props) {
 
   async function deleteSelected() {
     const ids = Array.from(selectedIds)
-    await Promise.allSettled(ids.map(id => fetch(`/api/practice-items/${id}`, { method: 'DELETE' })))
-    onDeleted?.(ids)
+    const results = await Promise.allSettled(
+      ids.map(id => fetch(`/api/practice-items/${id}`, { method: 'DELETE' }))
+    )
+    const succeeded = results
+      .map((r, i) => ({ r, id: ids[i] }))
+      .filter(({ r }) => r.status === 'fulfilled' && (r as PromiseFulfilledResult<Response>).value.ok)
+      .map(({ id }) => id)
+    if (succeeded.length < ids.length) {
+      setToastMessage("Some items couldn't be deleted — try again.")
+    }
+    if (succeeded.length > 0) {
+      onDeleted?.(succeeded)
+    }
     exitBulkMode()
   }
 
@@ -271,6 +365,15 @@ export function PracticeList({ items, onDeleted }: Props) {
             <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
           </div>
         </Modal>
+      )}
+
+      {toastMessage && (
+        <div
+          role="alert"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 shadow-lg"
+        >
+          {toastMessage}
+        </div>
       )}
     </div>
   )

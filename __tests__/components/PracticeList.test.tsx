@@ -1,6 +1,6 @@
 // __tests__/components/PracticeList.test.tsx
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PracticeList } from '@/components/PracticeList'
 import type { PracticeItem } from '@/lib/types'
@@ -136,5 +136,39 @@ describe('PracticeList — bulk toolbar', () => {
     await userEvent.click(checkboxes[0])
     await userEvent.click(screen.getByRole('button', { name: /select all/i }))
     expect(screen.getByText('2 selected')).toBeInTheDocument()
+  })
+})
+
+describe('PracticeList — swipe delete', () => {
+  it('calls DELETE API when onDelete is triggered', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    const onDeleted = vi.fn()
+    render(<PracticeList items={[grammarItem]} onDeleted={onDeleted} />)
+
+    const deleteButton = screen.getByTestId(`delete-item-${grammarItem.id}`)
+    await userEvent.click(deleteButton)
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      { method: 'DELETE' }
+    )
+  })
+
+  it('shows error toast when DELETE fails', async () => {
+    vi.useFakeTimers()
+    global.fetch = vi.fn().mockResolvedValue({ ok: false })
+    render(<PracticeList items={[grammarItem]} />)
+
+    const deleteButton = screen.getByTestId(`delete-item-${grammarItem.id}`)
+    // fireEvent is used here because userEvent deadlocks with vi.useFakeTimers()
+    await act(async () => {
+      fireEvent.click(deleteButton)
+      await vi.runAllTimersAsync()
+    })
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/couldn't delete/i)).toBeInTheDocument()
+    vi.useRealTimers()
   })
 })
