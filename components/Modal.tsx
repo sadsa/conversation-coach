@@ -15,10 +15,17 @@ export function Modal({ title, onClose, children }: Props) {
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement | null
     closeButtonRef.current?.focus()
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
+      document.removeEventListener('keydown', handleKeyDown)
       previousFocusRef.current?.focus()
     }
-  }, [])
+  }, [onClose])
 
   return (
     <div
@@ -27,11 +34,14 @@ export function Modal({ title, onClose, children }: Props) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         className="bg-gray-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-700">
-          <div className="text-sm font-semibold">{title}</div>
+          <div id="modal-title" className="text-sm font-semibold">{title}</div>
           <button
             ref={closeButtonRef}
             onClick={onClose}

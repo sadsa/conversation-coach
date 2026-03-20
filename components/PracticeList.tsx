@@ -143,6 +143,7 @@ function SwipeableItem({
         className="relative flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-xl"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         onClick={() => {
           if (isBulkMode) {
             onToggleSelect(item.id)
