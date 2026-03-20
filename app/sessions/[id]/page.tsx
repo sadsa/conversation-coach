@@ -53,8 +53,8 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <InlineEdit value={title} onSave={handleRename} className="text-xl font-bold" />
+        <div className="min-w-0">
+          <InlineEdit value={title} onSave={handleRename} className="text-xl font-bold break-words" />
           <p className="text-sm text-gray-400 mt-1">
             {durationLabel} · {counts.grammar} grammar · {counts.naturalness} naturalness · {counts.strength} strengths
           </p>
