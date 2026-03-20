@@ -10,11 +10,21 @@ type PracticeItemWithSession = PracticeItem & {
 
 export default function PracticePage() {
   const [items, setItems] = useState<PracticeItemWithSession[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/practice-items')
       .then(r => r.json())
-      .then(setItems)
+      .then(data => {
+        if (Array.isArray(data)) {
+          setItems(data)
+        } else {
+          setError(data?.error ?? 'Failed to load practice items')
+        }
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false))
   }, [])
 
   async function handleToggleReviewed(id: string, reviewed: boolean) {
@@ -30,6 +40,9 @@ export default function PracticePage() {
     await fetch(`/api/practice-items/${id}`, { method: 'DELETE' })
     setItems(prev => prev.filter(i => i.id !== id))
   }
+
+  if (loading) return <p className="text-gray-500 text-sm">Loading…</p>
+  if (error) return <p className="text-red-400 text-sm">Error: {error}</p>
 
   return (
     <div className="space-y-6">
