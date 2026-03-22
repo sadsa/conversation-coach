@@ -82,7 +82,7 @@ RETURNS TABLE (
   session_title text,
   session_created_at timestamptz
 ) AS $$
-  SELECT DISTINCT ON (a.sub_category, row_num)
+  SELECT
     a.sub_category,
     a.original,
     a.correction,
