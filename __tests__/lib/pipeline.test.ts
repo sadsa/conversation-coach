@@ -291,4 +291,37 @@ describe('runClaudeAnalysis', () => {
     const insertedRows = insertAnnotationsMock.mock.calls[0][0]
     expect(insertedRows[0].sub_category).toBe('other')
   })
+
+  it('passes through sub_category "other" regardless of annotation type', async () => {
+    const insertAnnotationsMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') return {
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({
+            data: { user_speaker_labels: ['A'], audio_r2_key: null, original_filename: null },
+            error: null,
+          }) }) }),
+          update: updateMock,
+        }
+        if (table === 'transcript_segments') return {
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ order: vi.fn().mockResolvedValue({
+            data: [{ id: 'seg-1', speaker: 'A', text: 'test sentence' }], error: null,
+          }) }) }),
+        }
+        if (table === 'annotations') return { insert: insertAnnotationsMock }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test', annotations: [
+      { segment_id: 'seg-1', type: 'grammar', sub_category: 'other', original: 'test', start_char: 0, end_char: 4, correction: 'test fix', explanation: 'Misc grammar issue.' },
+    ] })
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+
+    await runClaudeAnalysis('sess-4')
+
+    const insertedRows = insertAnnotationsMock.mock.calls[0][0]
+    expect(insertedRows[0].sub_category).toBe('other')
+  })
 })
