@@ -18,6 +18,7 @@ describe('AnnotatedText', () => {
       end_char: 6,
       correction: 'Fui',
       explanation: 'Drop the pronoun.',
+      sub_category: 'other',
     },
   ]
 
