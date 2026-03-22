@@ -2,9 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { PracticeList } from '@/components/PracticeList'
-import type { PracticeItem } from '@/lib/types'
-import type { SubCategory } from '@/lib/types'
 import { SUB_CATEGORIES } from '@/lib/types'
+import type { PracticeItem, SubCategory } from '@/lib/types'
 
 export default function PracticePage() {
   const [items, setItems] = useState<PracticeItem[]>([])
