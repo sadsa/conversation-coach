@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase-server'
 import { analyseUserTurns } from '@/lib/claude'
 import { deleteObject } from '@/lib/r2'
+import { log } from '@/lib/logger'
 import type { TranscriptSegment } from '@/lib/types'
 import type { ClaudeAnnotation } from '@/lib/claude'
 
@@ -14,7 +15,10 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     .eq('id', sessionId)
     .single()
 
-  if (!session) throw new Error(`Session ${sessionId} not found`)
+  if (!session) {
+    log.error('Session not found', { sessionId })
+    throw new Error(`Session ${sessionId} not found`)
+  }
 
   const { data: segments } = await db
     .from('transcript_segments')
@@ -26,6 +30,8 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     .filter((s: TranscriptSegment) => (session.user_speaker_labels ?? []).includes(s.speaker))
     .map((s: TranscriptSegment) => ({ id: s.id, text: s.text }))
 
+  log.info('Claude analysis started', { sessionId, turnCount: userTurns.length })
+
   let annotations: ClaudeAnnotation[] = []
   let title = 'Untitled'
   try {
@@ -33,6 +39,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     annotations = result.annotations
     title = result.title
   } catch (err) {
+    log.error('Claude analysis failed', { sessionId, err })
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'analysing',
@@ -70,6 +77,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     )
 
     if (annotationError) {
+      log.error('Annotation insert failed', { sessionId, error: annotationError.message })
       throw new Error(`Failed to insert annotations: ${annotationError.message}`)
     }
   }
@@ -80,5 +88,6 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     await db.from('sessions').update({ audio_r2_key: null }).eq('id', sessionId)
   }
 
+  log.info('Claude analysis complete', { sessionId, annotationCount: correctedAnnotations.length })
   await db.from('sessions').update({ status: 'ready', title }).eq('id', sessionId)
 }
