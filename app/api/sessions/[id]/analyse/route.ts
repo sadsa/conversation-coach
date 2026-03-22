@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { runClaudeAnalysis } from '@/lib/pipeline'
+import { log } from '@/lib/logger'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const db = createServerClient()
@@ -32,8 +33,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     error_stage: null,
   }).eq('id', params.id)
 
+  log.info('Re-analysis triggered', { sessionId: params.id })
+
   runClaudeAnalysis(params.id).catch(err =>
-    console.error(`Re-analysis failed for session ${params.id}:`, err)
+    log.error('Re-analysis failed (fire-and-forget)', { sessionId: params.id, err })
   )
 
   return NextResponse.json({ status: 'analysing' })

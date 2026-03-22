@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { runClaudeAnalysis } from '@/lib/pipeline'
+import { log } from '@/lib/logger'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const body = await req.json() as { speaker_labels?: ('A' | 'B')[] }
@@ -27,9 +28,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'analysing',
   }).eq('id', params.id)
 
-  // Fire-and-forget: run Claude analysis in background
+  log.info('Analysis triggered after speaker identification', { sessionId: params.id, speaker_labels })
+
   runClaudeAnalysis(params.id).catch(err =>
-    console.error(`Claude analysis failed for session ${params.id}:`, err)
+    log.error('Claude analysis failed (fire-and-forget)', { sessionId: params.id, err })
   )
 
   return NextResponse.json({ status: 'analysing' })
