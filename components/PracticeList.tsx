@@ -2,7 +2,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useSwipeable } from 'react-swipeable'
-import type { PracticeItem, AnnotationType } from '@/lib/types'
+import type { PracticeItem, AnnotationType, SubCategory } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { TYPE_LABEL } from '@/components/AnnotationCard'
 
@@ -181,7 +181,7 @@ function SwipeableItem({
               <span className="font-medium">{item.correction}</span>
             </>
           ) : (
-            <span className="text-green-300">&ldquo;{item.original}&rdquo;</span>
+            <span className="text-green-300">&ldquo;<span>{item.original}</span>&rdquo;</span>
           )}
         </div>
       </div>
@@ -193,10 +193,12 @@ interface Props {
   items: PracticeItem[]
   /** Called after successful API delete so the parent can update `items`. */
   onDeleted?: (ids: string[]) => void
+  initialSubCategory?: SubCategory
 }
 
-export function PracticeList({ items, onDeleted }: Props) {
+export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   const [typeFilter, setTypeFilter] = useState<Filter>('all')
+  const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
@@ -208,9 +210,11 @@ export function PracticeList({ items, onDeleted }: Props) {
     return () => clearTimeout(t)
   }, [toastMessage])
 
-  const filtered = items.filter(item =>
-    typeFilter === 'all' || item.type === typeFilter
-  )
+  const filtered = items.filter(item => {
+    if (typeFilter !== 'all' && item.type !== typeFilter) return false
+    if (subCategoryFilter !== null && item.sub_category !== subCategoryFilter) return false
+    return true
+  })
 
   async function deleteItem(id: string): Promise<boolean> {
     const res = await fetch(`/api/practice-items/${id}`, { method: 'DELETE' })
@@ -315,7 +319,7 @@ export function PracticeList({ items, onDeleted }: Props) {
           {(['all', 'grammar', 'naturalness', 'strength'] as Filter[]).map(f => (
             <button
               key={f}
-              onClick={() => setTypeFilter(f)}
+              onClick={() => { setTypeFilter(f); setSubCategoryFilter(null) }}
               className={`px-3 py-1 rounded-full border transition-colors capitalize ${
                 typeFilter === f
                   ? 'border-violet-500 text-violet-300 bg-violet-500/10'
@@ -360,7 +364,7 @@ export function PracticeList({ items, onDeleted }: Props) {
                   <span className="font-medium text-green-300">{openItem.correction}</span>
                 </>
               ) : (
-                <span className="text-green-300">&ldquo;{openItem.original}&rdquo;</span>
+                <span className="text-green-300">&ldquo;<span>{openItem.original}</span>&rdquo;</span>
               )}
             </div>
             <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
