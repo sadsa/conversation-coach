@@ -4,6 +4,7 @@ import { timingSafeEqual } from 'crypto'
 import { createServerClient } from '@/lib/supabase-server'
 import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
+import { log } from '@/lib/logger'
 
 /** Verify webhook using the custom shared-secret header (set on the transcript job at submit time). */
 function verifyCustomHeader(headerValue: string | null, secret: string): boolean {
@@ -20,20 +21,19 @@ export async function POST(req: NextRequest) {
   const assemblyaiSig = req.headers.get('x-assemblyai-signature')
   const secret = process.env.ASSEMBLYAI_WEBHOOK_SECRET ?? ''
 
-  // Accept if the custom header matches our secret (jobs submitted with webhook_auth_header_name set)
-  // OR if AssemblyAI's own signature header is present (jobs submitted without custom auth — still from AssemblyAI)
   const authorized = verifyCustomHeader(customHeader, secret) || !!assemblyaiSig
   if (!authorized) {
-    console.error('[webhook] Rejected: no x-webhook-secret match and no x-assemblyai-signature')
+    log.warn('Webhook rejected: missing valid auth header')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = JSON.parse(raw) as Record<string, unknown>
   const jobId = body.transcript_id as string
 
+  log.info('Webhook received', { jobId })
+
   const db = createServerClient()
 
-  // Find session by job ID
   const { data: session, error } = await db
     .from('sessions')
     .select('id')
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   try {
     fullTranscript = await getTranscript(jobId)
   } catch (err) {
-    console.error(`[webhook] getTranscript failed:`, err)
+    log.error('getTranscript failed', { sessionId: session.id, jobId, err })
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   try {
     parsed = parseWebhookBody(fullTranscript)
   } catch (err) {
-    console.error(`[webhook] parseWebhookBody failed:`, err)
+    log.error('parseWebhookBody failed', { sessionId: session.id, jobId, err })
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // Insert segments
   const { error: insertError } = await db.from('transcript_segments').insert(
     parsed.segments.map(s => ({
       session_id: session.id,
@@ -79,26 +78,27 @@ export async function POST(req: NextRequest) {
       position: s.position,
     }))
   )
-  if (insertError) console.error('[webhook] segment insert error:', insertError.message)
+  if (insertError) log.error('Segment insert failed', { sessionId: session.id, error: insertError.message })
+
+  log.info('Speaker count determined', { sessionId: session.id, speakerCount: parsed.speakerCount })
 
   if (parsed.speakerCount === 1) {
-    // Single speaker: auto-assign label A, go straight to analysing
     const { error: updateError } = await db.from('sessions').update({
       status: 'analysing',
       detected_speaker_count: 1,
       user_speaker_labels: ['A'],
     }).eq('id', session.id)
-    if (updateError) console.error('[webhook] status update error:', updateError.message)
+    if (updateError) log.error('Status update failed', { sessionId: session.id, error: updateError.message })
 
     runClaudeAnalysis(session.id).catch(err =>
-      console.error(`Claude analysis failed for session ${session.id}:`, err)
+      log.error('Claude analysis failed (fire-and-forget)', { sessionId: session.id, err })
     )
   } else {
     const { error: updateError } = await db.from('sessions').update({
       status: 'identifying',
       detected_speaker_count: parsed.speakerCount,
     }).eq('id', session.id)
-    if (updateError) console.error('[webhook] status update error:', updateError.message)
+    if (updateError) log.error('Status update failed', { sessionId: session.id, error: updateError.message })
   }
 
   return NextResponse.json({ ok: true })
