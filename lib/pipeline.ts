@@ -77,7 +77,13 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
     )
 
     if (annotationError) {
-      log.error('Annotation insert failed', { sessionId, error: annotationError.message })
+      log.error('Annotation insert failed', {
+        sessionId,
+        error: annotationError.message,
+        code: annotationError.code,
+        details: annotationError.details,
+        hint: annotationError.hint,
+      })
       throw new Error(`Failed to insert annotations: ${annotationError.message}`)
     }
   }
