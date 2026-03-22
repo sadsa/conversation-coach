@@ -1,11 +1,11 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { PracticeList } from '@/components/PracticeList'
 import { SUB_CATEGORIES } from '@/lib/types'
 import type { PracticeItem, SubCategory } from '@/lib/types'
 
-export default function PracticePage() {
+function PracticePageInner() {
   const [items, setItems] = useState<PracticeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,5 +52,13 @@ export default function PracticePage() {
         onDeleted={ids => setItems(prev => prev.filter(i => !ids.includes(i.id)))}
       />
     </div>
+  )
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense fallback={<p className="text-gray-500 text-sm">Loading…</p>}>
+      <PracticePageInner />
+    </Suspense>
   )
 }
