@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { createJob } from '@/lib/assemblyai'
 import { publicUrl } from '@/lib/r2'
+import { log } from '@/lib/logger'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { duration_seconds } = await req.json() as { duration_seconds?: number }
@@ -23,13 +24,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let jobId: string
   try {
     jobId = await createJob(audioUrl)
-  } catch (_err) {
+  } catch (err) {
+    log.error('AssemblyAI job creation failed', { sessionId: params.id, err })
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
     }).eq('id', params.id)
     return NextResponse.json({ error: 'AssemblyAI job creation failed' }, { status: 500 })
   }
+
+  log.info('AssemblyAI job created', { sessionId: params.id, jobId })
 
   await db.from('sessions').update({
     status: 'transcribing',
