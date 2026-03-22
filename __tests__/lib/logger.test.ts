@@ -54,6 +54,7 @@ describe('logger', () => {
   it('writes warn to stdout', () => {
     log.warn('heads up')
     expect(stdoutLines).toHaveLength(1)
+    expect(stderrLines).toHaveLength(0)
     const parsed = JSON.parse(stdoutLines[0])
     expect(parsed.level).toBe('warn')
   })

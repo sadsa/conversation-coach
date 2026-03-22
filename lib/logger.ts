@@ -15,7 +15,7 @@ function serialize(ctx: Ctx): Ctx {
 }
 
 function write(level: string, msg: string, ctx: Ctx = {}, toStderr = false): void {
-  const line = JSON.stringify({ level, msg, ...serialize(ctx), ts: new Date().toISOString() })
+  const line = JSON.stringify({ ...serialize(ctx), level, msg, ts: new Date().toISOString() })
   if (toStderr) {
     console.error(line)
   } else {
