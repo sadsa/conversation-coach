@@ -92,17 +92,16 @@ RETURNS TABLE (
     s.title AS session_title,
     s.created_at AS session_created_at
   FROM (
-    SELECT *,
-      ROW_NUMBER() OVER (PARTITION BY sub_category ORDER BY (
-        SELECT created_at FROM sessions WHERE id = annotations.session_id
-      ) DESC) AS row_num
-    FROM annotations
-    WHERE sub_category != 'other'
-      AND type IN ('grammar', 'naturalness')
+    SELECT ann.*,
+      ROW_NUMBER() OVER (PARTITION BY ann.sub_category ORDER BY s_inner.created_at DESC) AS row_num
+    FROM annotations ann
+    JOIN sessions s_inner ON ann.session_id = s_inner.id
+    WHERE ann.sub_category != 'other'
+      AND ann.type IN ('grammar', 'naturalness')
+      AND s_inner.status = 'ready'
   ) a
   JOIN transcript_segments ts ON a.segment_id = ts.id
   JOIN sessions s ON a.session_id = s.id
-  WHERE s.status = 'ready'
-    AND a.row_num <= 2
+  WHERE a.row_num <= 2
   ORDER BY a.sub_category, a.row_num
 $$ LANGUAGE sql STABLE;
