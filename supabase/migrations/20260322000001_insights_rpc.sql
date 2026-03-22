@@ -58,7 +58,7 @@ RETURNS TABLE (
     COUNT(*) AS error_count,
     (
       SELECT COUNT(*) FROM transcript_segments ts
-      WHERE ts.session_id = s.id
+      WHERE ts.session_id = a.session_id
         AND ts.speaker = ANY(COALESCE(s.user_speaker_labels, ARRAY[]::text[]))
     ) AS user_turn_count
   FROM annotations a
