@@ -8,12 +8,12 @@ import type { Annotation } from '@/lib/types'
 const grammarAnnotation: Annotation = {
   id: 'ann-1', session_id: 's1', segment_id: 'seg-1',
   type: 'grammar', original: 'Yo fui', start_char: 0, end_char: 6,
-  correction: 'Fui', explanation: 'Drop the subject pronoun.', sub_category: 'other',
+  correction: 'Fui', explanation: 'Drop the subject pronoun.', sub_category: 'subjunctive',
 }
 const strengthAnnotation: Annotation = {
   id: 'ann-2', session_id: 's1', segment_id: 'seg-1',
   type: 'strength', original: 'buenísimo', start_char: 0, end_char: 9,
-  correction: null, explanation: 'Great superlative usage.', sub_category: 'other',
+  correction: null, explanation: 'Great superlative usage.', sub_category: 'voseo',
 }
 
 const defaultProps = {
@@ -74,5 +74,16 @@ describe('AnnotationCard', () => {
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
     await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
     expect(screen.getByRole('button', { name: /add to practice/i })).not.toBeDisabled()
+  })
+
+  it('includes sub_category in POST body when adding to practice', async () => {
+    let capturedBody: Record<string, unknown> = {}
+    vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string)
+      return { ok: true } as Response
+    })
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
+    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    expect(capturedBody.sub_category).toBe('subjunctive')
   })
 })

@@ -30,6 +30,7 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
         original: annotation.original,
         correction: annotation.correction,
         explanation: annotation.explanation,
+        sub_category: annotation.sub_category,
       }),
     })
     if (res.ok) {
