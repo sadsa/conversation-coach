@@ -35,10 +35,12 @@ app/
     status/page.tsx               # Screen 2: Processing Status
     identify/page.tsx             # Screen 3: Speaker Identification
   practice/page.tsx               # Screen 5: Practice Items
+  insights/page.tsx               # Screen 6: Insights (sub-category mistake tracking)
   api/                            # All API routes (Next.js route handlers)
 components/                       # Shared React components
 lib/
   types.ts                        # All shared TypeScript types
+  insights.ts                     # computeTrend(), fetchInsightsData() — uses Supabase RPC
   supabase-server.ts              # Supabase client for server components/routes
   supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
@@ -63,6 +65,9 @@ Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and an
 
 ## Key Design Decisions
 
+- **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 4 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
+- **Practice sub-category filter**: `?sub_category=<key>` URL param; active filter shown as chip. Clicking a type tab clears it. Linked from Insights "See all examples" cards.
+- **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes and pipeline. Outputs JSON lines; `log.error` → stderr, others → stdout. Note: `lib/claude.ts`, `lib/assemblyai.ts`, `lib/r2.ts` still use raw `console.*` (known gap).
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **No auth**: All API routes are intentionally unprotected (single-user app).
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
@@ -77,7 +82,8 @@ The `analyseUserTurns` function in `lib/claude.ts` must:
 - Target Argentinian Spanish (Rioplatense register, voseo verb forms)
 - Return structured JSON: array of annotation objects matching the `annotations` DB schema
 - Annotate grammar errors, naturalness suggestions, and strengths
-- Include `segment_id`, `type`, `original`, `start_char`, `end_char`, `correction` (null for strengths), `explanation`
+- Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction` (null for strengths), `explanation`
+- `sub_category` must be one of the 16 values in `SUB_CATEGORIES` (lib/types.ts); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
 
 ## Environment Variables
 
