@@ -70,6 +70,30 @@ describe('analyseUserTurns', () => {
     await expect(analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null)).rejects.toThrow()
   })
 
+  it('returns sub_category field on each annotation', async () => {
+    const mockResponse = {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          title: 'Test',
+          annotations: [{
+            segment_id: 'seg-1',
+            type: 'grammar',
+            sub_category: 'subjunctive',
+            original: 'vengas',
+            start_char: 0,
+            end_char: 6,
+            correction: 'venís',
+            explanation: 'Voseo subjunctive form.',
+          }],
+        }),
+      }],
+    }
+    mockCreate.mockResolvedValueOnce(mockResponse)
+    const result = await analyseUserTurns([{ id: 'seg-1', text: 'vengas' }], null)
+    expect(result.annotations[0].sub_category).toBe('subjunctive')
+  })
+
   it('includes original_filename in the user message when provided', async () => {
     mockCreate.mockResolvedValueOnce({
       content: [{ type: 'text', text: JSON.stringify({ title: 'WhatsApp: Algo', annotations: [] }) }],

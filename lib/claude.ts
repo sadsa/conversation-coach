@@ -14,6 +14,10 @@ For each annotation:
 - "start_char" / "end_char": character offsets of "original" within the turn's text content only — do NOT count the [ID: ...] prefix line; offset 0 is the first character of the text itself
 - "correction": the improved version (null for strengths)
 - "explanation": a concise plain-language explanation tuned to Argentine Spanish conventions
+- "sub_category": classify into exactly one of these categories (use "other" if nothing fits):
+  Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
+  Naturalness: "vocabulary-choice", "register", "phrasing"
+  Strength: "voseo", "natural-expressions", "fluency"
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
 
@@ -22,7 +26,7 @@ For the title:
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title (e.g. "WhatsApp: Football con Kevin").
 - Otherwise use the topic only.
 
-Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [...] }. No other text.`
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation" }] }. No other text.`
 
 export interface UserTurn {
   id: string
@@ -32,6 +36,7 @@ export interface UserTurn {
 export interface ClaudeAnnotation {
   segment_id: string
   type: 'grammar' | 'naturalness' | 'strength'
+  sub_category: string   // validated downstream in pipeline.ts
   original: string
   start_char: number
   end_char: number
