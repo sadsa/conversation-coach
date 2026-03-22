@@ -8,12 +8,12 @@ import type { Annotation } from '@/lib/types'
 const grammarAnnotation: Annotation = {
   id: 'ann-1', session_id: 's1', segment_id: 'seg-1',
   type: 'grammar', original: 'Yo fui', start_char: 0, end_char: 6,
-  correction: 'Fui', explanation: 'Drop the subject pronoun.',
+  correction: 'Fui', explanation: 'Drop the subject pronoun.', sub_category: 'other',
 }
 const strengthAnnotation: Annotation = {
   id: 'ann-2', session_id: 's1', segment_id: 'seg-1',
   type: 'strength', original: 'buenísimo', start_char: 0, end_char: 9,
-  correction: null, explanation: 'Great superlative usage.',
+  correction: null, explanation: 'Great superlative usage.', sub_category: 'other',
 }
 
 const defaultProps = {

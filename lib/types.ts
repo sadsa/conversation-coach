@@ -33,6 +33,53 @@ export interface TranscriptSegment {
   position: number
 }
 
+export const SUB_CATEGORIES = [
+  'verb-conjugation', 'subjunctive', 'gender-agreement', 'number-agreement',
+  'ser-estar', 'por-para', 'tense-selection', 'article-usage', 'word-order',
+  'vocabulary-choice', 'register', 'phrasing',
+  'voseo', 'natural-expressions', 'fluency', 'other',
+] as const
+
+export type SubCategory = typeof SUB_CATEGORIES[number]
+
+// Maps each non-other sub-category to its annotation type.
+export const SUB_CATEGORY_TYPE_MAP: Partial<Record<SubCategory, AnnotationType>> = {
+  'verb-conjugation': 'grammar',
+  'subjunctive': 'grammar',
+  'gender-agreement': 'grammar',
+  'number-agreement': 'grammar',
+  'ser-estar': 'grammar',
+  'por-para': 'grammar',
+  'tense-selection': 'grammar',
+  'article-usage': 'grammar',
+  'word-order': 'grammar',
+  'vocabulary-choice': 'naturalness',
+  'register': 'naturalness',
+  'phrasing': 'naturalness',
+  'voseo': 'strength',
+  'natural-expressions': 'strength',
+  'fluency': 'strength',
+}
+
+export const SUB_CATEGORY_DISPLAY: Record<SubCategory, string> = {
+  'verb-conjugation': 'Verb conjugation',
+  'subjunctive': 'Subjunctive',
+  'gender-agreement': 'Gender agreement',
+  'number-agreement': 'Number agreement',
+  'ser-estar': 'Ser / Estar',
+  'por-para': 'Por / Para',
+  'tense-selection': 'Tense selection',
+  'article-usage': 'Article usage',
+  'word-order': 'Word order',
+  'vocabulary-choice': 'Vocabulary choice',
+  'register': 'Register',
+  'phrasing': 'Phrasing',
+  'voseo': 'Voseo',
+  'natural-expressions': 'Natural expressions',
+  'fluency': 'Fluency',
+  'other': 'Other',
+}
+
 export interface Annotation {
   id: string
   session_id: string
@@ -43,6 +90,7 @@ export interface Annotation {
   end_char: number
   correction: string | null
   explanation: string
+  sub_category: SubCategory
 }
 
 export interface PracticeItem {
@@ -53,6 +101,7 @@ export interface PracticeItem {
   original: string
   correction: string | null
   explanation: string
+  sub_category: SubCategory
   reviewed: boolean
   created_at: string
   updated_at: string

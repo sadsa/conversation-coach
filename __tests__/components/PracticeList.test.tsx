@@ -11,13 +11,13 @@ global.fetch = vi.fn().mockResolvedValue({ ok: true })
 const grammarItem: PracticeItem = {
   id: 'item-1', session_id: 's1', annotation_id: 'ann-1',
   type: 'grammar', original: 'Yo fui', correction: 'Fui',
-  explanation: 'Drop pronoun.', reviewed: false,
+  explanation: 'Drop pronoun.', sub_category: 'other', reviewed: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
 }
 const strengthItem: PracticeItem = {
   id: 'item-2', session_id: 's1', annotation_id: 'ann-2',
   type: 'strength', original: 'Dale, vamos', correction: null,
-  explanation: 'Natural Argentine expression.', reviewed: false,
+  explanation: 'Natural Argentine expression.', sub_category: 'other', reviewed: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
 }
 
