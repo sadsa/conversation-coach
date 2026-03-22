@@ -96,7 +96,7 @@ export async function fetchInsightsData(): Promise<InsightsData> {
 
     if (sessionCounts && sessionCounts.length > 0) {
       // Identify the 3 most recent session IDs
-      const allSessionIds = [...new Set<string>((sessionCounts as { session_id: string }[]).map(r => r.session_id))]
+      const allSessionIds = Array.from(new Set<string>((sessionCounts as { session_id: string }[]).map(r => r.session_id)))
       // Sessions are returned ordered by created_at DESC from the RPC
       const recentSessionIds = new Set(allSessionIds.slice(0, 3))
 
@@ -112,7 +112,7 @@ export async function fetchInsightsData(): Promise<InsightsData> {
         group.turns += Number(row.user_turn_count)
       }
 
-      for (const [subCat, { recent, older }] of bySubCat) {
+      for (const [subCat, { recent, older }] of Array.from(bySubCat)) {
         trendMap.set(subCat, computeTrend(recent.errors, recent.turns, older.errors, older.turns, 'error'))
       }
     }
