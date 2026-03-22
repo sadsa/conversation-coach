@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import type { PracticeItem, AnnotationType, SubCategory } from '@/lib/types'
+import { SUB_CATEGORY_DISPLAY } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { TYPE_LABEL } from '@/components/AnnotationCard'
 
@@ -329,6 +330,18 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               {f}
             </button>
           ))}
+        </div>
+      )}
+
+      {subCategoryFilter !== null && (
+        <div className="flex items-center gap-2 text-xs text-indigo-400 bg-indigo-950 border border-indigo-800 rounded-lg px-3 py-2">
+          <span>Filtered by: <strong>{SUB_CATEGORY_DISPLAY[subCategoryFilter]}</strong></span>
+          <button
+            className="ml-auto text-indigo-400 hover:text-indigo-200"
+            onClick={() => setSubCategoryFilter(null)}
+          >
+            Clear ×
+          </button>
         </div>
       )}
 
