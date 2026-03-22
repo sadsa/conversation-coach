@@ -1,23 +1,36 @@
-// app/practice/page.tsx
 'use client'
 import { useEffect, useState } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { PracticeList } from '@/components/PracticeList'
 import type { PracticeItem } from '@/lib/types'
+import type { SubCategory } from '@/lib/types'
+import { SUB_CATEGORIES } from '@/lib/types'
 
 export default function PracticePage() {
   const [items, setItems] = useState<PracticeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Read sub_category param once on mount and immediately strip from URL
+  const rawSubCat = searchParams.get('sub_category')
+  const initialSubCategory: SubCategory | undefined =
+    rawSubCat && (SUB_CATEGORIES as readonly string[]).includes(rawSubCat)
+      ? (rawSubCat as SubCategory)
+      : undefined
+
+  useEffect(() => {
+    if (rawSubCat) router.replace(pathname)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch('/api/practice-items')
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setItems(data)
-        } else {
-          setError(data?.error ?? 'Failed to load practice items')
-        }
+        if (Array.isArray(data)) setItems(data)
+        else setError(data?.error ?? 'Failed to load practice items')
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
@@ -36,9 +49,8 @@ export default function PracticePage() {
       </div>
       <PracticeList
         items={items}
-        onDeleted={ids =>
-          setItems(prev => prev.filter(i => !ids.includes(i.id)))
-        }
+        initialSubCategory={initialSubCategory}
+        onDeleted={ids => setItems(prev => prev.filter(i => !ids.includes(i.id)))}
       />
     </div>
   )

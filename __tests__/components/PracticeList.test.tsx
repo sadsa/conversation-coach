@@ -139,6 +139,34 @@ describe('PracticeList — bulk toolbar', () => {
   })
 })
 
+describe('PracticeList — sub-category filter', () => {
+  it('filters to only items matching initialSubCategory', () => {
+    const items: PracticeItem[] = [
+      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '' },
+      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, created_at: '', updated_at: '' },
+    ]
+    render(<PracticeList items={items} initialSubCategory="subjunctive" />)
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+    expect(screen.queryByText('Soy')).not.toBeInTheDocument()
+  })
+
+  it('clears sub-category filter when a type tab is clicked', async () => {
+    const items: PracticeItem[] = [
+      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '' },
+      { id: '2', session_id: 's1', annotation_id: null, type: 'naturalness', sub_category: 'phrasing', original: 'qué tal', correction: null, explanation: '', reviewed: false, created_at: '', updated_at: '' },
+    ]
+    render(<PracticeList items={items} initialSubCategory="subjunctive" />)
+    // Initially filtered to subjunctive only
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+    expect(screen.queryByText('qué tal')).not.toBeInTheDocument()
+    // Click "All" tab
+    await userEvent.click(screen.getByRole('button', { name: /all/i }))
+    // Both items now visible
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+    expect(screen.getByText('qué tal')).toBeInTheDocument()
+  })
+})
+
 describe('PracticeList — swipe delete', () => {
   it('calls DELETE API when onDelete is triggered', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })
