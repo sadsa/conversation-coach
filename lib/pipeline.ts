@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import { analyseUserTurns } from '@/lib/claude'
 import { deleteObject } from '@/lib/r2'
 import type { TranscriptSegment } from '@/lib/types'
+import { SUB_CATEGORIES, SUB_CATEGORY_TYPE_MAP } from '@/lib/types'
 import type { ClaudeAnnotation } from '@/lib/claude'
 
 export async function runClaudeAnalysis(sessionId: string): Promise<void> {
@@ -44,15 +45,26 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
   const segmentTextById = new Map(userTurns.map(t => [t.id, t.text]))
 
   const correctedAnnotations = annotations.map(a => {
+    let corrected = { ...a }
+
+    // Correct character offsets if they don't match
     const segText = segmentTextById.get(a.segment_id)
-    if (!segText) return a
-    if (segText.slice(a.start_char, a.end_char) !== a.original) {
-      const idx = segText.indexOf(a.original)
+    if (segText && segText.slice(corrected.start_char, corrected.end_char) !== corrected.original) {
+      const idx = segText.indexOf(corrected.original)
       if (idx !== -1) {
-        return { ...a, start_char: idx, end_char: idx + a.original.length }
+        corrected = { ...corrected, start_char: idx, end_char: idx + corrected.original.length }
       }
     }
-    return a
+
+    // Validate sub_category: must be in taxonomy and match the annotation type
+    const rawSubCat = corrected.sub_category
+    const isValidKey = typeof rawSubCat === 'string' && (SUB_CATEGORIES as readonly string[]).includes(rawSubCat)
+    const expectedType = isValidKey ? SUB_CATEGORY_TYPE_MAP[rawSubCat as keyof typeof SUB_CATEGORY_TYPE_MAP] : undefined
+    const subCategory = (isValidKey && (expectedType === undefined || expectedType === corrected.type))
+      ? rawSubCat
+      : 'other'
+
+    return { ...corrected, sub_category: subCategory }
   })
 
   if (correctedAnnotations.length > 0) {
@@ -66,6 +78,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
         end_char: a.end_char,
         correction: a.correction,
         explanation: a.explanation,
+        sub_category: a.sub_category,
       }))
     )
 
