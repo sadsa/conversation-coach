@@ -55,7 +55,7 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
         </>
       </p>
       <p className="text-sm text-gray-400 leading-relaxed">{annotation.explanation}</p>
-      <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs self-start">
+      <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
         {SUB_CATEGORY_DISPLAY[annotation.sub_category]}
       </span>
       {added ? (
