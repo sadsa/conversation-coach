@@ -81,9 +81,9 @@ Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and an
 The `analyseUserTurns` function in `lib/claude.ts` must:
 - Target Argentinian Spanish (Rioplatense register, voseo verb forms)
 - Return structured JSON: array of annotation objects matching the `annotations` DB schema
-- Annotate grammar errors, naturalness suggestions, and strengths
-- Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction` (null for strengths), `explanation`
-- `sub_category` must be one of the 16 values in `SUB_CATEGORIES` (lib/types.ts); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
+- Annotate grammar errors and naturalness suggestions
+- Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction`, `explanation`
+- `sub_category` must be one of the 13 values in `SUB_CATEGORIES` (lib/types.ts); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
 
 ## Environment Variables
 
