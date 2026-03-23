@@ -64,4 +64,18 @@ describe('TranscriptView', () => {
     expect(label.tagName).toBe('P')
     expect(label).toHaveClass('uppercase')
   })
+
+  it('shows the added badge on a highlight when the annotation id is in addedAnnotationIds', () => {
+    render(
+      <TranscriptView
+        segments={segments}
+        annotations={annotations}
+        userSpeakerLabels={['A']}
+        sessionId="s1"
+        addedAnnotationIds={new Set(['ann-1'])}
+        onAnnotationAdded={vi.fn()}
+      />
+    )
+    expect(screen.getByTestId('annotation-added-badge-ann-1')).toBeInTheDocument()
+  })
 })
