@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InsightsCardList } from '@/components/InsightsCardList'
-import type { FocusCard, StrengthChip } from '@/lib/insights'
+import type { FocusCard } from '@/lib/insights'
 
 const mockCards: FocusCard[] = [
   {
@@ -27,13 +27,9 @@ const mockCards: FocusCard[] = [
   },
 ]
 
-const mockStrengths: StrengthChip[] = [
-  { subCategory: 'voseo', totalCount: 8, trend: null },
-]
-
 describe('InsightsCardList', () => {
   it('renders focus cards with rank, name, count, and trend', () => {
-    render(<InsightsCardList focusCards={mockCards} strengthChips={mockStrengths} totalSessions={5} />)
+    render(<InsightsCardList focusCards={mockCards} totalSessions={5} />)
     expect(screen.getByText('Subjunctive')).toBeInTheDocument()
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText(/needs attention/i)).toBeInTheDocument()
@@ -42,7 +38,7 @@ describe('InsightsCardList', () => {
   })
 
   it('shows examples when a card is expanded', async () => {
-    render(<InsightsCardList focusCards={mockCards} strengthChips={mockStrengths} totalSessions={5} />)
+    render(<InsightsCardList focusCards={mockCards} totalSessions={5} />)
     // Examples are not visible initially
     expect(screen.queryByText('Chat with Sofía')).not.toBeInTheDocument()
     // Click the first card to expand
@@ -53,19 +49,8 @@ describe('InsightsCardList', () => {
 
   it('hides trend chips when totalSessions < 4', () => {
     const cardsNoTrend = mockCards.map(c => ({ ...c, trend: null }))
-    render(<InsightsCardList focusCards={cardsNoTrend} strengthChips={mockStrengths} totalSessions={2} />)
+    render(<InsightsCardList focusCards={cardsNoTrend} totalSessions={2} />)
     expect(screen.queryByText(/needs attention/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/keep practicing/i)).not.toBeInTheDocument()
-  })
-
-  it('renders strength chips', () => {
-    render(<InsightsCardList focusCards={mockCards} strengthChips={mockStrengths} totalSessions={5} />)
-    expect(screen.getByText('Voseo')).toBeInTheDocument()
-    expect(screen.getByText(/8 times noted/i)).toBeInTheDocument()
-  })
-
-  it('omits strengths section when strengthChips is empty', () => {
-    render(<InsightsCardList focusCards={mockCards} strengthChips={[]} totalSessions={5} />)
-    expect(screen.queryByText(/what you.*re doing well/i)).not.toBeInTheDocument()
   })
 })
