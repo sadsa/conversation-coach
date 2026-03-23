@@ -10,7 +10,6 @@ import { TYPE_LABEL } from '@/components/AnnotationCard'
 const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
   grammar: 'bg-red-400',
   naturalness: 'bg-yellow-400',
-  strength: 'bg-green-400',
 }
 
 type Filter = 'all' | AnnotationType
