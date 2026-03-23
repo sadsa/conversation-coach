@@ -78,6 +78,21 @@ describe('AnnotatedText', () => {
     expect(screen.queryByTestId('annotation-added-badge-ann-1')).not.toBeInTheDocument()
   })
 
+  it('preserves colour classes on an added annotation mark', () => {
+    render(
+      <AnnotatedText
+        text={text}
+        annotations={annotations}
+        onAnnotationClick={() => {}}
+        addedAnnotationIds={new Set(['ann-1'])}
+      />
+    )
+    const mark = screen.getByText('Yo fui')
+    expect(mark).toHaveClass('bg-[#3b1a1a]')
+    expect(mark).toHaveClass('text-[#fca5a5]')
+    expect(mark).toHaveClass('decoration-[#f87171]')
+  })
+
   it('still calls onAnnotationClick when an added annotation mark is clicked', async () => {
     const onClick = vi.fn()
     render(
