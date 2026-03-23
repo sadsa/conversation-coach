@@ -175,8 +175,12 @@ function SwipeableItem({
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT_CLASS[item.type]}`} />
         <div className="flex-1 min-w-0 text-sm">
           <span className="line-through text-gray-500">{item.original}</span>
-          {' → '}
-          <span className="font-medium">{item.correction}</span>
+          {item.correction && (
+            <>
+              {' → '}
+              <span className="font-medium">{item.correction}</span>
+            </>
+          )}
         </div>
       </div>
     </li>
@@ -364,8 +368,12 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           <div className="space-y-3 text-sm">
             <div>
               <span className="line-through text-gray-500">{openItem.original}</span>
-              <span className="mx-2 text-gray-500">→</span>
-              <span className="font-medium text-green-300">{openItem.correction}</span>
+              {openItem.correction && (
+                <>
+                  <span className="mx-2 text-gray-500">→</span>
+                  <span className="font-medium text-green-300">{openItem.correction}</span>
+                </>
+              )}
             </div>
             <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
           </div>
