@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import type { PracticeItem, AnnotationType, SubCategory } from '@/lib/types'
-import { SUB_CATEGORY_DISPLAY } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { TYPE_LABEL } from '@/components/AnnotationCard'
 
@@ -11,8 +10,6 @@ const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
   grammar: 'bg-red-400',
   naturalness: 'bg-yellow-400',
 }
-
-type Filter = 'all' | AnnotationType
 
 function SwipeableItem({
   item,
@@ -195,8 +192,7 @@ interface Props {
 }
 
 export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
-  const [typeFilter, setTypeFilter] = useState<Filter>('all')
-  const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
+  const [subCategoryFilter, _setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
@@ -209,7 +205,6 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   }, [toastMessage])
 
   const filtered = items.filter(item => {
-    if (typeFilter !== 'all' && item.type !== typeFilter) return false
     if (subCategoryFilter !== null && item.sub_category !== subCategoryFilter) return false
     return true
   })
@@ -307,37 +302,6 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               <path d="M14 11v6" />
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
             </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Filter row — hidden while in bulk mode */}
-      {!isBulkMode && (
-        <div className="flex gap-2 flex-wrap text-sm">
-          {(['all', 'grammar', 'naturalness', 'strength'] as Filter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => { setTypeFilter(f); setSubCategoryFilter(null) }}
-              className={`px-3 py-1 rounded-full border transition-colors capitalize ${
-                typeFilter === f
-                  ? 'border-violet-500 text-violet-300 bg-violet-500/10'
-                  : 'border-gray-700 text-gray-400'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {subCategoryFilter !== null && (
-        <div className="flex items-center gap-2 text-xs text-indigo-400 bg-indigo-950 border border-indigo-800 rounded-lg px-3 py-2">
-          <span>Filtered by: <strong>{SUB_CATEGORY_DISPLAY[subCategoryFilter]}</strong></span>
-          <button
-            className="ml-auto text-indigo-400 hover:text-indigo-200"
-            onClick={() => setSubCategoryFilter(null)}
-          >
-            Clear ×
           </button>
         </div>
       )}
