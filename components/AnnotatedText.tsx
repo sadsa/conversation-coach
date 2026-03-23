@@ -10,6 +10,7 @@ interface Props {
   text: string
   annotations: Annotation[]
   onAnnotationClick: (annotation: Annotation) => void
+  addedAnnotationIds?: Set<string>
 }
 
 interface Span {
@@ -39,7 +40,7 @@ function buildSpans(text: string, annotations: Annotation[]): Span[] {
   return spans
 }
 
-export function AnnotatedText({ text, annotations, onAnnotationClick }: Props) {
+export function AnnotatedText({ text, annotations, onAnnotationClick, addedAnnotationIds = new Set() }: Props) {
   const spans = buildSpans(text, annotations)
 
   return (
@@ -48,10 +49,34 @@ export function AnnotatedText({ text, annotations, onAnnotationClick }: Props) {
         const slice = text.slice(span.start, span.end)
         if (span.annotation) {
           const cls = TYPE_CLASS[span.annotation.type] ?? ''
+          const isAdded = addedAnnotationIds.has(span.annotation.id)
+
+          const baseCls = `underline decoration-2 cursor-pointer rounded-sm px-1 ${cls}`
+
+          if (isAdded) {
+            return (
+              <span key={i} className="relative inline-block">
+                <mark
+                  className={`${baseCls} opacity-[0.45]`}
+                  onClick={() => onAnnotationClick(span.annotation!)}
+                >
+                  {slice}
+                </mark>
+                <span
+                  data-testid={`annotation-added-badge-${span.annotation.id}`}
+                  aria-hidden="true"
+                  className="absolute top-[-5px] right-[-5px] w-[14px] h-[14px] pointer-events-none text-[8px] leading-none bg-green-500 rounded-full border-2 border-gray-900 flex items-center justify-center text-white"
+                >
+                  ✓
+                </span>
+              </span>
+            )
+          }
+
           return (
             <mark
               key={i}
-              className={`underline decoration-2 cursor-pointer rounded-sm px-1 ${cls}`}
+              className={baseCls}
               onClick={() => onAnnotationClick(span.annotation!)}
             >
               {slice}

@@ -45,6 +45,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
                       onAnnotationClick={a => {
                         setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
                       }}
+                      addedAnnotationIds={addedAnnotationIds}
                     />
                   ) : (
                     seg.text
