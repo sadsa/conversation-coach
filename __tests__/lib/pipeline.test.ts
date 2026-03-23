@@ -280,7 +280,7 @@ describe('runClaudeAnalysis', () => {
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-    // 'voseo' belongs to 'strength', not 'grammar' — should be reset to 'other'
+    // 'voseo' is not in the taxonomy — should be reset to 'other'
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test', annotations: [
       { segment_id: 'seg-1', type: 'grammar', sub_category: 'voseo', original: 'voseo', start_char: 0, end_char: 5, correction: null, explanation: 'Good voseo.' },
     ] })
