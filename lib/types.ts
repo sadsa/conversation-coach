@@ -6,7 +6,7 @@ export type SessionStatus =
 
 export type ErrorStage = 'uploading' | 'transcribing' | 'analysing'
 
-export type AnnotationType = 'grammar' | 'naturalness' | 'strength'
+export type AnnotationType = 'grammar' | 'naturalness'
 
 export interface Session {
   id: string
@@ -37,7 +37,7 @@ export const SUB_CATEGORIES = [
   'verb-conjugation', 'subjunctive', 'gender-agreement', 'number-agreement',
   'ser-estar', 'por-para', 'tense-selection', 'article-usage', 'word-order',
   'vocabulary-choice', 'register', 'phrasing',
-  'voseo', 'natural-expressions', 'fluency', 'other',
+  'other',
 ] as const
 
 export type SubCategory = typeof SUB_CATEGORIES[number]
@@ -56,9 +56,6 @@ export const SUB_CATEGORY_TYPE_MAP: Partial<Record<SubCategory, AnnotationType>>
   'vocabulary-choice': 'naturalness',
   'register': 'naturalness',
   'phrasing': 'naturalness',
-  'voseo': 'strength',
-  'natural-expressions': 'strength',
-  'fluency': 'strength',
 }
 
 export const SUB_CATEGORY_DISPLAY: Record<SubCategory, string> = {
@@ -74,9 +71,6 @@ export const SUB_CATEGORY_DISPLAY: Record<SubCategory, string> = {
   'vocabulary-choice': 'Vocabulary choice',
   'register': 'Register',
   'phrasing': 'Phrasing',
-  'voseo': 'Voseo',
-  'natural-expressions': 'Natural expressions',
-  'fluency': 'Fluency',
   'other': 'Other',
 }
 
