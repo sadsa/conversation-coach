@@ -61,19 +61,9 @@ export function AnnotatedText({ text, annotations, onAnnotationClick, addedAnnot
                   {slice}
                 </mark>
                 <span
-                  data-testid="annotation-added-badge"
+                  data-testid={`annotation-added-badge-${span.annotation.id}`}
                   aria-hidden="true"
-                  style={{
-                    position: 'absolute',
-                    top: '-5px',
-                    right: '-5px',
-                    width: '14px',
-                    height: '14px',
-                    pointerEvents: 'none',
-                    fontSize: '8px',
-                    lineHeight: 1,
-                  }}
-                  className="bg-green-500 rounded-full border-2 border-[#111827] flex items-center justify-center text-white"
+                  className="absolute top-[-5px] right-[-5px] w-[14px] h-[14px] pointer-events-none text-[8px] leading-none bg-green-500 rounded-full border-2 border-[#111827] flex items-center justify-center text-white"
                 >
                   ✓
                 </span>

@@ -63,7 +63,7 @@ describe('AnnotatedText', () => {
         addedAnnotationIds={new Set(['ann-1'])}
       />
     )
-    expect(screen.getByTestId('annotation-added-badge')).toBeInTheDocument()
+    expect(screen.getByTestId('annotation-added-badge-ann-1')).toBeInTheDocument()
   })
 
   it('does not show the added badge when addedAnnotationIds is empty', () => {
@@ -75,7 +75,7 @@ describe('AnnotatedText', () => {
         addedAnnotationIds={new Set()}
       />
     )
-    expect(screen.queryByTestId('annotation-added-badge')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('annotation-added-badge-ann-1')).not.toBeInTheDocument()
   })
 
   it('still calls onAnnotationClick when an added annotation mark is clicked', async () => {
