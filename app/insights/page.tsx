@@ -2,7 +2,7 @@ import { fetchInsightsData } from '@/lib/insights'
 import { InsightsCardList } from '@/components/InsightsCardList'
 
 export default async function InsightsPage() {
-  const { totalReadySessions, focusCards, strengthChips } = await fetchInsightsData()
+  const { totalReadySessions, focusCards } = await fetchInsightsData()
 
   return (
     <div className="space-y-6">
@@ -22,7 +22,6 @@ export default async function InsightsPage() {
       ) : (
         <InsightsCardList
           focusCards={focusCards}
-          strengthChips={strengthChips}
           totalSessions={totalReadySessions}
         />
       )}

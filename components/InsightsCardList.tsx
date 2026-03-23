@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
-import type { FocusCard, StrengthChip, TrendResult } from '@/lib/insights'
-import { SUB_CATEGORY_DISPLAY } from '@/lib/types'
+import type { FocusCard, TrendResult } from '@/lib/insights'
 
 const TREND_CONFIG: Record<TrendResult, { label: string; arrow: string; className: string }> = {
   'making-progress': { label: 'making progress', arrow: '↑', className: 'text-green-400' },
@@ -92,11 +91,10 @@ function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: nu
 
 interface Props {
   focusCards: FocusCard[]
-  strengthChips: StrengthChip[]
   totalSessions: number
 }
 
-export function InsightsCardList({ focusCards, strengthChips, totalSessions }: Props) {
+export function InsightsCardList({ focusCards, totalSessions }: Props) {
   return (
     <div className="space-y-8">
       {/* Where to Focus */}
@@ -108,22 +106,6 @@ export function InsightsCardList({ focusCards, strengthChips, totalSessions }: P
           ))}
         </div>
       </section>
-
-      {/* Strengths */}
-      {strengthChips.length > 0 && (
-        <section>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">What you&rsquo;re doing well</h2>
-          <div className="flex gap-2 flex-wrap">
-            {strengthChips.map(chip => (
-              <div key={chip.subCategory} className="flex-1 min-w-[120px] bg-green-950 border border-green-800 rounded-xl p-3 text-center">
-                <p className="text-sm font-semibold text-green-400">{SUB_CATEGORY_DISPLAY[chip.subCategory]}</p>
-                <p className="text-xs text-green-700 mt-0.5">{chip.totalCount} times noted</p>
-                {chip.trend && <TrendChip trend={chip.trend} />}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   )
 }

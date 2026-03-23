@@ -5,37 +5,26 @@ import type { SubCategory } from '@/lib/types'
 export type TrendResult = 'making-progress' | 'keep-practicing' | 'needs-attention'
 
 /**
- * Compute trend for a single sub-category.
+ * Compute trend for a single sub-category (errors — lower is better).
  * @param recentErrors   error count in recent sessions
  * @param recentTurns    user turn count in recent sessions
  * @param olderErrors    error count in older sessions
  * @param olderTurns     user turn count in older sessions
- * @param mode           'error' (lower is better) | 'strength' (higher is better)
  */
 export function computeTrend(
   recentErrors: number,
   recentTurns: number,
   olderErrors: number,
   olderTurns: number,
-  mode: 'error' | 'strength',
 ): TrendResult {
   const recentRate = recentTurns === 0 ? 0 : recentErrors / recentTurns
   const olderRate = olderTurns === 0 ? 0 : olderErrors / olderTurns
 
-  if (mode === 'error') {
-    if (recentRate === 0 && olderRate === 0) return 'keep-practicing'
-    if (olderRate === 0 && recentRate > 0) return 'needs-attention'
-    if (recentRate < olderRate * 0.8) return 'making-progress'
-    if (recentRate > olderRate * 1.2) return 'needs-attention'
-    return 'keep-practicing'
-  } else {
-    // strength: more is better
-    if (recentRate === 0 && olderRate === 0) return 'keep-practicing'
-    if (olderRate === 0 && recentRate > 0) return 'making-progress'
-    if (recentRate > olderRate * 1.2) return 'making-progress'
-    if (recentRate < olderRate * 0.8) return 'needs-attention'
-    return 'keep-practicing'
-  }
+  if (recentRate === 0 && olderRate === 0) return 'keep-practicing'
+  if (olderRate === 0 && recentRate > 0) return 'needs-attention'
+  if (recentRate < olderRate * 0.8) return 'making-progress'
+  if (recentRate > olderRate * 1.2) return 'needs-attention'
+  return 'keep-practicing'
 }
 
 export interface FocusCard {
@@ -46,12 +35,6 @@ export interface FocusCard {
   sessionCount: number
   trend: TrendResult | null  // null when < 4 sessions
   examples: ExampleAnnotation[]
-}
-
-export interface StrengthChip {
-  subCategory: SubCategory
-  totalCount: number
-  trend: TrendResult | null
 }
 
 export interface ExampleAnnotation {
@@ -67,7 +50,6 @@ export interface ExampleAnnotation {
 export interface InsightsData {
   totalReadySessions: number
   focusCards: FocusCard[]
-  strengthChips: StrengthChip[]
 }
 
 export async function fetchInsightsData(): Promise<InsightsData> {
@@ -84,10 +66,7 @@ export async function fetchInsightsData(): Promise<InsightsData> {
   // Query 1: error counts
   const { data: errorCounts } = await db.rpc('get_subcategory_error_counts')
 
-  // Query 2: strength counts
-  const { data: strengthCounts } = await db.rpc('get_subcategory_strength_counts')
-
-  // Query 3: per-session counts (for trend)
+  // Query 2: per-session counts (for trend)
   const showTrends = total >= 4
   const trendMap: Map<string, TrendResult> = new Map()
 
@@ -113,12 +92,12 @@ export async function fetchInsightsData(): Promise<InsightsData> {
       }
 
       for (const [subCat, { recent, older }] of Array.from(bySubCat)) {
-        trendMap.set(subCat, computeTrend(recent.errors, recent.turns, older.errors, older.turns, 'error'))
+        trendMap.set(subCat, computeTrend(recent.errors, recent.turns, older.errors, older.turns))
       }
     }
   }
 
-  // Query 4: examples
+  // Query 3: examples
   const { data: examplesRaw } = await db.rpc('get_subcategory_examples')
   const examplesBySubCat = new Map<string, ExampleAnnotation[]>()
   for (const row of (examplesRaw ?? []) as {
@@ -149,12 +128,5 @@ export async function fetchInsightsData(): Promise<InsightsData> {
     examples: examplesBySubCat.get(row.sub_category) ?? [],
   }))
 
-  // Build strength chips (top 3)
-  const strengthChips: StrengthChip[] = (strengthCounts ?? []).slice(0, 3).map((row: { sub_category: string; total_count: number }) => ({
-    subCategory: row.sub_category as SubCategory,
-    totalCount: Number(row.total_count),
-    trend: null, // strength trend omitted (no strength session counts RPC)
-  }))
-
-  return { totalReadySessions: total, focusCards, strengthChips }
+  return { totalReadySessions: total, focusCards }
 }
