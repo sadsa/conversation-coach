@@ -6,6 +6,7 @@ import type { Annotation, AnnotationType } from '@/lib/types'
 export const TYPE_LABEL: Record<AnnotationType, string> = {
   grammar: '🔴 Grammar',
   naturalness: '🟡 Naturalness',
+  strength: '🟢 Strength',
 }
 
 interface Props {
@@ -43,17 +44,15 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
   return (
     <div className="space-y-3">
       <p className="text-base">
-        <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
-          {annotation.original}
-        </span>
-        {annotation.correction && (
-          <>
-            {' → '}
-            <span className="font-semibold text-lg text-[#86efac]">
-              {annotation.correction}
-            </span>
-          </>
-        )}
+        <>
+          <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
+            {annotation.original}
+          </span>
+          {' → '}
+          <span className="font-semibold text-lg text-[#86efac]">
+            {annotation.correction}
+          </span>
+        </>
       </p>
       <p className="text-sm text-gray-400 leading-relaxed">{annotation.explanation}</p>
       {added ? (
