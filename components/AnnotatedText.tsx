@@ -4,7 +4,6 @@ import type { Annotation } from '@/lib/types'
 const TYPE_CLASS: Record<string, string> = {
   grammar:     'bg-[#3b1a1a] text-[#fca5a5] decoration-[#f87171]',
   naturalness: 'bg-[#3b2e0a] text-[#fde68a] decoration-[#fbbf24]',
-  strength:    'bg-[#0f2e1a] text-[#86efac] decoration-[#4ade80]',
 }
 
 interface Props {
