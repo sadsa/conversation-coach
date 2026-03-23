@@ -135,7 +135,7 @@ describe('PracticeList — sub-category filter', () => {
   it('clears sub-category filter when a type tab is clicked', async () => {
     const items: PracticeItem[] = [
       { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '' },
-      { id: '2', session_id: 's1', annotation_id: null, type: 'naturalness', sub_category: 'phrasing', original: 'qué tal', correction: null, explanation: '', reviewed: false, created_at: '', updated_at: '' },
+      { id: '2', session_id: 's1', annotation_id: null, type: 'naturalness', sub_category: 'phrasing', original: 'qué tal', correction: 'cómo te va', explanation: '', reviewed: false, created_at: '', updated_at: '' },
     ]
     render(<PracticeList items={items} initialSubCategory="subjunctive" />)
     // Initially filtered to subjunctive only
