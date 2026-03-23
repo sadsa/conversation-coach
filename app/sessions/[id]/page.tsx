@@ -43,7 +43,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   if (!detail) return <p className="text-gray-400">Loading…</p>
 
   const { session, segments, annotations } = detail
-  const counts = { grammar: 0, naturalness: 0, strength: 0 }
+  const counts = { grammar: 0, naturalness: 0 }
   annotations.forEach(a => counts[a.type as keyof typeof counts]++)
 
   const durationLabel = session.duration_seconds
@@ -56,7 +56,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         <div className="min-w-0">
           <InlineEdit value={title} onSave={handleRename} className="text-xl font-bold break-words" />
           <p className="text-sm text-gray-400 mt-1">
-            {durationLabel} · {counts.grammar} grammar · {counts.naturalness} naturalness · {counts.strength} strengths
+            {durationLabel} · {counts.grammar} grammar · {counts.naturalness} naturalness
           </p>
         </div>
         <button
