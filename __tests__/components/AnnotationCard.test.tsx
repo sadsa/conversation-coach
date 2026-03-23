@@ -66,6 +66,16 @@ describe('AnnotationCard', () => {
     expect(screen.getByRole('button', { name: /add to practice/i })).not.toBeDisabled()
   })
 
+  it('renders sub-category pill', () => {
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
+    expect(screen.getByText('Subjunctive')).toBeInTheDocument()
+  })
+
+  it('renders sub-category pill when isAdded is true', () => {
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} isAdded={true} />)
+    expect(screen.getByText('Subjunctive')).toBeInTheDocument()
+  })
+
   it('includes sub_category in POST body when adding to practice', async () => {
     let capturedBody: Record<string, unknown> = {}
     vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {

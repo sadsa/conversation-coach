@@ -2,6 +2,7 @@
 'use client'
 import { useState } from 'react'
 import type { Annotation, AnnotationType } from '@/lib/types'
+import { SUB_CATEGORY_DISPLAY } from '@/lib/types'
 
 export const TYPE_LABEL: Record<AnnotationType, string> = {
   grammar: '🔴 Grammar',
@@ -54,6 +55,9 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
         </>
       </p>
       <p className="text-sm text-gray-400 leading-relaxed">{annotation.explanation}</p>
+      <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs self-start">
+        {SUB_CATEGORY_DISPLAY[annotation.sub_category]}
+      </span>
       {added ? (
         <button disabled className="w-full py-3 rounded-xl bg-gray-700 text-sm text-gray-500 cursor-not-allowed">
           ✓ Added to practice list
