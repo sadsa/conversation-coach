@@ -27,12 +27,6 @@ describe('PracticeList', () => {
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
-  it('filters by type', async () => {
-    render(<PracticeList items={[grammarItem]} />)
-    await userEvent.click(screen.getByRole('button', { name: /naturalness/i }))
-    expect(screen.getByText(/no items match/i)).toBeInTheDocument()
-  })
-
   it('does not render reviewed filter buttons', () => {
     render(<PracticeList items={[grammarItem]} />)
     expect(screen.queryByRole('button', { name: /pending/i })).not.toBeInTheDocument()
@@ -87,15 +81,14 @@ describe('PracticeList — item modal', () => {
 describe('PracticeList — bulk toolbar', () => {
   it('shows filter buttons when not in bulk mode', () => {
     render(<PracticeList items={[grammarItem]} />)
-    expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /grammar/i })).toBeInTheDocument()
+    // grammar type-tab assertion removed — no longer exists
   })
 
   it('hides filter buttons when in bulk mode', async () => {
     render(<PracticeList items={[grammarItem]} />)
     await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
     expect(screen.queryByRole('button', { name: /^all$/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^grammar$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^other$/i })).not.toBeInTheDocument()
   })
 
   it('shows selected count in bulk mode', async () => {
@@ -109,7 +102,6 @@ describe('PracticeList — bulk toolbar', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
     await userEvent.click(screen.getByRole('button', { name: /exit selection/i }))
     expect(screen.queryByText('1 selected')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^all$/i })).toBeInTheDocument()
   })
 
   it('select-all selects filtered items', async () => {
@@ -130,22 +122,6 @@ describe('PracticeList — sub-category filter', () => {
     render(<PracticeList items={items} initialSubCategory="subjunctive" />)
     expect(screen.getByText('vengas')).toBeInTheDocument()
     expect(screen.queryByText('Soy')).not.toBeInTheDocument()
-  })
-
-  it('clears sub-category filter when a type tab is clicked', async () => {
-    const items: PracticeItem[] = [
-      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '' },
-      { id: '2', session_id: 's1', annotation_id: null, type: 'naturalness', sub_category: 'phrasing', original: 'qué tal', correction: 'cómo te va', explanation: '', reviewed: false, created_at: '', updated_at: '' },
-    ]
-    render(<PracticeList items={items} initialSubCategory="subjunctive" />)
-    // Initially filtered to subjunctive only
-    expect(screen.getByText('vengas')).toBeInTheDocument()
-    expect(screen.queryByText('qué tal')).not.toBeInTheDocument()
-    // Click "All" tab
-    await userEvent.click(screen.getByRole('button', { name: /all/i }))
-    // Both items now visible
-    expect(screen.getByText('vengas')).toBeInTheDocument()
-    expect(screen.getByText('qué tal')).toBeInTheDocument()
   })
 })
 
