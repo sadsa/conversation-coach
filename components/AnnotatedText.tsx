@@ -10,6 +10,7 @@ interface Props {
   text: string
   annotations: Annotation[]
   onAnnotationClick: (annotation: Annotation) => void
+  addedAnnotationIds?: Set<string>
 }
 
 interface Span {
@@ -39,7 +40,7 @@ function buildSpans(text: string, annotations: Annotation[]): Span[] {
   return spans
 }
 
-export function AnnotatedText({ text, annotations, onAnnotationClick }: Props) {
+export function AnnotatedText({ text, annotations, onAnnotationClick, addedAnnotationIds = new Set() }: Props) {
   const spans = buildSpans(text, annotations)
 
   return (
@@ -48,6 +49,38 @@ export function AnnotatedText({ text, annotations, onAnnotationClick }: Props) {
         const slice = text.slice(span.start, span.end)
         if (span.annotation) {
           const cls = TYPE_CLASS[span.annotation.type] ?? ''
+          const isAdded = addedAnnotationIds.has(span.annotation.id)
+
+          if (isAdded) {
+            return (
+              <span key={i} style={{ position: 'relative', display: 'inline-block' }}>
+                <mark
+                  className={`underline decoration-2 cursor-pointer rounded-sm px-1 ${cls} opacity-[0.45]`}
+                  onClick={() => onAnnotationClick(span.annotation!)}
+                >
+                  {slice}
+                </mark>
+                <span
+                  data-testid="annotation-added-badge"
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '-5px',
+                    width: '14px',
+                    height: '14px',
+                    pointerEvents: 'none',
+                    fontSize: '8px',
+                    lineHeight: 1,
+                  }}
+                  className="bg-green-500 rounded-full border-2 border-[#111827] flex items-center justify-center text-white"
+                >
+                  ✓
+                </span>
+              </span>
+            )
+          }
+
           return (
             <mark
               key={i}

@@ -53,4 +53,42 @@ describe('AnnotatedText', () => {
     expect(mark).toHaveClass('text-[#fca5a5]')
     expect(mark).toHaveClass('decoration-[#f87171]')
   })
+
+  it('shows the added badge when the annotation is in addedAnnotationIds', () => {
+    render(
+      <AnnotatedText
+        text={text}
+        annotations={annotations}
+        onAnnotationClick={() => {}}
+        addedAnnotationIds={new Set(['ann-1'])}
+      />
+    )
+    expect(screen.getByTestId('annotation-added-badge')).toBeInTheDocument()
+  })
+
+  it('does not show the added badge when addedAnnotationIds is empty', () => {
+    render(
+      <AnnotatedText
+        text={text}
+        annotations={annotations}
+        onAnnotationClick={() => {}}
+        addedAnnotationIds={new Set()}
+      />
+    )
+    expect(screen.queryByTestId('annotation-added-badge')).not.toBeInTheDocument()
+  })
+
+  it('still calls onAnnotationClick when an added annotation mark is clicked', async () => {
+    const onClick = vi.fn()
+    render(
+      <AnnotatedText
+        text={text}
+        annotations={annotations}
+        onAnnotationClick={onClick}
+        addedAnnotationIds={new Set(['ann-1'])}
+      />
+    )
+    await userEvent.click(screen.getByText('Yo fui'))
+    expect(onClick).toHaveBeenCalledWith(annotations[0])
+  })
 })
