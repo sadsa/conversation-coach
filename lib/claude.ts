@@ -5,19 +5,17 @@ const SYSTEM_PROMPT = `You are an expert Spanish language coach specialising in 
 
 1. Grammar errors — mistakes the speaker made (type: "grammar")
 2. Unnatural phrasing — things that are technically correct but would sound more natural said differently in everyday Argentine speech (type: "naturalness")
-3. Strengths — things the speaker did well, especially correct use of voseo, lunfardo, or natural Argentine expressions (type: "strength")
 
 For each annotation:
 - "segment_id": the ID from the [ID: ...] prefix of the turn being annotated
-- "type": one of "grammar", "naturalness", or "strength"
+- "type": one of "grammar" or "naturalness"
 - "original": copy the exact substring from the turn's text
 - "start_char" / "end_char": character offsets of "original" within the turn's text content only — do NOT count the [ID: ...] prefix line; offset 0 is the first character of the text itself
-- "correction": the improved version (null for strengths)
+- "correction": the improved version
 - "explanation": a concise plain-language explanation tuned to Argentine Spanish conventions
 - "sub_category": classify into exactly one of these categories (use "other" if nothing fits):
   Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
   Naturalness: "vocabulary-choice", "register", "phrasing"
-  Strength: "voseo", "natural-expressions", "fluency"
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
 
@@ -35,12 +33,12 @@ export interface UserTurn {
 
 export interface ClaudeAnnotation {
   segment_id: string
-  type: 'grammar' | 'naturalness' | 'strength'
+  type: 'grammar' | 'naturalness'
   sub_category: string   // validated downstream in pipeline.ts
   original: string
   start_char: number
   end_char: number
-  correction: string | null
+  correction: string
   explanation: string
 }
 
