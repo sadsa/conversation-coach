@@ -6,7 +6,6 @@ import type { Annotation, AnnotationType } from '@/lib/types'
 export const TYPE_LABEL: Record<AnnotationType, string> = {
   grammar: '🔴 Grammar',
   naturalness: '🟡 Naturalness',
-  strength: '🟢 Strength',
 }
 
 interface Props {
