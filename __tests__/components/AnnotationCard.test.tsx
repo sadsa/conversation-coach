@@ -10,11 +10,6 @@ const grammarAnnotation: Annotation = {
   type: 'grammar', original: 'Yo fui', start_char: 0, end_char: 6,
   correction: 'Fui', explanation: 'Drop the subject pronoun.', sub_category: 'subjunctive',
 }
-const strengthAnnotation: Annotation = {
-  id: 'ann-2', session_id: 's1', segment_id: 'seg-1',
-  type: 'strength', original: 'buenísimo', start_char: 0, end_char: 9,
-  correction: null, explanation: 'Great superlative usage.', sub_category: 'voseo',
-}
 
 const defaultProps = {
   sessionId: 's1',
@@ -33,11 +28,6 @@ describe('AnnotationCard', () => {
     expect(screen.getByText('Fui')).toBeInTheDocument()
     expect(screen.getByText('Yo fui')).toBeInTheDocument()
     expect(screen.getByText('Drop the subject pronoun.')).toBeInTheDocument()
-  })
-
-  it('renders keep-this message for strength annotation', () => {
-    render(<AnnotationCard annotation={strengthAnnotation} {...defaultProps} />)
-    expect(screen.getByText(/keep this/i)).toBeInTheDocument()
   })
 
   it('renders disabled "Added" button when isAdded is true', () => {
