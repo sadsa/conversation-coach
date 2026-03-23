@@ -14,12 +14,6 @@ const grammarItem: PracticeItem = {
   explanation: 'Drop pronoun.', sub_category: 'other', reviewed: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
 }
-const strengthItem: PracticeItem = {
-  id: 'item-2', session_id: 's1', annotation_id: 'ann-2',
-  type: 'strength', original: 'Dale, vamos', correction: null,
-  explanation: 'Natural Argentine expression.', sub_category: 'other', reviewed: false,
-  created_at: '2026-03-15', updated_at: '2026-03-15',
-}
 
 describe('PracticeList', () => {
   it('renders correction for grammar items', () => {
@@ -28,19 +22,13 @@ describe('PracticeList', () => {
     expect(screen.getByText('Yo fui')).toBeInTheDocument()
   })
 
-  it('renders original (no correction) for strength items', () => {
-    render(<PracticeList items={[strengthItem]} />)
-    expect(screen.getByText(/Dale, vamos/)).toBeInTheDocument()
-    expect(screen.queryByText('→')).not.toBeInTheDocument()
-  })
-
   it('does not render explanation or session metadata', () => {
     render(<PracticeList items={[grammarItem]} />)
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
   it('filters by type', async () => {
-    render(<PracticeList items={[grammarItem, strengthItem]} />)
+    render(<PracticeList items={[grammarItem]} />)
     await userEvent.click(screen.getByRole('button', { name: /naturalness/i }))
     expect(screen.getByText(/no items match/i)).toBeInTheDocument()
   })
@@ -77,12 +65,6 @@ describe('PracticeList — item modal', () => {
     // Modal should show original and correction
     expect(screen.getAllByText('Yo fui').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Fui').length).toBeGreaterThan(0)
-  })
-
-  it('modal shows original text for strength items (no correction)', async () => {
-    render(<PracticeList items={[strengthItem]} />)
-    await userEvent.click(screen.getByText(/Dale, vamos/))
-    expect(screen.getByText('Natural Argentine expression.')).toBeInTheDocument()
   })
 
   it('closes the modal when backdrop is clicked', async () => {
@@ -131,11 +113,11 @@ describe('PracticeList — bulk toolbar', () => {
   })
 
   it('select-all selects filtered items', async () => {
-    render(<PracticeList items={[grammarItem, strengthItem]} />)
+    render(<PracticeList items={[grammarItem]} />)
     const checkboxes = screen.getAllByRole('checkbox', { name: /select item/i })
     await userEvent.click(checkboxes[0])
     await userEvent.click(screen.getByRole('button', { name: /select all/i }))
-    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
   })
 })
 

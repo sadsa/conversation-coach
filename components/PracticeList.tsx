@@ -10,7 +10,6 @@ import { TYPE_LABEL } from '@/components/AnnotationCard'
 const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
   grammar: 'bg-red-400',
   naturalness: 'bg-yellow-400',
-  strength: 'bg-green-400',
 }
 
 type Filter = 'all' | AnnotationType
@@ -175,15 +174,9 @@ function SwipeableItem({
         />
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT_CLASS[item.type]}`} />
         <div className="flex-1 min-w-0 text-sm">
-          {item.correction ? (
-            <>
-              <span className="line-through text-gray-500">{item.original}</span>
-              {' → '}
-              <span className="font-medium">{item.correction}</span>
-            </>
-          ) : (
-            <span className="text-green-300">&ldquo;<span>{item.original}</span>&rdquo;</span>
-          )}
+          <span className="line-through text-gray-500">{item.original}</span>
+          {' → '}
+          <span className="font-medium">{item.correction}</span>
         </div>
       </div>
     </li>
@@ -317,7 +310,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
       {/* Filter row — hidden while in bulk mode */}
       {!isBulkMode && (
         <div className="flex gap-2 flex-wrap text-sm">
-          {(['all', 'grammar', 'naturalness', 'strength'] as Filter[]).map(f => (
+          {(['all', 'grammar', 'naturalness'] as Filter[]).map(f => (
             <button
               key={f}
               onClick={() => { setTypeFilter(f); setSubCategoryFilter(null) }}
@@ -370,15 +363,9 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
         >
           <div className="space-y-3 text-sm">
             <div>
-              {openItem.correction ? (
-                <>
-                  <span className="line-through text-gray-500">{openItem.original}</span>
-                  <span className="mx-2 text-gray-500">→</span>
-                  <span className="font-medium text-green-300">{openItem.correction}</span>
-                </>
-              ) : (
-                <span className="text-green-300">&ldquo;<span>{openItem.original}</span>&rdquo;</span>
-              )}
+              <span className="line-through text-gray-500">{openItem.original}</span>
+              <span className="mx-2 text-gray-500">→</span>
+              <span className="font-medium text-green-300">{openItem.correction}</span>
             </div>
             <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
           </div>
