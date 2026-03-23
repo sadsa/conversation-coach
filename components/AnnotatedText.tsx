@@ -53,7 +53,7 @@ export function AnnotatedText({ text, annotations, onAnnotationClick, addedAnnot
 
           if (isAdded) {
             return (
-              <span key={i} style={{ position: 'relative', display: 'inline-block' }}>
+              <span key={i} className="relative inline-block">
                 <mark
                   className={`underline decoration-2 cursor-pointer rounded-sm px-1 ${cls} opacity-[0.45]`}
                   onClick={() => onAnnotationClick(span.annotation!)}
