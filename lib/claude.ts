@@ -16,6 +16,9 @@ For each annotation:
 - "sub_category": classify into exactly one of these categories (use "other" if nothing fits):
   Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
   Naturalness: "vocabulary-choice", "register", "phrasing"
+- "flashcard_front": An invented English sentence that correctly expresses the same meaning as the practice phrase. The correct English equivalent phrase is wrapped in [[double brackets]]. Example: "I [[went]] to the market yesterday."
+- "flashcard_back": The equivalent Spanish sentence using the correct phrase, wrapped in [[double brackets]]. Example: "[[Fui]] al mercado ayer."
+- "flashcard_note": 1–2 sentences (in English) explaining why the original was wrong or unnatural from a Rioplatense register perspective. Be concise.
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
 
@@ -24,7 +27,7 @@ For the title:
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title (e.g. "WhatsApp: Football con Kevin").
 - Otherwise use the topic only.
 
-Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation" }] }. No other text.`
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note" }] }. No other text.`
 
 export interface UserTurn {
   id: string
@@ -40,6 +43,9 @@ export interface ClaudeAnnotation {
   end_char: number
   correction: string
   explanation: string
+  flashcard_front: string | null
+  flashcard_back: string | null
+  flashcard_note: string | null
 }
 
 export async function analyseUserTurns(
@@ -55,7 +61,7 @@ export async function analyseUserTurns(
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userContent }],
   })
@@ -72,6 +78,11 @@ export async function analyseUserTurns(
   const parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
   return {
     title: parsed.title?.trim() || 'Untitled',
-    annotations: parsed.annotations ?? [],
+    annotations: (parsed.annotations ?? []).map(a => ({
+      ...a,
+      flashcard_front: a.flashcard_front ?? null,
+      flashcard_back: a.flashcard_back ?? null,
+      flashcard_note: a.flashcard_note ?? null,
+    })),
   }
 }
