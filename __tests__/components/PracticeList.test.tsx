@@ -13,6 +13,7 @@ const grammarItem: PracticeItem = {
   type: 'grammar', original: 'Yo fui', correction: 'Fui',
   explanation: 'Drop pronoun.', sub_category: 'other', reviewed: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
+  flashcard_front: null, flashcard_back: null, flashcard_note: null,
 }
 
 const subjectiveItem: PracticeItem = {
@@ -20,6 +21,7 @@ const subjectiveItem: PracticeItem = {
   type: 'grammar', original: 'vengas', correction: 'venís',
   explanation: '', sub_category: 'subjunctive', reviewed: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
+  flashcard_front: null, flashcard_back: null, flashcard_note: null,
 }
 
 describe('PracticeList', () => {
@@ -118,8 +120,8 @@ describe('PracticeList — bulk toolbar', () => {
 describe('PracticeList — sub-category filter', () => {
   it('filters to only items matching initialSubCategory', () => {
     const items: PracticeItem[] = [
-      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '' },
-      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, created_at: '', updated_at: '' },
+      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
+      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
     ]
     render(<PracticeList items={items} initialSubCategory="subjunctive" />)
     expect(screen.getByText('vengas')).toBeInTheDocument()
