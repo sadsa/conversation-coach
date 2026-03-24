@@ -1,7 +1,5 @@
 // components/SessionList.tsx
-'use client'
 import Link from 'next/link'
-import { InlineEdit } from '@/components/InlineEdit'
 import type { SessionListItem } from '@/lib/types'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -18,12 +16,17 @@ const STATUS_COLOUR: Record<string, string> = {
   error: 'text-red-400',
 }
 
-interface Props {
-  sessions: SessionListItem[]
-  onRename: (id: string, title: string) => Promise<void>
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}m ${s}s`
 }
 
-export function SessionList({ sessions, onRename }: Props) {
+interface Props {
+  sessions: SessionListItem[]
+}
+
+export function SessionList({ sessions }: Props) {
   if (sessions.length === 0) {
     return <p className="text-gray-500 text-sm">No sessions yet — upload your first conversation above.</p>
   }
@@ -31,22 +34,34 @@ export function SessionList({ sessions, onRename }: Props) {
   return (
     <ul className="divide-y divide-gray-800">
       {sessions.map(s => (
-        <li key={s.id} className="flex items-center justify-between py-3 min-w-0">
-          <InlineEdit
-            value={s.title}
-            onSave={title => onRename(s.id, title)}
-            className="font-medium min-w-0 truncate"
-          />
+        <li key={s.id}>
           <Link
             href={s.status === 'ready' ? `/sessions/${s.id}` : `/sessions/${s.id}/status`}
-            className="ml-4 shrink-0"
+            className="flex items-center gap-3 py-3 min-w-0"
           >
-            <span className="flex items-center gap-4 text-sm text-gray-400">
-              <span className={STATUS_COLOUR[s.status] ?? 'text-gray-400'}>
-                {STATUS_LABEL[s.status] ?? s.status}
-              </span>
-              <span>{new Date(s.created_at).toLocaleDateString()}</span>
-            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate text-gray-100">{s.title}</p>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5 flex-wrap">
+                <span className={STATUS_COLOUR[s.status] ?? 'text-gray-400'}>
+                  {STATUS_LABEL[s.status] ?? s.status}
+                </span>
+                <span>·</span>
+                <span>{new Date(s.created_at).toLocaleDateString()}</span>
+                {s.duration_seconds != null && (
+                  <>
+                    <span>·</span>
+                    <span>{formatDuration(s.duration_seconds)}</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              className="w-4 h-4 text-gray-600 flex-shrink-0" aria-hidden="true"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
           </Link>
         </li>
       ))}

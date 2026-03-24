@@ -19,15 +19,6 @@ export default function HomePage() {
       .catch(console.error)
   }, [])
 
-  async function handleRename(id: string, newTitle: string) {
-    await fetch(`/api/sessions/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: newTitle }),
-    })
-    setSessions(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s))
-  }
-
   const handleFile = useCallback(async (file: File) => {
     setUploading(true)
     setError(null)
@@ -90,7 +81,7 @@ export default function HomePage() {
 
       <div>
         <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Past Sessions</h2>
-        <SessionList sessions={sessions} onRename={handleRename} />
+        <SessionList sessions={sessions} />
       </div>
     </div>
   )
