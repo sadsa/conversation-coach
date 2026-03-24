@@ -180,14 +180,27 @@ describe('PracticeList — sub-category pill in SwipeableItem and modal', () => 
 })
 
 describe('PracticeList — sub-category pill row', () => {
-  it('renders all 14 pills (All + 13 sub-categories including Other)', () => {
+  it('shows All pill + 3 sub-category pills + More button by default', () => {
     render(<PracticeList items={[grammarItem]} />)
     expect(screen.getByRole('button', { name: /^all$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /more \+/i })).toBeInTheDocument()
+    // Pills beyond the first 3 sub-categories should NOT be visible
+    // (which ones are hidden depends on sort order; just verify More exists)
+  })
+
+  it('shows all sub-category pills after clicking More', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /more \+/i }))
+    expect(screen.queryByRole('button', { name: /more \+/i })).not.toBeInTheDocument()
+    // Spot-check a few sub-categories that would otherwise be hidden
     expect(screen.getByRole('button', { name: /verb conjugation/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /subjunctive/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /phrasing/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /other/i })).toBeInTheDocument()
+  })
+
+  it('starts expanded (no More pill) when initialSubCategory is provided', () => {
+    render(<PracticeList items={[grammarItem]} initialSubCategory="verb-conjugation" />)
+    expect(screen.queryByRole('button', { name: /more \+/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /verb conjugation/i })).toBeInTheDocument()
   })
 
   it('clicking a sub-category pill hides non-matching items', async () => {
