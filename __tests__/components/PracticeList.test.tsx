@@ -161,6 +161,22 @@ describe('PracticeList — swipe delete', () => {
   })
 })
 
+describe('PracticeList — sub-category pill in SwipeableItem and modal', () => {
+  it('shows sub-category pill label in SwipeableItem row', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    // Filter row buttons show "Other 1" (with count span), SwipeableItem pill shows exactly "Other"
+    expect(screen.getByText('Other')).toBeInTheDocument()
+  })
+
+  it('shows sub-category pill in practice item modal', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    // Click the item to open the modal
+    await userEvent.click(screen.getByText('Fui'))
+    // Both SwipeableItem row and modal now show 'Other'
+    expect(screen.getAllByText('Other').length).toBeGreaterThanOrEqual(2)
+  })
+})
+
 describe('PracticeList — sub-category pill row', () => {
   it('renders all 14 pills (All + 13 sub-categories including Other)', () => {
     render(<PracticeList items={[grammarItem]} />)
