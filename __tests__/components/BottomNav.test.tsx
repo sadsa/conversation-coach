@@ -12,13 +12,21 @@ import { usePathname } from 'next/navigation'
 const mockPathname = usePathname as ReturnType<typeof vi.fn>
 
 describe('BottomNav', () => {
-  it('renders four nav links including Insights', () => {
+  it('renders five nav links including Flashcards', () => {
     mockPathname.mockReturnValue('/')
     render(<BottomNav />)
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /practice/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /flashcards/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
+  })
+
+  it('marks Flashcards as active on "/flashcards"', () => {
+    mockPathname.mockReturnValue('/flashcards')
+    render(<BottomNav />)
+    expect(screen.getByRole('link', { name: /flashcards/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
   })
 
   it('marks Insights as active on "/insights"', () => {
