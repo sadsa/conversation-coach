@@ -87,4 +87,36 @@ describe('AnnotationCard', () => {
     await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
     expect(capturedBody.sub_category).toBe('subjunctive')
   })
+
+  it('includes flashcard fields in POST body when annotation has them', async () => {
+    const annotationWithFlashcard: Annotation = {
+      ...grammarAnnotation,
+      flashcard_front: 'I [[went]] to the market.',
+      flashcard_back: '[[Fui]] al mercado.',
+      flashcard_note: 'Subject pronouns are dropped in Rioplatense.',
+    }
+    let capturedBody: Record<string, unknown> = {}
+    vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string)
+      return { ok: true } as Response
+    })
+    render(<AnnotationCard annotation={annotationWithFlashcard} {...defaultProps} />)
+    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    expect(capturedBody.flashcard_front).toBe('I [[went]] to the market.')
+    expect(capturedBody.flashcard_back).toBe('[[Fui]] al mercado.')
+    expect(capturedBody.flashcard_note).toBe('Subject pronouns are dropped in Rioplatense.')
+  })
+
+  it('sends null flashcard fields when annotation has none', async () => {
+    let capturedBody: Record<string, unknown> = {}
+    vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {
+      capturedBody = JSON.parse((init as RequestInit).body as string)
+      return { ok: true } as Response
+    })
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
+    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    expect(capturedBody.flashcard_front).toBeNull()
+    expect(capturedBody.flashcard_back).toBeNull()
+    expect(capturedBody.flashcard_note).toBeNull()
+  })
 })
