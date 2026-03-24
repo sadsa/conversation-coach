@@ -49,7 +49,7 @@ export default function FlashcardsPage() {
         </p>
       )}
 
-      {!loading && items.length > 0 && (
+      {!loading && !error && items.length > 0 && (
         <FlashcardDeck items={items} />
       )}
     </div>
