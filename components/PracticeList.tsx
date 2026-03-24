@@ -1,8 +1,9 @@
 // components/PracticeList.tsx
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import type { PracticeItem, AnnotationType, SubCategory } from '@/lib/types'
+import { SUB_CATEGORIES, SUB_CATEGORY_DISPLAY } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { TYPE_LABEL } from '@/components/AnnotationCard'
 
@@ -192,12 +193,39 @@ interface Props {
 }
 
 export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const subCategoryCounts = useMemo(() => {
+    const counts = Object.fromEntries(SUB_CATEGORIES.map(sc => [sc, 0])) as Record<SubCategory, number>
+    for (const item of items) counts[item.sub_category] = (counts[item.sub_category] ?? 0) + 1
+    return counts
+  }, [items])
+
+  const sortedSubCategories = useMemo(() => {
+    return [...SUB_CATEGORIES].sort((a, b) => subCategoryCounts[b] - subCategoryCounts[a])
+  }, [subCategoryCounts])
+
+  const colourTiers = useMemo(() => {
+    const nonZero = [...new Set(Object.values(subCategoryCounts).filter(c => c > 0))].sort((a, b) => b - a)
+    return { rank1: nonZero[0] ?? 0, rank2: nonZero[1] ?? 0 }
+  }, [subCategoryCounts])
+
+  function pillClass(sc: SubCategory): string {
+    if (sc === subCategoryFilter) return 'border-indigo-500 text-indigo-300 bg-indigo-500/10'
+    const count = subCategoryCounts[sc]
+    if (count === 0) return 'border-gray-800 text-gray-600'
+    if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-red-800 text-red-400 bg-red-950/40'
+    if (colourTiers.rank2 > 0 && count === colourTiers.rank2) return 'border-amber-700 text-amber-400 bg-amber-950/40'
+    return 'border-gray-700 text-gray-300'
+  }
+
+  const allPillClass = subCategoryFilter === null
+    ? 'border-violet-500 text-violet-300 bg-violet-500/10'
+    : 'border-gray-700 text-gray-400'
 
   useEffect(() => {
     if (!toastMessage) return
@@ -304,6 +332,28 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
             </svg>
           </button>
+        </div>
+      )}
+
+      {!isBulkMode && (
+        <div className="flex gap-2 flex-wrap text-sm">
+          <button
+            onClick={() => setSubCategoryFilter(null)}
+            className={`px-3 py-1 rounded-full border transition-colors ${allPillClass}`}
+          >
+            All
+          </button>
+          {sortedSubCategories.map(sc => (
+            <button
+              key={sc}
+              onClick={() => setSubCategoryFilter(subCategoryFilter === sc ? null : sc)}
+              className={`px-3 py-1 rounded-full border transition-colors ${pillClass(sc)}`}
+            >
+              {SUB_CATEGORY_DISPLAY[sc]}
+              {' '}
+              <span className="text-[11px] opacity-80">{subCategoryCounts[sc]}</span>
+            </button>
+          ))}
         </div>
       )}
 
