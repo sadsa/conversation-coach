@@ -6,7 +6,7 @@ export async function GET(_req: NextRequest) {
   const db = createServerClient()
   const { data, error } = await db
     .from('practice_items')
-    .select('id, session_id, annotation_id, type, original, correction, explanation, reviewed, created_at, updated_at')
+    .select('id, session_id, annotation_id, type, sub_category, original, correction, explanation, reviewed, created_at, updated_at')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
