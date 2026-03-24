@@ -102,4 +102,54 @@ describe('analyseUserTurns', () => {
     const callArgs = mockCreate.mock.calls[0][0]
     expect(callArgs.messages[0].content).toContain('PTT-20260315-001.ogg')
   })
+
+  it('returns flashcard fields when Claude includes them in response', async () => {
+    const turns: UserTurn[] = [{ id: 'seg-1', text: 'Yo fui al mercado.' }]
+    mockCreate.mockResolvedValueOnce({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          title: 'Test',
+          annotations: [{
+            segment_id: 'seg-1',
+            type: 'grammar',
+            original: 'Yo fui',
+            start_char: 0,
+            end_char: 6,
+            correction: 'Fui',
+            explanation: 'Drop the subject pronoun.',
+            sub_category: 'verb-conjugation',
+            flashcard_front: 'I [[went]] to the market yesterday.',
+            flashcard_back: '[[Fui]] al mercado ayer.',
+            flashcard_note: 'Subject pronouns are typically omitted in Rioplatense speech.',
+          }],
+        }),
+      }],
+    })
+    const result = await analyseUserTurns(turns, null)
+    expect(result.annotations[0].flashcard_front).toBe('I [[went]] to the market yesterday.')
+    expect(result.annotations[0].flashcard_back).toBe('[[Fui]] al mercado ayer.')
+    expect(result.annotations[0].flashcard_note).toBe('Subject pronouns are typically omitted in Rioplatense speech.')
+  })
+
+  it('returns null flashcard fields when Claude omits them', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          title: 'Test',
+          annotations: [{
+            segment_id: 'seg-1', type: 'grammar', original: 'x',
+            start_char: 0, end_char: 1, correction: 'y',
+            explanation: 'z.', sub_category: 'other',
+            // flashcard fields intentionally absent
+          }],
+        }),
+      }],
+    })
+    const result = await analyseUserTurns([{ id: 'seg-1', text: 'x' }], null)
+    expect(result.annotations[0].flashcard_front).toBeNull()
+    expect(result.annotations[0].flashcard_back).toBeNull()
+    expect(result.annotations[0].flashcard_note).toBeNull()
+  })
 })
