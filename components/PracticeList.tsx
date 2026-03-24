@@ -201,6 +201,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [isExpanded, setIsExpanded] = useState(initialSubCategory !== undefined)
 
   const subCategoryCounts = useMemo(() => {
     const counts = Object.fromEntries(SUB_CATEGORIES.map(sc => [sc, 0])) as Record<SubCategory, number>
@@ -346,7 +347,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           >
             All
           </button>
-          {sortedSubCategories.map(sc => (
+          {(isExpanded ? sortedSubCategories : sortedSubCategories.slice(0, 3)).map(sc => (
             <button
               key={sc}
               onClick={() => setSubCategoryFilter(subCategoryFilter === sc ? null : sc)}
@@ -357,6 +358,14 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               <span className="text-[11px] opacity-80">{subCategoryCounts[sc]}</span>
             </button>
           ))}
+          {!isExpanded && sortedSubCategories.length > 3 && (
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="px-3 py-1 rounded-full border border-gray-700 text-gray-400 transition-colors"
+            >
+              More +{sortedSubCategories.length - 3}
+            </button>
+          )}
         </div>
       )}
 
