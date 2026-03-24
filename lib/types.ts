@@ -85,6 +85,9 @@ export interface Annotation {
   correction: string | null
   explanation: string
   sub_category: SubCategory
+  flashcard_front: string | null
+  flashcard_back: string | null
+  flashcard_note: string | null
 }
 
 export interface PracticeItem {
@@ -99,6 +102,9 @@ export interface PracticeItem {
   reviewed: boolean
   created_at: string
   updated_at: string
+  flashcard_front: string | null
+  flashcard_back: string | null
+  flashcard_note: string | null
 }
 
 // API response shapes
