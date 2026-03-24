@@ -85,6 +85,15 @@ The `analyseUserTurns` function in `lib/claude.ts` must:
 - Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction`, `explanation`
 - `sub_category` must be one of the 13 values in `SUB_CATEGORIES` (lib/types.ts); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
 
+## Data Flow Gotchas
+
+- **Pipeline writes to `annotations` only.** `practice_items` are created by users clicking "Add to practice" in `AnnotationCard` — never auto-created by the pipeline.
+- **`POST /api/practice-items` does a bare `insert(body)`** — new fields in the POST body are stored automatically; no route change needed.
+- **`GET /api/practice-items` uses an explicit `.select()` column list** (not `'*'`). Append new column names to the string; do not switch to `select('*')`.
+- **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
+- **`react-swipeable` is already installed** (used by `PracticeList.tsx`). Import `useSwipeable` directly.
+- **`BottomNav` uses a `TABS` array** in `components/BottomNav.tsx`. Add new nav tabs by inserting `{ href, label, exact, icon }` objects in the array.
+
 ## Environment Variables
 
 See `.env.local.example` for all required keys:
