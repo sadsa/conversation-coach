@@ -138,7 +138,7 @@ function SwipeableItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className="relative flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-xl"
+        className="relative flex items-start gap-3 px-4 py-3 bg-gray-900 rounded-xl"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
@@ -171,14 +171,17 @@ function SwipeableItem({
           aria-label="Select item"
         />
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT_CLASS[item.type]}`} />
-        <div className="flex-1 min-w-0 text-sm">
-          <>
+        <div className="flex-1 min-w-0 text-sm flex flex-col gap-0.5">
+          <div>
             <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
               {item.original}
             </span>
             {' → '}
             <span className="font-medium text-[#86efac]">{item.correction}</span>
-          </>
+          </div>
+          <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs self-start">
+            {SUB_CATEGORY_DISPLAY[item.sub_category]}
+          </span>
         </div>
       </div>
     </li>
@@ -391,6 +394,9 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               </>
             </div>
             <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
+            <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
+              {SUB_CATEGORY_DISPLAY[openItem.sub_category]}
+            </span>
           </div>
         </Modal>
       )}
