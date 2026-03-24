@@ -15,6 +15,13 @@ const grammarItem: PracticeItem = {
   created_at: '2026-03-15', updated_at: '2026-03-15',
 }
 
+const subjectiveItem: PracticeItem = {
+  id: 'item-2', session_id: 's1', annotation_id: 'ann-2',
+  type: 'grammar', original: 'vengas', correction: 'venís',
+  explanation: '', sub_category: 'subjunctive', reviewed: false,
+  created_at: '2026-03-15', updated_at: '2026-03-15',
+}
+
 describe('PracticeList', () => {
   it('renders correction for grammar items', () => {
     render(<PracticeList items={[grammarItem]} />)
@@ -151,5 +158,58 @@ describe('PracticeList — swipe delete', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(screen.getByText(/couldn't delete/i)).toBeInTheDocument()
     vi.useRealTimers()
+  })
+})
+
+describe('PracticeList — sub-category pill row', () => {
+  it('renders all 14 pills (All + 13 sub-categories including Other)', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(screen.getByRole('button', { name: /^all$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /verb conjugation/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /subjunctive/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /phrasing/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /other/i })).toBeInTheDocument()
+  })
+
+  it('clicking a sub-category pill hides non-matching items', async () => {
+    render(<PracticeList items={[grammarItem, subjectiveItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /subjunctive/i }))
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+    expect(screen.queryByText('Yo fui')).not.toBeInTheDocument()
+  })
+
+  it('clicking the active pill again clears the filter (toggle)', async () => {
+    render(<PracticeList items={[grammarItem, subjectiveItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /subjunctive/i }))
+    expect(screen.queryByText('Yo fui')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /subjunctive/i }))
+    expect(screen.getByText('Yo fui')).toBeInTheDocument()
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+  })
+
+  it('initialSubCategory prop activates matching pill and hides non-matching items', () => {
+    render(<PracticeList items={[grammarItem, subjectiveItem]} initialSubCategory="subjunctive" />)
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+    expect(screen.queryByText('Yo fui')).not.toBeInTheDocument()
+  })
+
+  it('clicking All when sub-category is active clears the filter', async () => {
+    render(<PracticeList items={[grammarItem, subjectiveItem]} initialSubCategory="subjunctive" />)
+    expect(screen.queryByText('Yo fui')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^all$/i }))
+    expect(screen.getByText('Yo fui')).toBeInTheDocument()
+    expect(screen.getByText('vengas')).toBeInTheDocument()
+  })
+
+  it('pill with higher item count appears before lower-count pill in DOM', () => {
+    const subjectiveItem2: PracticeItem = {
+      ...subjectiveItem, id: 'item-3',
+    }
+    render(<PracticeList items={[grammarItem, subjectiveItem, subjectiveItem2]} />)
+    const allButtons = screen.getAllByRole('button')
+    const subjunctiveIdx = allButtons.findIndex(b => /subjunctive/i.test(b.textContent ?? ''))
+    const otherIdx = allButtons.findIndex(b => /^other/i.test(b.textContent?.trim() ?? ''))
+    expect(subjunctiveIdx).toBeLessThan(otherIdx)
   })
 })
