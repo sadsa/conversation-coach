@@ -324,4 +324,47 @@ describe('runClaudeAnalysis', () => {
     const insertedRows = insertAnnotationsMock.mock.calls[0][0]
     expect(insertedRows[0].sub_category).toBe('other')
   })
+
+  it('writes flashcard fields from ClaudeAnnotation to annotations insert', async () => {
+    const insertAnnotationsMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') return {
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({
+            data: { user_speaker_labels: ['A'], audio_r2_key: null, original_filename: null },
+            error: null,
+          }) }) }),
+          update: updateMock,
+        }
+        if (table === 'transcript_segments') return {
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ order: vi.fn().mockResolvedValue({
+            data: [{ id: 'seg-1', speaker: 'A', text: 'Yo fui.' }], error: null,
+          }) }) }),
+        }
+        if (table === 'annotations') return { insert: insertAnnotationsMock }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(analyseUserTurns).mockResolvedValue({
+      title: 'Test',
+      annotations: [{
+        segment_id: 'seg-1', type: 'grammar', original: 'Yo fui',
+        start_char: 0, end_char: 6, correction: 'Fui',
+        explanation: 'Drop pronoun.', sub_category: 'verb-conjugation',
+        flashcard_front: 'I [[went]] to the market.',
+        flashcard_back: '[[Fui]] al mercado.',
+        flashcard_note: 'Subject pronouns are dropped in Rioplatense.',
+      }],
+    })
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+
+    await runClaudeAnalysis('sess-1')
+
+    const insertedRows = insertAnnotationsMock.mock.calls[0][0]
+    expect(insertedRows[0].flashcard_front).toBe('I [[went]] to the market.')
+    expect(insertedRows[0].flashcard_back).toBe('[[Fui]] al mercado.')
+    expect(insertedRows[0].flashcard_note).toBe('Subject pronouns are dropped in Rioplatense.')
+  })
 })

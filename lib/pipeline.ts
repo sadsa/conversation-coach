@@ -86,6 +86,9 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
         correction: a.correction,
         explanation: a.explanation,
         sub_category: a.sub_category,
+        flashcard_front: a.flashcard_front ?? null,
+        flashcard_back: a.flashcard_back ?? null,
+        flashcard_note: a.flashcard_note ?? null,
       }))
     )
 
