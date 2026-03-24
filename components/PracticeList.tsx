@@ -192,7 +192,8 @@ interface Props {
 }
 
 export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
-  const [subCategoryFilter, _setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
