@@ -213,7 +213,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   }, [subCategoryCounts])
 
   const colourTiers = useMemo(() => {
-    const nonZero = [...new Set(Object.values(subCategoryCounts).filter(c => c > 0))].sort((a, b) => b - a)
+    const nonZero = Array.from(new Set(Object.values(subCategoryCounts).filter(c => c > 0))).sort((a, b) => b - a)
     return { rank1: nonZero[0] ?? 0, rank2: nonZero[1] ?? 0 }
   }, [subCategoryCounts])
 
