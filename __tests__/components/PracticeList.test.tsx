@@ -79,11 +79,6 @@ describe('PracticeList — item modal', () => {
 })
 
 describe('PracticeList — bulk toolbar', () => {
-  it('shows filter buttons when not in bulk mode', () => {
-    render(<PracticeList items={[grammarItem]} />)
-    // grammar type-tab assertion removed — no longer exists
-  })
-
   it('hides filter buttons when in bulk mode', async () => {
     render(<PracticeList items={[grammarItem]} />)
     await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
