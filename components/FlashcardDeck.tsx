@@ -26,7 +26,7 @@ interface Props {
 export function FlashcardDeck({ items }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
-  const [isNoteExpanded, setIsNoteExpanded] = useState(false)
+  const [isExplainOpen, setIsExplainOpen] = useState(false)
   const isSwiping = useRef(false)
 
   const item = items[currentIndex]
@@ -34,7 +34,7 @@ export function FlashcardDeck({ items }: Props) {
   function advance() {
     setCurrentIndex(prev => (prev + 1) % items.length)
     setIsFlipped(false)
-    setIsNoteExpanded(false)
+    setIsExplainOpen(false)
   }
 
   const handlers = useSwipeable({
@@ -50,7 +50,7 @@ export function FlashcardDeck({ items }: Props) {
 
   function handleCardClick() {
     if (isSwiping.current) return
-    if (isFlipped) setIsNoteExpanded(false)
+    if (isFlipped) setIsExplainOpen(false)
     setIsFlipped(prev => !prev)
   }
 
@@ -83,28 +83,30 @@ export function FlashcardDeck({ items }: Props) {
               </p>
             </div>
             {item.flashcard_note !== null && (
-              <div className="bg-indigo-950 border border-indigo-900 rounded-xl px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-sm min-w-0 flex-1">
-                    <span className="text-red-400 line-through truncate">{item.original}</span>
-                    {item.correction !== null ? (
-                      <span className="text-green-400 truncate">→ {item.correction}</span>
-                    ) : (
-                      <span className="text-gray-500">—</span>
-                    )}
+              <>
+                <button
+                  onClick={e => { e.stopPropagation(); setIsExplainOpen(prev => !prev) }}
+                  className="w-full py-2 text-sm text-indigo-400 bg-indigo-950/50 border border-indigo-900 rounded-lg"
+                >
+                  Explain this →
+                </button>
+                {isExplainOpen && (
+                  <div data-testid="explain-panel" className="bg-indigo-950 border border-indigo-900 rounded-xl px-3 py-3">
+                    <p className="text-base">
+                      <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
+                        {item.original}
+                      </span>
+                      {' → '}
+                      {item.correction !== null
+                        ? <span className="font-semibold text-lg text-[#86efac]">{item.correction}</span>
+                        : <span className="text-gray-500">—</span>
+                      }
+                    </p>
+                    <hr className="border-indigo-900/40 my-2" />
+                    <p className="text-sm text-gray-400 leading-relaxed">{item.flashcard_note}</p>
                   </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); setIsNoteExpanded(prev => !prev) }}
-                    aria-label={isNoteExpanded ? 'Hide explanation' : 'Why?'}
-                    className="text-xs text-indigo-400 hover:text-indigo-200 flex-shrink-0 px-1"
-                  >
-                    Why? {isNoteExpanded ? '▴' : '▾'}
-                  </button>
-                </div>
-                {isNoteExpanded && (
-                  <p className="text-xs text-indigo-300 mt-2 leading-relaxed">{item.flashcard_note}</p>
                 )}
-              </div>
+              </>
             )}
           </div>
         )}
