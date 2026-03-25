@@ -33,6 +33,10 @@ export function DropZone({ onFile }: Props) {
   return (
     <div>
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload audio file"
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click() } }}
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={e => {
