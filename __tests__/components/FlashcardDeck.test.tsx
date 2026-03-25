@@ -72,29 +72,42 @@ describe('FlashcardDeck — flip', () => {
   })
 })
 
-describe('FlashcardDeck — explain panel', () => {
-  it('does not show note text by default on back face', async () => {
+describe('FlashcardDeck — explain button', () => {
+  it('does not show explain button on front face', () => {
     render(<FlashcardDeck items={[baseItem]} />)
-    await userEvent.click(screen.getByTestId('flashcard-card'))
-    expect(screen.queryByText(/"Te elimina" sounds/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /explain this/i })).not.toBeInTheDocument()
   })
 
-  it('shows note text after clicking "Explain this"', async () => {
+  it('shows explain button below card on back face', async () => {
+    render(<FlashcardDeck items={[baseItem]} />)
+    await userEvent.click(screen.getByTestId('flashcard-card'))
+    expect(screen.getByRole('button', { name: /explain this/i })).toBeInTheDocument()
+  })
+
+  it('hides explain button when flashcard_note is null', async () => {
+    const item = { ...baseItem, flashcard_note: null }
+    render(<FlashcardDeck items={[item]} />)
+    await userEvent.click(screen.getByTestId('flashcard-card'))
+    expect(screen.queryByRole('button', { name: /explain this/i })).not.toBeInTheDocument()
+  })
+
+  it('opens explain sheet when button is clicked', async () => {
     render(<FlashcardDeck items={[baseItem]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
     await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
-    expect(screen.getByText(/"Te elimina" sounds like a direct translation/)).toBeInTheDocument()
+    expect(screen.getByTestId('explain-sheet')).toBeInTheDocument()
   })
 
-  it('shows original and correction inside explain panel', async () => {
+  it('shows original, correction, and note inside sheet', async () => {
     render(<FlashcardDeck items={[baseItem]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
     await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
     expect(screen.getByText('te elimina')).toBeInTheDocument()
     expect(screen.getAllByText('se te lleva').length).toBeGreaterThan(0)
+    expect(screen.getByText(/"Te elimina" sounds like a direct translation/)).toBeInTheDocument()
   })
 
-  it('shows — when correction is null', async () => {
+  it('shows — in sheet when correction is null', async () => {
     const item = { ...baseItem, correction: null }
     render(<FlashcardDeck items={[item]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
@@ -102,35 +115,34 @@ describe('FlashcardDeck — explain panel', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('hides explain button entirely when flashcard_note is null', async () => {
-    const item = { ...baseItem, flashcard_note: null }
-    render(<FlashcardDeck items={[item]} />)
-    await userEvent.click(screen.getByTestId('flashcard-card'))
-    expect(screen.queryByRole('button', { name: /explain this/i })).not.toBeInTheDocument()
-  })
-
-  it('toggles panel closed on second "Explain this" click', async () => {
+  it('closes sheet when backdrop is clicked', async () => {
     render(<FlashcardDeck items={[baseItem]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
     await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
-    expect(screen.getByText(/"Te elimina" sounds/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
-    expect(screen.queryByText(/"Te elimina" sounds/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('explain-sheet-backdrop'))
+    expect(screen.queryByTestId('explain-sheet')).not.toBeInTheDocument()
   })
 
-  it('resets explain panel when advancing to next card', async () => {
+  it('resets sheet when advancing to next card', async () => {
     const item2: PracticeItem = {
       ...baseItem, id: 'item-2',
       flashcard_front: 'second card [[phrase]] here',
       flashcard_back: 'segunda [[tarjeta]] aquí',
     }
     render(<FlashcardDeck items={[baseItem, item2]} />)
-    await userEvent.click(screen.getByTestId('flashcard-card')) // flip
-    await userEvent.click(screen.getByRole('button', { name: /explain this/i })) // open panel
-    expect(screen.getByText(/"Te elimina" sounds/)).toBeInTheDocument()
-    await userEvent.click(screen.getByTestId('advance-card')) // advance
-    // Now on card 2 front — panel should be gone
-    expect(screen.queryByText(/"Te elimina" sounds/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('flashcard-card'))
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
+    expect(screen.getByTestId('explain-sheet')).toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('advance-card'))
+    expect(screen.queryByTestId('explain-sheet')).not.toBeInTheDocument()
+  })
+
+  it('resets sheet when flipping card back to front', async () => {
+    render(<FlashcardDeck items={[baseItem]} />)
+    await userEvent.click(screen.getByTestId('flashcard-card')) // flip to back
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i })) // open sheet
+    await userEvent.click(screen.getByTestId('flashcard-card')) // flip back to front
+    expect(screen.queryByTestId('explain-sheet')).not.toBeInTheDocument()
   })
 })
 
