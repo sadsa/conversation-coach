@@ -1,7 +1,7 @@
 // components/FlashcardDeck.tsx
 'use client'
 import { useState, useRef } from 'react'
-import { useSwipeable } from 'react-swipeable'
+import { motion, useAnimationControls, useMotionValue } from 'framer-motion'
 import type { PracticeItem } from '@/lib/types'
 
 function renderHighlighted(text: string, colour: 'purple' | 'green'): React.ReactNode {
@@ -27,9 +27,11 @@ export function FlashcardDeck({ items }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [isExplainOpen, setIsExplainOpen] = useState(false)
-  const isSwiping = useRef(false)
-
   const item = items[currentIndex]
+
+  const controls = useAnimationControls()
+  const x = useMotionValue(0)
+  const isDragging = useRef(false)
 
   function advance() {
     setCurrentIndex(prev => (prev + 1) % items.length)
@@ -37,19 +39,8 @@ export function FlashcardDeck({ items }: Props) {
     setIsExplainOpen(false)
   }
 
-  const handlers = useSwipeable({
-    delta: 30,
-    trackMouse: false,
-    onSwiping: () => { isSwiping.current = true },
-    onSwipedLeft: (e) => {
-      if (e.absX > 80) advance()
-      setTimeout(() => { isSwiping.current = false }, 0)
-    },
-    onSwiped: () => { setTimeout(() => { isSwiping.current = false }, 0) },
-  })
-
   function handleCardClick() {
-    if (isSwiping.current) return
+    if (isDragging.current) return
     if (isFlipped) setIsExplainOpen(false)
     setIsFlipped(prev => !prev)
   }
@@ -59,11 +50,24 @@ export function FlashcardDeck({ items }: Props) {
       {/* Progress counter */}
       <p className="text-xs text-gray-500 mb-4">Card {currentIndex + 1} of {items.length}</p>
 
-      <div
-        {...handlers}
+      <motion.div
         data-testid="flashcard-card"
+        drag="x"
+        style={{ x }}
+        animate={controls}
+        onDragStart={() => { isDragging.current = true }}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -80) {
+            controls.start({ x: -400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
+              advance()
+              controls.set({ x: 0, opacity: 1 })
+            })
+          } else {
+            controls.start({ x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } })
+          }
+          setTimeout(() => { isDragging.current = false }, 0)
+        }}
         onClick={handleCardClick}
-        style={{ touchAction: 'pan-y' }}
         className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-6 min-h-[260px] flex flex-col justify-between cursor-pointer"
       >
         {!isFlipped ? (
@@ -110,7 +114,7 @@ export function FlashcardDeck({ items }: Props) {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Hidden test seam for triggering advance in tests */}
       <button
