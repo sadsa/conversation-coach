@@ -1,12 +1,6 @@
 'use client'
 import { useState } from 'react'
-import type { FocusCard, TrendResult } from '@/lib/insights'
-
-const TREND_CONFIG: Record<TrendResult, { label: string; arrow: string; className: string }> = {
-  'making-progress': { label: 'making progress', arrow: '↑', className: 'text-green-400' },
-  'keep-practicing': { label: 'keep practicing', arrow: '→', className: 'text-gray-400' },
-  'needs-attention': { label: 'needs attention', arrow: '↓', className: 'text-red-400' },
-}
+import type { FocusCard } from '@/lib/insights'
 
 function underlineInText(segmentText: string, startChar: number, endChar: number, original: string): React.ReactNode {
   const isValid = startChar >= 0 && endChar <= segmentText.length && startChar < endChar
@@ -20,18 +14,8 @@ function underlineInText(segmentText: string, startChar: number, endChar: number
   )
 }
 
-function TrendChip({ trend }: { trend: TrendResult }) {
-  const { label, arrow, className } = TREND_CONFIG[trend]
-  return (
-    <span className={`text-xs font-semibold ${className}`}>
-      {arrow} {label}
-    </span>
-  )
-}
-
 function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: number; totalSessions: number }) {
   const [expanded, setExpanded] = useState(false)
-  const showTrend = card.trend !== null
 
   return (
     <div
@@ -46,7 +30,6 @@ function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: nu
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-xl font-bold text-gray-100">{card.totalCount}</p>
-          {showTrend && <TrendChip trend={card.trend!} />}
         </div>
       </div>
 
@@ -96,16 +79,10 @@ interface Props {
 
 export function InsightsCardList({ focusCards, totalSessions }: Props) {
   return (
-    <div className="space-y-8">
-      {/* Where to Focus */}
-      <section>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Where to focus</h2>
-        <div className="space-y-2">
-          {focusCards.map((card, i) => (
-            <FocusCardRow key={card.subCategory} card={card} rank={i + 1} totalSessions={totalSessions} />
-          ))}
-        </div>
-      </section>
+    <div className="space-y-2">
+      {focusCards.map((card, i) => (
+        <FocusCardRow key={card.subCategory} card={card} rank={i + 1} totalSessions={totalSessions} />
+      ))}
     </div>
   )
 }

@@ -7,8 +7,8 @@ export default async function InsightsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Insights</h1>
-        <p className="text-sm text-gray-400 mt-1">Patterns across all your sessions</p>
+        <h1 className="text-2xl font-bold">Where you&rsquo;re struggling</h1>
+        <p className="text-sm text-gray-400 mt-1">Your recurring mistakes, ranked by frequency</p>
       </div>
 
       {totalReadySessions === 0 ? (
