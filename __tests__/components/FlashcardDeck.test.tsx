@@ -4,9 +4,15 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FlashcardDeck } from '@/components/FlashcardDeck'
 import type { PracticeItem } from '@/lib/types'
+import React from 'react'
 
-vi.mock('react-swipeable', () => ({
-  useSwipeable: () => ({}),
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, onDragStart, onDragEnd, onClick, style, animate, drag, ...rest }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) =>
+      React.createElement('div', { onClick, ...rest }, children),
+  },
+  useAnimationControls: () => ({ start: vi.fn().mockResolvedValue(undefined), set: vi.fn() }),
+  useMotionValue: (_initial: number) => ({ get: vi.fn(), set: vi.fn() }),
 }))
 
 const baseItem: PracticeItem = {
@@ -65,23 +71,24 @@ describe('FlashcardDeck — flip', () => {
   })
 })
 
-describe('FlashcardDeck — note panel', () => {
-  it('note body is hidden by default on back face', async () => {
+describe('FlashcardDeck — explain panel', () => {
+  it('does not show note text by default on back face', async () => {
     render(<FlashcardDeck items={[baseItem]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
     expect(screen.queryByText(/"Te elimina" sounds/)).not.toBeInTheDocument()
   })
 
-  it('shows note body after clicking Why?', async () => {
+  it('shows note text after clicking "Explain this"', async () => {
     render(<FlashcardDeck items={[baseItem]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
-    await userEvent.click(screen.getByRole('button', { name: /why\?/i }))
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
     expect(screen.getByText(/"Te elimina" sounds like a direct translation/)).toBeInTheDocument()
   })
 
-  it('shows original and correction in note header', async () => {
+  it('shows original and correction inside explain panel', async () => {
     render(<FlashcardDeck items={[baseItem]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
     expect(screen.getByText('te elimina')).toBeInTheDocument()
     expect(screen.getAllByText('se te lleva').length).toBeGreaterThan(0)
   })
@@ -90,14 +97,39 @@ describe('FlashcardDeck — note panel', () => {
     const item = { ...baseItem, correction: null }
     render(<FlashcardDeck items={[item]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('hides note panel entirely when flashcard_note is null', async () => {
+  it('hides explain button entirely when flashcard_note is null', async () => {
     const item = { ...baseItem, flashcard_note: null }
     render(<FlashcardDeck items={[item]} />)
     await userEvent.click(screen.getByTestId('flashcard-card'))
-    expect(screen.queryByRole('button', { name: /why\?/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /explain this/i })).not.toBeInTheDocument()
+  })
+
+  it('toggles panel closed on second "Explain this" click', async () => {
+    render(<FlashcardDeck items={[baseItem]} />)
+    await userEvent.click(screen.getByTestId('flashcard-card'))
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
+    expect(screen.getByText(/"Te elimina" sounds/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i }))
+    expect(screen.queryByText(/"Te elimina" sounds/)).not.toBeInTheDocument()
+  })
+
+  it('resets explain panel when advancing to next card', async () => {
+    const item2: PracticeItem = {
+      ...baseItem, id: 'item-2',
+      flashcard_front: 'second card [[phrase]] here',
+      flashcard_back: 'segunda [[tarjeta]] aquí',
+    }
+    render(<FlashcardDeck items={[baseItem, item2]} />)
+    await userEvent.click(screen.getByTestId('flashcard-card')) // flip
+    await userEvent.click(screen.getByRole('button', { name: /explain this/i })) // open panel
+    expect(screen.getByText(/"Te elimina" sounds/)).toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('advance-card')) // advance
+    // Now on card 2 front — panel should be gone
+    expect(screen.queryByText(/"Te elimina" sounds/)).not.toBeInTheDocument()
   })
 })
 
