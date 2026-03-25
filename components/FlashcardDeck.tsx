@@ -53,7 +53,7 @@ export function FlashcardDeck({ items }: Props) {
       <motion.div
         data-testid="flashcard-card"
         drag="x"
-        style={{ x }}
+        style={{ x, touchAction: 'pan-y' }}
         animate={controls}
         onDragStart={() => { isDragging.current = true }}
         onDragEnd={(_, info) => {
