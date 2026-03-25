@@ -103,7 +103,7 @@ export function FlashcardDeck({ items }: Props) {
 
       {/* Bottom sheet */}
       <ExplainSheet
-        isOpen={isExplainOpen}
+        isOpen={isExplainOpen && item.flashcard_note !== null}
         onClose={() => setIsExplainOpen(false)}
         original={item.original}
         correction={item.correction ?? null}
