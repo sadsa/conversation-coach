@@ -116,6 +116,9 @@ export function FlashcardDeck({ items }: Props) {
         )}
       </motion.div>
 
+      {/* Spacer to offset progress counter so the card is visually centred */}
+      <div className="h-8" aria-hidden="true" />
+
       {/* Hidden test seam for triggering advance in tests */}
       <button
         data-testid="advance-card"

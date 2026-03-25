@@ -36,6 +36,8 @@ app/
     identify/page.tsx             # Screen 3: Speaker Identification
   practice/page.tsx               # Screen 5: Practice Items
   insights/page.tsx               # Screen 6: Insights (sub-category mistake tracking)
+  flashcards/page.tsx             # Screen 7: Flashcard review (filters practice items with non-null flashcard fields)
+  settings/page.tsx               # Settings (font size preference, stored in localStorage)
   api/                            # All API routes (Next.js route handlers)
 components/                       # Shared React components
 lib/
@@ -44,6 +46,7 @@ lib/
   supabase-server.ts              # Supabase client for server components/routes
   supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
+  pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook
   claude.ts                       # analyseUserTurns — prompt + JSON parse
 supabase/migrations/              # SQL migrations
@@ -84,6 +87,10 @@ The `analyseUserTurns` function in `lib/claude.ts` must:
 - Annotate grammar errors and naturalness suggestions
 - Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction`, `explanation`
 - `sub_category` must be one of the 13 values in `SUB_CATEGORIES` (lib/types.ts); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
+- Also include `flashcard_front`, `flashcard_back`, `flashcard_note` per annotation:
+  - `flashcard_front`: English sentence with the correct equivalent phrase wrapped in `[[double brackets]]`
+  - `flashcard_back`: Spanish sentence using the correct form, target phrase wrapped in `[[double brackets]]`
+  - `flashcard_note`: 1–2 English sentences explaining the error from a Rioplatense register perspective
 
 ## Data Flow Gotchas
 
