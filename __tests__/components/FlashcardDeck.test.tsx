@@ -11,6 +11,7 @@ vi.mock('framer-motion', () => ({
     div: ({ children, onDragStart, onDragEnd, onClick, style, animate, drag, ...rest }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) =>
       React.createElement('div', { onClick, ...rest }, children),
   },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useAnimationControls: () => ({ start: vi.fn().mockResolvedValue(undefined), set: vi.fn() }),
   useMotionValue: (_initial: number) => ({ get: vi.fn(), set: vi.fn() }),
 }))
