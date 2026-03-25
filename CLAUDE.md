@@ -42,7 +42,7 @@ app/
 components/                       # Shared React components
 lib/
   types.ts                        # All shared TypeScript types
-  insights.ts                     # computeTrend(), fetchInsightsData() — uses Supabase RPC
+  insights.ts                     # fetchInsightsData() — uses Supabase RPC
   supabase-server.ts              # Supabase client for server components/routes
   supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
