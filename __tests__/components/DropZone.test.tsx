@@ -65,4 +65,13 @@ describe('DropZone — OPUS support', () => {
     render(<DropZone onFile={vi.fn()} />)
     expect(screen.getByText(/opus/i)).toBeInTheDocument()
   })
+
+  it('triggers file input on Enter key press', () => {
+    render(<DropZone onFile={vi.fn()} />)
+    const container = document.querySelector('[role="button"]') as HTMLElement
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const clickSpy = vi.spyOn(input, 'click')
+    fireEvent.keyDown(container, { key: 'Enter' })
+    expect(clickSpy).toHaveBeenCalled()
+  })
 })
