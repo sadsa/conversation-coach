@@ -68,16 +68,20 @@ export function FlashcardDeck({ items }: Props) {
       >
         {!isFlipped ? (
           <div data-testid="flashcard-front" className="flex flex-col flex-1 justify-between">
-            <p className="text-base text-gray-100 leading-relaxed text-center flex-1 flex items-center justify-center">
-              {renderHighlighted(item.flashcard_front!, 'purple')}
-            </p>
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-base text-gray-100 leading-relaxed text-center">
+                {renderHighlighted(item.flashcard_front!, 'purple')}
+              </p>
+            </div>
             <p className="text-xs text-gray-600 text-center mt-4">Tap to reveal Spanish</p>
           </div>
         ) : (
           <div data-testid="flashcard-back" className="flex flex-col flex-1 justify-between gap-4">
-            <p className="text-base text-gray-100 leading-relaxed text-center flex-1 flex items-center justify-center">
-              {renderHighlighted(item.flashcard_back!, 'green')}
-            </p>
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-base text-gray-100 leading-relaxed text-center">
+                {renderHighlighted(item.flashcard_back!, 'green')}
+              </p>
+            </div>
             {item.flashcard_note !== null && (
               <div className="bg-indigo-950 border border-indigo-900 rounded-xl px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
