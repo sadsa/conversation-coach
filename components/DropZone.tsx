@@ -41,18 +41,20 @@ export function DropZone({ onFile }: Props) {
           if (file) handleFile(file)
         }}
         onClick={() => inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors
-          ${dragOver ? 'border-violet-500 bg-violet-500/10' : 'border-gray-700 hover:border-gray-500'}`}
+        className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors
+          ${dragOver ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 hover:border-gray-500'}`}
       >
-        <div className="text-4xl mb-3">🎙️</div>
-        <p className="font-medium">Drop audio file here</p>
-        <p className="text-sm text-gray-500 mt-1">MP3, M4A, WAV, OPUS · up to 500 MB / 2 hours</p>
+        <span className="text-2xl flex-shrink-0" aria-hidden="true">🎙️</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-100 text-sm">Upload conversation</p>
+          <p className="text-xs text-gray-500 mt-0.5">MP3, M4A, WAV, OPUS</p>
+        </div>
         <button
           type="button"
-          className="mt-4 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors"
+          className="flex-shrink-0 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors"
           onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
         >
-          Browse file
+          Browse
         </button>
         <input
           ref={inputRef}
