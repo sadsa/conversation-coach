@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { FlashcardDeck } from '@/components/FlashcardDeck'
 import type { PracticeItem } from '@/lib/types'
 
@@ -29,12 +28,6 @@ export default function FlashcardsPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
-      <div className="flex items-center px-4 pt-4 pb-2">
-        <Link href="/" className="text-gray-400 hover:text-gray-200 text-sm">
-          ← Back
-        </Link>
-      </div>
-
       {loading && (
         <p className="text-gray-500 text-sm px-4">Loading…</p>
       )}
@@ -50,7 +43,9 @@ export default function FlashcardsPage() {
       )}
 
       {!loading && !error && items.length > 0 && (
-        <FlashcardDeck items={items} />
+        <div className="flex flex-col flex-1 justify-center">
+          <FlashcardDeck items={items} />
+        </div>
       )}
     </div>
   )
