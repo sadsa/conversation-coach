@@ -1,3 +1,4 @@
+// components/PendingUploadCard.tsx
 'use client'
 
 export type SpeakerMode = 'solo' | 'conversation'
@@ -34,7 +35,7 @@ export function PendingUploadCard({
   onDismiss,
 }: Props) {
   return (
-    <div className="border border-[#4c1d95] rounded-xl bg-[#1e1b4b] p-4 space-y-4">
+    <div className="border border-violet-900 rounded-xl bg-violet-950 p-4 space-y-4">
       {/* File info */}
       <div className="flex items-start gap-3">
         <span className="text-xl mt-0.5 flex-shrink-0" aria-hidden="true">📎</span>
@@ -47,7 +48,7 @@ export function PendingUploadCard({
       {/* Recording type toggle */}
       <div>
         <p className="text-xs text-gray-400 font-medium mb-2">Recording type:</p>
-        <div className="inline-flex rounded-lg overflow-hidden border border-[#4c1d95]">
+        <div className="inline-flex rounded-lg overflow-hidden border border-violet-900">
           <button
             type="button"
             onClick={() => onModeChange('solo')}
@@ -86,7 +87,7 @@ export function PendingUploadCard({
                 className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
                   speakersExpected === value
                     ? 'bg-violet-600 text-white'
-                    : 'bg-transparent border border-[#4c1d95] text-violet-300 hover:text-white'
+                    : 'bg-transparent border border-violet-900 text-violet-300 hover:text-white'
                 }`}
               >
                 {label}
@@ -108,7 +109,7 @@ export function PendingUploadCard({
         <button
           type="button"
           onClick={onConfirm}
-          className="px-4 py-1.5 text-xs font-medium bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors"
+          className="px-4 py-1.5 text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors"
         >
           Upload →
         </button>
