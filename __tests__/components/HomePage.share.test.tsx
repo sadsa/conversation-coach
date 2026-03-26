@@ -97,6 +97,6 @@ describe('HomePage — share pickup', () => {
     const { default: HomePage } = await import('@/app/page')
     const { queryByText } = render(<HomePage />)
     await new Promise(r => setTimeout(r, 100))
-    expect(queryByText(/uploading/i)).toBeNull()
+    expect(queryByText('PTT-20260327.opus')).toBeNull()
   })
 })
