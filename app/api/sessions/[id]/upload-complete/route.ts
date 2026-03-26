@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   let jobId: string
   try {
-    jobId = await createJob(audioUrl)
+    jobId = await createJob(audioUrl, 2)
   } catch (err) {
     log.error('AssemblyAI job creation failed', { sessionId: params.id, err })
     await db.from('sessions').update({

@@ -44,7 +44,7 @@ describe('POST /api/sessions/:id/upload-complete', () => {
     })
     const res = await POST(req, { params: { id: 'session-1' } })
     expect(res.status).toBe(200)
-    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3')
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3', 2)
   })
 })
 
@@ -199,6 +199,6 @@ describe('POST /api/sessions/:id/retry', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.status).toBe('transcribing')
-    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio.mp3')
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio.mp3', 2)
   })
 })
