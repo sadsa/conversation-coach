@@ -1,14 +1,19 @@
-// app/page.tsx
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { DropZone } from '@/components/DropZone'
+import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
 import type { SessionListItem } from '@/lib/types'
+
+const SPEAKER_MODE_KEY = 'speakerMode'
 
 export default function HomePage() {
   const router = useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>([])
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('solo')
+  const [speakersExpected, setSpeakersExpected] = useState(2)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,15 +24,31 @@ export default function HomePage() {
       .catch(console.error)
   }, [])
 
-  const handleFile = useCallback(async (file: File) => {
+  // Restore last-used speaker mode from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(SPEAKER_MODE_KEY)
+    if (saved === 'solo' || saved === 'conversation') setSpeakerMode(saved)
+  }, [])
+
+  function handleModeChange(mode: SpeakerMode) {
+    setSpeakerMode(mode)
+    localStorage.setItem(SPEAKER_MODE_KEY, mode)
+    if (mode === 'solo') setSpeakersExpected(2)
+  }
+
+  const handleFile = useCallback((file: File) => {
+    setPendingFile(file)
+  }, [])
+
+  const handleConfirmUpload = useCallback(async () => {
+    if (!pendingFile) return
     setUploading(true)
     setError(null)
+    setPendingFile(null)
+    const file = pendingFile
     const ext = file.name.split('.').pop() ?? 'mp3'
-
-    // Get duration from audio metadata
     const duration_seconds = await getAudioDuration(file)
 
-    // Create session + get presigned URL
     const createRes = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -36,7 +57,6 @@ export default function HomePage() {
     if (!createRes.ok) { setError('Failed to create session'); setUploading(false); return }
     const { session_id, upload_url } = await createRes.json() as { session_id: string; upload_url: string }
 
-    // Upload to R2
     try {
       const uploadRes = await fetch(upload_url, { method: 'PUT', body: file })
       if (!uploadRes.ok) throw new Error('Upload failed')
@@ -47,16 +67,18 @@ export default function HomePage() {
       return
     }
 
-    // Notify server
     await fetch(`/api/sessions/${session_id}/upload-complete`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ duration_seconds }),
+      body: JSON.stringify({
+        duration_seconds,
+        speakers_expected: speakerMode === 'solo' ? 1 : speakersExpected,
+      }),
     })
 
     setUploading(false)
     router.push(`/sessions/${session_id}/status`)
-  }, [router])
+  }, [pendingFile, speakerMode, speakersExpected, router])
 
   // Check for a file shared via the PWA share target
   useEffect(() => {
@@ -74,7 +96,19 @@ export default function HomePage() {
       </div>
 
       <div className="space-y-3">
-        <DropZone onFile={handleFile} />
+        {pendingFile ? (
+          <PendingUploadCard
+            file={pendingFile}
+            speakerMode={speakerMode}
+            speakersExpected={speakersExpected}
+            onModeChange={handleModeChange}
+            onSpeakersChange={setSpeakersExpected}
+            onConfirm={handleConfirmUpload}
+            onDismiss={() => setPendingFile(null)}
+          />
+        ) : (
+          <DropZone onFile={handleFile} />
+        )}
         {uploading && <p className="text-sm text-violet-400">Uploading…</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
       </div>

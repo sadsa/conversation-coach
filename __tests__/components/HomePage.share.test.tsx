@@ -80,19 +80,15 @@ describe('HomePage — share pickup', () => {
     vi.resetModules() // force fresh module import per test — avoids useEffect running with stale IDB mock
   })
 
-  it('calls handleFile with the stored file on mount if a share is pending', async () => {
-    const sharedFile = new File(['audio'], 'voice_note.opus', { type: 'audio/ogg' })
+  it('shows the pending upload card when a share is pending', async () => {
+    const sharedFile = new File(['audio'], 'PTT-20260327.opus', { type: 'audio/ogg' })
     setupIDB(sharedFile)
 
-    // Import after mocks are set up
     const { default: HomePage } = await import('@/app/page')
-
-    // Verify the upload flow is triggered by checking "Uploading…" appears in the DOM
     const { getByText } = render(<HomePage />)
 
     await waitFor(() => {
-      // "Uploading…" text appears when handleFile is called
-      expect(getByText(/uploading/i)).toBeInTheDocument()
+      expect(getByText('PTT-20260327.opus')).toBeInTheDocument()
     }, { timeout: 2000 })
   })
 
