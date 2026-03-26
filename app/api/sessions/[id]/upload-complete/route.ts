@@ -6,7 +6,10 @@ import { publicUrl } from '@/lib/r2'
 import { log } from '@/lib/logger'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { duration_seconds } = await req.json() as { duration_seconds?: number }
+  const { duration_seconds, speakers_expected } = await req.json() as {
+    duration_seconds?: number
+    speakers_expected?: number
+  }
   const db = createServerClient()
 
   const { data: session } = await db
@@ -23,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   let jobId: string
   try {
-    jobId = await createJob(audioUrl, 2)
+    jobId = await createJob(audioUrl, speakers_expected ?? 2)
   } catch (err) {
     log.error('AssemblyAI job creation failed', { sessionId: params.id, err })
     await db.from('sessions').update({

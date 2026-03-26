@@ -46,6 +46,22 @@ describe('POST /api/sessions/:id/upload-complete', () => {
     expect(res.status).toBe(200)
     expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3', 2)
   })
+
+  it('passes speakers_expected to createJob when provided', async () => {
+    vi.mocked(createServerClient).mockReturnValue(
+      makeMockDb({ audio_r2_key: 'audio/uuid.mp3' }) as unknown as ReturnType<typeof createServerClient>
+    )
+
+    const { POST } = await import('@/app/api/sessions/[id]/upload-complete/route')
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ duration_seconds: 120, speakers_expected: 3 }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await POST(req, { params: { id: 'session-1' } })
+    expect(res.status).toBe(200)
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3', 3)
+  })
 })
 
 describe('POST /api/sessions/:id/upload-failed', () => {
