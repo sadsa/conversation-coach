@@ -30,11 +30,11 @@ export default function HomePage() {
     if (saved === 'solo' || saved === 'conversation') setSpeakerMode(saved)
   }, [])
 
-  function handleModeChange(mode: SpeakerMode) {
+  const handleModeChange = useCallback((mode: SpeakerMode) => {
     setSpeakerMode(mode)
     localStorage.setItem(SPEAKER_MODE_KEY, mode)
     if (mode === 'solo') setSpeakersExpected(2)
-  }
+  }, [])
 
   const handleFile = useCallback((file: File) => {
     setPendingFile(file)
