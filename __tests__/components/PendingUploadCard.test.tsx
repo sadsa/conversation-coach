@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PendingUploadCard } from '@/components/PendingUploadCard'
 
@@ -17,6 +17,10 @@ const baseProps = {
 }
 
 describe('PendingUploadCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('displays the file name', () => {
     render(<PendingUploadCard {...baseProps} />)
     expect(screen.getByText('PTT-20260327.opus')).toBeInTheDocument()
