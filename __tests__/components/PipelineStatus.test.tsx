@@ -1,6 +1,6 @@
 // __tests__/components/PipelineStatus.test.tsx
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { PipelineStatus } from '@/components/PipelineStatus'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -52,5 +52,51 @@ describe('PipelineStatus', () => {
     )
     expect(screen.getByText(/transcription failed/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+  })
+})
+
+describe('PipelineStatus - analysis retry button', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ status: 'analysing', error_stage: null }),
+    })))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('does not show retry button immediately in analysing state', () => {
+    render(
+      <PipelineStatus sessionId="s1" initialStatus="analysing" initialErrorStage={null} durationSeconds={null} />
+    )
+    expect(screen.queryByRole('button', { name: /retry analysis/i })).not.toBeInTheDocument()
+  })
+
+  it('shows retry button and message after 60 seconds', async () => {
+    render(
+      <PipelineStatus sessionId="s1" initialStatus="analysing" initialErrorStage={null} durationSeconds={null} />
+    )
+    await act(async () => { vi.advanceTimersByTime(60_000) })
+    expect(screen.getByText(/taking longer than expected/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry analysis/i })).toBeInTheDocument()
+  })
+
+  it('calls POST /analyse endpoint when retry button is clicked', async () => {
+    const fetchMock = vi.mocked(fetch)
+    render(
+      <PipelineStatus sessionId="s1" initialStatus="analysing" initialErrorStage={null} durationSeconds={null} />
+    )
+    await act(async () => { vi.advanceTimersByTime(60_000) })
+    fetchMock.mockClear()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /retry analysis/i }))
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/sessions/s1/analyse', { method: 'POST' })
   })
 })

@@ -1,5 +1,6 @@
 // lib/assemblyai.ts
 import { AssemblyAI } from 'assemblyai'
+import { log } from '@/lib/logger'
 
 function getClient() {
   return new AssemblyAI({ apiKey: process.env.ASSEMBLYAI_API_KEY! })
@@ -55,8 +56,8 @@ export async function cancelJob(jobId: string): Promise<void> {
   try {
     const client = getClient()
     await client.transcripts.delete(jobId)
-  } catch {
-    console.error(`AssemblyAI cancel failed for job ${jobId}`)
+  } catch (err) {
+    log.error('AssemblyAI cancel failed', { jobId, err })
   }
 }
 

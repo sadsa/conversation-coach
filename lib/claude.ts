@@ -1,5 +1,6 @@
 // lib/claude.ts
 import Anthropic from '@anthropic-ai/sdk'
+import { log } from '@/lib/logger'
 
 const SYSTEM_PROMPT = `You are an expert Spanish language coach specialising in Rioplatense (Argentine) Spanish. Analyse the speech turns provided and identify:
 
@@ -51,6 +52,7 @@ export interface ClaudeAnnotation {
 export async function analyseUserTurns(
   turns: UserTurn[],
   originalFilename: string | null,
+  sessionId: string,
 ): Promise<{ title: string; annotations: ClaudeAnnotation[] }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -73,7 +75,7 @@ export async function analyseUserTurns(
 
   const text = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
 
-  console.log('[claude] raw response:', text.slice(0, 500))
+  log.info('Claude raw response received', { sessionId, preview: text.slice(0, 500) })
 
   const parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
   return {

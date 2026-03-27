@@ -60,7 +60,7 @@ The audio pipeline flows through these statuses: `uploading → transcribing →
 1. Client uploads audio directly to R2 via presigned URL, then calls `POST /api/sessions/:id/upload-complete`
 2. Server triggers AssemblyAI job (`speakers_expected: 2`); webhook at `/api/webhooks/assemblyai` fires when done
 3. If 2 speakers detected: status → `identifying` (paused, waiting for speaker label)
-4. If 1 speaker detected: `user_speaker_label` set to `"A"`, goes straight to `analysing`
+4. If 1 speaker detected: `user_speaker_labels` set to `["A"]`, goes straight to `analysing`
 5. Speaker label submitted via `POST /api/sessions/:id/speaker` → triggers Claude analysis
 6. Claude returns structured JSON annotations; practice items written to DB; audio deleted from R2; status → `ready`
 
@@ -70,7 +70,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and an
 
 - **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
 - **Practice sub-category filter**: `?sub_category=<key>` URL param seeds the active pill on load. 14-pill row (All + 13 sub-categories), sorted by count, colour-coded. Linked from Insights "See all examples" cards.
-- **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes and pipeline. Outputs JSON lines; `log.error` → stderr, others → stdout. Note: `lib/claude.ts`, `lib/assemblyai.ts`, `lib/r2.ts` still use raw `console.*` (known gap).
+- **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **No auth**: All API routes are intentionally unprotected (single-user app).
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.

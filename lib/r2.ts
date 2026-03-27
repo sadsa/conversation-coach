@@ -2,6 +2,7 @@
 import { S3Client, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
+import { log } from '@/lib/logger'
 
 function getClient() {
   return new S3Client({
@@ -34,9 +35,9 @@ export async function deleteObject(key: string): Promise<void> {
       Bucket: process.env.R2_BUCKET_NAME!,
       Key: key,
     }))
-  } catch {
+  } catch (err) {
     // Best-effort delete — log but don't fail
-    console.error(`R2 delete failed for key ${key}`)
+    log.error('R2 delete failed', { key, err })
   }
 }
 
