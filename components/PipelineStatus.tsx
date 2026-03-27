@@ -32,8 +32,11 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
   const router = useRouter()
   const [currentStatus, setCurrentStatus] = useState(initialStatus)
   const [currentErrorStage, setCurrentErrorStage] = useState(initialErrorStage)
+  const [showAnalysisRetry, setShowAnalysisRetry] = useState(false)
+  const [retryingAnalysis, setRetryingAnalysis] = useState(false)
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const analysisRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const estimatedMinutes = durationSeconds
     ? Math.ceil(durationSeconds / 60 * 1.5)
@@ -69,8 +72,29 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
         .catch(console.error)
     }, 5000)
 
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (analysisRetryTimerRef.current) clearTimeout(analysisRetryTimerRef.current)
+    }
   }, [sessionId, router])
+
+  useEffect(() => {
+    if (currentStatus === 'analysing') {
+      analysisRetryTimerRef.current = setTimeout(() => setShowAnalysisRetry(true), 60_000)
+    } else {
+      if (analysisRetryTimerRef.current) clearTimeout(analysisRetryTimerRef.current)
+      setShowAnalysisRetry(false)
+    }
+    return () => { if (analysisRetryTimerRef.current) clearTimeout(analysisRetryTimerRef.current) }
+  }, [currentStatus])
+
+  async function handleRetryAnalysis() {
+    setRetryingAnalysis(true)
+    setShowAnalysisRetry(false)
+    await fetch(`/api/sessions/${sessionId}/analyse`, { method: 'POST' })
+    setRetryingAnalysis(false)
+    setShowAnalysisRetry(false)
+  }
 
   async function handleRetry() {
     const res = await fetch(`/api/sessions/${sessionId}/retry`, { method: 'POST' })
@@ -114,6 +138,18 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
       </div>
       {estimatedMinutes && (
         <p className="text-sm text-gray-400">Estimated time: ~{estimatedMinutes} min</p>
+      )}
+      {(showAnalysisRetry || retryingAnalysis) && (
+        <div className="space-y-1">
+          <p className="text-sm text-gray-400">Taking longer than expected.</p>
+          <button
+            onClick={handleRetryAnalysis}
+            disabled={retryingAnalysis}
+            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg text-sm font-medium"
+          >
+            {retryingAnalysis ? 'Retrying…' : 'Retry analysis'}
+          </button>
+        </div>
       )}
     </div>
   )
