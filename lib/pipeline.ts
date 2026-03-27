@@ -36,7 +36,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
   let annotations: ClaudeAnnotation[] = []
   let title = 'Untitled'
   try {
-    const result = await analyseUserTurns(userTurns, session.original_filename ?? null)
+    const result = await analyseUserTurns(userTurns, session.original_filename ?? null, sessionId)
     annotations = result.annotations
     title = result.title
   } catch (err) {
