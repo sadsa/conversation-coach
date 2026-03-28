@@ -63,10 +63,14 @@ export async function analyseUserTurns(
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 8192,
+    max_tokens: 16000,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userContent }],
   })
+
+  if (response.stop_reason === 'max_tokens') {
+    throw new Error('Claude response was truncated (max_tokens reached). The conversation may be too long to analyse in one pass.')
+  }
 
   const raw = response.content
     .filter(b => b.type === 'text')
