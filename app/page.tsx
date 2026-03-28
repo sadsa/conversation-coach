@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { DropZone } from '@/components/DropZone'
 import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
-import type { SessionListItem, SessionStatus, ErrorStage } from '@/lib/types'
+import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
@@ -24,7 +24,7 @@ export default function HomePage() {
       try {
         const res = await fetch(`/api/sessions/${sessionId}/status`)
         if (!res.ok) return
-        const { status, error_stage } = await res.json() as { status: SessionStatus; error_stage: ErrorStage | null }
+        const { status } = await res.json() as { status: SessionStatus; error_stage: ErrorStage | null }
 
         if (TERMINAL_STATUSES.has(status)) {
           clearInterval(pollingRefs.current.get(sessionId))
