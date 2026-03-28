@@ -18,6 +18,7 @@ export interface Session {
   assemblyai_job_id: string | null
   detected_speaker_count: number | null
   user_speaker_labels: ('A' | 'B')[] | null
+  processing_completed_at: string | null
   created_at: string
   updated_at: string
   original_filename: string | null

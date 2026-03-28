@@ -1,27 +1,65 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { DropZone } from '@/components/DropZone'
 import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
-import type { SessionListItem } from '@/lib/types'
+import type { SessionListItem, SessionStatus, ErrorStage } from '@/lib/types'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
+const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
+const POLL_INTERVAL_MS = 3000
 
 export default function HomePage() {
-  const router = useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>([])
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('solo')
   const [speakersExpected, setSpeakersExpected] = useState(2)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const pollingRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
 
+  function startPolling(sessionId: string) {
+    if (pollingRefs.current.has(sessionId)) return
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/status`)
+        if (!res.ok) return
+        const { status, error_stage } = await res.json() as { status: SessionStatus; error_stage: ErrorStage | null }
+
+        if (TERMINAL_STATUSES.has(status)) {
+          clearInterval(pollingRefs.current.get(sessionId))
+          pollingRefs.current.delete(sessionId)
+          // Re-fetch full list to get updated title, processing_completed_at, etc.
+          const listRes = await fetch('/api/sessions')
+          if (listRes.ok) setSessions(await listRes.json())
+        } else {
+          setSessions(prev =>
+            prev.map(s => s.id === sessionId ? { ...s, status } : s)
+          )
+        }
+      } catch {
+        // Network error — keep polling
+      }
+    }, POLL_INTERVAL_MS)
+    pollingRefs.current.set(sessionId, intervalId)
+  }
+
+  // Load sessions on mount and start polling for any in-progress ones
   useEffect(() => {
     fetch('/api/sessions')
       .then(r => r.json())
-      .then(setSessions)
+      .then((data: SessionListItem[]) => {
+        setSessions(data)
+        data.forEach(s => {
+          if (!TERMINAL_STATUSES.has(s.status)) startPolling(s.id)
+        })
+      })
       .catch(console.error)
+
+    return () => {
+      pollingRefs.current.forEach(id => clearInterval(id))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Restore last-used speaker mode from localStorage
@@ -76,9 +114,19 @@ export default function HomePage() {
       }),
     })
 
+    // Prepend the new session and start polling — no navigation
+    const newSession: SessionListItem = {
+      id: session_id,
+      title: file.name,
+      status: 'transcribing',
+      duration_seconds,
+      created_at: new Date().toISOString(),
+      processing_completed_at: null,
+    }
+    setSessions(prev => [newSession, ...prev])
+    startPolling(session_id)
     setUploading(false)
-    router.push(`/sessions/${session_id}/status`)
-  }, [pendingFile, speakerMode, speakersExpected, router])
+  }, [pendingFile, speakerMode, speakersExpected])
 
   // Check for a file shared via the PWA share target
   useEffect(() => {
