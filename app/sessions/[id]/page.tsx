@@ -10,7 +10,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [detail, setDetail] = useState<SessionDetail | null>(null)
   const [title, setTitle] = useState('')
-  const [addedAnnotationIds, setAddedAnnotationIds] = useState<Set<string>>(new Set())
+  const [addedAnnotations, setAddedAnnotations] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     fetch(`/api/sessions/${params.id}`)
@@ -18,7 +18,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
       .then((d: SessionDetail) => {
         setDetail(d)
         setTitle(d.session.title)
-        setAddedAnnotationIds(new Set(d.addedAnnotationIds))
+        setAddedAnnotations(new Map(Object.entries(d.addedAnnotations)))
       })
   }, [params.id])
 
@@ -31,8 +31,12 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
     setTitle(newTitle)
   }
 
-  function handleAnnotationAdded(annotationId: string) {
-    setAddedAnnotationIds(prev => { const next = new Set(prev); next.add(annotationId); return next })
+  function handleAnnotationAdded(annotationId: string, practiceItemId: string) {
+    setAddedAnnotations(prev => { const next = new Map(prev); next.set(annotationId, practiceItemId); return next })
+  }
+
+  function handleAnnotationRemoved(annotationId: string) {
+    setAddedAnnotations(prev => { const next = new Map(prev); next.delete(annotationId); return next })
   }
 
   async function handleReanalyse() {
@@ -72,8 +76,9 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         annotations={annotations}
         userSpeakerLabels={session.user_speaker_labels ?? null}
         sessionId={params.id}
-        addedAnnotationIds={addedAnnotationIds}
+        addedAnnotations={addedAnnotations}
         onAnnotationAdded={handleAnnotationAdded}
+        onAnnotationRemoved={handleAnnotationRemoved}
       />
     </div>
   )

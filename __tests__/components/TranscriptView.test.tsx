@@ -21,8 +21,9 @@ const annotations: Annotation[] = [
 
 const defaultProps = {
   sessionId: 's1',
-  addedAnnotationIds: new Set<string>(),
+  addedAnnotations: new Map<string, string>(),
   onAnnotationAdded: vi.fn(),
+  onAnnotationRemoved: vi.fn(),
 }
 
 describe('TranscriptView', () => {
@@ -65,15 +66,16 @@ describe('TranscriptView', () => {
     expect(label).toHaveClass('uppercase')
   })
 
-  it('shows the added badge on a highlight when the annotation id is in addedAnnotationIds', () => {
+  it('shows the added badge on a highlight when the annotation id is in addedAnnotations', () => {
     render(
       <TranscriptView
         segments={segments}
         annotations={annotations}
         userSpeakerLabels={['A']}
         sessionId="s1"
-        addedAnnotationIds={new Set(['ann-1'])}
+        addedAnnotations={new Map([['ann-1', 'pi-1']])}
         onAnnotationAdded={vi.fn()}
+        onAnnotationRemoved={vi.fn()}
       />
     )
     expect(screen.getByTestId('annotation-added-badge-ann-1')).toBeInTheDocument()

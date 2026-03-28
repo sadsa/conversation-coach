@@ -11,11 +11,12 @@ interface Props {
   annotations: Annotation[]
   userSpeakerLabels: ('A' | 'B')[] | null
   sessionId: string
-  addedAnnotationIds: Set<string>
-  onAnnotationAdded: (annotationId: string) => void
+  addedAnnotations: Map<string, string>           // annotationId -> practiceItemId
+  onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
+  onAnnotationRemoved: (annotationId: string) => void
 }
 
-export function TranscriptView({ segments, annotations, userSpeakerLabels, sessionId, addedAnnotationIds, onAnnotationAdded }: Props) {
+export function TranscriptView({ segments, annotations, userSpeakerLabels, sessionId, addedAnnotations, onAnnotationAdded, onAnnotationRemoved }: Props) {
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
 
   const annotationsBySegment = annotations.reduce<Record<string, Annotation[]>>((acc, a) => {
@@ -24,9 +25,10 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
     return acc
   }, {})
 
+  const addedAnnotationIds = new Set(addedAnnotations.keys())
+
   return (
     <div className="space-y-4">
-      {/* Segments */}
       <div className="space-y-4">
         {segments.map(seg => {
           const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
@@ -64,8 +66,9 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
           <AnnotationCard
             annotation={activeAnnotation}
             sessionId={sessionId}
-            isAdded={addedAnnotationIds.has(activeAnnotation.id)}
+            practiceItemId={addedAnnotations.get(activeAnnotation.id) ?? null}
             onAnnotationAdded={onAnnotationAdded}
+            onAnnotationRemoved={onAnnotationRemoved}
           />
         </Modal>
       )}
