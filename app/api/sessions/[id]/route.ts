@@ -28,18 +28,22 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data: practiceItems } = await db
     .from('practice_items')
-    .select('annotation_id')
+    .select('id, annotation_id')
     .eq('session_id', params.id)
 
-  const addedAnnotationIds = (practiceItems ?? [])
-    .map((p: { annotation_id: string | null }) => p.annotation_id)
-    .filter((id): id is string => id !== null)
+  const addedAnnotations = (practiceItems ?? []).reduce<Record<string, string>>(
+    (acc, p: { id: string; annotation_id: string | null }) => {
+      if (p.annotation_id) acc[p.annotation_id] = p.id
+      return acc
+    },
+    {}
+  )
 
   return NextResponse.json({
     session,
     segments: segments ?? [],
     annotations: annotations ?? [],
-    addedAnnotationIds,
+    addedAnnotations,
   })
 }
 

@@ -123,7 +123,7 @@ export interface SessionDetail {
   >
   segments: TranscriptSegment[]
   annotations: Annotation[]
-  addedAnnotationIds: string[]
+  addedAnnotations: Record<string, string>   // annotationId -> practiceItemId
 }
 
 export interface StatusResponse {
