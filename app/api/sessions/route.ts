@@ -7,7 +7,7 @@ export async function GET() {
   const db = createServerClient()
   const { data, error } = await db
     .from('sessions')
-    .select('id, title, status, duration_seconds, created_at')
+    .select('id, title, status, duration_seconds, created_at, processing_completed_at')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

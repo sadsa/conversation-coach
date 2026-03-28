@@ -114,6 +114,7 @@ export interface SessionListItem {
   status: SessionStatus
   duration_seconds: number | null
   created_at: string
+  processing_completed_at: string | null
 }
 
 export interface SessionDetail {

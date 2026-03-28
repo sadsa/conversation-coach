@@ -13,10 +13,12 @@ vi.mock('next/link', () => ({
 const readySession: SessionListItem = {
   id: 'sess-1', title: 'Chat with María', status: 'ready',
   duration_seconds: 512, created_at: '2026-03-15T10:00:00Z',
+  processing_completed_at: '2026-03-15T10:01:23Z',
 }
 const transcribingSession: SessionListItem = {
   id: 'sess-2', title: 'Untitled', status: 'transcribing',
   duration_seconds: null, created_at: '2026-03-14T10:00:00Z',
+  processing_completed_at: null,
 }
 
 describe('SessionList', () => {
@@ -59,5 +61,16 @@ describe('SessionList', () => {
   it('does not render any text inputs (no inline rename)', () => {
     render(<SessionList sessions={[readySession]} />)
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('shows processing time for ready session with processing_completed_at', () => {
+    render(<SessionList sessions={[readySession]} />)
+    // created_at: 10:00:00Z, processing_completed_at: 10:01:23Z = 83 seconds = 1m 23s
+    expect(screen.getByText(/⚡ 1m 23s/)).toBeInTheDocument()
+  })
+
+  it('omits processing time when processing_completed_at is null', () => {
+    render(<SessionList sessions={[{ ...readySession, processing_completed_at: null }]} />)
+    expect(screen.queryByText(/⚡/)).not.toBeInTheDocument()
   })
 })
