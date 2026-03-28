@@ -151,7 +151,7 @@ describe('runClaudeAnalysis', () => {
     await runClaudeAnalysis('session-1')
 
     expect(insertAnnotationsMock).toHaveBeenCalled()
-    expect(updateMock).toHaveBeenCalledWith({ status: 'ready', title: 'Test Session' })
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'ready', title: 'Test Session', processing_completed_at: expect.any(String) }))
   })
 
   it('saves the generated title to the session on success', async () => {

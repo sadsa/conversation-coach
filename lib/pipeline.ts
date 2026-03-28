@@ -111,5 +111,9 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
   }
 
   log.info('Claude analysis complete', { sessionId, annotationCount: correctedAnnotations.length })
-  await db.from('sessions').update({ status: 'ready', title }).eq('id', sessionId)
+  await db.from('sessions').update({
+    status: 'ready',
+    title,
+    processing_completed_at: new Date().toISOString(),
+  }).eq('id', sessionId)
 }
