@@ -24,7 +24,7 @@ export default function HomePage() {
       try {
         const res = await fetch(`/api/sessions/${sessionId}/status`)
         if (!res.ok) return
-        const { status } = await res.json() as { status: SessionStatus; error_stage: ErrorStage | null }
+        const { status } = await res.json() as { status: SessionStatus }
 
         if (TERMINAL_STATUSES.has(status)) {
           clearInterval(pollingRefs.current.get(sessionId))
