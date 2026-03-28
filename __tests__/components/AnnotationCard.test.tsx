@@ -14,9 +14,9 @@ const grammarAnnotation: Annotation = {
 
 const defaultProps = {
   sessionId: 's1',
-  isAdded: false,
+  practiceItemId: null,
   onAnnotationAdded: vi.fn(),
-  // onClose removed — now owned by Modal
+  onAnnotationRemoved: vi.fn(),
 }
 
 beforeEach(() => {
@@ -31,21 +31,24 @@ describe('AnnotationCard', () => {
     expect(screen.getByText('Drop the subject pronoun.')).toBeInTheDocument()
   })
 
-  it('renders disabled "Added" button when isAdded is true', () => {
-    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} isAdded={true} />)
+  it('shows muted "Added" button when practiceItemId is set', () => {
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} practiceItemId="pi-1" />)
     const btn = screen.getByRole('button', { name: /added to practice/i })
-    expect(btn).toBeDisabled()
+    expect(btn).not.toBeDisabled()
+    expect(btn).toHaveClass('bg-gray-700')
   })
 
-  it('does not call fetch when isAdded is true and button is clicked', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch')
-    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} isAdded={true} />)
-    await userEvent.click(screen.getByRole('button', { name: /added to practice/i }))
-    expect(fetchSpy).not.toHaveBeenCalled()
+  it('shows indigo "Add" button when practiceItemId is null', () => {
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
+    const btn = screen.getByRole('button', { name: /add to practice list/i })
+    expect(btn).toHaveClass('bg-indigo-600')
   })
 
-  it('calls fetch and onAnnotationAdded on successful add', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
+  it('calls POST and onAnnotationAdded with both ids on successful add', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ id: 'pi-1' }),
+    } as Response)
     const onAnnotationAdded = vi.fn()
     render(
       <AnnotationCard
@@ -54,17 +57,41 @@ describe('AnnotationCard', () => {
         onAnnotationAdded={onAnnotationAdded}
       />
     )
-    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    await userEvent.click(screen.getByRole('button', { name: /add to practice list/i }))
     expect(fetchSpy).toHaveBeenCalledWith('/api/practice-items', expect.objectContaining({ method: 'POST' }))
-    expect(onAnnotationAdded).toHaveBeenCalledWith('ann-1')
-    expect(screen.getByRole('button', { name: /added to practice/i })).toBeDisabled()
+    expect(onAnnotationAdded).toHaveBeenCalledWith('ann-1', 'pi-1')
+    expect(screen.getByRole('button', { name: /added to practice/i })).toBeInTheDocument()
   })
 
-  it('leaves button enabled on fetch failure', async () => {
+  it('leaves add button visible on POST failure', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false } as Response)
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
-    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
-    expect(screen.getByRole('button', { name: /add to practice/i })).not.toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: /add to practice list/i }))
+    expect(screen.getByRole('button', { name: /add to practice list/i })).toBeInTheDocument()
+  })
+
+  it('calls DELETE and onAnnotationRemoved on remove', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
+    const onAnnotationRemoved = vi.fn()
+    render(
+      <AnnotationCard
+        annotation={grammarAnnotation}
+        {...defaultProps}
+        practiceItemId="pi-1"
+        onAnnotationRemoved={onAnnotationRemoved}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: /added to practice/i }))
+    expect(fetchSpy).toHaveBeenCalledWith('/api/practice-items/pi-1', expect.objectContaining({ method: 'DELETE' }))
+    expect(onAnnotationRemoved).toHaveBeenCalledWith('ann-1')
+    expect(screen.getByRole('button', { name: /add to practice list/i })).toBeInTheDocument()
+  })
+
+  it('keeps added button on DELETE failure', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false } as Response)
+    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} practiceItemId="pi-1" />)
+    await userEvent.click(screen.getByRole('button', { name: /added to practice/i }))
+    expect(screen.getByRole('button', { name: /added to practice/i })).toBeInTheDocument()
   })
 
   it('renders sub-category pill', () => {
@@ -72,19 +99,14 @@ describe('AnnotationCard', () => {
     expect(screen.getByText('Subjunctive')).toBeInTheDocument()
   })
 
-  it('renders sub-category pill when isAdded is true', () => {
-    render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} isAdded={true} />)
-    expect(screen.getByText('Subjunctive')).toBeInTheDocument()
-  })
-
   it('includes sub_category in POST body when adding to practice', async () => {
     let capturedBody: Record<string, unknown> = {}
     vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {
       capturedBody = JSON.parse((init as RequestInit).body as string)
-      return { ok: true } as Response
+      return { ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response
     })
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
-    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    await userEvent.click(screen.getByRole('button', { name: /add to practice list/i }))
     expect(capturedBody.sub_category).toBe('subjunctive')
   })
 
@@ -98,10 +120,10 @@ describe('AnnotationCard', () => {
     let capturedBody: Record<string, unknown> = {}
     vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {
       capturedBody = JSON.parse((init as RequestInit).body as string)
-      return { ok: true } as Response
+      return { ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response
     })
     render(<AnnotationCard annotation={annotationWithFlashcard} {...defaultProps} />)
-    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    await userEvent.click(screen.getByRole('button', { name: /add to practice list/i }))
     expect(capturedBody.flashcard_front).toBe('I [[went]] to the market.')
     expect(capturedBody.flashcard_back).toBe('[[Fui]] al mercado.')
     expect(capturedBody.flashcard_note).toBe('Subject pronouns are dropped in Rioplatense.')
@@ -111,10 +133,10 @@ describe('AnnotationCard', () => {
     let capturedBody: Record<string, unknown> = {}
     vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, init) => {
       capturedBody = JSON.parse((init as RequestInit).body as string)
-      return { ok: true } as Response
+      return { ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response
     })
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} />)
-    await userEvent.click(screen.getByRole('button', { name: /add to practice/i }))
+    await userEvent.click(screen.getByRole('button', { name: /add to practice list/i }))
     expect(capturedBody.flashcard_front).toBeNull()
     expect(capturedBody.flashcard_back).toBeNull()
     expect(capturedBody.flashcard_note).toBeNull()

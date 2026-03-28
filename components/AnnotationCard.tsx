@@ -12,12 +12,13 @@ export const TYPE_LABEL: Record<AnnotationType, string> = {
 interface Props {
   annotation: Annotation
   sessionId: string
-  isAdded: boolean
-  onAnnotationAdded: (annotationId: string) => void
+  practiceItemId: string | null
+  onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
+  onAnnotationRemoved: (annotationId: string) => void
 }
 
-export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdded }: Props) {
-  const [added, setAdded] = useState(isAdded)
+export function AnnotationCard({ annotation, sessionId, practiceItemId: initialPracticeItemId, onAnnotationAdded, onAnnotationRemoved }: Props) {
+  const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
 
   async function handleAdd() {
     const res = await fetch('/api/practice-items', {
@@ -37,10 +38,21 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
       }),
     })
     if (res.ok) {
-      setAdded(true)
-      onAnnotationAdded(annotation.id)
+      const { id } = await res.json() as { id: string }
+      setPracticeItemId(id)
+      onAnnotationAdded(annotation.id, id)
     } else {
       console.error('Failed to add practice item')
+    }
+  }
+
+  async function handleRemove() {
+    const res = await fetch(`/api/practice-items/${practiceItemId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setPracticeItemId(null)
+      onAnnotationRemoved(annotation.id)
+    } else {
+      console.error('Failed to remove practice item')
     }
   }
 
@@ -61,8 +73,11 @@ export function AnnotationCard({ annotation, sessionId, isAdded, onAnnotationAdd
       <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
         {SUB_CATEGORY_DISPLAY[annotation.sub_category]}
       </span>
-      {added ? (
-        <button disabled className="w-full py-3 rounded-xl bg-gray-700 text-sm text-gray-500 cursor-not-allowed">
+      {practiceItemId ? (
+        <button
+          onClick={handleRemove}
+          className="w-full py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm text-gray-400 transition-colors"
+        >
           ✓ Added to practice list
         </button>
       ) : (
