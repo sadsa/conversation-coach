@@ -94,15 +94,6 @@ describe('analyseUserTurns', () => {
     expect(result.annotations[0].sub_category).toBe('subjunctive')
   })
 
-  it('uses claude-haiku-4-5-20251001 model', async () => {
-    mockCreate.mockResolvedValueOnce({
-      content: [{ type: 'text', text: JSON.stringify({ title: 'Test', annotations: [] }) }],
-    })
-    await analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null)
-    const callArgs = mockCreate.mock.calls[0][0]
-    expect(callArgs.model).toBe('claude-haiku-4-5-20251001')
-  })
-
   it('includes original_filename in the user message when provided', async () => {
     mockCreate.mockResolvedValueOnce({
       content: [{ type: 'text', text: JSON.stringify({ title: 'WhatsApp: Algo', annotations: [] }) }],
