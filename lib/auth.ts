@@ -5,8 +5,9 @@ import type { User } from '@supabase/supabase-js'
 
 /**
  * Returns the authenticated Supabase user from the current request's session
- * cookie, or null if unauthenticated. Uses the anon key (not service role) so
- * the JWT is properly validated.
+ * cookie, or null if no valid session exists. Uses the anon key so the session
+ * JWT is validated against Supabase Auth (not bypassed like the service role key).
+ * The try/catch in setAll is intentional — cookies are read-only in Server Components.
  */
 export async function getAuthenticatedUser(): Promise<User | null> {
   const cookieStore = cookies()
