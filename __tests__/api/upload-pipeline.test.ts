@@ -18,17 +18,34 @@ beforeEach(() => {
   vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
 })
 
+// Chainable select chain: .select().eq().eq().single()
+function makeSelectChain(data: Record<string, unknown> | null) {
+  const chain: Record<string, unknown> = {
+    single: vi.fn().mockResolvedValue({ data, error: null }),
+  }
+  chain.eq = vi.fn().mockReturnValue(chain)
+  return chain
+}
+
+// Chainable update/delete chain: .update({}).eq().eq() — thenable so `await` resolves it
+function makeUpdateChain() {
+  const resolved = { error: null }
+  const chain: Record<string, unknown> = {
+    then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+      Promise.resolve(resolved).then(resolve, reject),
+    catch: (reject: (e: unknown) => unknown) => Promise.resolve(resolved).catch(reject),
+    finally: (cb: () => void) => Promise.resolve(resolved).finally(cb),
+  }
+  chain.eq = vi.fn().mockReturnValue(chain)
+  return chain
+}
+
 function makeMockDb(sessionData: Record<string, unknown>) {
   return {
     from: vi.fn().mockReturnValue({
-      update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: sessionData, error: null }),
-          }),
-        }),
-      }),
+      update: vi.fn().mockReturnValue(makeUpdateChain()),
+      select: vi.fn().mockReturnValue(makeSelectChain(sessionData)),
+      delete: vi.fn().mockReturnValue(makeUpdateChain()),
     }),
   }
 }
@@ -96,11 +113,7 @@ describe('POST /api/sessions/:id/speaker', () => {
   it('returns 409 when session is not identifying', async () => {
     const mockDb = {
       from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { status: 'ready' }, error: null }),
-          }),
-        }),
+        select: vi.fn().mockReturnValue(makeSelectChain({ status: 'ready' })),
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -116,15 +129,10 @@ describe('POST /api/sessions/:id/speaker', () => {
   })
 
   it('saves speaker label and returns analysing when status is identifying', async () => {
-    const updateEq = vi.fn().mockResolvedValue({ error: null })
     const mockDb = {
       from: vi.fn().mockImplementation(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { status: 'identifying' }, error: null }),
-          }),
-        }),
-        update: vi.fn().mockReturnValue({ eq: updateEq }),
+        select: vi.fn().mockReturnValue(makeSelectChain({ status: 'identifying' })),
+        update: vi.fn().mockReturnValue(makeUpdateChain()),
       })),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -146,11 +154,7 @@ describe('POST /api/sessions/:id/analyse', () => {
   it('returns 409 when analysis is already in progress', async () => {
     const mockDb = {
       from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { status: 'analysing', error_stage: null }, error: null }),
-          }),
-        }),
+        select: vi.fn().mockReturnValue(makeSelectChain({ status: 'analysing', error_stage: null })),
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -163,11 +167,7 @@ describe('POST /api/sessions/:id/analyse', () => {
   it('returns 400 when no transcript is available', async () => {
     const mockDb = {
       from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { status: 'error', error_stage: 'uploading' }, error: null }),
-          }),
-        }),
+        select: vi.fn().mockReturnValue(makeSelectChain({ status: 'error', error_stage: 'uploading' })),
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -184,17 +184,10 @@ describe('POST /api/sessions/:id/retry', () => {
     vi.mocked(deleteObject).mockResolvedValue(undefined)
     const mockDb = {
       from: vi.fn().mockImplementation(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: { error_stage: 'uploading', audio_r2_key: 'audio/old.mp3', assemblyai_job_id: null },
-                error: null,
-              }),
-            }),
-          }),
-        }),
-        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+        select: vi.fn().mockReturnValue(makeSelectChain({
+          error_stage: 'uploading', audio_r2_key: 'audio/old.mp3', assemblyai_job_id: null,
+        })),
+        update: vi.fn().mockReturnValue(makeUpdateChain()),
       })),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -211,17 +204,10 @@ describe('POST /api/sessions/:id/retry', () => {
     vi.mocked(publicUrl).mockReturnValue('https://r2.example/audio.mp3')
     const mockDb = {
       from: vi.fn().mockImplementation(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: { error_stage: 'transcribing', audio_r2_key: 'audio/test.mp3', assemblyai_job_id: null },
-                error: null,
-              }),
-            }),
-          }),
-        }),
-        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+        select: vi.fn().mockReturnValue(makeSelectChain({
+          error_stage: 'transcribing', audio_r2_key: 'audio/test.mp3', assemblyai_job_id: null,
+        })),
+        update: vi.fn().mockReturnValue(makeUpdateChain()),
       })),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
