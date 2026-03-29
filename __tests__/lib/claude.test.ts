@@ -152,4 +152,26 @@ describe('analyseUserTurns', () => {
     expect(result.annotations[0].flashcard_back).toBeNull()
     expect(result.annotations[0].flashcard_note).toBeNull()
   })
+
+  it('uses the ES-AR system prompt when targetLanguage is es-AR', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify({ title: 'Test', annotations: [] }) }],
+      stop_reason: 'end_turn',
+    })
+    await analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null, 'session-1', 'es-AR')
+    const callArgs = mockCreate.mock.calls[0][0]
+    expect(callArgs.system).toContain('Rioplatense')
+    expect(callArgs.system).not.toContain('New Zealand English')
+  })
+
+  it('uses the EN-NZ system prompt when targetLanguage is en-NZ', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify({ title: 'Test', annotations: [] }) }],
+      stop_reason: 'end_turn',
+    })
+    await analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null, 'session-1', 'en-NZ')
+    const callArgs = mockCreate.mock.calls[0][0]
+    expect(callArgs.system).toContain('New Zealand English')
+    expect(callArgs.system).not.toContain('Rioplatense')
+  })
 })
