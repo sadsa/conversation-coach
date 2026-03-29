@@ -3,11 +3,11 @@ import { createServerClient } from '@/lib/supabase-server'
 import { analyseUserTurns } from '@/lib/claude'
 import { deleteObject } from '@/lib/r2'
 import { log } from '@/lib/logger'
-import type { TranscriptSegment } from '@/lib/types'
+import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
 import { SUB_CATEGORIES, SUB_CATEGORY_TYPE_MAP } from '@/lib/types'
 import type { ClaudeAnnotation } from '@/lib/claude'
 
-export async function runClaudeAnalysis(sessionId: string): Promise<void> {
+export async function runClaudeAnalysis(sessionId: string, targetLanguage: TargetLanguage = 'es-AR'): Promise<void> {
   const db = createServerClient()
 
   const { data: session } = await db
@@ -36,7 +36,7 @@ export async function runClaudeAnalysis(sessionId: string): Promise<void> {
   let annotations: ClaudeAnnotation[] = []
   let title = 'Untitled'
   try {
-    const result = await analyseUserTurns(userTurns, session.original_filename ?? null, sessionId)
+    const result = await analyseUserTurns(userTurns, session.original_filename ?? null, sessionId, targetLanguage)
     annotations = result.annotations
     title = result.title
   } catch (err) {
