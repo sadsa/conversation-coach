@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await db.from('sessions').update({
       status: 'error',
       error_stage: 'transcribing',
-    }).eq('id', params.id)
+    }).eq('id', params.id).eq('user_id', user.id)
     return NextResponse.json({ error: 'AssemblyAI job creation failed' }, { status: 500 })
   }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'transcribing',
     assemblyai_job_id: jobId,
     ...(duration_seconds != null ? { duration_seconds } : {}),
-  }).eq('id', params.id)
+  }).eq('id', params.id).eq('user_id', user.id)
 
   return NextResponse.json({ ok: true })
 }
