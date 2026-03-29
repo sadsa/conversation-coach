@@ -14,7 +14,6 @@ export default function SettingsPage() {
   const [size, setSize] = useState<number>(16)
   const [language, setLanguage] = useState<TargetLanguage>('es-AR')
   const router = useRouter()
-  const supabase = getSupabaseBrowserClient()
 
   useEffect(() => {
     const stored = localStorage.getItem(KEY)
@@ -23,7 +22,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadLanguage() {
-      const { data } = await supabase!.auth.getUser()
+      const { data } = await getSupabaseBrowserClient().auth.getUser()
       const lang = data.user?.user_metadata?.target_language as TargetLanguage | undefined
       if (lang && lang in TARGET_LANGUAGES) setLanguage(lang)
     }
@@ -37,13 +36,15 @@ export default function SettingsPage() {
   }
 
   async function updateLanguage(lang: TargetLanguage) {
+    const prev = language
     setLanguage(lang)
-    await supabase.auth.updateUser({ data: { target_language: lang } })
+    const { error } = await getSupabaseBrowserClient().auth.updateUser({ data: { target_language: lang } })
+    if (error) setLanguage(prev)
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
-    router.push('/login')
+    const { error } = await getSupabaseBrowserClient().auth.signOut()
+    if (!error) router.push('/login')
   }
 
   return (
