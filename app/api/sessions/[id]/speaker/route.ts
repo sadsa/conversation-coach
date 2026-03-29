@@ -1,10 +1,15 @@
 // app/api/sessions/[id]/speaker/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
+import type { TargetLanguage } from '@/lib/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await req.json() as { speaker_labels?: ('A' | 'B')[] }
   const speaker_labels = body.speaker_labels
 
@@ -17,6 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .from('sessions')
     .select('status')
     .eq('id', params.id)
+    .eq('user_id', user.id)
     .single()
 
   if (session?.status !== 'identifying') {
@@ -26,11 +32,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   await db.from('sessions').update({
     user_speaker_labels: speaker_labels,
     status: 'analysing',
-  }).eq('id', params.id)
+  }).eq('id', params.id).eq('user_id', user.id)
 
-  log.info('Analysis triggered after speaker identification', { sessionId: params.id, speaker_labels })
+  const targetLanguage = (user.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+  log.info('Analysis triggered after speaker identification', { sessionId: params.id, speaker_labels, targetLanguage })
 
-  runClaudeAnalysis(params.id).catch(err =>
+  runClaudeAnalysis(params.id, targetLanguage).catch(err =>
     log.error('Claude analysis failed (fire-and-forget)', { sessionId: params.id, err })
   )
 

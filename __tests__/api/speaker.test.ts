@@ -4,9 +4,13 @@ import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
 vi.mock('@/lib/pipeline', () => ({ runClaudeAnalysis: vi.fn() }))
+vi.mock('@/lib/auth', () => ({
+  getAuthenticatedUser: vi.fn(),
+}))
 
 import { createServerClient } from '@/lib/supabase-server'
 import { runClaudeAnalysis } from '@/lib/pipeline'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 function makeRequest(body: unknown) {
   return new NextRequest('http://localhost', {
@@ -16,24 +20,41 @@ function makeRequest(body: unknown) {
   })
 }
 
+function makeChainableEq(resolvedValue: unknown) {
+  // A thenable object that also supports further .eq() chaining
+  const chain = {
+    eq: vi.fn(),
+    then: (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) =>
+      Promise.resolve(resolvedValue).then(resolve, reject),
+    catch: (fn: (e: unknown) => unknown) => Promise.resolve(resolvedValue).catch(fn),
+  }
+  chain.eq.mockReturnValue(chain)
+  return chain
+}
+
 function makeDb(status: string) {
-  const updateEq = vi.fn().mockResolvedValue({ error: null })
+  const selectEqChain = {
+    eq: vi.fn(),
+    single: vi.fn().mockResolvedValue({ data: { status }, error: null }),
+  }
+  selectEqChain.eq.mockReturnValue(selectEqChain)
+
   const db = {
     from: vi.fn().mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { status }, error: null }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({ eq: updateEq }),
+      select: vi.fn().mockReturnValue(selectEqChain),
+      update: vi.fn().mockReturnValue(makeChainableEq({ error: null })),
     })),
-    _updateEq: updateEq,
   }
   return db
 }
 
 beforeEach(() => {
   vi.mocked(runClaudeAnalysis).mockResolvedValue(undefined)
+  vi.mocked(getAuthenticatedUser).mockResolvedValue({
+    id: 'user-123',
+    email: 'test@example.com',
+    user_metadata: { target_language: 'es-AR' },
+  } as any)
 })
 
 describe('POST /api/sessions/:id/speaker', () => {
