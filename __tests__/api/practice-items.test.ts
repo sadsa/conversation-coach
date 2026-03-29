@@ -1,20 +1,44 @@
 // __tests__/api/practice-items.test.ts
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
+vi.mock('@/lib/auth', () => ({
+  getAuthenticatedUser: vi.fn(),
+}))
+
 import { createServerClient } from '@/lib/supabase-server'
+import { getAuthenticatedUser } from '@/lib/auth'
+
+beforeEach(() => {
+  vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
+})
 
 describe('GET /api/practice-items', () => {
   it('returns all items when no filters', async () => {
     const mockDb = {
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({
-            data: [{ id: 'item-1', type: 'grammar', original: 'Yo fui', reviewed: false }],
-            error: null,
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [{ id: 'session-1' }],
+                error: null,
+              }),
+            }),
+          }
+        }
+        // practice_items
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [{ id: 'item-1', type: 'grammar', original: 'Yo fui', reviewed: false }],
+                error: null,
+              }),
+            }),
           }),
-        }),
+        }
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -30,10 +54,29 @@ describe('GET /api/practice-items', () => {
 
 describe('PATCH /api/practice-items/:id', () => {
   it('updates reviewed flag', async () => {
-    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateEq = vi.fn().mockResolvedValue({ error: null })
     const mockDb = {
-      from: vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({ eq: eqMock }),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'practice_items') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { session_id: 'session-1' }, error: null }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({ eq: updateEq }),
+          }
+        }
+        // sessions ownership check
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+              }),
+            }),
+          }),
+        }
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -46,15 +89,36 @@ describe('PATCH /api/practice-items/:id', () => {
     })
     const res = await PATCH(req, { params: { id: 'item-1' } })
     expect(res.status).toBe(200)
-    expect(eqMock).toHaveBeenCalledWith('id', 'item-1')
+    expect(updateEq).toHaveBeenCalledWith('id', 'item-1')
   })
 })
 
 describe('DELETE /api/practice-items/:id', () => {
   it('deletes an item', async () => {
-    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const deleteEq = vi.fn().mockResolvedValue({ error: null })
     const mockDb = {
-      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'practice_items') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { session_id: 'session-1' }, error: null }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({ eq: deleteEq }),
+          }
+        }
+        // sessions ownership check
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+              }),
+            }),
+          }),
+        }
+      }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
 
