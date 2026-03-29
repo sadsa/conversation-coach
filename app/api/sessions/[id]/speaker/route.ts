@@ -25,7 +25,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .eq('user_id', user.id)
     .single()
 
-  if (session?.status !== 'identifying') {
+  if (!session) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  if (session.status !== 'identifying') {
     return NextResponse.json({ error: 'Session is not awaiting speaker identification' }, { status: 409 })
   }
 
