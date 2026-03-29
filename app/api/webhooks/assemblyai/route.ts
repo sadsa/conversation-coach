@@ -19,10 +19,9 @@ function verifyCustomHeader(headerValue: string | null, secret: string): boolean
 export async function POST(req: NextRequest) {
   const raw = await req.text()
   const customHeader = req.headers.get('x-webhook-secret')
-  const assemblyaiSig = req.headers.get('x-assemblyai-signature')
   const secret = process.env.ASSEMBLYAI_WEBHOOK_SECRET ?? ''
 
-  const authorized = verifyCustomHeader(customHeader, secret) || !!assemblyaiSig
+  const authorized = verifyCustomHeader(customHeader, secret)
   if (!authorized) {
     log.warn('Webhook rejected: missing valid auth header')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -91,9 +90,12 @@ export async function POST(req: NextRequest) {
     }).eq('id', session.id)
     if (updateError) log.error('Status update failed', { sessionId: session.id, error: updateError.message })
 
-    // Look up the user's target language via the admin API
-    const { data: { user: sessionUser } } = await db.auth.admin.getUserById(session.user_id ?? '')
-    const targetLanguage = (sessionUser?.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+    // Look up the user's target language via the admin API (user_id is null for pre-migration sessions)
+    let targetLanguage: TargetLanguage = 'es-AR'
+    if (session.user_id) {
+      const { data } = await db.auth.admin.getUserById(session.user_id)
+      targetLanguage = (data?.user?.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+    }
 
     runClaudeAnalysis(session.id, targetLanguage).catch(err =>
       log.error('Claude analysis failed (fire-and-forget)', { sessionId: session.id, err })
