@@ -1,15 +1,21 @@
 // app/api/sessions/[id]/analyse/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
+import type { TargetLanguage } from '@/lib/types'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createServerClient()
   const { data: session } = await db
     .from('sessions')
     .select('status, error_stage')
     .eq('id', params.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -31,11 +37,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   await db.from('sessions').update({
     status: 'analysing',
     error_stage: null,
-  }).eq('id', params.id)
+  }).eq('id', params.id).eq('user_id', user.id)
 
-  log.info('Re-analysis triggered', { sessionId: params.id })
+  const targetLanguage = (user.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+  log.info('Re-analysis triggered', { sessionId: params.id, targetLanguage })
 
-  runClaudeAnalysis(params.id).catch(err =>
+  runClaudeAnalysis(params.id, targetLanguage).catch(err =>
     log.error('Re-analysis failed (fire-and-forget)', { sessionId: params.id, err })
   )
 
