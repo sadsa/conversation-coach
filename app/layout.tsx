@@ -1,7 +1,7 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
-import { BottomNav } from '@/components/BottomNav'
+import { ConditionalBottomNav } from '@/components/ConditionalBottomNav'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-gray-950 text-gray-100 overflow-x-hidden">
         <FontSizeProvider />
         <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
-        <BottomNav />
+        <ConditionalBottomNav />
       </body>
     </html>
   )
