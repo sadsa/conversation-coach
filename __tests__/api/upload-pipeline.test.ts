@@ -6,11 +6,17 @@ vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
 vi.mock('@/lib/assemblyai', () => ({ createJob: vi.fn(), cancelJob: vi.fn() }))
 vi.mock('@/lib/r2', () => ({ publicUrl: vi.fn(), presignedUploadUrl: vi.fn(), deleteObject: vi.fn() }))
 vi.mock('@/lib/pipeline', () => ({ runClaudeAnalysis: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ getAuthenticatedUser: vi.fn() }))
 
 import { createServerClient } from '@/lib/supabase-server'
 import { createJob } from '@/lib/assemblyai'
 import { publicUrl, presignedUploadUrl, deleteObject } from '@/lib/r2'
 import { runClaudeAnalysis } from '@/lib/pipeline'
+import { getAuthenticatedUser } from '@/lib/auth'
+
+beforeEach(() => {
+  vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
+})
 
 function makeMockDb(sessionData: Record<string, unknown>) {
   return {
@@ -18,7 +24,9 @@ function makeMockDb(sessionData: Record<string, unknown>) {
       update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: sessionData, error: null }),
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: sessionData, error: null }),
+          }),
         }),
       }),
     }),
@@ -68,7 +76,11 @@ describe('POST /api/sessions/:id/upload-failed', () => {
   it('sets status to error with error_stage uploading', async () => {
     const mockDb = {
       from: vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        }),
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -174,9 +186,11 @@ describe('POST /api/sessions/:id/retry', () => {
       from: vi.fn().mockImplementation(() => ({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { error_stage: 'uploading', audio_r2_key: 'audio/old.mp3', assemblyai_job_id: null },
-              error: null,
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { error_stage: 'uploading', audio_r2_key: 'audio/old.mp3', assemblyai_job_id: null },
+                error: null,
+              }),
             }),
           }),
         }),
@@ -199,9 +213,11 @@ describe('POST /api/sessions/:id/retry', () => {
       from: vi.fn().mockImplementation(() => ({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { error_stage: 'transcribing', audio_r2_key: 'audio/test.mp3', assemblyai_job_id: null },
-              error: null,
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { error_stage: 'transcribing', audio_r2_key: 'audio/test.mp3', assemblyai_job_id: null },
+                error: null,
+              }),
             }),
           }),
         }),

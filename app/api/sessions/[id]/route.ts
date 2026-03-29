@@ -1,16 +1,21 @@
 // app/api/sessions/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 type Params = { params: { id: string } }
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createServerClient()
 
   const { data: session, error: sessionError } = await db
     .from('sessions')
     .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at')
     .eq('id', params.id)
+    .eq('user_id', user.id)
     .single()
 
   if (sessionError) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -48,6 +53,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await req.json()
   const { title } = body as { title?: string }
 
@@ -60,6 +68,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     .from('sessions')
     .update({ title: title.trim() })
     .eq('id', params.id)
+    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

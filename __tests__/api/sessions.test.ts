@@ -8,9 +8,13 @@ vi.mock('@/lib/supabase-server', () => ({
 vi.mock('@/lib/r2', () => ({
   presignedUploadUrl: vi.fn(),
 }))
+vi.mock('@/lib/auth', () => ({
+  getAuthenticatedUser: vi.fn(),
+}))
 
 import { createServerClient } from '@/lib/supabase-server'
 import { presignedUploadUrl } from '@/lib/r2'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { GET, POST } from '@/app/api/sessions/route'
 import { GET as getDetail, PATCH, DELETE } from '@/app/api/sessions/[id]/route'
 import { GET as getStatus } from '@/app/api/sessions/[id]/status/route'
@@ -20,6 +24,7 @@ const mockInsert = vi.fn()
 const mockSingle = vi.fn()
 
 beforeEach(() => {
+  vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
   vi.mocked(createServerClient).mockReturnValue({
     from: vi.fn().mockReturnValue({
       select: mockSelect,
@@ -31,11 +36,13 @@ beforeEach(() => {
 describe('GET /api/sessions', () => {
   it('returns session list ordered by created_at desc', async () => {
     mockSelect.mockReturnValue({
-      order: vi.fn().mockResolvedValue({
-        data: [
-          { id: 'abc', title: 'Test', status: 'ready', duration_seconds: 3600, created_at: '2026-03-15' },
-        ],
-        error: null,
+      eq: vi.fn().mockReturnValue({
+        order: vi.fn().mockResolvedValue({
+          data: [
+            { id: 'abc', title: 'Test', status: 'ready', duration_seconds: 3600, created_at: '2026-03-15' },
+          ],
+          error: null,
+        }),
       }),
     })
     const res = await GET()
@@ -134,11 +141,13 @@ describe('GET /api/sessions/:id', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 's1', title: 'Test', status: 'ready', error_stage: null,
-                    duration_seconds: 60, detected_speaker_count: 2, user_speaker_labels: ['A'],
-                    created_at: '2026-03-15' },
-                  error: null,
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 's1', title: 'Test', status: 'ready', error_stage: null,
+                      duration_seconds: 60, detected_speaker_count: 2, user_speaker_labels: ['A'],
+                      created_at: '2026-03-15' },
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -179,7 +188,9 @@ describe('GET /api/sessions/:id', () => {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
+            }),
           }),
         }),
       }),
@@ -195,7 +206,11 @@ describe('PATCH /api/sessions/:id', () => {
   it('updates title and returns ok', async () => {
     const mockDb = {
       from: vi.fn().mockReturnValue({
-        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        }),
       }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
@@ -255,9 +270,11 @@ describe('GET /api/sessions/:id/status', () => {
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { status: 'ready', error_stage: null },
-              error: null,
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { status: 'ready', error_stage: null },
+                error: null,
+              }),
             }),
           }),
         }),
