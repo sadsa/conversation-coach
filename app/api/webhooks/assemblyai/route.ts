@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
+import type { TargetLanguage } from '@/lib/types'
 
 /** Verify webhook using the custom shared-secret header (set on the transcript job at submit time). */
 function verifyCustomHeader(headerValue: string | null, secret: string): boolean {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const { data: session, error } = await db
     .from('sessions')
-    .select('id')
+    .select('id, user_id')
     .eq('assemblyai_job_id', jobId)
     .single()
 
@@ -90,7 +91,11 @@ export async function POST(req: NextRequest) {
     }).eq('id', session.id)
     if (updateError) log.error('Status update failed', { sessionId: session.id, error: updateError.message })
 
-    runClaudeAnalysis(session.id).catch(err =>
+    // Look up the user's target language via the admin API
+    const { data: { user: sessionUser } } = await db.auth.admin.getUserById(session.user_id ?? '')
+    const targetLanguage = (sessionUser?.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+
+    runClaudeAnalysis(session.id, targetLanguage).catch(err =>
       log.error('Claude analysis failed (fire-and-forget)', { sessionId: session.id, err })
     )
   } else {

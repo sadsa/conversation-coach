@@ -93,12 +93,20 @@ describe('POST /api/webhooks/assemblyai', () => {
       from: vi.fn().mockImplementation(() => ({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+            single: vi.fn().mockResolvedValue({ data: { id: 'session-1', user_id: 'user-123' }, error: null }),
           }),
         }),
         update: updateMock,
         insert: insertMock,
       })),
+      auth: {
+        admin: {
+          getUserById: vi.fn().mockResolvedValue({
+            data: { user: { user_metadata: { target_language: 'es-AR' } } },
+            error: null,
+          }),
+        },
+      },
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(parseWebhookBody).mockReturnValue({
@@ -110,6 +118,6 @@ describe('POST /api/webhooks/assemblyai', () => {
     const req = requestWithSecret({ transcript_id: 'known-job', status: 'completed', utterances: [] })
     await POST(req)
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ user_speaker_labels: ['A'] }))
-    expect(vi.mocked(runClaudeAnalysis)).toHaveBeenCalledWith('session-1')
+    expect(vi.mocked(runClaudeAnalysis)).toHaveBeenCalledWith('session-1', 'es-AR')
   })
 })
