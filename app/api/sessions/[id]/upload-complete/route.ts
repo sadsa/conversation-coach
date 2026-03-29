@@ -1,11 +1,15 @@
 // app/api/sessions/[id]/upload-complete/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { createJob } from '@/lib/assemblyai'
 import { publicUrl } from '@/lib/r2'
 import { log } from '@/lib/logger'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { duration_seconds, speakers_expected } = await req.json() as {
     duration_seconds?: number
     speakers_expected?: number
@@ -16,6 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .from('sessions')
     .select('audio_r2_key')
     .eq('id', params.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!session?.audio_r2_key) {

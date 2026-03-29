@@ -1,16 +1,21 @@
 // app/api/sessions/[id]/retry/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { getAuthenticatedUser } from '@/lib/auth'
 import { createJob, cancelJob } from '@/lib/assemblyai'
 import { presignedUploadUrl, publicUrl, deleteObject } from '@/lib/r2'
 import { log } from '@/lib/logger'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createServerClient()
   const { data: session } = await db
     .from('sessions')
     .select('error_stage, audio_r2_key, assemblyai_job_id')
     .eq('id', params.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
