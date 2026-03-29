@@ -1,8 +1,9 @@
 // lib/claude.ts
 import Anthropic from '@anthropic-ai/sdk'
 import { log } from '@/lib/logger'
+import type { TargetLanguage } from '@/lib/types'
 
-const SYSTEM_PROMPT = `You are an expert Spanish language coach specialising in Rioplatense (Argentine) Spanish. Analyse the speech turns provided and identify:
+const SYSTEM_PROMPT_ES_AR = `You are an expert Spanish language coach specialising in Rioplatense (Argentine) Spanish. Analyse the speech turns provided and identify:
 
 1. Grammar errors — mistakes the speaker made (type: "grammar")
 2. Unnatural phrasing — things that are technically correct but would sound more natural said differently in everyday Argentine speech (type: "naturalness")
@@ -18,7 +19,7 @@ For each annotation:
   Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
   Naturalness: "vocabulary-choice", "register", "phrasing"
 - "flashcard_front": An invented English sentence that correctly expresses the same meaning as the practice phrase. The correct English equivalent phrase is wrapped in [[double brackets]]. Example: "I [[went]] to the market yesterday."
-- "flashcard_back": The equivalent Spanish sentence using the correct phrase, wrapped in [[double brackets]]. Example: "[[Fui]] al mercado ayer."
+- "flashcard_back": The equivalent Spanish sentence using the correct form, wrapped in [[double brackets]]. Example: "[[Fui]] al mercado ayer."
 - "flashcard_note": 1–2 sentences (in English) explaining why the original was wrong or unnatural from a Rioplatense register perspective. Be concise.
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
@@ -29,6 +30,40 @@ For the title:
 - Otherwise use the topic only.
 
 Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note" }] }. No other text.`
+
+const SYSTEM_PROMPT_EN_NZ = `You are an expert English language coach specialising in New Zealand English. Analyse the speech turns provided and identify:
+
+1. Grammar errors — mistakes the speaker made (type: "grammar")
+2. Unnatural phrasing — things that are technically correct but would sound more natural said differently in everyday New Zealand English (type: "naturalness")
+
+For each annotation:
+- "segment_id": the ID from the [ID: ...] prefix of the turn being annotated
+- "type": one of "grammar" or "naturalness"
+- "original": copy the exact substring from the turn's text
+- "start_char" / "end_char": character offsets of "original" within the turn's text content only — do NOT count the [ID: ...] prefix line; offset 0 is the first character of the text itself
+- "correction": the improved version
+- "explanation": a concise plain-language explanation tuned to New Zealand English conventions
+- "sub_category": classify into exactly one of these categories (use "other" if nothing fits):
+  Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
+  Naturalness: "vocabulary-choice", "register", "phrasing"
+  Note: most grammar errors in English will fall under "verb-conjugation", "tense-selection", or "word-order". The Spanish-specific categories (gender-agreement, ser-estar, por-para, subjunctive) are unlikely to apply; use "other" if nothing fits.
+- "flashcard_front": A sentence in NZ English that illustrates the error, with the corrected word or phrase wrapped in [[double brackets]]. Example: "I [[went]] to the shops yesterday."
+- "flashcard_back": The same sentence with the corrected form clearly shown in [[double brackets]]. Example: "I [[went]] to the shops yesterday."
+- "flashcard_note": 1–2 sentences (in English) explaining why the original was wrong or unnatural from a New Zealand English perspective. Be concise.
+
+Be tuned to New Zealand English: use NZ spelling (colour, organise, programme), NZ vocabulary and idioms, and everyday NZ register. Note that NZ English tends to be informal and direct.
+
+For the title:
+- Summarise the conversation topic in 5 words or fewer in natural English (e.g. "Football with Kevin", "Planning the weekend").
+- If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title.
+- Otherwise use the topic only.
+
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note" }] }. No other text.`
+
+const PROMPTS: Record<TargetLanguage, string> = {
+  'es-AR': SYSTEM_PROMPT_ES_AR,
+  'en-NZ': SYSTEM_PROMPT_EN_NZ,
+}
 
 export interface UserTurn {
   id: string
@@ -52,7 +87,8 @@ export interface ClaudeAnnotation {
 export async function analyseUserTurns(
   turns: UserTurn[],
   originalFilename: string | null,
-  sessionId: string,
+  sessionId?: string,
+  targetLanguage: TargetLanguage = 'es-AR',
 ): Promise<{ title: string; annotations: ClaudeAnnotation[] }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -64,7 +100,7 @@ export async function analyseUserTurns(
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 16000,
-    system: SYSTEM_PROMPT,
+    system: PROMPTS[targetLanguage],
     messages: [{ role: 'user', content: userContent }],
   })
 
