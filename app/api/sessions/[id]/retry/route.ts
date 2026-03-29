@@ -32,7 +32,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       status: 'uploading',
       error_stage: null,
       audio_r2_key: key,
-    }).eq('id', params.id)
+    }).eq('id', params.id).eq('user_id', user.id)
 
     return NextResponse.json({ upload_url: url })
   }
@@ -54,7 +54,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       status: 'transcribing',
       error_stage: null,
       assemblyai_job_id: jobId,
-    }).eq('id', params.id)
+    }).eq('id', params.id).eq('user_id', user.id)
 
     return NextResponse.json({ status: 'transcribing' })
   }
