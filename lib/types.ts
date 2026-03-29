@@ -1,5 +1,12 @@
 // lib/types.ts
 
+export type TargetLanguage = 'es-AR' | 'en-NZ'
+
+export const TARGET_LANGUAGES: Record<TargetLanguage, string> = {
+  'es-AR': 'Spanish (Rioplatense)',
+  'en-NZ': 'English (New Zealand)',
+}
+
 export type SessionStatus =
   | 'uploading' | 'transcribing' | 'identifying'
   | 'analysing' | 'ready' | 'error'
