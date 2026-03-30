@@ -101,6 +101,13 @@ The `analyseUserTurns` function in `lib/claude.ts` must:
 - **`react-swipeable` is already installed** (used by `PracticeList.tsx`). Import `useSwipeable` directly.
 - **`BottomNav` uses a `TABS` array** in `components/BottomNav.tsx`. Add new nav tabs by inserting `{ href, label, exact, icon }` objects in the array.
 
+## Supabase CLI
+
+- Run SQL against remote: `supabase db query --linked "<sql>"`
+- Apply pending migrations: `supabase db push`
+- Check migration status: `supabase migration list`
+- Register manually-applied migrations: `supabase migration repair --status applied <version>`
+
 ## Environment Variables
 
 See `.env.local.example` for all required keys:
