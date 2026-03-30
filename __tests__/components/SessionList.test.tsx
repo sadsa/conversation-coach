@@ -1,6 +1,6 @@
 // __tests__/components/SessionList.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SessionList } from '@/components/SessionList'
 import type { SessionListItem } from '@/lib/types'
@@ -100,9 +100,10 @@ describe('SessionList — swipe to delete', () => {
   it('modal shows session title and data warning', async () => {
     render(<SessionList sessions={[readySession]} />)
     await userEvent.click(screen.getByTestId('delete-session-sess-1'))
-    expect(screen.getByText(/Chat with María/)).toBeInTheDocument()
-    expect(screen.getByText(/annotations/i)).toBeInTheDocument()
-    expect(screen.getByText(/practice items/i)).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(/Chat with María/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/annotations/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/practice items/i)).toBeInTheDocument()
   })
 
   it('closes modal without calling API on Cancel', async () => {
