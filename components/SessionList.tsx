@@ -203,8 +203,8 @@ function SwipeableSessionItem({
           <div className="space-y-4 text-sm">
             <p className="text-gray-300 leading-relaxed">
               <strong className="text-gray-100">{session.title}</strong> will be permanently
-              deleted, along with all its annotations and any practice items you've saved from it.
-              This can't be undone.
+              deleted, along with all its annotations and any practice items you&apos;ve saved from it.
+              This can&apos;t be undone.
             </p>
             <div className="flex gap-3">
               <button
