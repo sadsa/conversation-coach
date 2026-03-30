@@ -12,7 +12,7 @@ vi.mock('@/lib/r2', () => ({
 import { createServerClient } from '@/lib/supabase-server'
 import { presignedUploadUrl } from '@/lib/r2'
 import { GET, POST } from '@/app/api/sessions/route'
-import { GET as getDetail, PATCH } from '@/app/api/sessions/[id]/route'
+import { GET as getDetail, PATCH, DELETE } from '@/app/api/sessions/[id]/route'
 import { GET as getStatus } from '@/app/api/sessions/[id]/status/route'
 
 const mockSelect = vi.fn()
@@ -217,6 +217,35 @@ describe('PATCH /api/sessions/:id', () => {
     })
     const res = await PATCH(req, { params: { id: 's1' } })
     expect(res.status).toBe(400)
+  })
+})
+
+describe('DELETE /api/sessions/:id', () => {
+  it('deletes the session and returns ok', async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: { id: 'sess-1' } })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ ok: true })
+    expect(eqMock).toHaveBeenCalledWith('id', 'sess-1')
+  })
+
+  it('returns 500 when the database delete fails', async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: { message: 'DB error' } })
+    const mockDb = {
+      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: { id: 'sess-1' } })
+    expect(res.status).toBe(500)
   })
 })
 
