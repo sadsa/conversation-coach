@@ -136,6 +136,15 @@ export default function HomePage() {
     })
   }, [handleFile])
 
+  function handleSessionDeleted(id: string) {
+    const interval = pollingRefs.current.get(id)
+    if (interval) {
+      clearInterval(interval)
+      pollingRefs.current.delete(id)
+    }
+    setSessions(prev => prev.filter(s => s.id !== id))
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -163,7 +172,7 @@ export default function HomePage() {
 
       <div>
         <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Past Sessions</h2>
-        <SessionList sessions={sessions} />
+        <SessionList sessions={sessions} onDeleted={handleSessionDeleted} />
       </div>
     </div>
   )
