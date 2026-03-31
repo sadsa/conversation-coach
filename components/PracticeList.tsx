@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import type { PracticeItem, AnnotationType, SubCategory } from '@/lib/types'
-import { SUB_CATEGORIES, SUB_CATEGORY_DISPLAY } from '@/lib/types'
+import { SUB_CATEGORIES } from '@/lib/types'
 import { Modal } from '@/components/Modal'
-import { TYPE_LABEL } from '@/components/AnnotationCard'
+import { useTranslation } from '@/components/LanguageProvider'
 
 const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
   grammar: 'bg-red-400',
@@ -27,6 +27,7 @@ function SwipeableItem({
   onDelete: (id: string) => Promise<boolean>
   onOpen: (item: PracticeItem) => void
 }) {
+  const { t } = useTranslation()
   const [translateX, setTranslateX] = useState(0)
   const [rowHeight, setRowHeight] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -123,7 +124,7 @@ function SwipeableItem({
     >
       {/* Swipe-to-delete background */}
       <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-5 rounded-xl">
-        <span className="text-white text-sm font-medium">Delete</span>
+        <span className="text-white text-sm font-medium">{t('session.delete')}</span>
       </div>
       {/* Item card */}
       <div
@@ -168,7 +169,7 @@ function SwipeableItem({
           onChange={() => onToggleSelect(item.id)}
           onClick={e => e.stopPropagation()}
           className={`w-4 h-4 rounded accent-violet-500 flex-shrink-0 ${isBulkMode ? 'block' : 'hidden sm:block'}`}
-          aria-label="Select item"
+          aria-label={t('practiceList.selectItem')}
         />
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT_CLASS[item.type]}`} />
         <div className="flex-1 min-w-0 text-sm flex flex-col gap-0.5">
@@ -180,7 +181,7 @@ function SwipeableItem({
             <span className="font-medium text-[#86efac]">{item.correction}</span>
           </div>
           <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs self-start">
-            {SUB_CATEGORY_DISPLAY[item.sub_category]}
+            {t(`subCat.${item.sub_category}`)}
           </span>
         </div>
       </div>
@@ -196,6 +197,7 @@ interface Props {
 }
 
 export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
+  const { t } = useTranslation()
   const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -233,8 +235,8 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
 
   useEffect(() => {
     if (!toastMessage) return
-    const t = setTimeout(() => setToastMessage(null), 3000)
-    return () => clearTimeout(t)
+    const timeoutId = setTimeout(() => setToastMessage(null), 3000)
+    return () => clearTimeout(timeoutId)
   }, [toastMessage])
 
   const filtered = items.filter(item => {
@@ -245,7 +247,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   async function deleteItem(id: string): Promise<boolean> {
     const res = await fetch(`/api/practice-items/${id}`, { method: 'DELETE' })
     if (!res.ok) {
-      setToastMessage("Couldn't delete item — try again.")
+      setToastMessage(t('practiceList.deleteError'))
       return false
     }
     onDeleted?.([id])
@@ -277,7 +279,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
       .filter(({ r }) => r.status === 'fulfilled' && (r as PromiseFulfilledResult<Response>).value.ok)
       .map(({ id }) => id)
     if (succeeded.length < ids.length) {
-      setToastMessage("Some items couldn't be deleted — try again.")
+      setToastMessage(t('practiceList.deletePartialError'))
     }
     if (succeeded.length > 0) {
       onDeleted?.(succeeded)
@@ -293,7 +295,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           {/* Back / exit button */}
           <button
             onClick={exitBulkMode}
-            aria-label="Exit selection mode"
+            aria-label={t('practiceList.exitSelection')}
             className="text-indigo-300 hover:text-indigo-100 p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -303,12 +305,12 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             </svg>
           </button>
 
-          <span className="text-indigo-300 text-sm flex-1">{selectedIds.size} selected</span>
+          <span className="text-indigo-300 text-sm flex-1">{t('practiceList.selected', { n: selectedIds.size })}</span>
 
           {/* Select all */}
           <button
             onClick={() => setSelectedIds(new Set(filtered.map(i => i.id)))}
-            aria-label="Select all"
+            aria-label={t('practiceList.selectAll')}
             className="text-indigo-400 hover:text-indigo-200 p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -322,7 +324,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           {/* Delete */}
           <button
             onClick={deleteSelected}
-            aria-label={`Delete ${selectedIds.size} selected items`}
+            aria-label={t('practiceList.deleteSelectedAria', { n: selectedIds.size })}
             disabled={selectedIds.size === 0}
             className="text-red-400 hover:text-red-300 disabled:opacity-40 p-1"
           >
@@ -345,7 +347,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             onClick={() => setSubCategoryFilter(null)}
             className={`px-3 py-1 rounded-full border transition-colors ${allPillClass}`}
           >
-            All
+            {t('practiceList.all')}
           </button>
           {(isExpanded ? sortedSubCategories : sortedSubCategories.slice(0, 3)).map(sc => (
             <button
@@ -353,7 +355,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               onClick={() => setSubCategoryFilter(subCategoryFilter === sc ? null : sc)}
               className={`px-3 py-1 rounded-full border transition-colors ${pillClass(sc)}`}
             >
-              {SUB_CATEGORY_DISPLAY[sc]}
+              {t(`subCat.${sc}`)}
               {' '}
               <span className="text-[11px] opacity-80">{subCategoryCounts[sc]}</span>
             </button>
@@ -363,14 +365,14 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               onClick={() => setIsExpanded(true)}
               className="px-3 py-1 rounded-full border border-gray-700 text-gray-400 transition-colors"
             >
-              More +{sortedSubCategories.length - 3}
+              {t('practiceList.moreCategories', { n: sortedSubCategories.length - 3 })}
             </button>
           )}
         </div>
       )}
 
       {filtered.length === 0 && (
-        <p className="text-gray-500 text-sm">No items match this filter.</p>
+        <p className="text-gray-500 text-sm">{t('practiceList.noItems')}</p>
       )}
 
       <ul className="space-y-2">
@@ -389,7 +391,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
 
       {openItem && (
         <Modal
-          title={TYPE_LABEL[openItem.type]}
+          title={t(`type.${openItem.type}`)}
           onClose={() => setOpenItem(null)}
         >
           <div className="space-y-3 text-sm">
@@ -404,7 +406,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             </div>
             <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
             <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
-              {SUB_CATEGORY_DISPLAY[openItem.sub_category]}
+              {t(`subCat.${openItem.sub_category}`)}
             </span>
           </div>
         </Modal>
