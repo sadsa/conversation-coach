@@ -1,5 +1,6 @@
 // components/PendingUploadCard.tsx
 'use client'
+import { useTranslation } from '@/components/LanguageProvider'
 
 export type SpeakerMode = 'solo' | 'conversation'
 
@@ -34,6 +35,7 @@ export function PendingUploadCard({
   onConfirm,
   onDismiss,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <div className="border border-violet-900 rounded-xl bg-violet-950 p-4 space-y-4">
       {/* File info */}
@@ -47,7 +49,7 @@ export function PendingUploadCard({
 
       {/* Recording type toggle */}
       <div>
-        <p className="text-xs text-gray-400 font-medium mb-2">Recording type:</p>
+        <p className="text-xs text-gray-400 font-medium mb-2">{t('upload.recordingType')}</p>
         <div className="inline-flex rounded-lg overflow-hidden border border-violet-900">
           <button
             type="button"
@@ -58,7 +60,7 @@ export function PendingUploadCard({
                 : 'bg-transparent text-violet-300 hover:text-white'
             }`}
           >
-            Solo
+            {t('upload.solo')}
           </button>
           <button
             type="button"
@@ -69,7 +71,7 @@ export function PendingUploadCard({
                 : 'bg-transparent text-violet-300 hover:text-white'
             }`}
           >
-            Conversation
+            {t('upload.conversation')}
           </button>
         </div>
       </div>
@@ -77,7 +79,7 @@ export function PendingUploadCard({
       {/* Speaker count (conversation only) */}
       {speakerMode === 'conversation' && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 font-medium">Speakers:</span>
+          <span className="text-xs text-gray-400 font-medium">{t('upload.speakers')}</span>
           <div className="flex gap-1.5">
             {SPEAKER_COUNTS.map(({ label, value }) => (
               <button
@@ -104,14 +106,14 @@ export function PendingUploadCard({
           onClick={onDismiss}
           className="px-3 py-1.5 text-xs text-gray-400 border border-gray-700 rounded-lg hover:text-gray-200 transition-colors"
         >
-          Dismiss
+          {t('upload.dismiss')}
         </button>
         <button
           type="button"
           onClick={onConfirm}
           className="px-4 py-1.5 text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors"
         >
-          Upload →
+          {t('upload.uploadBtn')}
         </button>
       </div>
     </div>

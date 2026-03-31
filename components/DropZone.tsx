@@ -1,6 +1,7 @@
 // components/DropZone.tsx
 'use client'
 import { useRef, useState } from 'react'
+import { useTranslation } from '@/components/LanguageProvider'
 
 const ACCEPTED_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'audio/opus']
 const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.opus']
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function DropZone({ onFile }: Props) {
+  const { t } = useTranslation()
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -18,8 +20,8 @@ export function DropZone({ onFile }: Props) {
   function validate(file: File): string | null {
     const ext = '.' + file.name.split('.').pop()?.toLowerCase()
     const validType = ACCEPTED_TYPES.includes(file.type) || ACCEPTED_EXTENSIONS.includes(ext)
-    if (!validType) return `Unsupported format. Use MP3, M4A, WAV, or OPUS.`
-    if (file.size > MAX_BYTES) return `File too large. Maximum is 500 MB.`
+    if (!validType) return t('dropzone.errorFormat')
+    if (file.size > MAX_BYTES) return t('dropzone.errorSize')
     return null
   }
 
@@ -35,7 +37,7 @@ export function DropZone({ onFile }: Props) {
       <div
         role="button"
         tabIndex={0}
-        aria-label="Upload audio file"
+        aria-label={t('dropzone.ariaLabel')}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click() } }}
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
@@ -50,15 +52,15 @@ export function DropZone({ onFile }: Props) {
       >
         <span className="text-2xl flex-shrink-0" aria-hidden="true">🎙️</span>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-100 text-sm">Upload conversation</p>
-          <p className="text-xs text-gray-500 mt-0.5">MP3, M4A, WAV, OPUS</p>
+          <p className="font-semibold text-gray-100 text-sm">{t('dropzone.title')}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t('dropzone.formats')}</p>
         </div>
         <button
           type="button"
           className="flex-shrink-0 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors"
           onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
         >
-          Browse
+          {t('dropzone.browse')}
         </button>
         <input
           ref={inputRef}
