@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SettingsPage from '@/app/settings/page'
+import { LanguageProvider } from '@/components/LanguageProvider'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/lib/supabase-browser', () => ({
@@ -65,5 +66,24 @@ describe('SettingsPage', () => {
   it('renders a preview section', () => {
     render(<SettingsPage />)
     expect(screen.getByText(/Hoy fui al mercado/)).toBeInTheDocument()
+  })
+})
+
+describe('SettingsPage — live language update', () => {
+  it('updates preview wording when target language changes to en-NZ', async () => {
+    render(
+      <LanguageProvider initialTargetLanguage="es-AR">
+        <SettingsPage />
+      </LanguageProvider>
+    )
+    // Default: English UI, Spanish preview text
+    expect(screen.getByText(/Hoy fui al mercado/)).toBeInTheDocument()
+
+    // Change to en-NZ (learning English → UI becomes Spanish)
+    const select = screen.getByRole('combobox')
+    await userEvent.selectOptions(select, 'en-NZ')
+
+    // Preview text should now be English
+    expect(screen.getByText(/Today I went to the market/)).toBeInTheDocument()
   })
 })
