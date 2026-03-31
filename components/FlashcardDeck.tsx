@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { motion, useAnimationControls, useMotionValue } from 'framer-motion'
 import type { PracticeItem } from '@/lib/types'
 import { ExplainSheet } from '@/components/ExplainSheet'
+import { useTranslation } from '@/components/LanguageProvider'
 
 function renderHighlighted(text: string, colour: 'purple' | 'green'): React.ReactNode {
   const parts = text.split(/\[\[|\]\]/)
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function FlashcardDeck({ items }: Props) {
+  const { t } = useTranslation()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [isExplainOpen, setIsExplainOpen] = useState(false)
@@ -55,7 +57,9 @@ export function FlashcardDeck({ items }: Props) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-6 select-none">
       {/* Progress counter */}
-      <p className="text-xs text-gray-500 mb-4">Card {currentIndex + 1} of {items.length}</p>
+      <p className="text-xs text-gray-500 mb-4">
+        {t('flashcard.counter', { n: currentIndex + 1, m: items.length })}
+      </p>
 
       <motion.div
         data-testid="flashcard-card"
@@ -89,7 +93,7 @@ export function FlashcardDeck({ items }: Props) {
                 {renderHighlighted(item.flashcard_front!, 'purple')}
               </p>
             </div>
-            <p className="text-xs text-gray-600 text-center mt-4">Tap to reveal Spanish</p>
+            <p className="text-xs text-gray-600 text-center mt-4">{t('flashcard.tapToReveal')}</p>
           </div>
         ) : (
           <div data-testid="flashcard-back" className="flex flex-col flex-1 justify-center">
@@ -108,7 +112,7 @@ export function FlashcardDeck({ items }: Props) {
           onClick={e => { e.stopPropagation(); setIsExplainOpen(true) }}
           className="w-full max-w-sm py-2.5 text-sm text-indigo-400 bg-indigo-950/50 border border-indigo-900 rounded-xl mt-3"
         >
-          Explain this →
+          {t('flashcard.explainThis')}
         </button>
       )}
 

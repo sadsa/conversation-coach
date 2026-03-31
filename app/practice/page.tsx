@@ -2,10 +2,17 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { PracticeList } from '@/components/PracticeList'
+import { useTranslation } from '@/components/LanguageProvider'
 import { SUB_CATEGORIES } from '@/lib/types'
 import type { PracticeItem, SubCategory } from '@/lib/types'
 
+function PracticeSuspenseFallback() {
+  const { t } = useTranslation()
+  return <p className="text-gray-500 text-sm">{t('practice.loading')}</p>
+}
+
 function PracticePageInner() {
+  const { t } = useTranslation()
   const [items, setItems] = useState<PracticeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,15 +42,17 @@ function PracticePageInner() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p className="text-gray-500 text-sm">Loading…</p>
-  if (error) return <p className="text-red-400 text-sm">Error: {error}</p>
+  if (loading) return <p className="text-gray-500 text-sm">{t('practice.loading')}</p>
+  if (error) return <p className="text-red-400 text-sm">{t('practice.error', { msg: error })}</p>
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Practice Items</h1>
+        <h1 className="text-2xl font-bold">{t('practice.title')}</h1>
         <p className="text-sm text-gray-400 mt-1">
-          {items.length} item{items.length !== 1 ? 's' : ''} across all sessions
+          {items.length === 1
+            ? t('practice.subtitle', { n: items.length })
+            : t('practice.subtitlePlural', { n: items.length })}
         </p>
       </div>
       <PracticeList
@@ -57,7 +66,7 @@ function PracticePageInner() {
 
 export default function PracticePage() {
   return (
-    <Suspense fallback={<p className="text-gray-500 text-sm">Loading…</p>}>
+    <Suspense fallback={<PracticeSuspenseFallback />}>
       <PracticePageInner />
     </Suspense>
   )
