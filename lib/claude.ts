@@ -47,9 +47,9 @@ For each annotation:
   Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
   Naturalness: "vocabulary-choice", "register", "phrasing"
   Note: most grammar errors in English will fall under "verb-conjugation", "tense-selection", or "word-order". The Spanish-specific categories (gender-agreement, ser-estar, por-para, subjunctive) are unlikely to apply; use "other" if nothing fits.
-- "flashcard_front": A sentence in NZ English that illustrates the error, with the corrected word or phrase wrapped in [[double brackets]]. Example: "I [[went]] to the shops yesterday."
-- "flashcard_back": The same sentence with the corrected form clearly shown in [[double brackets]]. Example: "I [[went]] to the shops yesterday."
-- "flashcard_note": 1–2 sentences (in English) explaining why the original was wrong or unnatural from a New Zealand English perspective. Be concise.
+- "flashcard_front": An invented Spanish sentence (in everyday Rioplatense register) that correctly expresses the same meaning as the practice phrase. The correct Spanish equivalent phrase is wrapped in [[double brackets]]. Example: "Ayer [[fui]] al mercado."
+- "flashcard_back": The equivalent NZ English sentence using the correct form, wrapped in [[double brackets]]. Example: "Yesterday I [[went]] to the shops."
+- "flashcard_note": 1–2 sentences (in Spanish, Rioplatense register) explaining why the original was wrong or unnatural from a New Zealand English perspective. Be concise.
 
 Be tuned to New Zealand English: use NZ spelling (colour, organise, programme), NZ vocabulary and idioms, and everyday NZ register. Note that NZ English tends to be informal and direct.
 

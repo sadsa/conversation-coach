@@ -172,6 +172,9 @@ describe('analyseUserTurns', () => {
     await analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null, 'session-1', 'en-NZ')
     const callArgs = mockCreate.mock.calls[0][0]
     expect(callArgs.system).toContain('New Zealand English')
-    expect(callArgs.system).not.toContain('Rioplatense')
+    expect(callArgs.system).toContain(
+      'An invented Spanish sentence (in everyday Rioplatense register)',
+    )
+    expect(callArgs.system).toContain('The equivalent NZ English sentence')
   })
 })
