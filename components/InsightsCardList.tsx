@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { FocusCard } from '@/lib/insights'
 
 function underlineInText(segmentText: string, startChar: number, endChar: number, original: string): React.ReactNode {
@@ -15,6 +16,7 @@ function underlineInText(segmentText: string, startChar: number, endChar: number
 }
 
 function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: number; totalSessions: number }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -26,7 +28,9 @@ function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: nu
         <span className={`text-sm font-bold w-5 flex-shrink-0 ${rank <= 2 ? 'text-red-400' : 'text-gray-500'}`}>{rank}</span>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-100">{card.displayName}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{card.type} · appears in {card.sessionCount} of {totalSessions} sessions</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {card.type} · {t('insights.appearsIn', { n: card.sessionCount, m: totalSessions })}
+          </p>
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-xl font-bold text-gray-100">{card.totalCount}</p>
@@ -37,7 +41,9 @@ function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: nu
         <div className="mt-4 pt-4 border-t border-gray-700" onClick={e => e.stopPropagation()}>
           {card.examples.length > 0 ? (
             <>
-              <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">From your conversations</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-3">
+                {t('insights.fromConversations')}
+              </p>
               <div className="space-y-2">
                 {card.examples.map((ex, i) => (
                   <div key={i} className="bg-gray-900 rounded-lg p-3">
@@ -60,7 +66,7 @@ function FocusCardRow({ card, rank, totalSessions }: { card: FocusCard; rank: nu
                 className="block text-center text-sm text-indigo-400 mt-3"
                 onClick={e => e.stopPropagation()}
               >
-                See all {card.totalCount} examples →
+                {t('insights.seeAll')}
               </a>
             </>
           ) : (

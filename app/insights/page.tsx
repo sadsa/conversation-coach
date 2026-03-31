@@ -1,24 +1,39 @@
-import { fetchInsightsData } from '@/lib/insights'
-import { InsightsCardList } from '@/components/InsightsCardList'
+'use client'
 
-export default async function InsightsPage() {
-  const { totalReadySessions, focusCards } = await fetchInsightsData()
+import { useState, useEffect } from 'react'
+import { InsightsCardList } from '@/components/InsightsCardList'
+import { useTranslation } from '@/components/LanguageProvider'
+import type { FocusCard } from '@/lib/insights'
+
+export default function InsightsPage() {
+  const [totalReadySessions, setTotalReadySessions] = useState(0)
+  const [focusCards, setFocusCards] = useState<FocusCard[]>([])
+  const [loading, setLoading] = useState(true)
+  const { t } = useTranslation()
+
+  useEffect(() => {
+    fetch('/api/insights')
+      .then((r) => r.json())
+      .then((data) => {
+        setTotalReadySessions(data.totalReadySessions ?? 0)
+        setFocusCards(data.focusCards ?? [])
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return null
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Where you&rsquo;re struggling</h1>
-        <p className="text-sm text-gray-400 mt-1">Your recurring mistakes, ranked by frequency</p>
+        <h1 className="text-2xl font-bold">{t('insights.title')}</h1>
+        <p className="text-sm text-gray-400 mt-1">{t('insights.subtitle')}</p>
       </div>
 
       {totalReadySessions === 0 ? (
-        <p className="text-gray-500 text-sm">
-          Insights will appear once you&rsquo;ve recorded and analysed some conversations.
-        </p>
+        <p className="text-gray-500 text-sm">{t('insights.empty')}</p>
       ) : focusCards.length === 0 ? (
-        <p className="text-gray-500 text-sm">
-          No categorised mistakes yet. Re-analyse a session to generate insights.
-        </p>
+        <p className="text-gray-500 text-sm">{t('insights.noMistakes')}</p>
       ) : (
         <InsightsCardList
           focusCards={focusCards}
