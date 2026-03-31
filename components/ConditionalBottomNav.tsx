@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation'
 import { BottomNav } from '@/components/BottomNav'
 
-const HIDDEN_ON = ['/login', '/access-denied']
+const HIDDEN_ON = ['/login', '/access-denied', '/onboarding']
 
 export function ConditionalBottomNav() {
   const pathname = usePathname()

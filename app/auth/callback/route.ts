@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
         },
       }
     )
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data } = await supabase.auth.exchangeCodeForSession(code)
+    const targetLanguage = data.user?.user_metadata?.target_language
+    if (!targetLanguage) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
   }
 
   return NextResponse.redirect(new URL('/', request.url))
