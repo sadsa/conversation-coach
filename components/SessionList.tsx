@@ -4,15 +4,19 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useSwipeable } from 'react-swipeable'
 import { Modal } from '@/components/Modal'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem } from '@/lib/types'
 
-const STATUS_LABEL: Record<string, string> = {
-  uploading: 'Uploading…',
-  transcribing: 'Transcribing…',
-  identifying: 'Awaiting speaker ID',
-  analysing: 'Analysing…',
-  ready: 'Ready',
-  error: 'Error',
+function statusLabel(status: string, t: (key: string) => string): string {
+  const map: Record<string, string> = {
+    uploading: t('status.uploading'),
+    transcribing: t('status.transcribing'),
+    identifying: t('status.identifying'),
+    analysing: t('status.analysing'),
+    ready: t('status.ready'),
+    error: t('status.error'),
+  }
+  return map[status] ?? status
 }
 
 const STATUS_COLOUR: Record<string, string> = {
@@ -35,6 +39,7 @@ function SwipeableSessionItem({
   session: SessionListItem
   onDelete: (id: string) => Promise<boolean>
 }) {
+  const { t } = useTranslation()
   const [translateX, setTranslateX] = useState(0)
   const [rowHeight, setRowHeight] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -119,7 +124,7 @@ function SwipeableSessionItem({
     >
       {/* Swipe-to-delete background */}
       <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-5">
-        <span className="text-white text-sm font-medium">Delete</span>
+        <span className="text-white text-sm font-medium">{t('session.delete')}</span>
       </div>
 
       {/* Session card */}
@@ -169,7 +174,7 @@ function SwipeableSessionItem({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                   </svg>
                 )}
-                {STATUS_LABEL[session.status] ?? session.status}
+                {statusLabel(session.status, t)}
               </span>
               <span>·</span>
               <span>{new Date(session.created_at).toLocaleDateString()}</span>
@@ -199,25 +204,24 @@ function SwipeableSessionItem({
 
       {/* Confirmation modal — owned by this item so triggerDelete is called directly */}
       {confirmPending && (
-        <Modal title="Delete session?" onClose={() => setConfirmPending(false)}>
+        <Modal title={t('session.deleteTitle')} onClose={() => setConfirmPending(false)}>
           <div className="space-y-4 text-sm">
             <p className="text-gray-300 leading-relaxed">
-              <strong className="text-gray-100">{session.title}</strong> will be permanently
-              deleted, along with all its annotations and any practice items you&apos;ve saved from it.
-              This can&apos;t be undone.
+              <strong className="text-gray-100">{session.title}</strong>{' '}
+              {t('session.deleteWarning')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmPending(false)}
                 className="flex-1 py-2.5 rounded-xl border border-gray-600 text-gray-300 text-sm font-medium"
               >
-                Cancel
+                {t('session.cancelButton')}
               </button>
               <button
                 onClick={() => { setConfirmPending(false); triggerDelete() }}
                 className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold"
               >
-                Delete
+                {t('session.deleteButton')}
               </button>
             </div>
           </div>
@@ -233,18 +237,19 @@ interface Props {
 }
 
 export function SessionList({ sessions, onDeleted }: Props) {
+  const { t } = useTranslation()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!toastMessage) return
-    const t = setTimeout(() => setToastMessage(null), 3000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setToastMessage(null), 3000)
+    return () => clearTimeout(timer)
   }, [toastMessage])
 
   async function deleteSession(id: string): Promise<boolean> {
     const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
     if (!res.ok) {
-      setToastMessage("Couldn't delete session — try again.")
+      setToastMessage(t('session.deleteError'))
       return false
     }
     onDeleted?.(id)
@@ -252,7 +257,7 @@ export function SessionList({ sessions, onDeleted }: Props) {
   }
 
   if (sessions.length === 0) {
-    return <p className="text-gray-500 text-sm">No sessions yet — upload your first conversation above.</p>
+    return <p className="text-gray-500 text-sm">{t('session.noSessions')}</p>
   }
 
   return (

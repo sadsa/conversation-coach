@@ -2,22 +2,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
-
-const STAGE_LABELS: Record<SessionStatus, string> = {
-  uploading: 'Uploading',
-  transcribing: 'Transcribing',
-  identifying: 'Identifying speakers',
-  analysing: 'Analysing your speech',
-  ready: 'Ready',
-  error: 'Error',
-}
-
-const ERROR_MESSAGES: Record<string, string> = {
-  uploading: 'Upload failed.',
-  transcribing: 'Transcription failed.',
-  analysing: 'Analysis failed.',
-}
 
 const STAGES: SessionStatus[] = ['uploading', 'transcribing', 'identifying', 'analysing', 'ready']
 
@@ -30,6 +16,23 @@ interface Props {
 
 export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, durationSeconds }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
+
+  const STAGE_LABELS: Record<SessionStatus, string> = {
+    uploading: t('pipeline.uploading'),
+    transcribing: t('pipeline.transcribing'),
+    identifying: t('pipeline.identifying'),
+    analysing: t('pipeline.analysing'),
+    ready: t('pipeline.ready'),
+    error: t('status.error'),
+  }
+
+  const ERROR_MESSAGES: Record<string, string> = {
+    uploading: t('pipeline.errorUploading'),
+    transcribing: t('pipeline.errorTranscribing'),
+    analysing: t('pipeline.errorAnalysing'),
+  }
+
   const [currentStatus, setCurrentStatus] = useState(initialStatus)
   const [currentErrorStage, setCurrentErrorStage] = useState(initialErrorStage)
   const [showAnalysisRetry, setShowAnalysisRetry] = useState(false)
@@ -110,7 +113,7 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
   }
 
   if (currentStatus === 'error') {
-    const msg = ERROR_MESSAGES[currentErrorStage ?? ''] ?? 'Something went wrong.'
+    const msg = ERROR_MESSAGES[currentErrorStage ?? ''] ?? t('pipeline.errorGeneric')
     return (
       <div className="space-y-4">
         <p className="text-red-400">{msg}</p>
@@ -118,7 +121,7 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
           onClick={handleRetry}
           className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium"
         >
-          Retry
+          {t('pipeline.retry')}
         </button>
       </div>
     )
@@ -137,17 +140,17 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
         ))}
       </div>
       {estimatedMinutes && (
-        <p className="text-sm text-gray-400">Estimated time: ~{estimatedMinutes} min</p>
+        <p className="text-sm text-gray-400">{t('pipeline.estimatedTime', { n: estimatedMinutes })}</p>
       )}
       {(showAnalysisRetry || retryingAnalysis) && (
         <div className="space-y-1">
-          <p className="text-sm text-gray-400">Taking longer than expected.</p>
+          <p className="text-sm text-gray-400">{t('pipeline.takingLong')}</p>
           <button
             onClick={handleRetryAnalysis}
             disabled={retryingAnalysis}
             className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg text-sm font-medium"
           >
-            {retryingAnalysis ? 'Retrying…' : 'Retry analysis'}
+            {retryingAnalysis ? t('pipeline.retrying') : t('pipeline.retryAnalysis')}
           </button>
         </div>
       )}
