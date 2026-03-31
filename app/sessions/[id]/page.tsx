@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { InlineEdit } from '@/components/InlineEdit'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionDetail } from '@/lib/types'
 
 export default function TranscriptPage({ params }: { params: { id: string } }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [detail, setDetail] = useState<SessionDetail | null>(null)
   const [title, setTitle] = useState('')
@@ -44,14 +46,14 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
     if (res.ok) router.push(`/sessions/${params.id}/status`)
   }
 
-  if (!detail) return <p className="text-gray-400">Loading…</p>
+  if (!detail) return <p className="text-gray-400">{t('transcript.loading')}</p>
 
   const { session, segments, annotations } = detail
   const counts = { grammar: 0, naturalness: 0 }
   annotations.forEach(a => counts[a.type as keyof typeof counts]++)
 
   const durationLabel = session.duration_seconds
-    ? `${Math.floor(session.duration_seconds / 60)} min`
+    ? `${Math.floor(session.duration_seconds / 60)} ${t('transcript.min')}`
     : ''
 
   return (
@@ -60,14 +62,15 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         <div className="min-w-0">
           <InlineEdit value={title} onSave={handleRename} className="text-xl font-bold break-words" />
           <p className="text-sm text-gray-400 mt-1">
-            {durationLabel} · {counts.grammar} grammar · {counts.naturalness} naturalness
+            {durationLabel} · {counts.grammar} {t('transcript.grammar')} · {counts.naturalness}{' '}
+            {t('transcript.naturalness')}
           </p>
         </div>
         <button
           onClick={handleReanalyse}
           className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 rounded px-3 py-1 shrink-0"
         >
-          Re-analyse
+          {t('transcript.reanalyse')}
         </button>
       </div>
 

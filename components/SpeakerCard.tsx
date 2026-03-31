@@ -1,6 +1,8 @@
 // components/SpeakerCard.tsx
 'use client'
 
+import { useTranslation } from '@/components/LanguageProvider'
+
 interface Props {
   label: 'A' | 'B'
   samples: string[]
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export function SpeakerCard({ label, samples, onToggle, selected, disabled }: Props) {
+  const { t } = useTranslation()
   return (
     <button
       onClick={() => onToggle(label)}
@@ -21,7 +24,9 @@ export function SpeakerCard({ label, samples, onToggle, selected, disabled }: Pr
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-widest text-gray-500">Speaker {label}</p>
+        <p className="text-xs uppercase tracking-widest text-gray-500">
+          {t('speaker.label', { label })}
+        </p>
         {selected && (
           <span data-testid="checkmark" className="text-violet-400 text-sm">✓</span>
         )}
