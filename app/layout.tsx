@@ -6,6 +6,7 @@ import { LanguageProvider } from '@/components/LanguageProvider'
 import { getAuthenticatedUser } from '@/lib/auth'
 import type { TargetLanguage } from '@/lib/types'
 import { TARGET_LANGUAGES } from '@/lib/types'
+import { inferUiLanguage } from '@/lib/i18n'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -23,9 +24,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const rawLang = user?.user_metadata?.target_language as string | undefined
   const initialTargetLanguage: TargetLanguage =
     rawLang && rawLang in TARGET_LANGUAGES ? (rawLang as TargetLanguage) : 'es-AR'
+  const uiLanguage = inferUiLanguage(initialTargetLanguage)
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={uiLanguage} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
