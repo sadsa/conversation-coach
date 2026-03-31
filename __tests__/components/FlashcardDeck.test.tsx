@@ -177,4 +177,25 @@ describe('FlashcardDeck — advance', () => {
     await userEvent.click(screen.getByTestId('advance-card')) // → loop to card 1
     expect(screen.getByText('flush out')).toBeInTheDocument()
   })
+
+  it('goes back to previous card via test seam button', async () => {
+    render(<FlashcardDeck items={[baseItem, item2]} />)
+    await userEvent.click(screen.getByTestId('advance-card')) // → card 2
+    await userEvent.click(screen.getByTestId('go-back-card')) // → card 1
+    expect(screen.getByText('flush out')).toBeInTheDocument()
+  })
+
+  it('wraps from first card to last when going back', async () => {
+    render(<FlashcardDeck items={[baseItem, item2]} />)
+    await userEvent.click(screen.getByTestId('go-back-card')) // wrap → card 2
+    expect(screen.getByText('phrase')).toBeInTheDocument()
+  })
+
+  it('resets to front face when going back', async () => {
+    render(<FlashcardDeck items={[baseItem, item2]} />)
+    await userEvent.click(screen.getByTestId('advance-card')) // → card 2
+    await userEvent.click(screen.getByTestId('flashcard-card')) // flip to back
+    await userEvent.click(screen.getByTestId('go-back-card')) // → card 1
+    expect(screen.getByTestId('flashcard-front')).toBeInTheDocument()
+  })
 })

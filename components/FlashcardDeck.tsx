@@ -40,6 +40,12 @@ export function FlashcardDeck({ items }: Props) {
     setIsExplainOpen(false)
   }
 
+  function goBack() {
+    setCurrentIndex(prev => (prev - 1 + items.length) % items.length)
+    setIsFlipped(false)
+    setIsExplainOpen(false)
+  }
+
   function handleCardClick() {
     if (isDragging.current) return
     if (isFlipped) setIsExplainOpen(false)
@@ -61,6 +67,11 @@ export function FlashcardDeck({ items }: Props) {
           if (info.offset.x < -80) {
             controls.start({ x: -400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
               advance()
+              controls.set({ x: 0, opacity: 1 })
+            })
+          } else if (info.offset.x > 80) {
+            controls.start({ x: 400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
+              goBack()
               controls.set({ x: 0, opacity: 1 })
             })
           } else {
@@ -118,6 +129,15 @@ export function FlashcardDeck({ items }: Props) {
         data-testid="advance-card"
         className="sr-only"
         onClick={e => { e.stopPropagation(); advance() }}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+
+      {/* Hidden test seam for triggering go-back in tests */}
+      <button
+        data-testid="go-back-card"
+        className="sr-only"
+        onClick={e => { e.stopPropagation(); goBack() }}
         tabIndex={-1}
         aria-hidden="true"
       />
