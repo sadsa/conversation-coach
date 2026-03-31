@@ -2,11 +2,15 @@
 import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
 import { ConditionalBottomNav } from '@/components/ConditionalBottomNav'
+import { LanguageProvider } from '@/components/LanguageProvider'
+import { getAuthenticatedUser } from '@/lib/auth'
+import type { TargetLanguage } from '@/lib/types'
+import { TARGET_LANGUAGES } from '@/lib/types'
 import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Conversation Coach',
-  description: 'Analyse your Spanish conversations',
+  description: 'Analyse your conversations',
   manifest: '/manifest.json',
 }
 
@@ -14,7 +18,12 @@ export const viewport: Viewport = {
   themeColor: '#0f0f0f',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const user = await getAuthenticatedUser()
+  const rawLang = user?.user_metadata?.target_language as string | undefined
+  const initialTargetLanguage: TargetLanguage =
+    rawLang && rawLang in TARGET_LANGUAGES ? (rawLang as TargetLanguage) : 'es-AR'
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -33,9 +42,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ` }} />
       </head>
       <body className="min-h-screen bg-gray-950 text-gray-100 overflow-x-hidden">
-        <FontSizeProvider />
-        <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
-        <ConditionalBottomNav />
+        <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
+          <FontSizeProvider />
+          <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
+          <ConditionalBottomNav />
+        </LanguageProvider>
       </body>
     </html>
   )
