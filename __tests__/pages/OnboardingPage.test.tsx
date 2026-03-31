@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import OnboardingPage from '@/app/onboarding/page'
 
 const mockPush = vi.fn()
+const mockSetTargetLanguage = vi.fn()
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 vi.mock('@/lib/supabase-browser', () => ({
@@ -12,6 +13,9 @@ vi.mock('@/lib/supabase-browser', () => ({
       updateUser: vi.fn().mockResolvedValue({ error: null }),
     },
   }),
+}))
+vi.mock('@/components/LanguageProvider', () => ({
+  useTranslation: () => ({ setTargetLanguage: mockSetTargetLanguage }),
 }))
 
 describe('OnboardingPage', () => {
@@ -42,5 +46,12 @@ describe('OnboardingPage', () => {
     await userEvent.click(screen.getByText('Spanish'))
     await userEvent.click(screen.getByRole('button', { name: /get started/i }))
     expect(mockPush).toHaveBeenCalledWith('/')
+  })
+
+  it('calls setTargetLanguage with the selected language on confirm', async () => {
+    render(<OnboardingPage />)
+    await userEvent.click(screen.getByText('English'))
+    await userEvent.click(screen.getByRole('button', { name: /get started/i }))
+    expect(mockSetTargetLanguage).toHaveBeenCalledWith('en-NZ')
   })
 })

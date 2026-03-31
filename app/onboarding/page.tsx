@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { TargetLanguage } from '@/lib/types'
 
 const LANGUAGE_OPTIONS: { value: TargetLanguage; name: string; variant: string; flag: string }[] = [
@@ -12,10 +12,11 @@ const LANGUAGE_OPTIONS: { value: TargetLanguage; name: string; variant: string; 
 export default function OnboardingPage() {
   const [selected, setSelected] = useState<TargetLanguage | null>(null)
   const router = useRouter()
+  const { setTargetLanguage } = useTranslation()
 
   async function handleConfirm() {
     if (!selected) return
-    await getSupabaseBrowserClient().auth.updateUser({ data: { target_language: selected } })
+    setTargetLanguage(selected)
     router.push('/')
   }
 
