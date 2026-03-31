@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { DropZone } from '@/components/DropZone'
 import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
@@ -10,6 +11,7 @@ const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
 const POLL_INTERVAL_MS = 3000
 
 export default function HomePage() {
+  const { t } = useTranslation()
   const [sessions, setSessions] = useState<SessionListItem[]>([])
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('solo')
@@ -100,7 +102,7 @@ export default function HomePage() {
       if (!uploadRes.ok) throw new Error('Upload failed')
     } catch {
       await fetch(`/api/sessions/${session_id}/upload-failed`, { method: 'POST' })
-      setError('Upload failed — please try again')
+      setError(t('home.uploadFailed'))
       setUploading(false)
       return
     }
@@ -126,7 +128,7 @@ export default function HomePage() {
     setSessions(prev => [newSession, ...prev])
     startPolling(session_id)
     setUploading(false)
-  }, [pendingFile, speakerMode, speakersExpected])
+  }, [pendingFile, speakerMode, speakersExpected, t])
 
   // Check for a file shared via the PWA share target
   useEffect(() => {
@@ -148,8 +150,8 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold mb-1">Conversation Coach</h1>
-        <p className="text-gray-400 text-sm">Upload a recorded Spanish conversation to get feedback on your speech.</p>
+        <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
+        <p className="text-gray-400 text-sm">{t('home.subtitle')}</p>
       </div>
 
       <div className="space-y-3">
@@ -166,12 +168,12 @@ export default function HomePage() {
         ) : (
           <DropZone onFile={handleFile} />
         )}
-        {uploading && <p className="text-sm text-violet-400">Uploading…</p>}
+        {uploading && <p className="text-sm text-violet-400">{t('home.uploading')}</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Past Sessions</h2>
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">{t('home.pastSessions')}</h2>
         <SessionList sessions={sessions} onDeleted={handleSessionDeleted} />
       </div>
     </div>

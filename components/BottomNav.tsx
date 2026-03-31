@@ -2,11 +2,12 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslation } from '@/components/LanguageProvider'
 
 const TABS = [
   {
     href: '/',
-    label: 'Home',
+    labelKey: 'nav.home',
     exact: true,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -19,7 +20,7 @@ const TABS = [
   },
   {
     href: '/practice',
-    label: 'Practice',
+    labelKey: 'nav.practice',
     exact: false,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -36,7 +37,7 @@ const TABS = [
   },
   {
     href: '/flashcards',
-    label: 'Flashcards',
+    labelKey: 'nav.flashcards',
     exact: false,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -49,7 +50,7 @@ const TABS = [
   },
   {
     href: '/insights',
-    label: 'Insights',
+    labelKey: 'nav.insights',
     exact: false,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -63,7 +64,7 @@ const TABS = [
   },
   {
     href: '/settings',
-    label: 'Settings',
+    labelKey: 'nav.settings',
     exact: false,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -78,6 +79,7 @@ const TABS = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const { t } = useTranslation()
 
   return (
     <nav
@@ -92,7 +94,7 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              aria-label={tab.label}
+              aria-label={t(tab.labelKey)}
               aria-current={active ? 'page' : undefined}
               className={`flex-1 flex items-center justify-center transition-colors ${
                 active ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-300'
