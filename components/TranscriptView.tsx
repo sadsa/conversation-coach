@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { Modal } from '@/components/Modal'
-import { AnnotationCard, TYPE_LABEL } from '@/components/AnnotationCard'
+import { AnnotationCard } from '@/components/AnnotationCard'
+import { useTranslation } from '@/components/LanguageProvider'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function TranscriptView({ segments, annotations, userSpeakerLabels, sessionId, addedAnnotations, onAnnotationAdded, onAnnotationRemoved }: Props) {
+  const { t } = useTranslation()
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
 
   const annotationsBySegment = annotations.reduce<Record<string, Annotation[]>>((acc, a) => {
@@ -60,7 +62,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
       </div>
       {activeAnnotation && (
         <Modal
-          title={<span>{TYPE_LABEL[activeAnnotation.type]}</span>}
+          title={<span>{t(`type.${activeAnnotation.type}`)}</span>}
           onClose={() => setActiveAnnotation(null)}
         >
           <AnnotationCard

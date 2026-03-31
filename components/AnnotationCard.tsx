@@ -1,13 +1,8 @@
 // components/AnnotationCard.tsx
 'use client'
 import { useState } from 'react'
-import type { Annotation, AnnotationType } from '@/lib/types'
-import { SUB_CATEGORY_DISPLAY } from '@/lib/types'
-
-export const TYPE_LABEL: Record<AnnotationType, string> = {
-  grammar: '🔴 Grammar',
-  naturalness: '🟡 Naturalness',
-}
+import type { Annotation } from '@/lib/types'
+import { useTranslation } from '@/components/LanguageProvider'
 
 interface Props {
   annotation: Annotation
@@ -18,6 +13,7 @@ interface Props {
 }
 
 export function AnnotationCard({ annotation, sessionId, practiceItemId: initialPracticeItemId, onAnnotationAdded, onAnnotationRemoved }: Props) {
+  const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
 
   async function handleAdd() {
@@ -71,21 +67,21 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
       </p>
       <p className="text-sm text-gray-400 leading-relaxed">{annotation.explanation}</p>
       <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
-        {SUB_CATEGORY_DISPLAY[annotation.sub_category]}
+        {t(`subCat.${annotation.sub_category}`)}
       </span>
       {practiceItemId ? (
         <button
           onClick={handleRemove}
           className="w-full py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm text-gray-400 transition-colors"
         >
-          ✓ Added to practice list
+          {t('annotation.addedToPractice')}
         </button>
       ) : (
         <button
           onClick={handleAdd}
           className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-base font-semibold text-white transition-colors"
         >
-          Add to practice list
+          {t('annotation.addToPractice')}
         </button>
       )}
     </div>
