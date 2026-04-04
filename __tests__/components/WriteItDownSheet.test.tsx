@@ -120,4 +120,12 @@ describe('WriteItDownSheet', () => {
     rerender(<WriteItDownSheet {...defaultProps} onConfirm={onConfirm} isOpen={true} />)
     expect(screen.getByTestId('write-it-down-confirm')).toBeDisabled()
   })
+
+  it('keeps confirm button enabled when onConfirm fails', async () => {
+    const onConfirm = vi.fn().mockRejectedValue(new Error('network error'))
+    render(<WriteItDownSheet {...defaultProps} onConfirm={onConfirm} />)
+    await userEvent.click(screen.getByTestId('write-it-down-checkbox'))
+    await userEvent.click(screen.getByTestId('write-it-down-confirm'))
+    expect(screen.getByTestId('write-it-down-confirm')).not.toBeDisabled()
+  })
 })

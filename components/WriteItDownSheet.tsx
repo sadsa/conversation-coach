@@ -84,7 +84,10 @@ export function WriteItDownSheet({ isOpen, annotation, onConfirm, onClose }: Pro
                   {annotation.original}
                 </span>
                 <span className="text-gray-500 text-sm">→</span>
-                <span className="font-semibold text-[#86efac]">{annotation.correction}</span>
+                {annotation.correction !== null
+                  ? <span className="font-semibold text-[#86efac]">{annotation.correction}</span>
+                  : <span className="text-gray-500">—</span>
+                }
               </div>
               <p className="text-sm text-gray-400 leading-relaxed">{annotation.explanation}</p>
             </div>
