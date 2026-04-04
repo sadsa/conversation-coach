@@ -102,6 +102,17 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'type.grammar': '🔴 Grammar',
     'type.naturalness': '🟡 Naturalness',
 
+    // Write it down sheet
+    'writeItDown.title': 'Write it down first',
+    'writeItDown.subtitle': 'Reinforce before it becomes a flashcard',
+    'writeItDown.promptsLabel': 'Write it 3 ways on paper',
+    'writeItDown.prompt1': "A sentence you'd actually say to someone",
+    'writeItDown.prompt2': 'As a question using voseo',
+    'writeItDown.prompt3': 'Using a past or future tense',
+    'writeItDown.checkboxLabel': "I've written it down on paper",
+    'writeItDown.confirmLabel': 'Create flashcard',
+    'writeItDown.successLabel': 'Flashcard created ✓',
+
     // Flashcard deck
     'flashcard.counter': 'Card {n} of {m}',
     'flashcard.tapToReveal': 'Tap to reveal Spanish',
@@ -253,6 +264,17 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.addedToPractice': '✓ Agregado a la lista de práctica',
     'type.grammar': '🔴 Gramática',
     'type.naturalness': '🟡 Naturalidad',
+
+    // Write it down sheet
+    'writeItDown.title': 'Escribilo primero',
+    'writeItDown.subtitle': 'Reforzá antes de que se convierta en tarjeta',
+    'writeItDown.promptsLabel': 'Escribilo de 3 maneras en papel',
+    'writeItDown.prompt1': 'Una oración que realmente le dirías a alguien',
+    'writeItDown.prompt2': 'Como pregunta usando voseo',
+    'writeItDown.prompt3': 'Usando un tiempo pasado o futuro',
+    'writeItDown.checkboxLabel': 'Lo escribí en papel',
+    'writeItDown.confirmLabel': 'Crear tarjeta',
+    'writeItDown.successLabel': 'Tarjeta creada ✓',
 
     // Flashcard deck
     'flashcard.counter': 'Tarjeta {n} de {m}',
