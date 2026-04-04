@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
-import { WriteItDownSheet } from '@/components/WriteItDownSheet'
 
 interface Props {
   annotation: Annotation
@@ -16,9 +15,8 @@ interface Props {
 export function AnnotationCard({ annotation, sessionId, practiceItemId: initialPracticeItemId, onAnnotationAdded, onAnnotationRemoved }: Props) {
   const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
-  async function handleSave() {
+  async function handleAdd() {
     const res = await fetch('/api/practice-items', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -40,7 +38,7 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
       setPracticeItemId(id)
       onAnnotationAdded(annotation.id, id)
     } else {
-      throw new Error('Failed to add practice item')
+      console.error('Failed to add practice item')
     }
   }
 
@@ -80,18 +78,12 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
         </button>
       ) : (
         <button
-          onClick={() => setIsSheetOpen(true)}
+          onClick={handleAdd}
           className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-base font-semibold text-white transition-colors"
         >
           {t('annotation.addToPractice')}
         </button>
       )}
-      <WriteItDownSheet
-        isOpen={isSheetOpen}
-        annotation={annotation}
-        onConfirm={handleSave}
-        onClose={() => setIsSheetOpen(false)}
-      />
     </div>
   )
 }
