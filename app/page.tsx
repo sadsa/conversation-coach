@@ -76,16 +76,9 @@ export default function HomePage() {
     if (mode === 'solo') setSpeakersExpected(2)
   }, [])
 
-  const handleFile = useCallback((file: File) => {
-    setPendingFile(file)
-  }, [])
-
-  const handleConfirmUpload = useCallback(async () => {
-    if (!pendingFile) return
+  const doUpload = useCallback(async (file: File, mode: SpeakerMode, speakers: number) => {
     setUploading(true)
     setError(null)
-    setPendingFile(null)
-    const file = pendingFile
     const ext = file.name.split('.').pop() ?? 'mp3'
     const duration_seconds = await getAudioDuration(file)
 
@@ -112,7 +105,7 @@ export default function HomePage() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         duration_seconds,
-        speakers_expected: speakerMode === 'solo' ? 1 : speakersExpected,
+        speakers_expected: mode === 'solo' ? 1 : speakers,
       }),
     })
 
@@ -128,7 +121,21 @@ export default function HomePage() {
     setSessions(prev => [newSession, ...prev])
     startPolling(session_id)
     setUploading(false)
-  }, [pendingFile, speakerMode, speakersExpected, t])
+  }, [t])
+
+  const handleFile = useCallback((file: File) => {
+    if (file.name.toLowerCase().endsWith('.opus')) {
+      doUpload(file, 'solo', 2)
+    } else {
+      setPendingFile(file)
+    }
+  }, [doUpload])
+
+  const handleConfirmUpload = useCallback(async () => {
+    if (!pendingFile) return
+    setPendingFile(null)
+    await doUpload(pendingFile, speakerMode, speakersExpected)
+  }, [pendingFile, speakerMode, speakersExpected, doUpload])
 
   // Check for a file shared via the PWA share target
   useEffect(() => {
