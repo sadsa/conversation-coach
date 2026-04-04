@@ -32,6 +32,10 @@ export default function SettingsPage() {
     if (!error) router.push('/login')
   }
 
+  const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? 'local').slice(0, 7)
+  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE ?? ''
+  const version = buildDate ? `${sha} · ${buildDate}` : sha
+
   return (
     <div className="space-y-8 max-w-sm">
       <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
@@ -95,6 +99,14 @@ export default function SettingsPage() {
         >
           {t('settings.signOut')}
         </button>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('settings.app')}</h2>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-400">{t('settings.version')}</span>
+          <span className="font-mono text-xs text-gray-500">{version}</span>
+        </div>
       </div>
     </div>
   )
