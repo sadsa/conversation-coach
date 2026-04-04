@@ -15,8 +15,10 @@ interface Props {
 export function AnnotationCard({ annotation, sessionId, practiceItemId: initialPracticeItemId, onAnnotationAdded, onAnnotationRemoved }: Props) {
   const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
+  const [loading, setLoading] = useState(false)
 
   async function handleAdd() {
+    setLoading(true)
     const res = await fetch('/api/practice-items', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -40,9 +42,11 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
     } else {
       console.error('Failed to add practice item')
     }
+    setLoading(false)
   }
 
   async function handleRemove() {
+    setLoading(true)
     const res = await fetch(`/api/practice-items/${practiceItemId}`, { method: 'DELETE' })
     if (res.ok) {
       setPracticeItemId(null)
@@ -50,6 +54,7 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
     } else {
       console.error('Failed to remove practice item')
     }
+    setLoading(false)
   }
 
   return (
@@ -72,15 +77,19 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
       {practiceItemId ? (
         <button
           onClick={handleRemove}
-          className="w-full py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm text-gray-400 transition-colors"
+          disabled={loading}
+          className="w-full py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-sm text-gray-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
+          {loading && <span className="inline-block w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
           {t('annotation.addedToPractice')}
         </button>
       ) : (
         <button
           onClick={handleAdd}
-          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-base font-semibold text-white transition-colors"
+          disabled={loading}
+          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-base font-semibold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
+          {loading && <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           {t('annotation.addToPractice')}
         </button>
       )}
