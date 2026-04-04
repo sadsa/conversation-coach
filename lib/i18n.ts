@@ -117,6 +117,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.counter': 'Card {n} of {m}',
     'flashcard.tapToReveal': 'Tap to reveal Spanish',
     'flashcard.explainThis': 'Explain this →',
+    'flashcard.tapToExplain': 'tap green to explain',
 
     // Practice page
     'practice.title': 'Practice Items',
@@ -282,6 +283,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.counter': 'Tarjeta {n} de {m}',
     'flashcard.tapToReveal': 'Toca para ver el inglés',
     'flashcard.explainThis': 'Explicar esto →',
+    'flashcard.tapToExplain': 'toca el verde para explicar',
 
     // Practice page
     'practice.title': 'Ítems de práctica',
