@@ -10,6 +10,9 @@ const MIN = 14
 const MAX = 22
 const STEP = 2
 const KEY = 'fontSize'
+const SHA = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? 'local').slice(0, 7)
+const BUILD_DATE = process.env.NEXT_PUBLIC_BUILD_DATE ?? ''
+const VERSION = BUILD_DATE ? `${SHA} · ${BUILD_DATE}` : SHA
 
 export default function SettingsPage() {
   const [size, setSize] = useState<number>(16)
@@ -31,10 +34,6 @@ export default function SettingsPage() {
     const { error } = await getSupabaseBrowserClient().auth.signOut()
     if (!error) router.push('/login')
   }
-
-  const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? 'local').slice(0, 7)
-  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE ?? ''
-  const version = buildDate ? `${sha} · ${buildDate}` : sha
 
   return (
     <div className="space-y-8 max-w-sm">
@@ -105,7 +104,7 @@ export default function SettingsPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('settings.app')}</h2>
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-400">{t('settings.version')}</span>
-          <span className="font-mono text-xs text-gray-500">{version}</span>
+          <span className="font-mono text-xs text-gray-500">{VERSION}</span>
         </div>
       </div>
     </div>
