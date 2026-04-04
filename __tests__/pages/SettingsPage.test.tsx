@@ -67,6 +67,13 @@ describe('SettingsPage', () => {
     render(<SettingsPage />)
     expect(screen.getByText(/Hoy fui al mercado/)).toBeInTheDocument()
   })
+
+  it('renders the App section with a version string', () => {
+    render(<SettingsPage />)
+    expect(screen.getByText('Version')).toBeInTheDocument()
+    // VERSION is either "local" or "local · <date>" in the test environment
+    expect(screen.getByText(/local/)).toBeInTheDocument()
+  })
 })
 
 describe('SettingsPage — live language update', () => {

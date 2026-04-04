@@ -162,6 +162,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.targetLanguage': 'Target Language',
     'settings.account': 'Account',
     'settings.signOut': 'Sign out',
+    'settings.app': 'App',
+    'settings.version': 'Version',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -325,6 +327,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.targetLanguage': 'Idioma objetivo',
     'settings.account': 'Cuenta',
     'settings.signOut': 'Cerrar sesión',
+    'settings.app': 'App',
+    'settings.version': 'Versión',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',
