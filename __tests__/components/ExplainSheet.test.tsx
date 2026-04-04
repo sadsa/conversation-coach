@@ -52,6 +52,12 @@ describe('ExplainSheet', () => {
     expect(screen.getByText(/"Te elimina" sounds like a direct translation/)).toBeInTheDocument()
   })
 
+  it('hides divider and note when note is empty', () => {
+    render(<ExplainSheet {...defaultProps} note="" />)
+    expect(screen.queryByText(/"Te elimina" sounds like a direct translation/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument()
+  })
+
   it('calls onClose when backdrop is clicked', async () => {
     const onClose = vi.fn()
     render(<ExplainSheet {...defaultProps} onClose={onClose} />)

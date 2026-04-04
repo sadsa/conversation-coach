@@ -56,11 +56,13 @@ export function ExplainSheet({ isOpen, onClose, original, correction, note }: Ex
               }
             </div>
 
-            {/* Divider */}
-            <hr className="border-indigo-900/40 mb-4" />
-
-            {/* Note */}
-            <p className="text-sm text-gray-400 leading-relaxed">{note}</p>
+            {/* Divider + Note — hidden when no note */}
+            {note && (
+              <>
+                <hr className="border-indigo-900/40 mb-4" />
+                <p className="text-sm text-gray-400 leading-relaxed">{note}</p>
+              </>
+            )}
           </motion.div>
         </>
       )}
