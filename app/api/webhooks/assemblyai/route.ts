@@ -1,11 +1,14 @@
 // app/api/webhooks/assemblyai/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
+import { waitUntil } from '@vercel/functions'
 import { createServerClient } from '@/lib/supabase-server'
 import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
 import type { TargetLanguage } from '@/lib/types'
+
+export const maxDuration = 300
 
 /** Verify webhook using the custom shared-secret header (set on the transcript job at submit time). */
 function verifyCustomHeader(headerValue: string | null, secret: string): boolean {
@@ -97,9 +100,9 @@ export async function POST(req: NextRequest) {
       targetLanguage = (data?.user?.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
     }
 
-    runClaudeAnalysis(session.id, targetLanguage).catch(err =>
+    waitUntil(runClaudeAnalysis(session.id, targetLanguage).catch(err =>
       log.error('Claude analysis failed (fire-and-forget)', { sessionId: session.id, err })
-    )
+    ))
   } else {
     const { error: updateError } = await db.from('sessions').update({
       status: 'identifying',

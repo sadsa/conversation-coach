@@ -1,10 +1,13 @@
 // app/api/sessions/[id]/speaker/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
 import type { TargetLanguage } from '@/lib/types'
+
+export const maxDuration = 300
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthenticatedUser()
@@ -41,9 +44,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const targetLanguage = (user.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
   log.info('Analysis triggered after speaker identification', { sessionId: params.id, speaker_labels, targetLanguage })
 
-  runClaudeAnalysis(params.id, targetLanguage).catch(err =>
+  waitUntil(runClaudeAnalysis(params.id, targetLanguage).catch(err =>
     log.error('Claude analysis failed (fire-and-forget)', { sessionId: params.id, err })
-  )
+  ))
 
   return NextResponse.json({ status: 'analysing' })
 }
