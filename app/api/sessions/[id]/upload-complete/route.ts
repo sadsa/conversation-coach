@@ -47,6 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'transcribing',
     assemblyai_job_id: jobId,
     ...(duration_seconds != null ? { duration_seconds } : {}),
+    ...(speakers_expected != null ? { speakers_expected } : {}),
   }).eq('id', params.id).eq('user_id', user.id)
 
   return NextResponse.json({ ok: true })
