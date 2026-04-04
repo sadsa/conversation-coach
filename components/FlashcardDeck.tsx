@@ -6,16 +6,25 @@ import type { PracticeItem } from '@/lib/types'
 import { ExplainSheet } from '@/components/ExplainSheet'
 import { useTranslation } from '@/components/LanguageProvider'
 
-function renderHighlighted(text: string, colour: 'purple' | 'green'): React.ReactNode {
+function renderHighlighted(text: string, colour: 'purple' | 'green', onClick?: () => void): React.ReactNode {
   const parts = text.split(/\[\[|\]\]/)
   if (parts.length < 3) return <>{text}</>
   const cls = colour === 'purple'
     ? 'text-violet-300 bg-violet-500/20 rounded px-1'
     : 'text-green-300 bg-green-500/20 rounded px-1'
+  const interactiveCls = onClick ? ' border-b border-dashed border-green-400 cursor-pointer' : ''
   return (
     <>
       {parts[0]}
-      <span className={cls}>{parts[1]}</span>
+      <span
+        className={cls + interactiveCls}
+        {...(onClick ? {
+          'data-testid': 'flashcard-back-phrase',
+          onClick: (e: React.MouseEvent) => { e.stopPropagation(); onClick() },
+        } : {})}
+      >
+        {parts[1]}
+      </span>
       {parts.slice(2).join('')}
     </>
   )
@@ -96,29 +105,20 @@ export function FlashcardDeck({ items }: Props) {
             <p className="text-xs text-gray-600 text-center mt-4">{t('flashcard.tapToReveal')}</p>
           </div>
         ) : (
-          <div data-testid="flashcard-back" className="flex flex-col flex-1 justify-center">
+          <div data-testid="flashcard-back" className="flex flex-col flex-1 justify-between">
             <div className="flex-1 flex items-center justify-center">
               <p className="text-base text-gray-100 leading-relaxed text-center">
-                {renderHighlighted(item.flashcard_back!, 'green')}
+                {renderHighlighted(item.flashcard_back!, 'green', () => setIsExplainOpen(true))}
               </p>
             </div>
+            <p className="text-xs text-gray-600 text-center mt-4">{t('flashcard.tapToExplain')}</p>
           </div>
         )}
       </motion.div>
 
-      {/* Explain button — below card, only on back face when note exists */}
-      {isFlipped && item.flashcard_note !== null && (
-        <button
-          onClick={e => { e.stopPropagation(); setIsExplainOpen(true) }}
-          className="w-full max-w-sm py-2.5 text-sm text-indigo-400 bg-indigo-950/50 border border-indigo-900 rounded-xl mt-3"
-        >
-          {t('flashcard.explainThis')}
-        </button>
-      )}
-
       {/* Bottom sheet */}
       <ExplainSheet
-        isOpen={isExplainOpen && item.flashcard_note !== null}
+        isOpen={isExplainOpen}
         onClose={() => setIsExplainOpen(false)}
         original={item.original}
         correction={item.correction ?? null}
