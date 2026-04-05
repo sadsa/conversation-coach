@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase-server'
 import { analyseUserTurns } from '@/lib/claude'
 import { deleteObject } from '@/lib/r2'
+import { sendPushNotification } from '@/lib/push'
 import { log } from '@/lib/logger'
 import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
 import { SUB_CATEGORIES, SUB_CATEGORY_TYPE_MAP } from '@/lib/types'
@@ -116,4 +117,6 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     title,
     processing_completed_at: new Date().toISOString(),
   }).eq('id', sessionId)
+
+  await sendPushNotification(sessionId, title)
 }
