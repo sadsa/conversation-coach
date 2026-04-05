@@ -162,6 +162,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Settings page
     'settings.title': 'Settings',
+    'settings.appearance': 'Appearance',
     'settings.textSize': 'Text Size',
     'settings.preview': 'Preview',
     'settings.previewYou': 'You',
@@ -336,6 +337,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Settings page
     'settings.title': 'Configuración',
+    'settings.appearance': 'Apariencia',
     'settings.textSize': 'Tamaño del texto',
     'settings.preview': 'Vista previa',
     'settings.previewYou': 'Vos',

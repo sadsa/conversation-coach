@@ -42,7 +42,7 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
 
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Appearance</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.appearance')}</h2>
         <div className="flex gap-2">
           <button
             onClick={() => setTheme('dark')}
