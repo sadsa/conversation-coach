@@ -18,6 +18,7 @@ interface Props {
 export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, durationSeconds }: Props) {
   const router = useRouter()
   const { t } = useTranslation()
+  usePushNotifications()
 
   const STAGE_LABELS: Record<SessionStatus, string> = {
     uploading: t('pipeline.uploading'),
@@ -41,8 +42,6 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const analysisRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  usePushNotifications()
 
   const estimatedMinutes = durationSeconds
     ? Math.ceil(durationSeconds / 60 * 1.5)
