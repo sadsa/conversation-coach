@@ -8,7 +8,7 @@ import type { PracticeItem, SubCategory } from '@/lib/types'
 
 function PracticeSuspenseFallback() {
   const { t } = useTranslation()
-  return <p className="text-gray-500 text-sm">{t('practice.loading')}</p>
+  return <p className="text-text-tertiary text-sm">{t('practice.loading')}</p>
 }
 
 function PracticePageInner() {
@@ -42,14 +42,14 @@ function PracticePageInner() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p className="text-gray-500 text-sm">{t('practice.loading')}</p>
+  if (loading) return <p className="text-text-tertiary text-sm">{t('practice.loading')}</p>
   if (error) return <p className="text-red-400 text-sm">{t('practice.error', { msg: error })}</p>
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{t('practice.title')}</h1>
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-sm text-text-secondary mt-1">
           {items.length === 1
             ? t('practice.subtitle', { n: items.length })
             : t('practice.subtitlePlural', { n: items.length })}

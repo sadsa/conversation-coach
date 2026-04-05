@@ -35,7 +35,7 @@ export default function FlashcardsPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
       {loading && (
-        <p className="text-gray-500 text-sm px-4">{t('flashcards.loading')}</p>
+        <p className="text-text-tertiary text-sm px-4">{t('flashcards.loading')}</p>
       )}
 
       {error && (
@@ -43,7 +43,7 @@ export default function FlashcardsPage() {
       )}
 
       {!loading && !error && items.length === 0 && (
-        <p className="text-gray-500 text-sm px-4">{t('flashcards.empty')}</p>
+        <p className="text-text-tertiary text-sm px-4">{t('flashcards.empty')}</p>
       )}
 
       {!loading && !error && items.length > 0 && (

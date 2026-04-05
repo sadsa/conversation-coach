@@ -46,7 +46,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
     if (res.ok) router.push(`/sessions/${params.id}/status`)
   }
 
-  if (!detail) return <p className="text-gray-400">{t('transcript.loading')}</p>
+  if (!detail) return <p className="text-text-secondary">{t('transcript.loading')}</p>
 
   const { session, segments, annotations } = detail
   const counts = { grammar: 0, naturalness: 0 }
@@ -61,14 +61,14 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <InlineEdit value={title} onSave={handleRename} className="text-xl font-bold break-words" />
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-text-secondary mt-1">
             {durationLabel} · {counts.grammar} {t('transcript.grammar')} · {counts.naturalness}{' '}
             {t('transcript.naturalness')}
           </p>
         </div>
         <button
           onClick={handleReanalyse}
-          className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 rounded px-3 py-1 shrink-0"
+          className="text-xs text-text-tertiary hover:text-text-secondary border border-border rounded px-3 py-1 shrink-0"
         >
           {t('transcript.reanalyse')}
         </button>

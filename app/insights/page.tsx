@@ -27,13 +27,13 @@ export default function InsightsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{t('insights.title')}</h1>
-        <p className="text-sm text-gray-400 mt-1">{t('insights.subtitle')}</p>
+        <p className="text-sm text-text-secondary mt-1">{t('insights.subtitle')}</p>
       </div>
 
       {totalReadySessions === 0 ? (
-        <p className="text-gray-500 text-sm">{t('insights.empty')}</p>
+        <p className="text-text-tertiary text-sm">{t('insights.empty')}</p>
       ) : focusCards.length === 0 ? (
-        <p className="text-gray-500 text-sm">{t('insights.noMistakes')}</p>
+        <p className="text-text-tertiary text-sm">{t('insights.noMistakes')}</p>
       ) : (
         <InsightsCardList
           focusCards={focusCards}

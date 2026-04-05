@@ -45,7 +45,7 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
     router.push(`/sessions/${params.id}/status`)
   }
 
-  if (!detail) return <p className="text-gray-400">{t('identify.loading')}</p>
+  if (!detail) return <p className="text-text-secondary">{t('identify.loading')}</p>
 
   const speakerSamples = (['A', 'B'] as const).reduce((acc, label) => {
     acc[label] = detail.segments
@@ -61,7 +61,7 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">{t('identify.title')}</h1>
-        <p className="text-sm text-gray-400 mt-1">{t('identify.subtitle')}</p>
+        <p className="text-sm text-text-secondary mt-1">{t('identify.subtitle')}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {speakers.map(label => (
