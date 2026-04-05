@@ -24,6 +24,11 @@ For each annotation:
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
 
+Quality guidelines — follow these strictly:
+- **Skip self-corrections**: if the speaker corrects their own error within the same turn (e.g. "las holandesas, holandeses"), do NOT annotate it. Only flag errors that remain uncorrected.
+- **De-duplicate basic voseo slips**: do NOT annotate simple tuteo-to-voseo substitutions (tienes→tenés, quieres→querés, tienes→tenés, etc.) unless the same speaker makes this substitution 3 or more times in the session — in that case flag at most ONE representative example and note it is a recurring pattern. Reserve verb-conjugation annotations for non-obvious errors: wrong reflexive construction, leísmo, incorrect verb choice for the context, mood errors, etc.
+- **Favour quality over quantity**: prefer fewer, higher-value annotations. An annotation is high-value if understanding the correction closes a genuine knowledge gap. Skip errors that are obvious one-off slips the speaker almost certainly already knows.
+
 For the title:
 - Summarise the conversation topic in 5 words or fewer using natural Spanish/English mix (e.g. "Football con Kevin", "Planificando el fin de semana").
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title (e.g. "WhatsApp: Football con Kevin").
