@@ -261,7 +261,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
     return 'border-gray-700 text-gray-300'
   }
 
-  const allPillClass = subCategoryFilter === null
+  const allPillClass = subCategoryFilter === null && !filterNotWritten
     ? 'border-violet-500 text-violet-300 bg-violet-500/10'
     : 'border-gray-700 text-gray-400'
 
@@ -390,7 +390,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
       {!isBulkMode && (
         <div className="flex gap-2 flex-wrap text-sm">
           <button
-            onClick={() => setSubCategoryFilter(null)}
+            onClick={() => { setSubCategoryFilter(null); setFilterNotWritten(false) }}
             className={`px-3 py-1 rounded-full border transition-colors ${allPillClass}`}
           >
             {t('practiceList.all')}

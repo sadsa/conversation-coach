@@ -291,6 +291,21 @@ describe('PracticeList — Not written filter pill', () => {
     await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
     expect(screen.getByText('escrito')).toBeInTheDocument()
   })
+
+  it('clicking All clears the Not written filter', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
+    // "All" pill should now be inactive
+    const allButton = screen.getByRole('button', { name: /^all$/i })
+    expect(allButton.className).not.toMatch(/violet/)
+    // clicking All should re-show written items
+    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
+    // Re-render with both items
+    const { rerender } = render(<PracticeList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getAllByRole('button', { name: /^not written$/i })[0])
+    await userEvent.click(screen.getAllByRole('button', { name: /^all$/i })[0])
+    expect(screen.getAllByText('escrito').length).toBeGreaterThan(0)
+  })
 })
 
 describe('PracticeList — swipe right to mark written', () => {
