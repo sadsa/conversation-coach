@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { ConditionalBottomNav } from '@/components/ConditionalBottomNav'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { getAuthenticatedUser } from '@/lib/auth'
@@ -40,14 +41,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           (function() {
             var s = localStorage.getItem('fontSize');
             if (s) document.documentElement.style.fontSize = s + 'px';
+            var t = localStorage.getItem('theme');
+            if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
           })();
         ` }} />
       </head>
-      <body className="min-h-screen bg-gray-950 text-gray-100 overflow-x-hidden">
+      <body className="min-h-screen bg-bg text-text-primary overflow-x-hidden">
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
-          <FontSizeProvider />
-          <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
-          <ConditionalBottomNav />
+          <ThemeProvider>
+            <FontSizeProvider />
+            <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
+            <ConditionalBottomNav />
+          </ThemeProvider>
         </LanguageProvider>
       </body>
     </html>
