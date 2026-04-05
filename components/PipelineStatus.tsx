@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
 
 const STAGES: SessionStatus[] = ['uploading', 'transcribing', 'identifying', 'analysing', 'ready']
@@ -17,6 +18,7 @@ interface Props {
 export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, durationSeconds }: Props) {
   const router = useRouter()
   const { t } = useTranslation()
+  usePushNotifications()
 
   const STAGE_LABELS: Record<SessionStatus, string> = {
     uploading: t('pipeline.uploading'),

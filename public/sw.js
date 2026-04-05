@@ -63,3 +63,39 @@ self.addEventListener('fetch', (e) => {
   e.waitUntil(work)
   e.respondWith(work)
 })
+
+// ── Push notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', (e) => {
+  if (!e.data) return
+  let payload
+  try {
+    payload = e.data.json()
+  } catch {
+    console.warn('[sw] push: invalid JSON payload')
+    return
+  }
+  const { title, body, sessionId } = payload
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      data: { sessionId },
+    })
+  )
+})
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const { sessionId } = e.notification.data ?? {}
+  if (!sessionId) return
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const target = `/sessions/${sessionId}`
+      for (const client of clientList) {
+        if (client.url.includes(target) && 'focus' in client) return client.focus()
+      }
+      return self.clients.openWindow(target)
+    })
+  )
+})
