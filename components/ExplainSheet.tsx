@@ -49,10 +49,10 @@ export function ExplainSheet({ isOpen, onClose, original, correction, note }: Ex
               <span className="bg-[#3b1a1a] text-[#fca5a5] px-2 py-0.5 rounded text-sm">
                 {original}
               </span>
-              <span className="text-gray-500 text-sm">→</span>
+              <span className="text-text-tertiary text-sm">→</span>
               {correction !== null
                 ? <span className="font-semibold text-[#86efac]">{correction}</span>
-                : <span className="text-gray-500">—</span>
+                : <span className="text-text-tertiary">—</span>
               }
             </div>
 
@@ -60,7 +60,7 @@ export function ExplainSheet({ isOpen, onClose, original, correction, note }: Ex
             {note && (
               <>
                 <hr className="border-indigo-900/40 mb-4" />
-                <p className="text-sm text-gray-400 leading-relaxed">{note}</p>
+                <p className="text-sm text-text-secondary leading-relaxed">{note}</p>
               </>
             )}
           </motion.div>

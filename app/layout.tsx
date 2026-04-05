@@ -39,10 +39,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ` }} />
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
-            var s = localStorage.getItem('fontSize');
-            if (s) document.documentElement.style.fontSize = s + 'px';
-            var t = localStorage.getItem('theme');
-            if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            try {
+              var s = localStorage.getItem('fontSize');
+              if (s) document.documentElement.style.fontSize = s + 'px';
+              var t = localStorage.getItem('theme');
+              if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {}
           })();
         ` }} />
       </head>
