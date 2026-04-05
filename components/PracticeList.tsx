@@ -139,7 +139,7 @@ function SwipeableItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className="relative flex items-start gap-3 px-4 py-3 bg-gray-900 rounded-xl"
+        className="relative flex items-start gap-3 px-4 py-3 bg-surface rounded-xl"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
@@ -223,15 +223,15 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   function pillClass(sc: SubCategory): string {
     if (sc === subCategoryFilter) return 'border-indigo-500 text-indigo-300 bg-indigo-500/10'
     const count = subCategoryCounts[sc]
-    if (count === 0) return 'border-gray-800 text-gray-600'
+    if (count === 0) return 'border-border-subtle text-text-tertiary'
     if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-red-800 text-red-400 bg-red-950/40'
     if (colourTiers.rank2 > 0 && count === colourTiers.rank2) return 'border-amber-700 text-amber-400 bg-amber-950/40'
-    return 'border-gray-700 text-gray-300'
+    return 'border-border text-text-secondary'
   }
 
   const allPillClass = subCategoryFilter === null
     ? 'border-violet-500 text-violet-300 bg-violet-500/10'
-    : 'border-gray-700 text-gray-400'
+    : 'border-border text-text-secondary'
 
   useEffect(() => {
     if (!toastMessage) return
@@ -363,7 +363,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           {!isExpanded && sortedSubCategories.length > 3 && (
             <button
               onClick={() => setIsExpanded(true)}
-              className="px-3 py-1 rounded-full border border-gray-700 text-gray-400 transition-colors"
+              className="px-3 py-1 rounded-full border border-border text-text-secondary transition-colors"
             >
               {t('practiceList.moreCategories', { n: sortedSubCategories.length - 3 })}
             </button>
@@ -372,7 +372,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
       )}
 
       {filtered.length === 0 && (
-        <p className="text-gray-500 text-sm">{t('practiceList.noItems')}</p>
+        <p className="text-text-tertiary text-sm">{t('practiceList.noItems')}</p>
       )}
 
       <ul className="space-y-2">
@@ -400,11 +400,11 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
                 <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
                   {openItem.original}
                 </span>
-                <span className="mx-2 text-gray-400">→</span>
+                <span className="mx-2 text-text-secondary">→</span>
                 <span className="font-medium text-[#86efac]">{openItem.correction}</span>
               </>
             </div>
-            <p className="text-gray-300 leading-relaxed">{openItem.explanation}</p>
+            <p className="text-text-secondary leading-relaxed">{openItem.explanation}</p>
             <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
               {t(`subCat.${openItem.sub_category}`)}
             </span>
@@ -415,7 +415,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
       {toastMessage && (
         <div
           role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 shadow-lg"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg"
         >
           {toastMessage}
         </div>

@@ -135,18 +135,18 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         {STAGES.filter(s => s !== 'error').map((stage, i) => (
-          <div key={stage} className={`flex items-center gap-3 ${i <= currentIndex ? 'text-white' : 'text-gray-600'}`}>
-            <span className={`w-2 h-2 rounded-full ${i < currentIndex ? 'bg-green-400' : i === currentIndex ? 'bg-violet-400 animate-pulse' : 'bg-gray-700'}`} />
+          <div key={stage} className={`flex items-center gap-3 ${i <= currentIndex ? 'text-text-primary' : 'text-text-tertiary'}`}>
+            <span className={`w-2 h-2 rounded-full ${i < currentIndex ? 'bg-green-400' : i === currentIndex ? 'bg-violet-400 animate-pulse' : 'bg-border'}`} />
             <span className="text-sm">{STAGE_LABELS[stage]}</span>
           </div>
         ))}
       </div>
       {estimatedMinutes && (
-        <p className="text-sm text-gray-400">{t('pipeline.estimatedTime', { n: estimatedMinutes })}</p>
+        <p className="text-sm text-text-secondary">{t('pipeline.estimatedTime', { n: estimatedMinutes })}</p>
       )}
       {(showAnalysisRetry || retryingAnalysis) && (
         <div className="space-y-1">
-          <p className="text-sm text-gray-400">{t('pipeline.takingLong')}</p>
+          <p className="text-sm text-text-secondary">{t('pipeline.takingLong')}</p>
           <button
             onClick={handleRetryAnalysis}
             disabled={retryingAnalysis}

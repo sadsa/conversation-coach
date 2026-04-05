@@ -65,7 +65,7 @@ export function AnnotatedText({ text, annotations, onAnnotationClick, addedAnnot
                 <span
                   data-testid={`annotation-added-badge-${span.annotation.id}`}
                   aria-hidden="true"
-                  className="absolute top-[-5px] right-[-5px] w-[14px] h-[14px] pointer-events-none text-[8px] leading-none bg-green-500 rounded-full border-2 border-gray-900 flex items-center justify-center text-white"
+                  className="absolute top-[-5px] right-[-5px] w-[14px] h-[14px] pointer-events-none text-[8px] leading-none bg-green-500 rounded-full border-2 border-bg flex items-center justify-center text-white"
                 >
                   ✓
                 </span>

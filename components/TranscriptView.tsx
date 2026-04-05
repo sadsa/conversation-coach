@@ -38,7 +38,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
           return (
             <div key={seg.id}>
               <div className={!isUser ? 'opacity-40' : ''}>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">
+                <p className="text-xs text-text-tertiary uppercase tracking-wide mb-0.5">
                   {isUser ? 'You' : 'Them'}
                 </p>
                 <span className="text-sm leading-relaxed break-words">
