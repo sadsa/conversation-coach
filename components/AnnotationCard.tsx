@@ -80,7 +80,7 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
           disabled={loading}
           className="w-full py-3 rounded-xl bg-surface-elevated hover:bg-border text-sm text-text-secondary transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {loading && <span className="inline-block w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
+          {loading && <span className="inline-block w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin" />}
           {t('annotation.addedToPractice')}
         </button>
       ) : (

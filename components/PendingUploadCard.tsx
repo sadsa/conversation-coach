@@ -42,7 +42,7 @@ export function PendingUploadCard({
       <div className="flex items-start gap-3">
         <span className="text-xl mt-0.5 flex-shrink-0" aria-hidden="true">📎</span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-100 truncate">{file.name}</p>
+          <p className="text-sm font-semibold text-text-primary truncate">{file.name}</p>
           <p className="text-xs text-violet-300 mt-0.5">{formatBytes(file.size)}</p>
         </div>
       </div>
