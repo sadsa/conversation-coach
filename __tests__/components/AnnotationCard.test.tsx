@@ -35,7 +35,7 @@ describe('AnnotationCard', () => {
     render(<AnnotationCard annotation={grammarAnnotation} {...defaultProps} practiceItemId="pi-1" />)
     const btn = screen.getByRole('button', { name: /added to practice/i })
     expect(btn).not.toBeDisabled()
-    expect(btn).toHaveClass('bg-gray-700')
+    expect(btn).toHaveClass('bg-surface-elevated')
   })
 
   it('shows indigo "Add" button when practiceItemId is null', () => {
