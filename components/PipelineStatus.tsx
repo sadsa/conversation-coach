@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
 
 const STAGES: SessionStatus[] = ['uploading', 'transcribing', 'identifying', 'analysing', 'ready']
@@ -40,6 +41,8 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const analysisRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  usePushNotifications()
 
   const estimatedMinutes = durationSeconds
     ? Math.ceil(durationSeconds / 60 * 1.5)

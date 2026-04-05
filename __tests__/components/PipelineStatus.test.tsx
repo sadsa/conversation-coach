@@ -4,6 +4,7 @@ import { render, screen, act, fireEvent } from '@testing-library/react'
 import { PipelineStatus } from '@/components/PipelineStatus'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('@/hooks/usePushNotifications', () => ({ usePushNotifications: vi.fn() }))
 
 // Prevent useEffect fetch calls from throwing unhandled rejections in jsdom,
 // which lacks a base URL and causes "Failed to parse URL" errors.
