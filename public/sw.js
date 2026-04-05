@@ -68,7 +68,14 @@ self.addEventListener('fetch', (e) => {
 
 self.addEventListener('push', (e) => {
   if (!e.data) return
-  const { title, body, sessionId } = e.data.json()
+  let payload
+  try {
+    payload = e.data.json()
+  } catch {
+    console.warn('[sw] push: invalid JSON payload')
+    return
+  }
+  const { title, body, sessionId } = payload
   e.waitUntil(
     self.registration.showNotification(title, {
       body,
@@ -83,12 +90,12 @@ self.addEventListener('notificationclick', (e) => {
   const { sessionId } = e.notification.data ?? {}
   if (!sessionId) return
   e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       const target = `/sessions/${sessionId}`
       for (const client of clientList) {
         if (client.url.includes(target) && 'focus' in client) return client.focus()
       }
-      return clients.openWindow(target)
+      return self.clients.openWindow(target)
     })
   )
 })
