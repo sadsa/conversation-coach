@@ -1,0 +1,37 @@
+'use client'
+import { useTheme } from '@/components/ThemeProvider'
+
+export function ThemeToggle({ className = '' }: { className?: string }) {
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === 'dark'
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      className={`w-9 h-9 rounded-full border border-border bg-surface flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors ${className}`}
+    >
+      {isDark ? (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+          className="w-4 h-4" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <line x1="12" y1="2" x2="12" y2="6" />
+          <line x1="12" y1="18" x2="12" y2="22" />
+          <line x1="4.22" y1="4.22" x2="7.05" y2="7.05" />
+          <line x1="16.95" y1="16.95" x2="19.78" y2="19.78" />
+          <line x1="2" y1="12" x2="6" y2="12" />
+          <line x1="18" y1="12" x2="22" y2="12" />
+          <line x1="4.22" y1="19.78" x2="7.05" y2="16.95" />
+          <line x1="16.95" y1="7.05" x2="19.78" y2="4.22" />
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+          className="w-4 h-4" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      )}
+    </button>
+  )
+}
