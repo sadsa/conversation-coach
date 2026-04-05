@@ -198,9 +198,11 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
           </div>
         )}
 
-        <div className={menuOpen ? 'opacity-40 pointer-events-none' : ''}>
+        <div
+          className={`flex min-h-0 w-full flex-1 flex-col ${menuOpen ? 'pointer-events-none opacity-40' : ''}`}
+        >
           {!isFlipped ? (
-            <div data-testid="flashcard-front" className="flex flex-col flex-1 justify-between">
+            <div data-testid="flashcard-front" className="flex min-h-0 flex-1 flex-col justify-between">
               <div className="flex-1 flex items-center justify-center">
                 <p className="text-base text-gray-100 leading-relaxed text-center">
                   {renderHighlighted(item.flashcard_front!, 'purple')}
@@ -209,7 +211,7 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
               <p className="text-xs text-gray-600 text-center mt-4">{t('flashcard.tapToReveal')}</p>
             </div>
           ) : (
-            <div data-testid="flashcard-back" className="flex flex-col flex-1 justify-between">
+            <div data-testid="flashcard-back" className="flex min-h-0 flex-1 flex-col justify-between">
               <div className="flex-1 flex items-center justify-center">
                 <p className="text-base text-gray-100 leading-relaxed text-center">
                   {renderHighlighted(item.flashcard_back!, 'green', () => setIsExplainOpen(true))}
