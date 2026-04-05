@@ -64,4 +64,14 @@ describe('POST /api/push-subscription', () => {
     const res = await POST(req)
     expect(res.status).toBe(500)
   })
+
+  it('returns 400 when body is not valid JSON', async () => {
+    const req = new NextRequest('http://localhost/api/push-subscription', {
+      method: 'POST',
+      body: 'not-json',
+    })
+
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+  })
 })
