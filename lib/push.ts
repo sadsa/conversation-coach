@@ -5,12 +5,12 @@ import { log } from '@/lib/logger'
 export async function sendPushNotification(sessionId: string, title: string): Promise<void> {
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
-  if (!vapidPublicKey || !vapidPrivateKey) {
-    log.error('VAPID keys not configured — skipping push notification', { sessionId })
+  const vapidContact = process.env.VAPID_CONTACT
+  if (!vapidPublicKey || !vapidPrivateKey || !vapidContact) {
+    log.error('VAPID config not set — skipping push notification', { sessionId })
     return
   }
 
-  const vapidContact = process.env.VAPID_CONTACT ?? 'mailto:push@localhost'
   webpush.setVapidDetails(vapidContact, vapidPublicKey, vapidPrivateKey)
 
   const db = createServerClient()

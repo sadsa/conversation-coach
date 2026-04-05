@@ -41,12 +41,18 @@ export function usePushNotifications() {
 
 async function postSubscription(sub: PushSubscription) {
   const json = sub.toJSON()
+  const p256dh = json.keys?.p256dh
+  const auth = json.keys?.auth
+  if (!p256dh || !auth) {
+    console.warn('[push] Subscription missing keys — cannot register')
+    return
+  }
   const response = await fetch('/api/push-subscription', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       endpoint: sub.endpoint,
-      keys: { p256dh: json.keys?.p256dh, auth: json.keys?.auth },
+      keys: { p256dh, auth },
     }),
   })
   if (!response.ok) {

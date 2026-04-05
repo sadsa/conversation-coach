@@ -18,6 +18,7 @@ describe('sendPushNotification', () => {
     vi.clearAllMocks()
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = 'pubkey'
     process.env.VAPID_PRIVATE_KEY = 'privkey'
+    process.env.VAPID_CONTACT = 'mailto:test@example.com'
   })
 
   it('returns early and does not call sendNotification when no subscription row exists', async () => {
@@ -62,6 +63,14 @@ describe('sendPushNotification', () => {
   it('returns early and does not call sendNotification when VAPID keys are missing', async () => {
     delete process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     delete process.env.VAPID_PRIVATE_KEY
+
+    await sendPushNotification('session-1', 'My Session')
+
+    expect(webpush.sendNotification).not.toHaveBeenCalled()
+  })
+
+  it('returns early and does not call sendNotification when VAPID_CONTACT is missing', async () => {
+    delete process.env.VAPID_CONTACT
 
     await sendPushNotification('session-1', 'My Session')
 
