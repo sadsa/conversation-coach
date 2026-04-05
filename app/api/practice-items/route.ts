@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest) {
 
   const { data, error } = await db
     .from('practice_items')
-    .select('id, session_id, annotation_id, type, sub_category, original, correction, explanation, reviewed, created_at, updated_at, flashcard_front, flashcard_back, flashcard_note')
+    .select('id, session_id, annotation_id, type, sub_category, original, correction, explanation, reviewed, written_down, created_at, updated_at, flashcard_front, flashcard_back, flashcard_note')
     .in('session_id', sessionIds)
     .order('created_at', { ascending: false })
 

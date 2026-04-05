@@ -108,6 +108,7 @@ export interface PracticeItem {
   explanation: string
   sub_category: SubCategory
   reviewed: boolean
+  written_down: boolean
   created_at: string
   updated_at: string
   flashcard_front: string | null

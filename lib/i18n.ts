@@ -145,6 +145,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.exitSelection': 'Exit selection mode',
     'practiceList.selectAll': 'Select all',
     'practiceList.deleteSelectedAria': 'Delete {n} selected items',
+    'practiceList.notWrittenDown': 'not written',
+    'practiceList.writtenDown': '✓ written',
+    'practiceList.filterNotWritten': 'Not written',
+    'practiceList.markWrittenError': 'Failed to mark as written — try again.',
+    'practiceList.revealWritten': '✓ Written',
 
     // Flashcards page
     'flashcards.loading': 'Loading…',
@@ -320,6 +325,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.exitSelection': 'Salir del modo selección',
     'practiceList.selectAll': 'Seleccionar todo',
     'practiceList.deleteSelectedAria': 'Eliminar {n} ítems seleccionados',
+    'practiceList.notWrittenDown': 'no escrito',
+    'practiceList.writtenDown': '✓ escrito',
+    'practiceList.filterNotWritten': 'No escrito',
+    'practiceList.markWrittenError': 'No se pudo marcar como escrito — intentá de nuevo.',
+    'practiceList.revealWritten': '✓ Escrito',
 
     // Flashcards page
     'flashcards.loading': 'Cargando…',
