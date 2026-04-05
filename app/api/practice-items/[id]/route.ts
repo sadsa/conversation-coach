@@ -32,10 +32,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const owned = await verifyOwnership(db, params.id, user.id)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const { reviewed } = await req.json() as { reviewed: boolean }
+  const body = await req.json() as { reviewed?: boolean; written_down?: boolean }
+  const update: Record<string, boolean> = {}
+  if (body.reviewed !== undefined) update.reviewed = body.reviewed
+  if (body.written_down !== undefined) update.written_down = body.written_down
+
   const { error } = await db
     .from('practice_items')
-    .update({ reviewed })
+    .update(update)
     .eq('id', params.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
