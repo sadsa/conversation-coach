@@ -12,6 +12,7 @@ const grammarItem: PracticeItem = {
   id: 'item-1', session_id: 's1', annotation_id: 'ann-1',
   type: 'grammar', original: 'Yo fui', correction: 'Fui',
   explanation: 'Drop pronoun.', sub_category: 'other', reviewed: false,
+  written_down: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
   flashcard_front: null, flashcard_back: null, flashcard_note: null,
 }
@@ -20,6 +21,7 @@ const subjectiveItem: PracticeItem = {
   id: 'item-2', session_id: 's1', annotation_id: 'ann-2',
   type: 'grammar', original: 'vengas', correction: 'venís',
   explanation: '', sub_category: 'subjunctive', reviewed: false,
+  written_down: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
   flashcard_front: null, flashcard_back: null, flashcard_note: null,
 }
@@ -120,8 +122,8 @@ describe('PracticeList — bulk toolbar', () => {
 describe('PracticeList — sub-category filter', () => {
   it('filters to only items matching initialSubCategory', () => {
     const items: PracticeItem[] = [
-      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
-      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
+      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, written_down: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
+      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, written_down: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
     ]
     render(<PracticeList items={items} initialSubCategory="subjunctive" />)
     expect(screen.getByText('vengas')).toBeInTheDocument()
@@ -242,5 +244,86 @@ describe('PracticeList — sub-category pill row', () => {
     const subjunctiveIdx = allButtons.findIndex(b => /subjunctive/i.test(b.textContent ?? ''))
     const otherIdx = allButtons.findIndex(b => /^other/i.test(b.textContent?.trim() ?? ''))
     expect(subjunctiveIdx).toBeLessThan(otherIdx)
+  })
+})
+
+describe('PracticeList — written_down status tag', () => {
+  it('shows "not written" tag on an unwritten item', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(screen.getByText('not written')).toBeInTheDocument()
+  })
+
+  it('shows "✓ written" tag on a written item', () => {
+    const writtenItem: PracticeItem = { ...grammarItem, written_down: true }
+    render(<PracticeList items={[writtenItem]} />)
+    expect(screen.getByText('✓ written')).toBeInTheDocument()
+  })
+
+  it('does not render a type dot', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(document.querySelector('.bg-red-400')).not.toBeInTheDocument()
+    expect(document.querySelector('.bg-yellow-400')).not.toBeInTheDocument()
+  })
+})
+
+describe('PracticeList — Not written filter pill', () => {
+  it('shows "Not written" pill as second pill after "All"', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    const buttons = screen.getAllByRole('button')
+    const allIdx = buttons.findIndex(b => /^all$/i.test(b.textContent?.trim() ?? ''))
+    const notWrittenIdx = buttons.findIndex(b => /^not written$/i.test(b.textContent?.trim() ?? ''))
+    expect(allIdx).toBeGreaterThanOrEqual(0)
+    expect(notWrittenIdx).toBe(allIdx + 1)
+  })
+
+  it('filters to unwritten items when Not written pill is clicked', async () => {
+    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
+    render(<PracticeList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
+    expect(screen.getByText('Yo fui')).toBeInTheDocument()
+    expect(screen.queryByText('escrito')).not.toBeInTheDocument()
+  })
+
+  it('clicking Not written again (toggle) shows all items', async () => {
+    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
+    render(<PracticeList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
+    expect(screen.getByText('escrito')).toBeInTheDocument()
+  })
+})
+
+describe('PracticeList — swipe right to mark written', () => {
+  it('calls PATCH API with written_down:true when mark-written triggered', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<PracticeList items={[grammarItem]} />)
+
+    const writeButton = screen.getByTestId(`write-item-${grammarItem.id}`)
+    await userEvent.click(writeButton)
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ written_down: true }),
+      })
+    )
+  })
+
+  it('shows error toast when PATCH fails', async () => {
+    vi.useFakeTimers()
+    global.fetch = vi.fn().mockResolvedValue({ ok: false })
+    render(<PracticeList items={[grammarItem]} />)
+
+    const writeButton = screen.getByTestId(`write-item-${grammarItem.id}`)
+    await act(async () => {
+      fireEvent.click(writeButton)
+      await vi.runAllTimersAsync()
+    })
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/failed to mark as written/i)).toBeInTheDocument()
+    vi.useRealTimers()
   })
 })

@@ -2,15 +2,10 @@
 'use client'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useSwipeable } from 'react-swipeable'
-import type { PracticeItem, AnnotationType, SubCategory } from '@/lib/types'
+import type { PracticeItem, SubCategory } from '@/lib/types'
 import { SUB_CATEGORIES } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { useTranslation } from '@/components/LanguageProvider'
-
-const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
-  grammar: 'bg-red-400',
-  naturalness: 'bg-yellow-400',
-}
 
 function SwipeableItem({
   item,
@@ -18,6 +13,7 @@ function SwipeableItem({
   isSelected,
   onToggleSelect,
   onDelete,
+  onMarkWritten,
   onOpen,
 }: {
   item: PracticeItem
@@ -25,12 +21,14 @@ function SwipeableItem({
   isSelected: boolean
   onToggleSelect: (id: string) => void
   onDelete: (id: string) => Promise<boolean>
+  onMarkWritten: (id: string) => Promise<boolean>
   onOpen: (item: PracticeItem) => void
 }) {
   const { t } = useTranslation()
   const [translateX, setTranslateX] = useState(0)
   const [rowHeight, setRowHeight] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isWrittenDown, setIsWrittenDown] = useState(item.written_down)
   const rowRef = useRef<HTMLLIElement>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
@@ -79,6 +77,15 @@ function SwipeableItem({
     // On success: parent removes item from list via onDeleted (called inside onDelete)
   }
 
+  async function triggerMarkWritten() {
+    if (isAnimating) return
+    setIsWrittenDown(true)
+    setTranslateX(0)
+    const ok = await onMarkWritten(item.id)
+    if (!mountedRef.current) return
+    if (!ok) setIsWrittenDown(false)
+  }
+
   const handlers = useSwipeable({
     delta: 10,
     onSwiping: (e) => {
@@ -88,13 +95,17 @@ function SwipeableItem({
         longPressTimer.current = null
       }
       if (e.dir === 'Left') setTranslateX(-e.absX)
+      else if (e.dir === 'Right') setTranslateX(e.absX)
       else setTranslateX(0)
     },
     onSwipedLeft: (e) => {
       if (e.absX > 80) triggerDelete()
       else setTranslateX(0)
     },
-    onSwipedRight: () => setTranslateX(0),
+    onSwipedRight: (e) => {
+      if (e.absX > 80 && !isWrittenDown) triggerMarkWritten()
+      else setTranslateX(0)
+    },
     trackMouse: false,
   })
 
@@ -122,9 +133,13 @@ function SwipeableItem({
           : undefined
       }
     >
-      {/* Swipe-to-delete background */}
-      <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-5 rounded-xl">
+      {/* Swipe-to-delete background (right side, swiping left) */}
+      <div className={`absolute inset-0 bg-red-600 flex items-center justify-end pr-5 rounded-xl ${translateX >= 0 ? 'invisible' : ''}`}>
         <span className="text-white text-sm font-medium">{t('session.delete')}</span>
+      </div>
+      {/* Swipe-to-written background (left side, swiping right) */}
+      <div className={`absolute inset-0 bg-green-800 flex items-center pl-5 rounded-xl ${translateX <= 0 ? 'invisible' : ''}`}>
+        <span className="text-white text-sm font-medium">{t('practiceList.revealWritten')}</span>
       </div>
       {/* Item card */}
       <div
@@ -139,7 +154,7 @@ function SwipeableItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className="relative flex items-start gap-3 px-4 py-3 bg-gray-900 rounded-xl"
+        className={`relative flex items-start gap-3 px-4 py-3 bg-gray-900 rounded-xl ${isWrittenDown ? 'opacity-60' : ''}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
@@ -162,7 +177,18 @@ function SwipeableItem({
           // @ts-ignore — inert is a valid HTML attribute not yet in React's types
           inert=""
         />
-        {/* Bulk-select checkbox — always on desktop, only in bulk mode on mobile */}
+        {/* Hidden test seam for triggering mark-written in tests */}
+        <button
+          data-testid={`write-item-${item.id}`}
+          className="sr-only"
+          onClick={e => { e.stopPropagation(); triggerMarkWritten() }}
+          tabIndex={-1}
+          aria-hidden="true"
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore — inert is a valid HTML attribute not yet in React's types
+          inert=""
+        />
+        {/* Bulk-select checkbox */}
         <input
           type="checkbox"
           checked={isSelected}
@@ -171,7 +197,6 @@ function SwipeableItem({
           className={`w-4 h-4 rounded accent-violet-500 flex-shrink-0 ${isBulkMode ? 'block' : 'hidden sm:block'}`}
           aria-label={t('practiceList.selectItem')}
         />
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT_CLASS[item.type]}`} />
         <div className="flex-1 min-w-0 text-sm flex flex-col gap-0.5">
           <div>
             <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
@@ -180,9 +205,15 @@ function SwipeableItem({
             {' → '}
             <span className="font-medium text-[#86efac]">{item.correction}</span>
           </div>
-          <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs self-start">
-            {t(`subCat.${item.sub_category}`)}
-          </span>
+          <div className="flex gap-1.5 flex-wrap items-center">
+            <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
+              {t(`subCat.${item.sub_category}`)}
+            </span>
+            {isWrittenDown
+              ? <span className="text-[10px] text-green-400 border border-green-800 rounded-full px-2 py-0.5">{t('practiceList.writtenDown')}</span>
+              : <span className="text-[10px] text-gray-500 border border-gray-700 rounded-full px-2 py-0.5">{t('practiceList.notWrittenDown')}</span>
+            }
+          </div>
         </div>
       </div>
     </li>
@@ -204,6 +235,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(initialSubCategory !== undefined)
+  const [filterNotWritten, setFilterNotWritten] = useState(false)
 
   const subCategoryCounts = useMemo(() => {
     const counts = Object.fromEntries(SUB_CATEGORIES.map(sc => [sc, 0])) as Record<SubCategory, number>
@@ -240,6 +272,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   }, [toastMessage])
 
   const filtered = items.filter(item => {
+    if (filterNotWritten && item.written_down) return false
     if (subCategoryFilter !== null && item.sub_category !== subCategoryFilter) return false
     return true
   })
@@ -251,6 +284,19 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
       return false
     }
     onDeleted?.([id])
+    return true
+  }
+
+  async function markWritten(id: string): Promise<boolean> {
+    const res = await fetch(`/api/practice-items/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ written_down: true }),
+    })
+    if (!res.ok) {
+      setToastMessage(t('practiceList.markWrittenError'))
+      return false
+    }
     return true
   }
 
@@ -349,6 +395,17 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           >
             {t('practiceList.all')}
           </button>
+          {/* Pinned "Not written" filter — always second */}
+          <button
+            onClick={() => setFilterNotWritten(f => !f)}
+            className={`px-3 py-1 rounded-full border transition-colors ${
+              filterNotWritten
+                ? 'border-amber-500 text-amber-300 bg-amber-500/10'
+                : 'border-gray-700 text-gray-400'
+            }`}
+          >
+            {t('practiceList.filterNotWritten')}
+          </button>
           {(isExpanded ? sortedSubCategories : sortedSubCategories.slice(0, 3)).map(sc => (
             <button
               key={sc}
@@ -384,6 +441,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             isSelected={selectedIds.has(item.id)}
             onToggleSelect={handleToggleSelect}
             onDelete={deleteItem}
+            onMarkWritten={markWritten}
             onOpen={setOpenItem}
           />
         ))}
