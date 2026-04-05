@@ -140,7 +140,7 @@ function SwipeableSessionItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className={`relative ${isProcessing ? 'border-l-2 border-indigo-600 bg-surface' : 'bg-surface'}`}
+        className={`relative bg-surface${isProcessing ? ' border-l-2 border-indigo-600' : ''}`}
       >
         {/* Hidden test seam for triggering delete in tests */}
         <button
