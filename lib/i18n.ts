@@ -118,6 +118,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.tapToReveal': 'Tap to reveal Spanish',
     'flashcard.explainThis': 'Explain this →',
     'flashcard.tapToExplain': 'tap green to explain',
+    'flashcard.cardOptions': 'Card options',
+    'flashcard.skipCard': 'Skip card',
+    'flashcard.deleteCard': 'Delete card',
+    'flashcard.deleteConfirmTitle': 'Delete this flashcard?',
+    'flashcard.deleteConfirmBody': "This will permanently remove the practice item. This can't be undone.",
+    'flashcard.deleteConfirmDelete': 'Delete',
+    'flashcard.deleteConfirmCancel': 'Cancel',
+    'flashcard.deleteError': "Couldn't delete — please try again",
 
     // Practice page
     'practice.title': 'Practice Items',
@@ -284,6 +292,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.tapToReveal': 'Toca para ver el inglés',
     'flashcard.explainThis': 'Explicar esto →',
     'flashcard.tapToExplain': 'toca el verde para explicar',
+    'flashcard.cardOptions': 'Opciones de tarjeta',
+    'flashcard.skipCard': 'Saltar tarjeta',
+    'flashcard.deleteCard': 'Eliminar tarjeta',
+    'flashcard.deleteConfirmTitle': '¿Eliminar esta tarjeta?',
+    'flashcard.deleteConfirmBody': 'Esto eliminará el ítem de práctica permanentemente.',
+    'flashcard.deleteConfirmDelete': 'Eliminar',
+    'flashcard.deleteConfirmCancel': 'Cancelar',
+    'flashcard.deleteError': 'No se pudo eliminar — intentá de nuevo',
 
     // Practice page
     'practice.title': 'Ítems de práctica',
