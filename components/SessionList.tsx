@@ -140,7 +140,7 @@ function SwipeableSessionItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className={`relative ${isProcessing ? 'border-l-2 border-indigo-600 bg-[#0d0f1e]' : 'bg-[#0a0c1a]'}`}
+        className={`relative ${isProcessing ? 'border-l-2 border-indigo-600 bg-surface' : 'bg-surface'}`}
       >
         {/* Hidden test seam for triggering delete in tests */}
         <button
@@ -159,9 +159,9 @@ function SwipeableSessionItem({
           className={`flex items-center gap-3 py-3 min-w-0 ${isProcessing ? 'pl-3' : ''}`}
         >
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate text-gray-100">{session.title}</p>
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5 flex-wrap">
-              <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-gray-400'}`}>
+            <p className="font-medium truncate text-text-primary">{session.title}</p>
+            <div className="flex items-center gap-1.5 text-xs text-text-secondary mt-0.5 flex-wrap">
+              <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
                 {isProcessing && (
                   <svg
                     className="w-3 h-3 animate-spin text-indigo-400"
@@ -195,7 +195,7 @@ function SwipeableSessionItem({
           <svg
             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-            className="w-4 h-4 text-gray-600 flex-shrink-0" aria-hidden="true"
+            className="w-4 h-4 text-text-tertiary flex-shrink-0" aria-hidden="true"
           >
             <polyline points="9 18 15 12 9 6" />
           </svg>
@@ -206,14 +206,14 @@ function SwipeableSessionItem({
       {confirmPending && (
         <Modal title={t('session.deleteTitle')} onClose={() => setConfirmPending(false)}>
           <div className="space-y-4 text-sm">
-            <p className="text-gray-300 leading-relaxed">
-              <strong className="text-gray-100">{session.title}</strong>{' '}
+            <p className="text-text-secondary leading-relaxed">
+              <strong className="text-text-primary">{session.title}</strong>{' '}
               {t('session.deleteWarning')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmPending(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-600 text-gray-300 text-sm font-medium"
+                className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-sm font-medium"
               >
                 {t('session.cancelButton')}
               </button>
@@ -257,12 +257,12 @@ export function SessionList({ sessions, onDeleted }: Props) {
   }
 
   if (sessions.length === 0) {
-    return <p className="text-gray-500 text-sm">{t('session.noSessions')}</p>
+    return <p className="text-text-tertiary text-sm">{t('session.noSessions')}</p>
   }
 
   return (
     <div>
-      <ul className="divide-y divide-gray-800">
+      <ul className="divide-y divide-border-subtle">
         {sessions.map(s => (
           <SwipeableSessionItem
             key={s.id}
@@ -275,7 +275,7 @@ export function SessionList({ sessions, onDeleted }: Props) {
       {toastMessage && (
         <div
           role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-200 shadow-lg"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg"
         >
           {toastMessage}
         </div>
