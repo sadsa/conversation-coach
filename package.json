@@ -22,7 +22,8 @@
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",
-    "react-swipeable": "^7.0.2"
+    "react-swipeable": "^7.0.2",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -31,6 +32,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
