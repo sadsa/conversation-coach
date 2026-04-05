@@ -293,18 +293,20 @@ describe('PracticeList — Not written filter pill', () => {
   })
 
   it('clicking All clears the Not written filter', async () => {
-    render(<PracticeList items={[grammarItem]} />)
+    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
+    render(<PracticeList items={[grammarItem, writtenItem]} />)
+
+    // Activate "Not written" filter — written item should disappear
     await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
-    // "All" pill should now be inactive
+    expect(screen.queryByText('escrito')).not.toBeInTheDocument()
+
+    // "All" pill should now be inactive (no violet class)
     const allButton = screen.getByRole('button', { name: /^all$/i })
     expect(allButton.className).not.toMatch(/violet/)
-    // clicking All should re-show written items
-    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
-    // Re-render with both items
-    const { rerender } = render(<PracticeList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getAllByRole('button', { name: /^not written$/i })[0])
-    await userEvent.click(screen.getAllByRole('button', { name: /^all$/i })[0])
-    expect(screen.getAllByText('escrito').length).toBeGreaterThan(0)
+
+    // Clicking "All" should clear the filter and show written item again
+    await userEvent.click(allButton)
+    expect(screen.getByText('escrito')).toBeInTheDocument()
   })
 })
 
