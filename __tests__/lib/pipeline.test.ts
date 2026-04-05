@@ -403,9 +403,10 @@ describe('runClaudeAnalysis', () => {
         if (table === 'annotations') {
           return { insert: vi.fn().mockResolvedValue({ error: null }) }
         }
+        return {}
       }),
     }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as any)
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(analyseUserTurns).mockResolvedValue({ annotations: [], title: 'Session Title' })
     vi.mocked(deleteObject).mockResolvedValue(undefined)
 
