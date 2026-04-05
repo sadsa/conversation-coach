@@ -37,16 +37,16 @@ export function Modal({ title, onClose, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="bg-gray-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+        className="bg-surface-elevated rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-700">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">
           <div id="modal-title" className="text-sm font-semibold">{title}</div>
           <button
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors text-sm"
+            className="w-7 h-7 rounded-full bg-border flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors text-sm"
           >
             ✕
           </button>

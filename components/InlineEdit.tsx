@@ -50,7 +50,7 @@ export function InlineEdit({ value, onSave, className = '' }: Props) {
         if (e.key === 'Enter') commit()
         if (e.key === 'Escape') { setDraft(value); setEditing(false) }
       }}
-      className={`bg-transparent border-b border-gray-400 outline-none min-w-0 w-full ${className}`}
+      className={`bg-transparent border-b border-text-secondary outline-none min-w-0 w-full ${className}`}
     />
   )
 }
