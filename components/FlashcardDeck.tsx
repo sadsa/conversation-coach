@@ -114,7 +114,7 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-6 select-none">
       {/* Progress counter */}
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-xs text-text-tertiary mb-4">
         {t('flashcard.counter', { n: cardIndex + 1, m: items.length })}
       </p>
 
@@ -144,7 +144,7 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
           setTimeout(() => { isDragging.current = false }, 0)
         }}
         onClick={handleCardClick}
-        className="relative w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-6 min-h-[260px] flex flex-col justify-between cursor-pointer"
+        className="relative w-full max-w-sm bg-surface border border-border-subtle rounded-2xl p-6 min-h-[260px] flex flex-col justify-between cursor-pointer"
       >
         <button
           type="button"
@@ -152,7 +152,7 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
           aria-label={t('flashcard.cardOptions')}
           aria-expanded={menuOpen}
           onClick={e => { e.stopPropagation(); setMenuOpen(prev => !prev) }}
-          className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-400 hover:bg-gray-800 transition-colors z-10"
+          className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-secondary hover:bg-surface-elevated transition-colors z-10"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
             <circle cx="12" cy="5" r="1.5" />
@@ -173,17 +173,17 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
         {menuOpen && (
           <div
             data-testid="card-menu-dropdown"
-            className="absolute top-12 right-3 z-30 min-w-[148px] bg-[#1c2028] border border-gray-700 rounded-xl overflow-hidden shadow-xl"
+            className="absolute top-12 right-3 z-30 min-w-[148px] bg-surface-elevated border border-border rounded-xl overflow-hidden shadow-xl"
             onClick={e => e.stopPropagation()}
           >
             <button
               type="button"
-              className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-200 hover:bg-gray-700 transition-colors"
+              className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-medium text-text-primary hover:bg-border transition-colors"
               onClick={() => setMenuOpen(false)}
             >
               {t('flashcard.skipCard')}
             </button>
-            <div className="h-px bg-gray-800 mx-2.5" />
+            <div className="h-px bg-border-subtle mx-2.5" />
             <button
               type="button"
               className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-950/40 transition-colors"
@@ -204,20 +204,20 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
           {!isFlipped ? (
             <div data-testid="flashcard-front" className="flex min-h-0 flex-1 flex-col justify-between">
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-base text-gray-100 leading-relaxed text-center">
+                <p className="text-base text-text-primary leading-relaxed text-center">
                   {renderHighlighted(item.flashcard_front!, 'purple')}
                 </p>
               </div>
-              <p className="text-xs text-gray-600 text-center mt-4">{t('flashcard.tapToReveal')}</p>
+              <p className="text-xs text-text-tertiary text-center mt-4">{t('flashcard.tapToReveal')}</p>
             </div>
           ) : (
             <div data-testid="flashcard-back" className="flex min-h-0 flex-1 flex-col justify-between">
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-base text-gray-100 leading-relaxed text-center">
+                <p className="text-base text-text-primary leading-relaxed text-center">
                   {renderHighlighted(item.flashcard_back!, 'green', () => setIsExplainOpen(true))}
                 </p>
               </div>
-              <p className="text-xs text-gray-600 text-center mt-4">{t('flashcard.tapToExplain')}</p>
+              <p className="text-xs text-text-tertiary text-center mt-4">{t('flashcard.tapToExplain')}</p>
             </div>
           )}
         </div>
@@ -246,11 +246,11 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
             aria-modal="true"
             aria-labelledby="delete-confirm-title"
           >
-            <div className="w-full max-w-sm mx-auto bg-[#1c2028] border border-gray-700 rounded-2xl p-6 shadow-2xl">
-              <p id="delete-confirm-title" className="text-base font-medium text-gray-100 mb-2">
+            <div className="w-full max-w-sm mx-auto bg-surface-elevated border border-border rounded-2xl p-6 shadow-2xl">
+              <p id="delete-confirm-title" className="text-base font-medium text-text-primary mb-2">
                 {t('flashcard.deleteConfirmTitle')}
               </p>
-              <p className="text-sm text-gray-400 leading-relaxed mb-5">
+              <p className="text-sm text-text-secondary leading-relaxed mb-5">
                 {t('flashcard.deleteConfirmBody')}
               </p>
               {deleteError && (
@@ -260,7 +260,7 @@ export function FlashcardDeck({ items, onDeleted }: Props) {
                 <button
                   ref={cancelConfirmRef}
                   type="button"
-                  className="flex-1 py-3 rounded-xl text-sm font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors disabled:opacity-40"
+                  className="flex-1 py-3 rounded-xl text-sm font-medium bg-surface-elevated text-text-secondary hover:bg-border transition-colors disabled:opacity-40"
                   onClick={() => setConfirmOpen(false)}
                   disabled={isDeleting}
                 >
