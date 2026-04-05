@@ -3,9 +3,13 @@ import { createServerClient } from '@/lib/supabase-server'
 import { log } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
-  let body: unknown
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
-  const { endpoint, keys } = body ?? {}
+  let body: { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+  const { endpoint, keys } = body
 
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

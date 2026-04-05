@@ -41,7 +41,7 @@ export function usePushNotifications() {
 
 async function postSubscription(sub: PushSubscription) {
   const json = sub.toJSON()
-  await fetch('/api/push-subscription', {
+  const response = await fetch('/api/push-subscription', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -49,4 +49,7 @@ async function postSubscription(sub: PushSubscription) {
       keys: { p256dh: json.keys?.p256dh, auth: json.keys?.auth },
     }),
   })
+  if (!response.ok) {
+    console.warn('[push] Failed to save subscription:', response.status)
+  }
 }
