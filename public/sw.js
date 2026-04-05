@@ -63,3 +63,32 @@ self.addEventListener('fetch', (e) => {
   e.waitUntil(work)
   e.respondWith(work)
 })
+
+// ── Push notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', (e) => {
+  if (!e.data) return
+  const { title, body, sessionId } = e.data.json()
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      data: { sessionId },
+    })
+  )
+})
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const { sessionId } = e.notification.data ?? {}
+  if (!sessionId) return
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const target = `/sessions/${sessionId}`
+      for (const client of clientList) {
+        if (client.url.includes(target) && 'focus' in client) return client.focus()
+      }
+      return clients.openWindow(target)
+    })
+  )
+})
