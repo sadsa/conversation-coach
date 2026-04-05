@@ -37,6 +37,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (body.reviewed !== undefined) update.reviewed = body.reviewed
   if (body.written_down !== undefined) update.written_down = body.written_down
 
+  if (Object.keys(update).length === 0)
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+
   const { error } = await db
     .from('practice_items')
     .update(update)
