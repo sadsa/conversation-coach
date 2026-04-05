@@ -4,6 +4,7 @@ import { DropZone } from '@/components/DropZone'
 import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
 import { useTranslation } from '@/components/LanguageProvider'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
@@ -156,9 +157,12 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
-        <p className="text-gray-400 text-sm">{t('home.subtitle')}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
+          <p className="text-text-secondary text-sm">{t('home.subtitle')}</p>
+        </div>
+        <ThemeToggle className="flex-shrink-0 mt-0.5" />
       </div>
 
       <div className="space-y-3">
@@ -180,7 +184,7 @@ export default function HomePage() {
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">{t('home.pastSessions')}</h2>
+        <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-3">{t('home.pastSessions')}</h2>
         <SessionList sessions={sessions} onDeleted={handleSessionDeleted} />
       </div>
     </div>
