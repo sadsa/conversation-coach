@@ -49,7 +49,7 @@ export function PendingUploadCard({
 
       {/* Recording type toggle */}
       <div>
-        <p className="text-xs text-gray-400 font-medium mb-2">{t('upload.recordingType')}</p>
+        <p className="text-xs text-text-secondary font-medium mb-2">{t('upload.recordingType')}</p>
         <div className="inline-flex rounded-lg overflow-hidden border border-violet-900">
           <button
             type="button"
@@ -79,7 +79,7 @@ export function PendingUploadCard({
       {/* Speaker count (conversation only) */}
       {speakerMode === 'conversation' && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 font-medium">{t('upload.speakers')}</span>
+          <span className="text-xs text-text-secondary font-medium">{t('upload.speakers')}</span>
           <div className="flex gap-1.5">
             {SPEAKER_COUNTS.map(({ label, value }) => (
               <button
@@ -104,7 +104,7 @@ export function PendingUploadCard({
         <button
           type="button"
           onClick={onDismiss}
-          className="px-3 py-1.5 text-xs text-gray-400 border border-gray-700 rounded-lg hover:text-gray-200 transition-colors"
+          className="px-3 py-1.5 text-xs text-text-secondary border border-border rounded-lg hover:text-text-primary transition-colors"
         >
           {t('upload.dismiss')}
         </button>

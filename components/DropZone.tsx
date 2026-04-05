@@ -48,12 +48,12 @@ export function DropZone({ onFile }: Props) {
         }}
         onClick={() => inputRef.current?.click()}
         className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors
-          ${dragOver ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 hover:border-gray-500'}`}
+          ${dragOver ? 'border-indigo-500 bg-indigo-500/10' : 'border-border hover:border-text-secondary'}`}
       >
         <span className="text-2xl flex-shrink-0" aria-hidden="true">🎙️</span>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-100 text-sm">{t('dropzone.title')}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{t('dropzone.formats')}</p>
+          <p className="font-semibold text-text-primary text-sm">{t('dropzone.title')}</p>
+          <p className="text-xs text-text-tertiary mt-0.5">{t('dropzone.formats')}</p>
         </div>
         <button
           type="button"
