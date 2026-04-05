@@ -59,6 +59,15 @@ describe('sendPushNotification', () => {
     )
   })
 
+  it('returns early and does not call sendNotification when VAPID keys are missing', async () => {
+    delete process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    delete process.env.VAPID_PRIVATE_KEY
+
+    await sendPushNotification('session-1', 'My Session')
+
+    expect(webpush.sendNotification).not.toHaveBeenCalled()
+  })
+
   it('does not throw when sendNotification rejects', async () => {
     const sub = { endpoint: 'https://fcm.example', p256dh: 'abc', auth: 'def' }
     const mockDb = {

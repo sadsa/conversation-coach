@@ -10,7 +10,8 @@ export async function sendPushNotification(sessionId: string, title: string): Pr
     return
   }
 
-  webpush.setVapidDetails('mailto:noreply@example.com', vapidPublicKey, vapidPrivateKey)
+  const vapidContact = process.env.VAPID_CONTACT ?? 'mailto:push@localhost'
+  webpush.setVapidDetails(vapidContact, vapidPublicKey, vapidPrivateKey)
 
   const db = createServerClient()
   const { data: sub } = await db
@@ -34,6 +35,6 @@ export async function sendPushNotification(sessionId: string, title: string): Pr
     )
     log.info('Push notification sent', { sessionId })
   } catch (err) {
-    log.error('Push notification failed', { sessionId, err })
+    log.error('Push notification failed', { sessionId, error: err })
   }
 }
