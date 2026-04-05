@@ -10,6 +10,10 @@ export default function FlashcardsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  function handleDeleted(id: string) {
+    setItems(prev => prev.filter(i => i.id !== id))
+  }
+
   useEffect(() => {
     fetch('/api/practice-items')
       .then(r => r.json())
@@ -44,7 +48,7 @@ export default function FlashcardsPage() {
 
       {!loading && !error && items.length > 0 && (
         <div className="flex flex-col flex-1 justify-center">
-          <FlashcardDeck items={items} />
+          <FlashcardDeck items={items} onDeleted={handleDeleted} />
         </div>
       )}
     </div>

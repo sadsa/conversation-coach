@@ -1,10 +1,11 @@
 // __tests__/components/FlashcardDeck.test.tsx
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FlashcardDeck } from '@/components/FlashcardDeck'
 import type { PracticeItem } from '@/lib/types'
-import React from 'react'
+import React, { useState } from 'react'
+import { useTranslation } from '@/components/LanguageProvider'
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -205,5 +206,150 @@ describe('FlashcardDeck — advance', () => {
     await userEvent.click(screen.getByTestId('flashcard-card')) // flip to back
     await userEvent.click(screen.getByTestId('go-back-card')) // → card 1
     expect(screen.getByTestId('flashcard-front')).toBeInTheDocument()
+  })
+})
+
+describe('FlashcardDeck — onDeleted prop', () => {
+  it('renders without onDeleted prop (optional)', () => {
+    render(<FlashcardDeck items={[baseItem]} />)
+    expect(screen.getByTestId('flashcard-front')).toBeInTheDocument()
+  })
+
+  it('clamps currentIndex when items shrink below current position', async () => {
+    const item2: PracticeItem = {
+      ...baseItem, id: 'item-2',
+      flashcard_front: 'second [[card]]',
+      flashcard_back: 'segunda [[tarjeta]]',
+    }
+    const { rerender } = render(<FlashcardDeck items={[baseItem, item2]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByTestId('advance-card'))
+    expect(screen.getByText('card')).toBeInTheDocument()
+
+    rerender(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+
+    expect(screen.getByText('flush out')).toBeInTheDocument()
+  })
+})
+
+describe('FlashcardDeck — three-dot menu', () => {
+  it('renders the ⋮ menu button', () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /card options/i })).toBeInTheDocument()
+  })
+
+  it('dropdown is not visible initially', () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    expect(screen.queryByTestId('card-menu-dropdown')).not.toBeInTheDocument()
+  })
+
+  it('opens dropdown when ⋮ button is clicked', async () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    expect(screen.getByTestId('card-menu-dropdown')).toBeInTheDocument()
+  })
+
+  it('shows "Skip card" and "Delete card" in dropdown', async () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    expect(screen.getByRole('button', { name: /skip card/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /delete card/i })).toBeInTheDocument()
+  })
+
+  it('closes dropdown when backdrop is clicked', async () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByTestId('card-menu-backdrop'))
+    expect(screen.queryByTestId('card-menu-dropdown')).not.toBeInTheDocument()
+  })
+
+  it('closes dropdown when Escape is pressed', async () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByTestId('card-menu-dropdown')).not.toBeInTheDocument()
+  })
+})
+
+function FlashcardsDeleteHost() {
+  const { t } = useTranslation()
+  const [items, setItems] = useState<PracticeItem[]>([baseItem])
+  if (items.length === 0) {
+    return <p data-testid="flashcards-empty">{t('flashcards.empty')}</p>
+  }
+  return (
+    <FlashcardDeck
+      items={items}
+      onDeleted={id => setItems(prev => prev.filter(i => i.id !== id))}
+    />
+  )
+}
+
+describe('FlashcardDeck — delete confirm sheet', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('opens confirm sheet when "Delete card" is clicked', async () => {
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByRole('button', { name: /delete card/i }))
+    expect(screen.getByTestId('delete-confirm-sheet')).toBeInTheDocument()
+    expect(screen.getByText(/delete this flashcard/i)).toBeInTheDocument()
+  })
+
+  it('closes confirm sheet and does not call fetch on Cancel', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByRole('button', { name: /delete card/i }))
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByTestId('delete-confirm-sheet')).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('calls DELETE /api/practice-items/:id and invokes onDeleted on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+    const onDeleted = vi.fn()
+    render(<FlashcardDeck items={[baseItem]} onDeleted={onDeleted} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByRole('button', { name: /delete card/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(fetch).toHaveBeenCalledWith('/api/practice-items/item-1', { method: 'DELETE' })
+    expect(onDeleted).toHaveBeenCalledWith('item-1')
+    expect(screen.queryByTestId('delete-confirm-sheet')).not.toBeInTheDocument()
+  })
+
+  it('shows inline error and keeps card when API fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    const onDeleted = vi.fn()
+    render(<FlashcardDeck items={[baseItem]} onDeleted={onDeleted} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByRole('button', { name: /delete card/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(screen.getByText(/couldn't delete/i)).toBeInTheDocument()
+    expect(onDeleted).not.toHaveBeenCalled()
+    expect(screen.getByTestId('delete-confirm-sheet')).toBeInTheDocument()
+  })
+
+  it('shows inline error and keeps card when fetch throws', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+    const onDeleted = vi.fn()
+    render(<FlashcardDeck items={[baseItem]} onDeleted={onDeleted} />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByRole('button', { name: /delete card/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(screen.getByText(/couldn't delete/i)).toBeInTheDocument()
+    expect(onDeleted).not.toHaveBeenCalled()
+  })
+
+  it('deleting last card shows empty message when parent filters items', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+    render(<FlashcardsDeleteHost />)
+    await userEvent.click(screen.getByRole('button', { name: /card options/i }))
+    await userEvent.click(screen.getByRole('button', { name: /delete card/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(screen.getByTestId('flashcards-empty')).toBeInTheDocument()
+    expect(screen.getByText(/no flashcards yet/i)).toBeInTheDocument()
   })
 })
