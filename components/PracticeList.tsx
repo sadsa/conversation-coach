@@ -199,18 +199,18 @@ function SwipeableItem({
         />
         <div className="flex-1 min-w-0 text-sm flex flex-col gap-0.5">
           <div>
-            <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
+            <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
               {item.original}
             </span>
             {' → '}
-            <span className="font-medium text-[#86efac]">{item.correction}</span>
+            <span className="font-medium text-correction">{item.correction}</span>
           </div>
           <div className="flex gap-1.5 flex-wrap items-center">
-            <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
+            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
               {t(`subCat.${item.sub_category}`)}
             </span>
             {isWrittenDown
-              ? <span className="text-[10px] text-green-400 border border-green-800 rounded-full px-2 py-0.5">{t('practiceList.writtenDown')}</span>
+              ? <span className="text-[10px] text-green-600 border border-green-700 rounded-full px-2 py-0.5">{t('practiceList.writtenDown')}</span>
               : <span className="text-[10px] text-gray-500 border border-gray-700 rounded-full px-2 py-0.5">{t('practiceList.notWrittenDown')}</span>
             }
           </div>
@@ -253,16 +253,16 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   }, [subCategoryCounts])
 
   function pillClass(sc: SubCategory): string {
-    if (sc === subCategoryFilter) return 'border-indigo-500 text-indigo-300 bg-indigo-500/10'
+    if (sc === subCategoryFilter) return 'border-indigo-500 text-on-accent-chip bg-indigo-500/10'
     const count = subCategoryCounts[sc]
     if (count === 0) return 'border-border-subtle text-text-tertiary'
-    if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-red-800 text-red-400 bg-red-950/40'
-    if (colourTiers.rank2 > 0 && count === colourTiers.rank2) return 'border-amber-700 text-amber-400 bg-amber-950/40'
+    if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-red-800 bg-pill-rank1 text-on-pill-rank1'
+    if (colourTiers.rank2 > 0 && count === colourTiers.rank2) return 'border-amber-700 bg-pill-rank2 text-on-pill-rank2'
     return 'border-border text-text-secondary'
   }
 
   const allPillClass = subCategoryFilter === null && !filterNotWritten
-    ? 'border-violet-500 text-violet-300 bg-violet-500/10'
+    ? 'border-violet-500 text-pill-violet bg-violet-500/10'
     : 'border-border text-text-secondary'
 
   useEffect(() => {
@@ -337,12 +337,12 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
     <div className="space-y-4">
       {/* Bulk action toolbar — sticky, shown only in bulk mode */}
       {isBulkMode && (
-        <div className="sticky top-0 z-30 flex items-center gap-3 px-3 py-2 bg-indigo-950 border border-indigo-800 rounded-xl text-sm">
+        <div className="sticky top-0 z-30 flex items-center gap-3 px-3 py-2 bg-accent-chip border border-accent-chip-border rounded-xl text-sm">
           {/* Back / exit button */}
           <button
             onClick={exitBulkMode}
             aria-label={t('practiceList.exitSelection')}
-            className="text-indigo-300 hover:text-indigo-100 p-1"
+            className="text-on-accent-chip hover:text-text-primary p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -351,13 +351,13 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             </svg>
           </button>
 
-          <span className="text-indigo-300 text-sm flex-1">{t('practiceList.selected', { n: selectedIds.size })}</span>
+          <span className="text-on-accent-chip text-sm flex-1">{t('practiceList.selected', { n: selectedIds.size })}</span>
 
           {/* Select all */}
           <button
             onClick={() => setSelectedIds(new Set(filtered.map(i => i.id)))}
             aria-label={t('practiceList.selectAll')}
-            className="text-indigo-400 hover:text-indigo-200 p-1"
+            className="text-on-accent-chip hover:text-text-primary p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -400,8 +400,8 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             onClick={() => setFilterNotWritten(f => !f)}
             className={`px-3 py-1 rounded-full border transition-colors ${
               filterNotWritten
-                ? 'border-amber-500 text-amber-300 bg-amber-500/10'
-                : 'border-gray-700 text-gray-400'
+                ? 'border-amber-500 text-pill-amber bg-amber-500/10'
+                : 'border-pill-inactive-border text-pill-inactive'
             }`}
           >
             {t('practiceList.filterNotWritten')}
@@ -455,15 +455,15 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
           <div className="space-y-3 text-sm">
             <div>
               <>
-                <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
+                <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
                   {openItem.original}
                 </span>
                 <span className="mx-2 text-text-secondary">→</span>
-                <span className="font-medium text-[#86efac]">{openItem.correction}</span>
+                <span className="font-medium text-correction">{openItem.correction}</span>
               </>
             </div>
             <p className="text-text-secondary leading-relaxed">{openItem.explanation}</p>
-            <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
+            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
               {t(`subCat.${openItem.sub_category}`)}
             </span>
           </div>

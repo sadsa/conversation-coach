@@ -61,17 +61,17 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
     <div className="space-y-3">
       <p className="text-base">
         <>
-          <span className="bg-[#3b1a1a] text-[#fca5a5] px-1.5 py-0.5 rounded">
+          <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
             {annotation.original}
           </span>
           {' → '}
-          <span className="font-semibold text-lg text-[#86efac]">
+          <span className="font-semibold text-lg text-correction">
             {annotation.correction}
           </span>
         </>
       </p>
       <p className="text-sm text-text-secondary leading-relaxed">{annotation.explanation}</p>
-      <span className="border border-indigo-800 text-indigo-400 bg-indigo-950 rounded-full px-2 py-0.5 text-xs">
+      <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
         {t(`subCat.${annotation.sub_category}`)}
       </span>
       {practiceItemId ? (

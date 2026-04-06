@@ -10,9 +10,9 @@ function renderHighlighted(text: string, colour: 'purple' | 'green', onClick?: (
   const parts = text.split(/\[\[|\]\]/)
   if (parts.length < 3) return <>{text}</>
   const cls = colour === 'purple'
-    ? 'text-violet-300 bg-violet-500/20 rounded px-1'
-    : 'text-green-300 bg-green-500/20 rounded px-1'
-  const interactiveCls = onClick ? ' border-b border-dashed border-green-400 cursor-pointer' : ''
+    ? 'text-pill-violet bg-violet-500/20 rounded px-1'
+    : 'text-correction bg-green-500/20 rounded px-1'
+  const interactiveCls = onClick ? ' border-b border-dashed border-correction cursor-pointer' : ''
   return (
     <>
       {parts[0]}

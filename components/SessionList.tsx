@@ -156,7 +156,7 @@ function SwipeableSessionItem({
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
           onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
-          className={`flex items-center gap-3 py-3 min-w-0 ${isProcessing ? 'pl-3' : ''}`}
+          className={`flex items-center gap-3 py-3 min-w-0 ${isProcessing ? 'pl-3 pr-4' : 'px-4'}`}
         >
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate text-text-primary">{session.title}</p>

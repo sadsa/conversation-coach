@@ -57,7 +57,7 @@ export function DropZone({ onFile }: Props) {
         </div>
         <button
           type="button"
-          className="flex-shrink-0 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors"
+          className="flex-shrink-0 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors text-white"
           onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
         >
           {t('dropzone.browse')}
