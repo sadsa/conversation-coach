@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { TARGET_LANGUAGES, type TargetLanguage } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
-import { useTheme } from '@/components/ThemeProvider'
 
 const MIN = 14
 const MAX = 22
@@ -19,8 +18,6 @@ export default function SettingsPage() {
   const [size, setSize] = useState<number>(16)
   const router = useRouter()
   const { targetLanguage, setTargetLanguage, t } = useTranslation()
-  const { theme, setTheme } = useTheme()
-
   useEffect(() => {
     const stored = localStorage.getItem(KEY)
     if (stored) setSize(parseInt(stored, 10))
@@ -40,32 +37,6 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-sm">
       <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
-
-      <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.appearance')}</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTheme('dark')}
-            className={`flex-1 py-2 rounded border text-sm font-medium transition-colors ${
-              theme === 'dark'
-                ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
-                : 'border-border bg-surface text-text-secondary hover:border-text-secondary'
-            }`}
-          >
-            Dark
-          </button>
-          <button
-            onClick={() => setTheme('light')}
-            className={`flex-1 py-2 rounded border text-sm font-medium transition-colors ${
-              theme === 'light'
-                ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
-                : 'border-border bg-surface text-text-secondary hover:border-text-secondary'
-            }`}
-          >
-            Light
-          </button>
-        </div>
-      </div>
 
       <div className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.textSize')}</h2>
