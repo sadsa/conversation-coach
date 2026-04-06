@@ -2,7 +2,7 @@
 import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
-import { ConditionalBottomNav } from '@/components/ConditionalBottomNav'
+import { ConditionalNav } from '@/components/ConditionalNav'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { getAuthenticatedUser } from '@/lib/auth'
 import type { TargetLanguage } from '@/lib/types'
@@ -52,8 +52,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
           <ThemeProvider>
             <FontSizeProvider />
-            <main className="max-w-4xl mx-auto px-6 py-8 pb-20">{children}</main>
-            <ConditionalBottomNav />
+            <main className="max-w-4xl mx-auto px-6 pt-11 pb-8">{children}</main>
+            <ConditionalNav />
           </ThemeProvider>
         </LanguageProvider>
       </body>
