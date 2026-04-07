@@ -2,7 +2,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useTranslation } from '@/components/LanguageProvider'
@@ -110,6 +110,15 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Focus close button when drawer opens
+  useEffect(() => {
+    if (isOpen && closeButtonRef.current) {
+      closeButtonRef.current.focus()
+    }
+  }, [isOpen])
+
   const swipeHandlers = useSwipeable({
     onSwipedLeft: onClose,
     trackMouse: false,
@@ -147,6 +156,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         {/* Close button — same height as the header bar */}
         <div className="flex items-center justify-end h-11 px-4 border-b border-border-subtle">
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close menu"
             className="p-1 text-text-tertiary hover:text-text-secondary transition-colors"
