@@ -4,7 +4,6 @@ import { DropZone } from '@/components/DropZone'
 import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
 import { useTranslation } from '@/components/LanguageProvider'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
@@ -157,12 +156,9 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
-          <p className="text-text-secondary text-sm">{t('home.subtitle')}</p>
-        </div>
-        <ThemeToggle className="flex-shrink-0 mt-0.5" />
+      <div>
+        <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
+        <p className="text-text-secondary text-sm">{t('home.subtitle')}</p>
       </div>
 
       <div className="space-y-3">
