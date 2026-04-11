@@ -1,5 +1,5 @@
 // __tests__/api/dashboard-summary.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // We test the query logic in isolation via a helper extracted from the route.
 // The route itself is thin wiring; the helper is where the logic lives.
