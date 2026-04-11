@@ -114,6 +114,15 @@ export interface PracticeItem {
   flashcard_front: string | null
   flashcard_back: string | null
   flashcard_note: string | null
+  fsrs_state: 'New' | 'Learning' | 'Review' | 'Relearning' | null
+  due: string | null
+  stability: number | null
+  difficulty: number | null
+  elapsed_days: number | null
+  scheduled_days: number | null
+  reps: number | null
+  lapses: number | null
+  last_review: string | null
 }
 
 // API response shapes
