@@ -1,10 +1,16 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { DropZone } from '@/components/DropZone'
 import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
 import { SessionList } from '@/components/SessionList'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
+
+interface DashboardSummary {
+  dueCount: number
+  writeDownCount: number
+}
 
 const SPEAKER_MODE_KEY = 'speakerMode'
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
@@ -18,6 +24,7 @@ export default function HomePage() {
   const [speakersExpected, setSpeakersExpected] = useState(2)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const pollingRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
 
   function startPolling(sessionId: string) {
@@ -57,6 +64,14 @@ export default function HomePage() {
         })
       })
       .catch(console.error)
+
+    // Summary fetch (new)
+    fetch('/api/dashboard-summary')
+      .then(r => r.json())
+      .then((data: DashboardSummary) => {
+        if (typeof data.dueCount === 'number') setSummary(data)
+      })
+      .catch(() => { /* silently ignore — widget is non-critical */ })
 
     return () => {
       pollingRefs.current.forEach(id => clearInterval(id))
@@ -159,6 +174,24 @@ export default function HomePage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
         <p className="text-text-secondary text-sm">{t('home.subtitle')}</p>
+      </div>
+
+      {/* Daily habit widget */}
+      <div className="flex gap-2 flex-wrap">
+        <Link
+          href="/flashcards"
+          data-testid="widget-cards-due"
+          className="flex items-center px-3 py-1.5 rounded-full border border-violet-800 bg-violet-500/10 text-sm text-violet-300 hover:bg-violet-500/20 transition-colors"
+        >
+          {summary !== null ? t('home.cardsDue', { n: summary.dueCount }) : '—'}
+        </Link>
+        <Link
+          href="/practice?written_down=false"
+          data-testid="widget-write-down"
+          className="flex items-center px-3 py-1.5 rounded-full border border-emerald-800 bg-emerald-500/10 text-sm text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+        >
+          {summary !== null ? t('home.toWriteDown', { n: summary.writeDownCount }) : '—'}
+        </Link>
       </div>
 
       <div className="space-y-3">
