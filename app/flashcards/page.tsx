@@ -9,6 +9,8 @@ export default function FlashcardsPage() {
   const [items, setItems] = useState<PracticeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // undefined = not yet fetched, null = fetched but no future cards, string = ISO date
+  const [nextReviewAt, setNextReviewAt] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
     fetch('/api/practice-items?flashcards=due')
@@ -33,9 +35,16 @@ export default function FlashcardsPage() {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ rating }),
-    }).catch(() => {
-      // Silently swallow — missed review leaves card at current scheduling
-    })
+    }).catch(() => {})
+  }, [])
+
+  const handleCaughtUp = useCallback(() => {
+    fetch('/api/dashboard-summary')
+      .then(r => r.json())
+      .then(data => {
+        setNextReviewAt(data?.nextReviewAt ?? null)
+      })
+      .catch(() => setNextReviewAt(null))
   }, [])
 
   return (
@@ -54,7 +63,13 @@ export default function FlashcardsPage() {
 
       {!loading && !error && items.length > 0 && (
         <div className="flex flex-col flex-1 justify-center">
-          <FlashcardDeck items={items} onDeleted={handleDeleted} onRate={handleRate} />
+          <FlashcardDeck
+            items={items}
+            onDeleted={handleDeleted}
+            onRate={handleRate}
+            onCaughtUp={handleCaughtUp}
+            nextReviewAt={nextReviewAt}
+          />
         </div>
       )}
     </div>

@@ -31,13 +31,37 @@ function renderHighlighted(text: string, colour: 'purple' | 'green', onClick?: (
   )
 }
 
+function formatNextReview(isoString: string): { key: string; vars: Record<string, string> } {
+  const reviewDate = new Date(isoString)
+  const now = new Date()
+  const time = reviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  const reviewDay = new Date(reviewDate.getFullYear(), reviewDate.getMonth(), reviewDate.getDate())
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  if (reviewDay.getTime() === today.getTime()) {
+    return { key: 'flashcard.nextReviewAt', vars: { time } }
+  }
+  if (reviewDay.getTime() === tomorrow.getTime()) {
+    return { key: 'flashcard.nextReviewTomorrowAt', vars: { time } }
+  }
+  const weekday = reviewDate.toLocaleDateString([], { weekday: 'short' })
+  const day = String(reviewDate.getDate())
+  const month = reviewDate.toLocaleDateString([], { month: 'short' })
+  return { key: 'flashcard.nextReviewOnAt', vars: { weekday, day, month, time } }
+}
+
 interface Props {
   items: PracticeItem[]
   onDeleted?: (id: string) => void
   onRate?: (id: string, rating: 1 | 3) => void
+  nextReviewAt?: string | null
+  onCaughtUp?: () => void
 }
 
-export function FlashcardDeck({ items, onDeleted, onRate }: Props) {
+export function FlashcardDeck({ items, onDeleted, onRate, nextReviewAt, onCaughtUp }: Props) {
   const { t } = useTranslation()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -77,9 +101,11 @@ export function FlashcardDeck({ items, onDeleted, onRate }: Props) {
 
   function rateAndAdvance(rating: 1 | 3) {
     if (item) onRate?.(item.id, rating)
-    setCurrentIndex(prev => prev + 1)
+    const nextIndex = currentIndex + 1
+    setCurrentIndex(nextIndex)
     setIsFlipped(false)
     setIsExplainOpen(false)
+    if (nextIndex >= items.length) onCaughtUp?.()
   }
 
   function handleCardClick() {
@@ -105,10 +131,16 @@ export function FlashcardDeck({ items, onDeleted, onRate }: Props) {
   }
 
   if (caughtUp) {
+    const nextReview = nextReviewAt ? formatNextReview(nextReviewAt) : null
     return (
       <div data-testid="caught-up-screen" className="flex flex-col items-center justify-center flex-1 px-4 py-6 gap-4">
         <p className="text-2xl font-semibold text-text-primary">{t('flashcard.allCaughtUp')}</p>
         <p className="text-sm text-text-tertiary text-center">{t('flashcard.allCaughtUpBody')}</p>
+        {nextReview && (
+          <p data-testid="next-review-line" className="text-sm text-text-secondary text-center">
+            {t(nextReview.key, nextReview.vars)}
+          </p>
+        )}
         <Link href="/" className="mt-4 text-sm text-accent underline">{t('flashcard.goHome')}</Link>
       </div>
     )
