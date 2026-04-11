@@ -15,6 +15,7 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useAnimationControls: () => ({ start: vi.fn().mockResolvedValue(undefined), set: vi.fn() }),
   useMotionValue: (_initial: number) => ({ get: vi.fn(), set: vi.fn() }),
+  useTransform: () => 0,
 }))
 
 const baseItem: PracticeItem = {
@@ -25,6 +26,9 @@ const baseItem: PracticeItem = {
   flashcard_front: 'it can [[flush out]] your electrolytes',
   flashcard_back: 'puede [[se te lleva]] los electrolitos',
   flashcard_note: '"Te elimina" sounds like a direct translation and is not natural in Rioplatense.',
+  written_down: true,
+  fsrs_state: null, due: null, stability: null, difficulty: null,
+  elapsed_days: null, scheduled_days: null, reps: null, lapses: null, last_review: null,
 }
 
 describe('FlashcardDeck — front face', () => {
@@ -142,7 +146,7 @@ describe('FlashcardDeck — tappable phrase', () => {
     await userEvent.click(screen.getByTestId('flashcard-card'))
     await userEvent.click(screen.getByTestId('flashcard-back-phrase'))
     expect(screen.getByTestId('explain-sheet')).toBeInTheDocument()
-    await userEvent.click(screen.getByTestId('advance-card'))
+    await userEvent.click(screen.getByTestId('rate-good'))
     expect(screen.queryByTestId('explain-sheet')).not.toBeInTheDocument()
   })
 
@@ -155,57 +159,64 @@ describe('FlashcardDeck — tappable phrase', () => {
   })
 })
 
-describe('FlashcardDeck — advance', () => {
+describe('FlashcardDeck — rating and progress', () => {
   const item2: PracticeItem = {
     ...baseItem, id: 'item-2',
     flashcard_front: 'second card [[phrase]] here',
     flashcard_back: 'segunda [[tarjeta]] aquí',
+    fsrs_state: 'Review' as const,
+    due: new Date(Date.now() - 1000).toISOString(),
   }
 
-  it('advances to next card via test seam button', async () => {
+  it('calls onRate with rating 3 when rate-good is clicked', async () => {
+    const onRate = vi.fn()
+    render(<FlashcardDeck items={[baseItem]} onRate={onRate} />)
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(onRate).toHaveBeenCalledWith('item-1', 3)
+  })
+
+  it('calls onRate with rating 1 when rate-again is clicked', async () => {
+    const onRate = vi.fn()
+    render(<FlashcardDeck items={[baseItem]} onRate={onRate} />)
+    await userEvent.click(screen.getByTestId('rate-again'))
+    expect(onRate).toHaveBeenCalledWith('item-1', 1)
+  })
+
+  it('advances to next card after rating', async () => {
     render(<FlashcardDeck items={[baseItem, item2]} />)
     expect(screen.getByText('flush out')).toBeInTheDocument()
-    await userEvent.click(screen.getByTestId('advance-card'))
+    await userEvent.click(screen.getByTestId('rate-good'))
     expect(screen.getByText('phrase')).toBeInTheDocument()
     expect(screen.queryByText('flush out')).not.toBeInTheDocument()
   })
 
-  it('resets to front face when advancing', async () => {
+  it('resets to front face when rating and advancing', async () => {
     render(<FlashcardDeck items={[baseItem, item2]} />)
-    // Flip first card
     await userEvent.click(screen.getByTestId('flashcard-card'))
     expect(screen.getByTestId('flashcard-back')).toBeInTheDocument()
-    // Advance
-    await userEvent.click(screen.getByTestId('advance-card'))
+    await userEvent.click(screen.getByTestId('rate-good'))
     expect(screen.getByTestId('flashcard-front')).toBeInTheDocument()
   })
 
-  it('loops back to first card after last', async () => {
-    render(<FlashcardDeck items={[baseItem, item2]} />)
-    await userEvent.click(screen.getByTestId('advance-card')) // → card 2
-    await userEvent.click(screen.getByTestId('advance-card')) // → loop to card 1
-    expect(screen.getByText('flush out')).toBeInTheDocument()
+  it('shows caught-up screen after rating the last card', async () => {
+    render(<FlashcardDeck items={[baseItem]} />)
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(screen.getByTestId('caught-up-screen')).toBeInTheDocument()
+    expect(screen.getByText(/all caught up/i)).toBeInTheDocument()
   })
 
-  it('goes back to previous card via test seam button', async () => {
-    render(<FlashcardDeck items={[baseItem, item2]} />)
-    await userEvent.click(screen.getByTestId('advance-card')) // → card 2
-    await userEvent.click(screen.getByTestId('go-back-card')) // → card 1
-    expect(screen.getByText('flush out')).toBeInTheDocument()
+  it('shows caught-up screen after rating-again on last card', async () => {
+    render(<FlashcardDeck items={[baseItem]} />)
+    await userEvent.click(screen.getByTestId('rate-again'))
+    expect(screen.getByTestId('caught-up-screen')).toBeInTheDocument()
   })
 
-  it('wraps from first card to last when going back', async () => {
+  it('does not loop back to first card after last', async () => {
     render(<FlashcardDeck items={[baseItem, item2]} />)
-    await userEvent.click(screen.getByTestId('go-back-card')) // wrap → card 2
-    expect(screen.getByText('phrase')).toBeInTheDocument()
-  })
-
-  it('resets to front face when going back', async () => {
-    render(<FlashcardDeck items={[baseItem, item2]} />)
-    await userEvent.click(screen.getByTestId('advance-card')) // → card 2
-    await userEvent.click(screen.getByTestId('flashcard-card')) // flip to back
-    await userEvent.click(screen.getByTestId('go-back-card')) // → card 1
-    expect(screen.getByTestId('flashcard-front')).toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('rate-good'))
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(screen.getByTestId('caught-up-screen')).toBeInTheDocument()
+    expect(screen.queryByText('flush out')).not.toBeInTheDocument()
   })
 })
 
@@ -215,19 +226,19 @@ describe('FlashcardDeck — onDeleted prop', () => {
     expect(screen.getByTestId('flashcard-front')).toBeInTheDocument()
   })
 
-  it('clamps currentIndex when items shrink below current position', async () => {
+  it('shows caught-up screen when items shrink below current position', async () => {
     const item2: PracticeItem = {
       ...baseItem, id: 'item-2',
       flashcard_front: 'second [[card]]',
       flashcard_back: 'segunda [[tarjeta]]',
     }
     const { rerender } = render(<FlashcardDeck items={[baseItem, item2]} onDeleted={vi.fn()} />)
-    await userEvent.click(screen.getByTestId('advance-card'))
+    await userEvent.click(screen.getByTestId('rate-good'))
     expect(screen.getByText('card')).toBeInTheDocument()
 
     rerender(<FlashcardDeck items={[baseItem]} onDeleted={vi.fn()} />)
 
-    expect(screen.getByText('flush out')).toBeInTheDocument()
+    expect(screen.getByTestId('caught-up-screen')).toBeInTheDocument()
   })
 })
 
