@@ -126,6 +126,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.deleteConfirmDelete': 'Delete',
     'flashcard.deleteConfirmCancel': 'Cancel',
     'flashcard.deleteError': "Couldn't delete — please try again",
+    'flashcard.progress': '{newCount} new · {dueCount} due',
+    'flashcard.gotIt': 'Got it',
+    'flashcard.again': 'Again',
+    'flashcard.allCaughtUp': 'All caught up!',
+    'flashcard.allCaughtUpBody': 'Come back when more cards are due.',
+    'flashcard.goHome': 'Back to home',
 
     // Practice page
     'practice.title': 'Practice Items',
@@ -306,6 +312,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.deleteConfirmDelete': 'Eliminar',
     'flashcard.deleteConfirmCancel': 'Cancelar',
     'flashcard.deleteError': 'No se pudo eliminar — intentá de nuevo',
+    'flashcard.progress': '{newCount} nuevas · {dueCount} pendientes',
+    'flashcard.gotIt': 'Lo sé',
+    'flashcard.again': 'Otra vez',
+    'flashcard.allCaughtUp': '¡Al día!',
+    'flashcard.allCaughtUpBody': 'Volvé cuando haya más tarjetas para repasar.',
+    'flashcard.goHome': 'Volver al inicio',
 
     // Practice page
     'practice.title': 'Ítems de práctica',
