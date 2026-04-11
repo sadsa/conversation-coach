@@ -310,6 +310,33 @@ describe('PracticeList — Not written filter pill', () => {
   })
 })
 
+describe('PracticeList — initialFilterNotWritten', () => {
+  const writtenItem: PracticeItem = {
+    ...grammarItem,
+    id: 'written-1',
+    written_down: true,
+  }
+  const notWrittenItem: PracticeItem = {
+    ...grammarItem,
+    id: 'not-written-1',
+    written_down: false,
+  }
+
+  it('shows only unwritten items when initialFilterNotWritten is true', () => {
+    render(<PracticeList items={[writtenItem, notWrittenItem]} initialFilterNotWritten={true} />)
+    // The written item should be hidden
+    expect(screen.queryByTestId(`delete-item-${writtenItem.id}`)).not.toBeInTheDocument()
+    // The not-written item should be visible
+    expect(screen.getByTestId(`delete-item-${notWrittenItem.id}`)).toBeInTheDocument()
+  })
+
+  it('shows all items when initialFilterNotWritten is false', () => {
+    render(<PracticeList items={[writtenItem, notWrittenItem]} initialFilterNotWritten={false} />)
+    expect(screen.getByTestId(`delete-item-${writtenItem.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`delete-item-${notWrittenItem.id}`)).toBeInTheDocument()
+  })
+})
+
 describe('PracticeList — swipe right to mark written', () => {
   it('calls PATCH API with written_down:true when mark-written triggered', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })

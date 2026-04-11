@@ -225,9 +225,10 @@ interface Props {
   /** Called after successful API delete so the parent can update `items`. */
   onDeleted?: (ids: string[]) => void
   initialSubCategory?: SubCategory
+  initialFilterNotWritten?: boolean
 }
 
-export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
+export function PracticeList({ items, onDeleted, initialSubCategory, initialFilterNotWritten }: Props) {
   const { t } = useTranslation()
   const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
@@ -235,7 +236,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(initialSubCategory !== undefined)
-  const [filterNotWritten, setFilterNotWritten] = useState(false)
+  const [filterNotWritten, setFilterNotWritten] = useState(initialFilterNotWritten ?? false)
 
   const subCategoryCounts = useMemo(() => {
     const counts = Object.fromEntries(SUB_CATEGORIES.map(sc => [sc, 0])) as Record<SubCategory, number>
