@@ -131,6 +131,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.again': 'Again',
     'flashcard.allCaughtUp': 'All caught up!',
     'flashcard.allCaughtUpBody': 'Come back when more cards are due.',
+    'flashcard.nextReviewAt': 'Next review at {time}',
+    'flashcard.nextReviewTomorrowAt': 'Next review tomorrow at {time}',
+    'flashcard.nextReviewOnAt': 'Next review {weekday}, {day} {month} at {time}',
+    'home.cardsDue': '{n} cards due',
+    'home.toWriteDown': '{n} to write down',
     'flashcard.goHome': 'Back to home',
 
     // Practice page
@@ -317,6 +322,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'flashcard.again': 'Otra vez',
     'flashcard.allCaughtUp': '¡Al día!',
     'flashcard.allCaughtUpBody': 'Volvé cuando haya más tarjetas para repasar.',
+    'flashcard.nextReviewAt': 'Próximo repaso a las {time}',
+    'flashcard.nextReviewTomorrowAt': 'Próximo repaso mañana a las {time}',
+    'flashcard.nextReviewOnAt': 'Próximo repaso el {weekday}, {day} de {month} a las {time}',
+    'home.cardsDue': '{n} tarjetas para repasar',
+    'home.toWriteDown': '{n} para anotar',
     'flashcard.goHome': 'Volver al inicio',
 
     // Practice page
