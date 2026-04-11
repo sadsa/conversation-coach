@@ -295,6 +295,29 @@ function FlashcardsDeleteHost() {
   )
 }
 
+describe('FlashcardDeck — caught-up screen next review', () => {
+  it('shows next review time when nextReviewAt is provided', async () => {
+    // Any non-null/undefined ISO string should render the next-review-line
+    const nextReviewAt = new Date(Date.now() + 3600_000).toISOString()
+    render(<FlashcardDeck items={[baseItem]} nextReviewAt={nextReviewAt} />)
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(screen.getByTestId('caught-up-screen')).toBeInTheDocument()
+    expect(screen.getByTestId('next-review-line')).toBeInTheDocument()
+  })
+
+  it('does not show next review line when nextReviewAt is undefined', async () => {
+    render(<FlashcardDeck items={[baseItem]} nextReviewAt={undefined} />)
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(screen.queryByTestId('next-review-line')).not.toBeInTheDocument()
+  })
+
+  it('does not show next review line when nextReviewAt is null', async () => {
+    render(<FlashcardDeck items={[baseItem]} nextReviewAt={null} />)
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(screen.queryByTestId('next-review-line')).not.toBeInTheDocument()
+  })
+})
+
 describe('FlashcardDeck — delete confirm sheet', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
