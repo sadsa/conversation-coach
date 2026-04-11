@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
-import { createEmptyCard, fsrs, generatorParameters, Rating, State, type Card } from 'ts-fsrs'
+import { createEmptyCard, fsrs, generatorParameters, Rating, State, Grade, type Card } from 'ts-fsrs'
 
 type Params = { params: { id: string } }
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'rating must be 1 (Again) or 3 (Good)' }, { status: 400 })
   }
 
-  const rating = body.rating as Rating
+  const rating = body.rating as Grade
   const db = createServerClient()
   const item = await verifyOwnership(db, params.id, user.id)
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 })
