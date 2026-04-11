@@ -84,11 +84,12 @@ async function getDueFlashcards(
 
   if (dueError) return NextResponse.json({ error: dueError.message }, { status: 500 })
 
-  const byWeakness = (a: { sub_category: string }, b: { sub_category: string }) =>
+  type Row = { sub_category: string; due: string }
+  const byWeakness = (a: Row, b: Row) =>
     (weaknessScore[b.sub_category] ?? 0) - (weaknessScore[a.sub_category] ?? 0)
 
-  const sortedNew = (newCards ?? []).sort(byWeakness)
-  const sortedDue = (dueReviews ?? []).sort((a, b) => {
+  const sortedNew = ((newCards ?? []) as unknown as Row[]).sort(byWeakness)
+  const sortedDue = ((dueReviews ?? []) as unknown as Row[]).sort((a, b) => {
     const w = byWeakness(a, b)
     return w !== 0 ? w : new Date(a.due).getTime() - new Date(b.due).getTime()
   })
