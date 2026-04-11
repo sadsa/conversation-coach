@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { FlashcardDeck } from '@/components/FlashcardDeck'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { PracticeItem } from '@/lib/types'
@@ -10,26 +10,32 @@ export default function FlashcardsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  function handleDeleted(id: string) {
-    setItems(prev => prev.filter(i => i.id !== id))
-  }
-
   useEffect(() => {
-    fetch('/api/practice-items')
+    fetch('/api/practice-items?flashcards=due')
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setItems(
-            data.filter((i: PracticeItem) =>
-              i.flashcard_front !== null && i.flashcard_back !== null
-            )
-          )
+          setItems(data)
         } else {
           setError(data?.error ?? 'Failed to load flashcards')
         }
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
+  }, [])
+
+  function handleDeleted(id: string) {
+    setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  const handleRate = useCallback((id: string, rating: 1 | 3) => {
+    fetch(`/api/practice-items/${id}/review`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ rating }),
+    }).catch(() => {
+      // Silently swallow — missed review leaves card at current scheduling
+    })
   }, [])
 
   return (
@@ -48,7 +54,7 @@ export default function FlashcardsPage() {
 
       {!loading && !error && items.length > 0 && (
         <div className="flex flex-col flex-1 justify-center">
-          <FlashcardDeck items={items} onDeleted={handleDeleted} />
+          <FlashcardDeck items={items} onDeleted={handleDeleted} onRate={handleRate} />
         </div>
       )}
     </div>
