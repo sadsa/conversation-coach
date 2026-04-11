@@ -316,6 +316,13 @@ describe('FlashcardDeck — caught-up screen next review', () => {
     await userEvent.click(screen.getByTestId('rate-good'))
     expect(screen.queryByTestId('next-review-line')).not.toBeInTheDocument()
   })
+
+  it('calls onCaughtUp when the last card is rated', async () => {
+    const onCaughtUp = vi.fn()
+    render(<FlashcardDeck items={[baseItem]} onCaughtUp={onCaughtUp} />)
+    await userEvent.click(screen.getByTestId('rate-good'))
+    expect(onCaughtUp).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('FlashcardDeck — delete confirm sheet', () => {
