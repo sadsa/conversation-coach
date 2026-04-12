@@ -30,6 +30,15 @@
     --color-pill-rank1-text: #f87171;
     --color-pill-rank2-bg: rgba(69, 26, 3, 0.4);
     --color-pill-rank2-text: #fbbf24;
+    /* Home habit widget pills */
+    --color-widget-cards-border: #5b21b6;
+    --color-widget-cards-bg: rgba(139, 92, 246, 0.10);
+    --color-widget-cards-bg-hover: rgba(139, 92, 246, 0.20);
+    --color-widget-cards-text: #c4b5fd;
+    --color-widget-write-border: #065f46;
+    --color-widget-write-bg: rgba(16, 185, 129, 0.10);
+    --color-widget-write-bg-hover: rgba(16, 185, 129, 0.20);
+    --color-widget-write-text: #6ee7b7;
   }
 
   [data-theme="light"] {
@@ -59,5 +68,14 @@
     --color-pill-rank1-text: #b91c1c;
     --color-pill-rank2-bg: #fef3c7;
     --color-pill-rank2-text: #92400e;
+    /* Home habit widget pills */
+    --color-widget-cards-border: #7c3aed;
+    --color-widget-cards-bg: #ede9fe;
+    --color-widget-cards-bg-hover: #ddd6fe;
+    --color-widget-cards-text: #5b21b6;
+    --color-widget-write-border: #059669;
+    --color-widget-write-bg: #d1fae5;
+    --color-widget-write-bg-hover: #a7f3d0;
+    --color-widget-write-text: #065f46;
   }
 }

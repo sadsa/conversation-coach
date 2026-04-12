@@ -181,14 +181,14 @@ export default function HomePage() {
         <Link
           href="/flashcards"
           data-testid="widget-cards-due"
-          className="flex items-center px-3 py-1.5 rounded-full border border-violet-800 bg-violet-500/10 text-sm text-violet-300 hover:bg-violet-500/20 transition-colors"
+          className="flex items-center px-3 py-1.5 rounded-full border border-widget-cards-border bg-widget-cards-bg text-sm text-widget-cards-text hover:bg-widget-cards-bg-hover transition-colors"
         >
           {summary !== null ? t('home.cardsDue', { n: summary.dueCount }) : '—'}
         </Link>
         <Link
           href="/practice?written_down=false"
           data-testid="widget-write-down"
-          className="flex items-center px-3 py-1.5 rounded-full border border-emerald-800 bg-emerald-500/10 text-sm text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+          className="flex items-center px-3 py-1.5 rounded-full border border-widget-write-border bg-widget-write-bg text-sm text-widget-write-text hover:bg-widget-write-bg-hover transition-colors"
         >
           {summary !== null ? t('home.toWriteDown', { n: summary.writeDownCount }) : '—'}
         </Link>
