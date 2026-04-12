@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A personal Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → save practice items. Single-user, no authentication.
+A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → save practice items. Multi-user with Supabase Auth (email magic link) and an email allowlist.
 
 ## Tech Stack
 
 - **Next.js 14 App Router**, TypeScript, Tailwind CSS — hosted on Vercel
-- **Supabase** (PostgreSQL via `@supabase/supabase-js` v2)
+- **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
+- **ts-fsrs** — spaced-repetition scheduling for flashcard reviews
 - **Vitest** + React Testing Library — unit/component tests
 
 ## Commands
@@ -29,26 +30,41 @@ npm test -- <path>   # run a single test file
 
 ```
 app/
-  page.tsx                        # Screen 1: Upload / Home
+  page.tsx                        # Screen 1: Upload / Home (habit widget pills)
+  login/page.tsx                  # Magic-link login (public)
+  access-denied/page.tsx          # Shown when email not in allowlist (public)
+  onboarding/page.tsx             # First-login target language selection
+  auth/callback/route.ts          # OAuth code exchange (public)
   sessions/[id]/
     page.tsx                      # Screen 4: Annotated Transcript
     status/page.tsx               # Screen 2: Processing Status
     identify/page.tsx             # Screen 3: Speaker Identification
   practice/page.tsx               # Screen 5: Practice Items
   insights/page.tsx               # Screen 6: Insights (sub-category mistake tracking)
-  flashcards/page.tsx             # Screen 7: Flashcard review (filters practice items with non-null flashcard fields)
-  settings/page.tsx               # Settings (font size preference, stored in localStorage)
+  flashcards/page.tsx             # Screen 7: Flashcard review (SRS due queue)
+  settings/page.tsx               # Settings: language, theme, sign-out, version
   api/                            # All API routes (Next.js route handlers)
-components/                       # Shared React components
+components/
+  AppHeader.tsx                   # Top nav bar with hamburger + theme toggle
+  NavDrawer.tsx                   # Slide-out nav drawer (TABS array here)
+  ConditionalNav.tsx              # Composes AppHeader + NavDrawer
+  ThemeProvider.tsx               # Dark/light theme context
+  LanguageProvider.tsx            # UI language context with live switching
+  ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
+  auth.ts                         # getAuthenticatedUser() — @supabase/ssr helper
+  i18n.ts                         # t() translation function + TRANSLATIONS dict
   insights.ts                     # fetchInsightsData() — uses Supabase RPC
+  push.ts                         # sendPushNotification helper
+  dashboard-summary.ts            # computeDashboardSummary()
   supabase-server.ts              # Supabase client for server components/routes
   supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
   pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook
   claude.ts                       # analyseUserTurns — prompt + JSON parse
+middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist
 supabase/migrations/              # SQL migrations
 __tests__/                        # Vitest tests mirroring src structure
 ```
@@ -68,21 +84,26 @@ Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and an
 
 ## Key Design Decisions
 
+- **Auth**: Supabase Auth (email magic link). `middleware.ts` guards all routes except `/login`, `/auth`, `/access-denied`, `/api/webhooks`. `ALLOWED_EMAILS` env var (comma-separated) controls who can access. Use `getAuthenticatedUser()` from `lib/auth.ts` in server components/routes — it uses the anon key so the JWT is validated, not bypassed like the service role key.
+- **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
+- **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
+- **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
+- **SRS flashcards**: `ts-fsrs` schedules flashcard reviews. `POST /api/practice-items/:id/review` updates FSRS fields. `GET /api/practice-items?flashcards=due` returns due cards ordered by weakness.
 - **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
 - **Practice sub-category filter**: `?sub_category=<key>` URL param seeds the active pill on load. 14-pill row (All + 13 sub-categories), sorted by count, colour-coded. Linked from Insights "See all examples" cards.
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
-- **No auth**: All API routes are intentionally unprotected (single-user app).
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
 - **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`, used to render inline highlights.
 - **`PATCH /api/sessions/:id` accepts `title` only**: All other session state is managed by server-side pipeline logic.
 - **`POST /api/sessions/:id/retry`**: Only valid for `uploading` and `transcribing` error stages. Use `/analyse` for analysing errors.
 - **Webhook HMAC**: AssemblyAI webhook verifies `x-assemblyai-signature` (HMAC-SHA256). Unknown job IDs are silently discarded (return 200).
+- **Push notifications**: `lib/push.ts` sends Web Push via VAPID. `POST /api/push-subscription` stores subscriptions. `usePushNotifications` hook registers on the status page. Analysis completion triggers a push.
 
 ## Claude Prompt Requirements
 
-The `analyseUserTurns` function in `lib/claude.ts` must:
-- Target Argentinian Spanish (Rioplatense register, voseo verb forms)
+The `analyseUserTurns` function in `lib/claude.ts` accepts `targetLanguage: TargetLanguage = 'es-AR'` and selects from `PROMPTS` record keyed by language. Must:
+- Target the correct language register (default: Argentinian Spanish, Rioplatense, voseo)
 - Return structured JSON: array of annotation objects matching the `annotations` DB schema
 - Annotate grammar errors and naturalness suggestions
 - Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction`, `explanation`
@@ -99,7 +120,8 @@ The `analyseUserTurns` function in `lib/claude.ts` must:
 - **`GET /api/practice-items` uses an explicit `.select()` column list** (not `'*'`). Append new column names to the string; do not switch to `select('*')`.
 - **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
 - **`react-swipeable` is already installed** (used by `PracticeList.tsx`). Import `useSwipeable` directly.
-- **`BottomNav` uses a `TABS` array** in `components/BottomNav.tsx`. Add new nav tabs by inserting `{ href, label, exact, icon }` objects in the array.
+- **Navigation uses `NavDrawer`** (`components/NavDrawer.tsx`). Add new nav tabs by inserting `{ href, label, icon }` objects in the `TABS` array there. (`BottomNav` was removed.)
+- **`written_down` on `practice_items`**: boolean field; `?written_down=false` deep-link seeds the filter on the practice page.
 
 ## Supabase CLI
 
@@ -115,3 +137,7 @@ See `.env.local.example` for all required keys:
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
 - `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_WEBHOOK_SECRET`
 - `ANTHROPIC_API_KEY`
+- `ALLOWED_EMAILS` — comma-separated list of emails permitted past the auth middleware
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT` — Web Push (generate with `npx web-push generate-vapid-keys`)
+- `APP_URL` — public URL for AssemblyAI webhooks (use ngrok tunnel for local dev)
+- `NEXT_PUBLIC_BUILD_DATE`, `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` — injected automatically at build time; do not set manually
