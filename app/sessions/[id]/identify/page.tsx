@@ -33,15 +33,14 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
 
   async function handleConfirm() {
     setSubmitting(true)
-    const res = await fetch(`/api/sessions/${params.id}/speaker`, {
+    await fetch(`/api/sessions/${params.id}/speaker`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ speaker_labels: Array.from(selectedLabels) }),
     })
-    if (res.status === 409) {
-      router.push(`/sessions/${params.id}/status`)
-      return
-    }
+    // Invalidate the Router Cache so the status page re-fetches fresh data
+    // from the server rather than replaying a cached redirect to /identify.
+    router.refresh()
     router.push(`/sessions/${params.id}/status`)
   }
 
