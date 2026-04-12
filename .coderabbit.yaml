@@ -1,0 +1,27 @@
+language: "en-US"
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!supabase/migrations/**"
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!tsconfig.tsbuildinfo"
+    - "!package-lock.json"
+    - "!docs/superpowers/**"
+    - "!*.tsbuildinfo"
+  path_instructions:
+    - path: "app/api/**"
+      instructions: >
+        This is an intentionally single-user app with no authentication.
+        Do not flag the absence of auth checks, missing authorization guards,
+        or unprotected endpoints as security issues — this is by design.
+
+chat:
+  auto_reply: true
