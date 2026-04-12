@@ -79,7 +79,7 @@ self.addEventListener('push', (e) => {
   e.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: '/icon-192.png',
+      icon: '/icon.svg',
       data: { sessionId },
     })
   )
