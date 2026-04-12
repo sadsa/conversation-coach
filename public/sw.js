@@ -80,6 +80,8 @@ self.addEventListener('push', (e) => {
     self.registration.showNotification(title, {
       body,
       icon: '/icon.svg',
+      badge: '/icon.svg',
+      vibrate: [200, 100, 200],
       data: { sessionId },
     })
   )
