@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 // We test the query logic in isolation via a helper extracted from the route.
 // The route itself is thin wiring; the helper is where the logic lives.
-import { computeDashboardSummary } from '@/app/api/dashboard-summary/route'
+import { computeDashboardSummary } from '@/lib/dashboard-summary'
 
 const makeDb = (overrides: Partial<{
   dueCount: number
