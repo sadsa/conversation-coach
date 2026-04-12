@@ -7,7 +7,7 @@ function getClient() {
 }
 
 export interface ParsedSegment {
-  speaker: 'A' | 'B'
+  speaker: string
   text: string
   start_ms: number
   end_ms: number
@@ -82,7 +82,7 @@ export function parseWebhookBody(body: Record<string, unknown>): ParsedWebhook {
   }>) ?? []
 
   const segments: ParsedSegment[] = utterances.map((u, i) => ({
-    speaker: u.speaker as 'A' | 'B',
+    speaker: u.speaker,
     text: u.text,
     start_ms: u.start,
     end_ms: u.end,
