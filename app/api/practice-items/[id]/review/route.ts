@@ -75,7 +75,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         last_review: item.last_review ? new Date(item.last_review) : undefined,
       } as Card
 
-  const f = fsrs(generatorParameters({ enable_fuzz: false }))
+  // No intra-day learning steps — cards graduate immediately to Review state
+  // with a 1-day interval. Suits a casual 15-min daily habit rather than
+  // intensive Anki-style sessions where cards reappear every few minutes.
+  const f = fsrs(generatorParameters({ enable_fuzz: false, learning_steps: [], relearning_steps: [] }))
   const now = new Date()
   const { card: next } = f.next(card, now, rating)
 
