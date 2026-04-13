@@ -9,6 +9,7 @@ const PRACTICE_ITEMS_COLUMNS = [
   'updated_at', 'flashcard_front', 'flashcard_back', 'flashcard_note',
   'fsrs_state', 'due', 'stability', 'difficulty', 'elapsed_days',
   'scheduled_days', 'reps', 'lapses', 'last_review',
+  'importance_score', 'importance_note',
 ].join(', ')
 
 export async function GET(req: NextRequest) {
@@ -30,11 +31,17 @@ export async function GET(req: NextRequest) {
     return getDueFlashcards(db, sessionIds)
   }
 
+  const sortParam = url.searchParams.get('sort')
+  const orderCol = sortParam === 'importance' ? 'importance_score' : 'created_at'
+  const orderOpts = sortParam === 'importance'
+    ? { ascending: false, nullsFirst: false }
+    : { ascending: false }
+
   const { data, error } = await db
     .from('practice_items')
     .select(PRACTICE_ITEMS_COLUMNS)
     .in('session_id', sessionIds)
-    .order('created_at', { ascending: false })
+    .order(orderCol, orderOpts)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
