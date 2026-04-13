@@ -90,6 +90,8 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
         flashcard_front: a.flashcard_front ?? null,
         flashcard_back: a.flashcard_back ?? null,
         flashcard_note: a.flashcard_note ?? null,
+        importance_score: a.importance_score ?? null,
+        importance_note: a.importance_note ?? null,
       }))
     )
 
