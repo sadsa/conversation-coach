@@ -7,6 +7,13 @@ import { SUB_CATEGORIES } from '@/lib/types'
 import { Modal } from '@/components/Modal'
 import { useTranslation } from '@/components/LanguageProvider'
 
+function importanceStars(score: number | null): string | null {
+  if (score === 3) return '★★★'
+  if (score === 2) return '★★☆'
+  if (score === 1) return '★☆☆'
+  return null
+}
+
 function SwipeableItem({
   item,
   isBulkMode,
@@ -204,6 +211,9 @@ function SwipeableItem({
             </span>
             {' → '}
             <span className="font-medium text-correction">{item.correction}</span>
+            {importanceStars(item.importance_score) && (
+              <span className="text-amber-400 text-xs ml-1">{importanceStars(item.importance_score)}</span>
+            )}
           </div>
           <div className="flex gap-1.5 flex-wrap items-center">
             <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
@@ -237,12 +247,23 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(initialSubCategory !== undefined)
   const [filterNotWritten, setFilterNotWritten] = useState(initialFilterNotWritten ?? false)
+  const [sortByImportance, setSortByImportance] = useState(false)
+  const [displayItems, setDisplayItems] = useState<PracticeItem[]>(items)
+  const [importanceExpanded, setImportanceExpanded] = useState(false)
+
+  useEffect(() => {
+    const url = '/api/practice-items' + (sortByImportance ? '?sort=importance' : '')
+    fetch(url)
+      .then(r => r.json())
+      .then((data: PracticeItem[]) => setDisplayItems(data))
+      .catch(() => {/* keep existing items on error */})
+  }, [sortByImportance])
 
   const subCategoryCounts = useMemo(() => {
     const counts = Object.fromEntries(SUB_CATEGORIES.map(sc => [sc, 0])) as Record<SubCategory, number>
-    for (const item of items) counts[item.sub_category] = (counts[item.sub_category] ?? 0) + 1
+    for (const item of displayItems) counts[item.sub_category] = (counts[item.sub_category] ?? 0) + 1
     return counts
-  }, [items])
+  }, [displayItems])
 
   const sortedSubCategories = useMemo(() => {
     return [...SUB_CATEGORIES].sort((a, b) => subCategoryCounts[b] - subCategoryCounts[a])
@@ -272,7 +293,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
     return () => clearTimeout(timeoutId)
   }, [toastMessage])
 
-  const filtered = items.filter(item => {
+  const filtered = displayItems.filter(item => {
     if (filterNotWritten && item.written_down) return false
     if (subCategoryFilter !== null && item.sub_category !== subCategoryFilter) return false
     return true
@@ -285,6 +306,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
       return false
     }
     onDeleted?.([id])
+    setDisplayItems(prev => prev.filter(i => i.id !== id))
     return true
   }
 
@@ -330,6 +352,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
     }
     if (succeeded.length > 0) {
       onDeleted?.(succeeded)
+      setDisplayItems(prev => prev.filter(i => !succeeded.includes(i.id)))
     }
     exitBulkMode()
   }
@@ -407,6 +430,16 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
           >
             {t('practiceList.filterNotWritten')}
           </button>
+          <button
+            onClick={() => setSortByImportance(s => !s)}
+            className={`px-3 py-1 rounded-full border transition-colors ${
+              sortByImportance
+                ? 'border-indigo-500 text-on-accent-chip bg-indigo-500/10'
+                : 'border-border text-text-secondary'
+            }`}
+          >
+            ★ {t('practiceList.sortImportance')}
+          </button>
           {(isExpanded ? sortedSubCategories : sortedSubCategories.slice(0, 3)).map(sc => (
             <button
               key={sc}
@@ -451,7 +484,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
       {openItem && (
         <Modal
           title={t(`type.${openItem.type}`)}
-          onClose={() => setOpenItem(null)}
+          onClose={() => { setOpenItem(null); setImportanceExpanded(false) }}
         >
           <div className="space-y-3 text-sm">
             <div>
@@ -467,6 +500,22 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
             <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
               {t(`subCat.${openItem.sub_category}`)}
             </span>
+            {importanceStars(openItem.importance_score) && (
+              <div className="pt-1">
+                <button
+                  onClick={() => setImportanceExpanded(e => !e)}
+                  className="text-amber-400 text-base leading-none focus:outline-none"
+                  aria-label="Toggle importance explanation"
+                >
+                  {importanceStars(openItem.importance_score)}
+                </button>
+                {importanceExpanded && openItem.importance_note && (
+                  <p className="mt-1.5 text-text-secondary text-xs leading-relaxed">
+                    {openItem.importance_note}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </Modal>
       )}
