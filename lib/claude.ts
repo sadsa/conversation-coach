@@ -21,6 +21,11 @@ For each annotation:
 - "flashcard_front": An invented English sentence that correctly expresses the same meaning as the practice phrase. The correct English equivalent phrase is wrapped in [[double brackets]]. Example: "I [[went]] to the market yesterday."
 - "flashcard_back": The equivalent Spanish sentence using the correct form, wrapped in [[double brackets]]. Example: "[[Fui]] al mercado ayer."
 - "flashcard_note": 1–2 sentences (in English) explaining why the original was wrong or unnatural from a Rioplatense register perspective. Be concise.
+- "importance_score": integer 1–3 rating of how important this correction is for sounding natural in Rioplatense Spanish:
+  - 3: phrase is very common in everyday speech; the original would sound immediately wrong or unnatural to a native speaker
+  - 2: moderately common; noticeable but not jarring to a native
+  - 1: rare phrasing or minor slip; most natives would not notice or care
+- "importance_note": one English sentence explaining the score, covering how common the phrase is, how noticeable the error is, and how much it affects sounding like a native
 
 Be tuned to Rioplatense register: voseo verb forms, Rioplatense vocabulary, lunfardo where relevant. Prefer natural everyday Argentine speech over textbook Castilian.
 
@@ -34,7 +39,7 @@ For the title:
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title (e.g. "WhatsApp: Football con Kevin").
 - Otherwise use the topic only.
 
-Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note" }] }. No other text.`
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note", "importance_score", "importance_note" }] }. No other text.`
 
 const SYSTEM_PROMPT_EN_NZ = `You are an expert English language coach specialising in New Zealand English. Analyse the speech turns provided and identify:
 
@@ -55,6 +60,11 @@ For each annotation:
 - "flashcard_front": An invented Spanish sentence (in everyday Rioplatense register) that correctly expresses the same meaning as the practice phrase. The correct Spanish equivalent phrase is wrapped in [[double brackets]]. Example: "Ayer [[fui]] al mercado."
 - "flashcard_back": The equivalent NZ English sentence using the correct form, wrapped in [[double brackets]]. Example: "Yesterday I [[went]] to the shops."
 - "flashcard_note": 1–2 sentences (in Spanish, Rioplatense register) explaining why the original was wrong or unnatural from a New Zealand English perspective. Be concise.
+- "importance_score": integer 1–3 rating of how important this correction is for sounding natural in New Zealand English:
+  - 3: phrase is very common in everyday NZ speech; the original would sound immediately wrong or unnatural to a native speaker
+  - 2: moderately common; noticeable but not jarring to a native
+  - 1: rare phrasing or minor slip; most NZ speakers would not notice or care
+- "importance_note": one English sentence explaining the score, covering how common the phrase is, how noticeable the error is, and how much it affects sounding like a native
 
 Be tuned to New Zealand English: use NZ spelling (colour, organise, programme), NZ vocabulary and idioms, and everyday NZ register. Note that NZ English tends to be informal and direct.
 
@@ -63,7 +73,7 @@ For the title:
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title.
 - Otherwise use the topic only.
 
-Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note" }] }. No other text.`
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note", "importance_score", "importance_note" }] }. No other text.`
 
 const PROMPTS: Record<TargetLanguage, string> = {
   'es-AR': SYSTEM_PROMPT_ES_AR,
@@ -87,6 +97,8 @@ export interface ClaudeAnnotation {
   flashcard_front: string | null
   flashcard_back: string | null
   flashcard_note: string | null
+  importance_score: number | null
+  importance_note: string | null
 }
 
 export async function analyseUserTurns(
@@ -130,6 +142,8 @@ export async function analyseUserTurns(
       flashcard_front: a.flashcard_front ?? null,
       flashcard_back: a.flashcard_back ?? null,
       flashcard_note: a.flashcard_note ?? null,
+      importance_score: a.importance_score ?? null,
+      importance_note: a.importance_note ?? null,
     })),
   }
 }
