@@ -253,10 +253,26 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
   const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   useEffect(() => {
-    setDisplayItems(items)
-  }, [items])
+    if (sortByImportance) {
+      // Apply importance sort to new items
+      const sorted = [...items].sort((a, b) => {
+        if (a.importance_score === null && b.importance_score === null) return 0
+        if (a.importance_score === null) return 1
+        if (b.importance_score === null) return -1
+        return b.importance_score - a.importance_score
+      })
+      setDisplayItems(sorted)
+    } else {
+      setDisplayItems(items)
+    }
+  }, [items, sortByImportance])
 
   const isFirstRender = useRef(true)
+  const sortByImportanceRef = useRef(sortByImportance)
+  useEffect(() => {
+    sortByImportanceRef.current = sortByImportance
+  }, [sortByImportance])
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
@@ -265,7 +281,12 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
     const url = '/api/practice-items' + (sortByImportance ? '?sort=importance' : '')
     fetch(url)
       .then(r => { if (!r.ok) return; return r.json() })
-      .then((data: PracticeItem[] | undefined) => { if (data) setDisplayItems(data) })
+      .then((data: PracticeItem[] | undefined) => {
+        // Only update if sortByImportance is still true
+        if (data && sortByImportanceRef.current === sortByImportance) {
+          setDisplayItems(data)
+        }
+      })
       .catch(() => {/* keep existing items on error */})
   }, [sortByImportance])
 
@@ -512,17 +533,25 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
             </span>
             {importanceStars(openItem.importance_score) && (
               <div className="pt-1">
-                <button
-                  onClick={() => setImportanceExpanded(e => !e)}
-                  className="text-amber-400 text-base leading-none focus:outline-none"
-                  aria-label={t('practiceList.importanceToggleAria')}
-                >
-                  {importanceStars(openItem.importance_score)}
-                </button>
-                {importanceExpanded && openItem.importance_note && (
-                  <p className="mt-1.5 text-text-secondary text-xs leading-relaxed">
-                    {openItem.importance_note}
-                  </p>
+                {openItem.importance_note ? (
+                  <>
+                    <button
+                      onClick={() => setImportanceExpanded(e => !e)}
+                      className="text-amber-400 text-base leading-none focus:outline-none"
+                      aria-label={t('practiceList.importanceToggleAria')}
+                    >
+                      {importanceStars(openItem.importance_score)}
+                    </button>
+                    {importanceExpanded && (
+                      <p className="mt-1.5 text-text-secondary text-xs leading-relaxed">
+                        {openItem.importance_note}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-amber-400 text-base leading-none">
+                    {importanceStars(openItem.importance_score)}
+                  </span>
                 )}
               </div>
             )}

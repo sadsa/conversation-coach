@@ -137,13 +137,23 @@ export async function analyseUserTurns(
   const parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
   return {
     title: parsed.title?.trim() || 'Untitled',
-    annotations: (parsed.annotations ?? []).map(a => ({
-      ...a,
-      flashcard_front: a.flashcard_front ?? null,
-      flashcard_back: a.flashcard_back ?? null,
-      flashcard_note: a.flashcard_note ?? null,
-      importance_score: a.importance_score ?? null,
-      importance_note: a.importance_note ?? null,
-    })),
+    annotations: (parsed.annotations ?? []).map(a => {
+      // Validate importance_score: must be a finite number in range 1–3
+      let validatedScore: number | null = null
+      if (a.importance_score != null) {
+        const score = Number(a.importance_score)
+        if (Number.isFinite(score) && score >= 1 && score <= 3) {
+          validatedScore = score
+        }
+      }
+      return {
+        ...a,
+        flashcard_front: a.flashcard_front ?? null,
+        flashcard_back: a.flashcard_back ?? null,
+        flashcard_note: a.flashcard_note ?? null,
+        importance_score: validatedScore,
+        importance_note: a.importance_note ?? null,
+      }
+    }),
   }
 }
