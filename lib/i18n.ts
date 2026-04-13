@@ -162,6 +162,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.markWrittenError': 'Failed to mark as written — try again.',
     'practiceList.revealWritten': '✓ Written',
     'practiceList.sortImportance': 'Importance',
+    'practiceList.importanceToggleAria': 'Toggle importance explanation',
 
     // Flashcards page
     'flashcards.loading': 'Loading…',
@@ -354,6 +355,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.markWrittenError': 'No se pudo marcar como escrito — intentá de nuevo.',
     'practiceList.revealWritten': '✓ Escrito',
     'practiceList.sortImportance': 'Importancia',
+    'practiceList.importanceToggleAria': 'Alternar explicación de importancia',
 
     // Flashcards page
     'flashcards.loading': 'Cargando…',
