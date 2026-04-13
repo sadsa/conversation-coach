@@ -211,9 +211,10 @@ function SwipeableItem({
             </span>
             {' → '}
             <span className="font-medium text-correction">{item.correction}</span>
-            {importanceStars(item.importance_score) && (
-              <span className="text-amber-400 text-xs ml-1">{importanceStars(item.importance_score)}</span>
-            )}
+            {(() => {
+              const stars = importanceStars(item.importance_score)
+              return stars ? <span className="text-amber-400 text-xs ml-1">{stars}</span> : null
+            })()}
           </div>
           <div className="flex gap-1.5 flex-wrap items-center">
             <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
@@ -252,10 +253,19 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
   const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   useEffect(() => {
+    setDisplayItems(items)
+  }, [items])
+
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     const url = '/api/practice-items' + (sortByImportance ? '?sort=importance' : '')
     fetch(url)
-      .then(r => r.json())
-      .then((data: PracticeItem[]) => setDisplayItems(data))
+      .then(r => { if (!r.ok) return; return r.json() })
+      .then((data: PracticeItem[] | undefined) => { if (data) setDisplayItems(data) })
       .catch(() => {/* keep existing items on error */})
   }, [sortByImportance])
 
@@ -505,7 +515,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
                 <button
                   onClick={() => setImportanceExpanded(e => !e)}
                   className="text-amber-400 text-base leading-none focus:outline-none"
-                  aria-label="Toggle importance explanation"
+                  aria-label={t('practiceList.importanceToggleAria')}
                 >
                   {importanceStars(openItem.importance_score)}
                 </button>
