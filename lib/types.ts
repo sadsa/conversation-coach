@@ -96,6 +96,8 @@ export interface Annotation {
   flashcard_front: string | null
   flashcard_back: string | null
   flashcard_note: string | null
+  importance_score: number | null
+  importance_note: string | null
 }
 
 export interface PracticeItem {
@@ -123,6 +125,8 @@ export interface PracticeItem {
   reps: number | null
   lapses: number | null
   last_review: string | null
+  importance_score: number | null
+  importance_note: string | null
 }
 
 // API response shapes
