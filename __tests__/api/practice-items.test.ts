@@ -50,6 +50,48 @@ describe('GET /api/practice-items', () => {
     const body = await res.json()
     expect(body).toHaveLength(1)
   })
+
+  it('sorts by importance_score descending when ?sort=importance', async () => {
+    vi.resetModules()
+    vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
+    vi.mock('@/lib/auth', () => ({ getAuthenticatedUser: vi.fn() }))
+    const { createServerClient } = await import('@/lib/supabase-server')
+    const { getAuthenticatedUser } = await import('@/lib/auth')
+    vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
+
+    const orderMock = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'item-high', importance_score: 3 },
+        { id: 'item-low', importance_score: 1 },
+      ],
+      error: null,
+    })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1' }], error: null }),
+            }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: orderMock,
+            }),
+          }),
+        }
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const { GET } = await import('@/app/api/practice-items/route')
+    const req = new NextRequest('http://localhost/api/practice-items?sort=importance')
+    const res = await GET(req)
+    expect(res.status).toBe(200)
+    expect(orderMock).toHaveBeenCalledWith('importance_score', { ascending: false, nullsFirst: false })
+  })
 })
 
 describe('PATCH /api/practice-items/:id', () => {
