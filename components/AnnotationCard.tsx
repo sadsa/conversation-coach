@@ -33,6 +33,8 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
         flashcard_front: annotation.flashcard_front ?? null,
         flashcard_back: annotation.flashcard_back ?? null,
         flashcard_note: annotation.flashcard_note ?? null,
+        importance_score: annotation.importance_score ?? null,
+        importance_note: annotation.importance_note ?? null,
       }),
     })
     if (res.ok) {
