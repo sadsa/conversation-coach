@@ -153,6 +153,55 @@ describe('analyseUserTurns', () => {
     expect(result.annotations[0].flashcard_note).toBeNull()
   })
 
+  it('returns importance_score and importance_note when Claude includes them', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          title: 'Test',
+          annotations: [{
+            segment_id: 'seg-1',
+            type: 'grammar',
+            original: 'Yo fui',
+            start_char: 0,
+            end_char: 6,
+            correction: 'Fui',
+            explanation: 'Drop the subject pronoun.',
+            sub_category: 'verb-conjugation',
+            flashcard_front: null,
+            flashcard_back: null,
+            flashcard_note: null,
+            importance_score: 3,
+            importance_note: 'Very common — your original would sound immediately wrong to a native.',
+          }],
+        }),
+      }],
+    })
+    const result = await analyseUserTurns([{ id: 'seg-1', text: 'Yo fui' }], null)
+    expect(result.annotations[0].importance_score).toBe(3)
+    expect(result.annotations[0].importance_note).toBe('Very common — your original would sound immediately wrong to a native.')
+  })
+
+  it('returns null importance fields when Claude omits them', async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          title: 'Test',
+          annotations: [{
+            segment_id: 'seg-1', type: 'grammar', original: 'x',
+            start_char: 0, end_char: 1, correction: 'y',
+            explanation: 'z.', sub_category: 'other',
+            // importance fields intentionally absent
+          }],
+        }),
+      }],
+    })
+    const result = await analyseUserTurns([{ id: 'seg-1', text: 'x' }], null)
+    expect(result.annotations[0].importance_score).toBeNull()
+    expect(result.annotations[0].importance_note).toBeNull()
+  })
+
   it('uses the ES-AR system prompt when targetLanguage is es-AR', async () => {
     mockCreate.mockResolvedValueOnce({
       content: [{ type: 'text', text: JSON.stringify({ title: 'Test', annotations: [] }) }],
