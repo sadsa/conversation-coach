@@ -161,6 +161,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.filterNotWritten': 'Not written',
     'practiceList.markWrittenError': 'Failed to mark as written — try again.',
     'practiceList.revealWritten': '✓ Written',
+    'practiceList.sortImportance': 'Importance',
 
     // Flashcards page
     'flashcards.loading': 'Loading…',
@@ -352,6 +353,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.filterNotWritten': 'No escrito',
     'practiceList.markWrittenError': 'No se pudo marcar como escrito — intentá de nuevo.',
     'practiceList.revealWritten': '✓ Escrito',
+    'practiceList.sortImportance': 'Importancia',
 
     // Flashcards page
     'flashcards.loading': 'Cargando…',
