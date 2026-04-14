@@ -17,7 +17,7 @@ export async function GET() {
 
   const sessionIds = (userSessions ?? []).map((s: { id: string }) => s.id)
   if (sessionIds.length === 0) {
-    return NextResponse.json({ leitnerDue: false, dueBoxes: [], nextDueDate: null, writeDownCount: 0 })
+    return NextResponse.json({ writeDownCount: 0 })
   }
 
   const summary = await computeDashboardSummary(db, sessionIds)
