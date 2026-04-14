@@ -8,7 +8,9 @@ import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 interface DashboardSummary {
-  dueCount: number
+  leitnerDue: boolean
+  dueBoxes: number[]
+  nextDueDate: string | null
   writeDownCount: number
 }
 
@@ -69,7 +71,7 @@ export default function HomePage() {
     fetch('/api/dashboard-summary')
       .then(r => r.json())
       .then((data: DashboardSummary) => {
-        if (typeof data.dueCount === 'number') setSummary(data)
+        if (typeof data.leitnerDue === 'boolean') setSummary(data)
       })
       .catch(() => { /* silently ignore — widget is non-critical */ })
 
@@ -177,14 +179,46 @@ export default function HomePage() {
       </div>
 
       {/* Daily habit widget */}
-      <div className="flex gap-2 flex-wrap">
-        <Link
-          href="/flashcards"
-          data-testid="widget-cards-due"
-          className="flex items-center px-3 py-1.5 rounded-full border border-widget-cards-border bg-widget-cards-bg text-sm text-widget-cards-text hover:bg-widget-cards-bg-hover transition-colors"
-        >
-          {summary !== null ? t('home.cardsDue', { n: summary.dueCount }) : '—'}
-        </Link>
+      <div className="flex flex-col gap-3">
+        {summary !== null && summary.leitnerDue && (
+          <Link
+            href="/flashcards"
+            data-testid="widget-cards-due"
+            className="flex items-center gap-3 rounded-2xl border border-chip-border bg-chip-bg px-4 py-3.5 text-chip-text hover:opacity-90 transition-opacity"
+          >
+            <span className="text-xl">🃏</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-snug">
+                {summary.dueBoxes.length === 1
+                  ? t('home.reviewPile', { n: String(summary.dueBoxes[0]) })
+                  : t('home.reviewPiles', { piles: summary.dueBoxes.join(' & ') })}
+              </p>
+              <p className="text-xs opacity-70 mt-0.5">{t('home.flashcardsWaiting')}</p>
+            </div>
+            <span className="text-lg opacity-50">›</span>
+          </Link>
+        )}
+        {summary !== null && !summary.leitnerDue && (
+          <Link
+            href="/flashcards"
+            data-testid="widget-cards-due"
+            className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 text-text-tertiary hover:opacity-80 transition-opacity"
+          >
+            <span className="text-xl">🃏</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium leading-snug">{t('home.flashcardsCaughtUp')}</p>
+              {summary.nextDueDate && (
+                <p className="text-xs opacity-60 mt-0.5">
+                  {t('home.flashcardsDueDay', {
+                    n: String(summary.dueBoxes[0] ?? ''),
+                    day: new Date(summary.nextDueDate + 'T00:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
+                  })}
+                </p>
+              )}
+            </div>
+            <span className="text-lg opacity-30">›</span>
+          </Link>
+        )}
         <Link
           href="/practice?written_down=false"
           data-testid="widget-write-down"
