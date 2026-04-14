@@ -40,11 +40,10 @@ describe('NavDrawer', () => {
     expect(container.querySelector('#nav-drawer')).toHaveClass('translate-x-0')
   })
 
-  it('renders all five nav links', () => {
+  it('renders all four nav links', () => {
     render(<NavDrawer isOpen={true} onClose={onClose} />)
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /practice/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /flashcards/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })

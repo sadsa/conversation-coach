@@ -20,7 +20,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Navigation
     'nav.home': 'Home',
     'nav.practice': 'Practice',
-    'nav.flashcards': 'Flashcards',
     'nav.insights': 'Insights',
     'nav.settings': 'Settings',
 
@@ -113,28 +112,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeItDown.confirmLabel': 'Create flashcard',
     'writeItDown.successLabel': 'Flashcard created ✓',
 
-    // Flashcard deck
-    'flashcard.cardOptions': 'Card options',
-    'flashcard.deleteCard': 'Delete card',
-    'flashcard.deleteConfirmTitle': 'Delete this flashcard?',
-    'flashcard.deleteConfirmBody': "This will permanently remove the practice item. This can't be undone.",
-    'flashcard.deleteConfirmDelete': 'Delete',
-    'flashcard.deleteConfirmCancel': 'Cancel',
-    'flashcard.deleteError': "Couldn't delete — please try again",
-    'flashcard.allCaughtUp': 'All caught up!',
-    'flashcard.allCaughtUpBody': 'Come back when more cards are due.',
-    'flashcard.goHome': 'Back to home',
     'home.toWriteDown': '{n} to write down',
-
-    // Leitner review piles
-    'home.reviewPile': 'Review pile {n}',
-    'home.reviewPiles': 'Review piles {piles}',
-    'home.flashcardsWaiting': 'Your flashcards are waiting',
-    'home.flashcardsCaughtUp': 'Flashcards all caught up',
-    'home.flashcardsDueDay': 'Pile {n} due {day}',
-    'flashcard.reviewPileHeading': 'Review pile {n}',
-    'flashcard.confirmDone': 'Done reviewing pile {n}',
-    'flashcard.allCaughtUpNextDue': 'Next up: pile {n} due {day}',
 
     // Practice page
     'practice.title': 'Practice Items',
@@ -162,10 +140,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.sortImportance': 'Importance',
     'practiceList.importanceToggleAria': 'Toggle importance explanation',
 
-    // Flashcards page
-    'flashcards.loading': 'Loading…',
-    'flashcards.error': 'Error: {msg}',
-    'flashcards.empty': 'No flashcards yet — complete a session to generate cards.',
 
     // Insights page
     'insights.title': 'Where you\'re struggling',
@@ -211,7 +185,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Navigation
     'nav.home': 'Inicio',
     'nav.practice': 'Práctica',
-    'nav.flashcards': 'Tarjetas',
     'nav.insights': 'Estadísticas',
     'nav.settings': 'Configuración',
 
@@ -304,28 +277,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeItDown.confirmLabel': 'Crear tarjeta',
     'writeItDown.successLabel': 'Tarjeta creada ✓',
 
-    // Flashcard deck
-    'flashcard.cardOptions': 'Opciones de tarjeta',
-    'flashcard.deleteCard': 'Eliminar tarjeta',
-    'flashcard.deleteConfirmTitle': '¿Eliminar esta tarjeta?',
-    'flashcard.deleteConfirmBody': 'Esto eliminará el ítem de práctica permanentemente.',
-    'flashcard.deleteConfirmDelete': 'Eliminar',
-    'flashcard.deleteConfirmCancel': 'Cancelar',
-    'flashcard.deleteError': 'No se pudo eliminar — intentá de nuevo',
-    'flashcard.allCaughtUp': '¡Al día!',
-    'flashcard.allCaughtUpBody': 'Volvé cuando haya más tarjetas para repasar.',
-    'flashcard.goHome': 'Volver al inicio',
     'home.toWriteDown': '{n} para anotar',
-
-    // Leitner review piles
-    'home.reviewPile': 'Repasar pila {n}',
-    'home.reviewPiles': 'Repasar pilas {piles}',
-    'home.flashcardsWaiting': 'Tus tarjetas te esperan',
-    'home.flashcardsCaughtUp': 'Al día con las tarjetas',
-    'home.flashcardsDueDay': 'Pila {n} el {day}',
-    'flashcard.reviewPileHeading': 'Repasar pila {n}',
-    'flashcard.confirmDone': 'Listo con la pila {n}',
-    'flashcard.allCaughtUpNextDue': 'Próximo: pila {n} el {day}',
 
     // Practice page
     'practice.title': 'Ítems de práctica',
@@ -353,10 +305,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.sortImportance': 'Importancia',
     'practiceList.importanceToggleAria': 'Alternar explicación de importancia',
 
-    // Flashcards page
-    'flashcards.loading': 'Cargando…',
-    'flashcards.error': 'Error: {msg}',
-    'flashcards.empty': 'Todavía no hay tarjetas — completá una sesión para generarlas.',
 
     // Insights page
     'insights.title': 'Dónde tenés dificultades',
