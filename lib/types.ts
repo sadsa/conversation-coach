@@ -116,17 +116,22 @@ export interface PracticeItem {
   flashcard_front: string | null
   flashcard_back: string | null
   flashcard_note: string | null
-  fsrs_state: 'New' | 'Learning' | 'Review' | 'Relearning' | null
-  due: string | null
-  stability: number | null
-  difficulty: number | null
-  elapsed_days: number | null
-  scheduled_days: number | null
-  reps: number | null
-  lapses: number | null
-  last_review: string | null
+  leitner_box: number | null
+  leitner_due_date: string | null  // YYYY-MM-DD
   importance_score: number | null
   importance_note: string | null
+}
+
+export interface BoxSummary {
+  box: number      // 1–5
+  count: number
+  due: boolean
+}
+
+export interface LeitnerResponse {
+  boxes: BoxSummary[]
+  cards: PracticeItem[]
+  activeBox: number | null
 }
 
 // API response shapes
