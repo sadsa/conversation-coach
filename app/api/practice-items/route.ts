@@ -66,7 +66,7 @@ async function getDueFlashcards(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const cards = (allCards ?? []) as Array<PracticeItem>
+  const cards = (allCards ?? []) as unknown as Array<PracticeItem>
 
   // Box overview
   const boxCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }

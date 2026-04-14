@@ -26,11 +26,12 @@ export async function computeDashboardSummary(
 
   const cards = (leitnerCards ?? []) as Array<{ leitner_box: number; leitner_due_date: string }>
 
-  const dueBoxes = [...new Set(
+  const dueBoxesSet = new Set(
     cards
       .filter(c => c.leitner_due_date <= today)
       .map(c => c.leitner_box)
-  )].sort((a, b) => a - b)
+  )
+  const dueBoxes = Array.from(dueBoxesSet).sort((a, b) => a - b)
 
   const futureDates = cards
     .filter(c => c.leitner_due_date > today)
