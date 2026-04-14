@@ -50,42 +50,38 @@ beforeEach(() => {
 })
 
 describe('HomePage — widget', () => {
-  it('renders both pills after summary loads', async () => {
+  it('renders the write-down pill after summary loads', async () => {
     render(<HomePage />)
     await waitFor(() => {
-      expect(screen.getByText('4 cards due')).toBeInTheDocument()
       expect(screen.getByText('3 to write down')).toBeInTheDocument()
     })
   })
 
-  it('pills link to /flashcards and /practice?written_down=false', async () => {
+  it('write-down pill links to /practice?written_down=false', async () => {
     render(<HomePage />)
     await waitFor(() => {
-      const dueLink = screen.getByText('4 cards due').closest('a')
       const writeLink = screen.getByText('3 to write down').closest('a')
-      expect(dueLink).toHaveAttribute('href', '/flashcards')
       expect(writeLink).toHaveAttribute('href', '/practice?written_down=false')
     })
   })
 
   it('shows placeholder dashes while loading', () => {
     render(<HomePage />)
-    expect(screen.getAllByText('—')).toHaveLength(2)
+    expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('shows 0 cards due when dueCount is 0', async () => {
+  it('shows 0 to write down when writeDownCount is 0', async () => {
     vi.stubGlobal('fetch', vi.fn((url: string) => {
       if (url === '/api/dashboard-summary') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ dueCount: 0, writeDownCount: 0, nextReviewAt: null }),
+          json: () => Promise.resolve({ writeDownCount: 0 }),
         })
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
     }))
     render(<HomePage />)
     await waitFor(() => {
-      expect(screen.getByText('0 cards due')).toBeInTheDocument()
       expect(screen.getByText('0 to write down')).toBeInTheDocument()
     })
   })
