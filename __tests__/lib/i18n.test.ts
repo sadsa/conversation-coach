@@ -21,9 +21,9 @@ describe('t()', () => {
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')
   })
   it('substitutes {n} replacement', () => {
-    expect(t('flashcard.counter', 'en', { n: 2, m: 5 })).toBe('Card 2 of 5')
+    expect(t('flashcard.reviewPileHeading', 'en', { n: 2 })).toBe('Review pile 2')
   })
   it('substitutes {n} replacement in Spanish', () => {
-    expect(t('flashcard.counter', 'es', { n: 2, m: 5 })).toBe('Tarjeta 2 de 5')
+    expect(t('flashcard.reviewPileHeading', 'es', { n: 2 })).toBe('Repasar pila 2')
   })
 })
