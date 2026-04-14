@@ -1,6 +1,6 @@
 // components/LeitnerDashboard.tsx
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { PracticeItem, BoxSummary } from '@/lib/types'
@@ -25,6 +25,10 @@ export function LeitnerDashboard({ boxes, cards, activeBox }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (submitted) window.location.reload()
+  }, [submitted])
 
   const toggleOutcome = useCallback((id: string, passed: boolean) => {
     setOutcomes(prev => ({ ...prev, [id]: passed }))
@@ -56,11 +60,7 @@ export function LeitnerDashboard({ boxes, cards, activeBox }: Props) {
   const nextDueBox = boxes.find(b => !b.due && b.count > 0)
   const nextDay = nextDueBox ? `pile ${nextDueBox.box}` : null
 
-  if (submitted) {
-    // Reload to show next due pile or caught-up state
-    window.location.reload()
-    return null
-  }
+  if (submitted) return null
 
   return (
     <div className="flex flex-col gap-6">
