@@ -248,6 +248,54 @@ describe('DELETE /api/practice-items/:id', () => {
   })
 })
 
+describe('PATCH /api/practice-items/:id — written_down trigger', () => {
+  it('sets leitner_box=1 and leitner_due_date=today when written_down is set to true', async () => {
+    let capturedUpdate: Record<string, unknown> = {}
+
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'practice_items') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { session_id: 'session-1' }, error: null }),
+              }),
+            }),
+            update: vi.fn().mockImplementation((fields: Record<string, unknown>) => {
+              capturedUpdate = fields
+              return { eq: vi.fn().mockResolvedValue({ error: null }) }
+            }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+              }),
+            }),
+          }),
+        }
+      }),
+    }
+
+    vi.mocked(createServerClient).mockReturnValue(mockDb as any)
+    vi.resetModules()
+    const { PATCH } = await import('@/app/api/practice-items/[id]/route')
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ written_down: true }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: { id: 'item-1' } })
+    expect(res.status).toBe(200)
+    expect(capturedUpdate.leitner_box).toBe(1)
+    expect(typeof capturedUpdate.leitner_due_date).toBe('string')
+    // Should be today's date in YYYY-MM-DD format
+    expect(capturedUpdate.leitner_due_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
 describe('GET /api/practice-items?flashcards=due', () => {
   it('excludes cards where written_down is false', async () => {
     vi.resetModules()

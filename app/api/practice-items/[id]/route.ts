@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { formatDateISO } from '@/lib/leitner'
 
 type Params = { params: { id: string } }
 
@@ -33,9 +34,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json() as { reviewed?: boolean; written_down?: boolean }
-  const update: Record<string, boolean> = {}
+  const update: Record<string, unknown> = {}
   if (body.reviewed !== undefined) update.reviewed = body.reviewed
-  if (body.written_down !== undefined) update.written_down = body.written_down
+  if (body.written_down !== undefined) {
+    update.written_down = body.written_down
+    if (body.written_down === true) {
+      update.leitner_box = 1
+      update.leitner_due_date = formatDateISO(new Date())
+    }
+  }
 
   if (Object.keys(update).length === 0)
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
