@@ -2,14 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import type { PracticeItem, BoxSummary, LeitnerResponse } from '@/lib/types'
 
 const PRACTICE_ITEMS_COLUMNS = [
   'id', 'session_id', 'annotation_id', 'type', 'sub_category', 'original',
   'correction', 'explanation', 'reviewed', 'written_down', 'created_at',
   'updated_at', 'flashcard_front', 'flashcard_back', 'flashcard_note',
-  'fsrs_state', 'due', 'stability', 'difficulty', 'elapsed_days',
-  'scheduled_days', 'reps', 'lapses', 'last_review',
-  'importance_score', 'importance_note',
+  'leitner_box', 'leitner_due_date', 'importance_score', 'importance_note',
 ].join(', ')
 
 export async function GET(req: NextRequest) {
@@ -51,57 +50,42 @@ async function getDueFlashcards(
   db: ReturnType<typeof createServerClient>,
   sessionIds: string[]
 ) {
-  // Fetch all practice_items sub_category to compute weakness score
-  const { data: allItems, error: allError } = await db
+  const today = new Date().toISOString().split('T')[0]
+
+  // All eligible cards
+  const { data: allCards, error } = await db
     .from('practice_items')
-    .select('sub_category')
+    .select(PRACTICE_ITEMS_COLUMNS)
     .in('session_id', sessionIds)
+    .not('flashcard_front', 'is', null)
+    .not('flashcard_back', 'is', null)
+    .eq('written_down', true)
+    .not('leitner_due_date', 'is', null)
+    .order('leitner_box', { ascending: true })
+    .order('leitner_due_date', { ascending: true })
 
-  if (allError) return NextResponse.json({ error: allError.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const weaknessScore: Record<string, number> = {}
-  for (const item of allItems ?? []) {
-    weaknessScore[item.sub_category] = (weaknessScore[item.sub_category] ?? 0) + 1
+  const cards = (allCards ?? []) as Array<PracticeItem>
+
+  // Box overview
+  const boxCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  for (const card of cards) {
+    if (card.leitner_box !== null) boxCounts[card.leitner_box] = (boxCounts[card.leitner_box] ?? 0) + 1
   }
 
-  const now = new Date().toISOString()
+  const dueCards = cards.filter(c => c.leitner_due_date !== null && c.leitner_due_date <= today)
+  const activeBox = dueCards.length > 0 ? dueCards[0].leitner_box : null
 
-  // New cards: eligible + never reviewed
-  const { data: newCards, error: newError } = await db
-    .from('practice_items')
-    .select(PRACTICE_ITEMS_COLUMNS)
-    .in('session_id', sessionIds)
-    .not('flashcard_front', 'is', null)
-    .not('flashcard_back', 'is', null)
-    .eq('written_down', true)
-    .is('fsrs_state', null)
+  const boxes: BoxSummary[] = [1, 2, 3, 4, 5].map(box => ({
+    box,
+    count: boxCounts[box] ?? 0,
+    due: dueCards.some(c => c.leitner_box === box),
+  }))
 
-  if (newError) return NextResponse.json({ error: newError.message }, { status: 500 })
+  const activeCards = activeBox !== null ? dueCards.filter(c => c.leitner_box === activeBox) : []
 
-  // Due reviews: eligible + previously reviewed + due now or overdue
-  const { data: dueReviews, error: dueError } = await db
-    .from('practice_items')
-    .select(PRACTICE_ITEMS_COLUMNS)
-    .in('session_id', sessionIds)
-    .not('flashcard_front', 'is', null)
-    .not('flashcard_back', 'is', null)
-    .eq('written_down', true)
-    .not('fsrs_state', 'is', null)
-    .lte('due', now)
-
-  if (dueError) return NextResponse.json({ error: dueError.message }, { status: 500 })
-
-  type Row = { sub_category: string; due: string }
-  const byWeakness = (a: Row, b: Row) =>
-    (weaknessScore[b.sub_category] ?? 0) - (weaknessScore[a.sub_category] ?? 0)
-
-  const sortedNew = ((newCards ?? []) as unknown as Row[]).sort(byWeakness)
-  const sortedDue = ((dueReviews ?? []) as unknown as Row[]).sort((a, b) => {
-    const w = byWeakness(a, b)
-    return w !== 0 ? w : new Date(a.due).getTime() - new Date(b.due).getTime()
-  })
-
-  return NextResponse.json([...sortedNew, ...sortedDue])
+  return NextResponse.json({ boxes, cards: activeCards, activeBox } satisfies LeitnerResponse)
 }
 
 export async function POST(req: NextRequest) {

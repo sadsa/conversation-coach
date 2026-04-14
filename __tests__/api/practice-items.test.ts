@@ -305,34 +305,12 @@ describe('GET /api/practice-items?flashcards=due', () => {
     const { getAuthenticatedUser } = await import('@/lib/auth')
     vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
 
-    let practiceCallCount = 0
     const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'sessions') {
           return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1' }], error: null }) }) }
         }
-        practiceCallCount++
-        if (practiceCallCount === 1) {
-          // allItems for weakness scoring
-          return { select: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ data: [{ sub_category: 'phrasing' }, { sub_category: 'phrasing' }], error: null }) }) }
-        }
-        if (practiceCallCount === 2) {
-          // newCards query — returns only written_down=true card
-          return {
-            select: vi.fn().mockReturnValue({
-              in: vi.fn().mockReturnValue({
-                not: vi.fn().mockReturnValue({
-                  not: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                      is: vi.fn().mockResolvedValue({ data: [{ id: 'item-eligible', sub_category: 'phrasing', fsrs_state: null, due: null }], error: null }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          }
-        }
-        // dueReviews — empty
+        // practice_items query for flashcards=due with Leitner
         return {
           select: vi.fn().mockReturnValue({
             in: vi.fn().mockReturnValue({
@@ -340,7 +318,14 @@ describe('GET /api/practice-items?flashcards=due', () => {
                 not: vi.fn().mockReturnValue({
                   eq: vi.fn().mockReturnValue({
                     not: vi.fn().mockReturnValue({
-                      lte: vi.fn().mockResolvedValue({ data: [], error: null }),
+                      order: vi.fn().mockReturnValue({
+                        order: vi.fn().mockResolvedValue({
+                          data: [
+                            { id: 'item-eligible', leitner_box: 1, leitner_due_date: '2026-04-10' },
+                          ],
+                          error: null,
+                        }),
+                      }),
                     }),
                   }),
                 }),
@@ -350,20 +335,22 @@ describe('GET /api/practice-items?flashcards=due', () => {
         }
       }),
     }
-    practiceCallCount = 0
     vi.mocked(createServerClient).mockReturnValue(mockDb as any)
 
     const { GET } = await import('@/app/api/practice-items/route')
     const req = new NextRequest('http://localhost/api/practice-items?flashcards=due')
     const res = await GET(req)
     const body = await res.json()
-    expect(Array.isArray(body)).toBe(true)
-    const ids = body.map((i: { id: string }) => i.id)
+    expect(body).toHaveProperty('boxes')
+    expect(body).toHaveProperty('cards')
+    expect(body).toHaveProperty('activeBox')
+    expect(Array.isArray(body.boxes)).toBe(true)
+    expect(Array.isArray(body.cards)).toBe(true)
+    const ids = body.cards.map((i: { id: string }) => i.id)
     expect(ids).toContain('item-eligible')
-    expect(ids).not.toContain('item-not-written')
   })
 
-  it('returns new cards before due reviews', async () => {
+  it('returns cards in active box only', async () => {
     vi.resetModules()
     vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
     vi.mock('@/lib/auth', () => ({ getAuthenticatedUser: vi.fn() }))
@@ -371,31 +358,13 @@ describe('GET /api/practice-items?flashcards=due', () => {
     const { getAuthenticatedUser } = await import('@/lib/auth')
     vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
 
-    let practiceCallCount2 = 0
-    const mockDb2 = {
+    const today = new Date().toISOString().split('T')[0]
+    const mockDb = {
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'sessions') {
           return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1' }], error: null }) }) }
         }
-        practiceCallCount2++
-        if (practiceCallCount2 === 1) {
-          return { select: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ data: [{ sub_category: 'phrasing' }], error: null }) }) }
-        }
-        if (practiceCallCount2 === 2) {
-          return {
-            select: vi.fn().mockReturnValue({
-              in: vi.fn().mockReturnValue({
-                not: vi.fn().mockReturnValue({
-                  not: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                      is: vi.fn().mockResolvedValue({ data: [{ id: 'new-card', sub_category: 'phrasing', fsrs_state: null, due: null }], error: null }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          }
-        }
+        // practice_items query with cards in boxes 1 and 2, both due
         return {
           select: vi.fn().mockReturnValue({
             in: vi.fn().mockReturnValue({
@@ -403,7 +372,15 @@ describe('GET /api/practice-items?flashcards=due', () => {
                 not: vi.fn().mockReturnValue({
                   eq: vi.fn().mockReturnValue({
                     not: vi.fn().mockReturnValue({
-                      lte: vi.fn().mockResolvedValue({ data: [{ id: 'due-card', sub_category: 'phrasing', fsrs_state: 'Review', due: new Date(Date.now() - 1000).toISOString() }], error: null }),
+                      order: vi.fn().mockReturnValue({
+                        order: vi.fn().mockResolvedValue({
+                          data: [
+                            { id: 'card-box1', leitner_box: 1, leitner_due_date: today },
+                            { id: 'card-box2', leitner_box: 2, leitner_due_date: today },
+                          ],
+                          error: null,
+                        }),
+                      }),
                     }),
                   }),
                 }),
@@ -413,14 +390,15 @@ describe('GET /api/practice-items?flashcards=due', () => {
         }
       }),
     }
-    practiceCallCount2 = 0
-    vi.mocked(createServerClient).mockReturnValue(mockDb2 as any)
+    vi.mocked(createServerClient).mockReturnValue(mockDb as any)
 
     const { GET } = await import('@/app/api/practice-items/route')
     const req = new NextRequest('http://localhost/api/practice-items?flashcards=due')
     const res = await GET(req)
     const body = await res.json()
-    const ids = body.map((i: { id: string }) => i.id)
-    expect(ids.indexOf('new-card')).toBeLessThan(ids.indexOf('due-card'))
+    expect(body.activeBox).toBe(1)
+    const ids = body.cards.map((i: { id: string }) => i.id)
+    expect(ids).toContain('card-box1')
+    expect(ids).not.toContain('card-box2')
   })
 })
