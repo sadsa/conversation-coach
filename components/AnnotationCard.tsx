@@ -4,6 +4,13 @@ import { useState } from 'react'
 import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 
+function importanceStars(score: number | null): string | null {
+  if (score === 3) return '★★★'
+  if (score === 2) return '★★☆'
+  if (score === 1) return '★☆☆'
+  return null
+}
+
 interface Props {
   annotation: Annotation
   sessionId: string
@@ -16,6 +23,7 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
   const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
   const [loading, setLoading] = useState(false)
+  const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   async function handleAdd() {
     setLoading(true)
@@ -76,6 +84,30 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
       <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
         {t(`subCat.${annotation.sub_category}`)}
       </span>
+      {importanceStars(annotation.importance_score) && (
+        <div>
+          {annotation.importance_note ? (
+            <>
+              <button
+                onClick={() => setImportanceExpanded(e => !e)}
+                className="text-amber-400 text-base leading-none focus:outline-none"
+                aria-label={t('practiceList.importanceToggleAria')}
+              >
+                {importanceStars(annotation.importance_score)}
+              </button>
+              {importanceExpanded && (
+                <p className="mt-1.5 text-text-secondary text-xs leading-relaxed">
+                  {annotation.importance_note}
+                </p>
+              )}
+            </>
+          ) : (
+            <span className="text-amber-400 text-base leading-none">
+              {importanceStars(annotation.importance_score)}
+            </span>
+          )}
+        </div>
+      )}
       {practiceItemId ? (
         <button
           onClick={handleRemove}

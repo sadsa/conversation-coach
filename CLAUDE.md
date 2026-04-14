@@ -13,7 +13,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
-- **ts-fsrs** — spaced-repetition scheduling for flashcard reviews
+- **Leitner box scheduler** — 5-box physical flashcard review system (no ts-fsrs)
 - **Vitest** + React Testing Library — unit/component tests
 
 ## Commands
@@ -30,7 +30,7 @@ npm test -- <path>   # run a single test file
 
 ```
 app/
-  page.tsx                        # Screen 1: Upload / Home (habit widget pills)
+  page.tsx                        # Screen 1: Upload / Home (Leitner CTA widget + write-down pill)
   login/page.tsx                  # Magic-link login (public)
   access-denied/page.tsx          # Shown when email not in allowlist (public)
   onboarding/page.tsx             # First-login target language selection
@@ -41,7 +41,7 @@ app/
     identify/page.tsx             # Screen 3: Speaker Identification
   practice/page.tsx               # Screen 5: Practice Items
   insights/page.tsx               # Screen 6: Insights (sub-category mistake tracking)
-  flashcards/page.tsx             # Screen 7: Flashcard review (SRS due queue)
+  flashcards/page.tsx             # Screen 7: Leitner dashboard (pile overview + log outcomes)
   settings/page.tsx               # Settings: language, theme, sign-out, version
   api/                            # All API routes (Next.js route handlers)
 components/
@@ -50,6 +50,7 @@ components/
   ConditionalNav.tsx              # Composes AppHeader + NavDrawer
   ThemeProvider.tsx               # Dark/light theme context
   LanguageProvider.tsx            # UI language context with live switching
+  LeitnerDashboard.tsx            # Pile strip + per-card ✓/✗ + confirm button for physical review
   ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
@@ -57,7 +58,8 @@ lib/
   i18n.ts                         # t() translation function + TRANSLATIONS dict
   insights.ts                     # fetchInsightsData() — uses Supabase RPC
   push.ts                         # sendPushNotification helper
-  dashboard-summary.ts            # computeDashboardSummary()
+  leitner.ts                      # leitnerPass(), leitnerFail(), formatDateISO() — pure logic, no DB
+  dashboard-summary.ts            # computeDashboardSummary() → { leitnerDue, dueBoxes, nextDueDate, writeDownCount }
   supabase-server.ts              # Supabase client for server components/routes
   supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
@@ -88,7 +90,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and an
 - **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
 - **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
 - **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
-- **SRS flashcards**: `ts-fsrs` schedules flashcard reviews. `POST /api/practice-items/:id/review` updates FSRS fields. `GET /api/practice-items?flashcards=due` returns due cards ordered by weakness.
+- **Leitner flashcards**: 5-box physical review system. `lib/leitner.ts` has pure pass/fail logic. `GET /api/practice-items?flashcards=due` returns `LeitnerResponse { boxes, cards, activeBox }` — lowest due box's cards. `POST /api/practice-items/leitner-review` accepts `{ results: [{id, passed}] }` and advances/resets box in bulk. Setting `written_down = true` auto-sets `leitner_box = 1` and `leitner_due_date = today`. Box intervals: 1→1d, 2→3d, 3→7d, 4→14d, 5→28d. Pass advances box; fail resets to box 1.
 - **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
 - **Practice sub-category filter**: `?sub_category=<key>` URL param seeds the active pill on load. 14-pill row (All + 13 sub-categories), sorted by count, colour-coded. Linked from Insights "See all examples" cards.
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
