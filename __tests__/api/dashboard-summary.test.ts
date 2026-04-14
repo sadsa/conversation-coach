@@ -1,66 +1,71 @@
 // __tests__/api/dashboard-summary.test.ts
 import { describe, it, expect, vi } from 'vitest'
-
-// We test the query logic in isolation via a helper extracted from the route.
-// The route itself is thin wiring; the helper is where the logic lives.
 import { computeDashboardSummary } from '@/lib/dashboard-summary'
 
-const makeDb = (overrides: Partial<{
-  dueCount: number
-  writeDownCount: number
-  nextReviewAt: string | null
-}> = {}) => {
-  const { dueCount = 2, writeDownCount = 1, nextReviewAt = '2026-04-12T15:00:00Z' } = overrides
-  const selectMock = vi.fn().mockReturnThis()
-  const inMock = vi.fn().mockReturnThis()
-  const notMock = vi.fn().mockReturnThis()
-  const isMock = vi.fn().mockReturnThis()
-  const lteMock = vi.fn().mockReturnThis()
-  const gtMock = vi.fn().mockReturnThis()
-  const orderMock = vi.fn().mockReturnThis()
-  const limitMock = vi.fn()
+function makeDb(options: {
+  boxRows?: Array<{ leitner_box: number; leitner_due_date: string }>
+  writeDownCount?: number
+} = {}) {
+  const today = '2026-04-14'
+  const { boxRows = [], writeDownCount = 0 } = options
 
-  let callIndex = 0
+  let callCount = 0
   const responses = [
-    // newCards query (dueCount split: new cards)
-    { data: Array.from({ length: Math.ceil(dueCount / 2) }, (_, i) => ({ id: `new-${i}` })), error: null },
-    // dueCards query (dueCount split: due reviews)
-    { data: Array.from({ length: Math.floor(dueCount / 2) }, (_, i) => ({ id: `due-${i}` })), error: null },
-    // writeDownCount query
+    // First query: leitner box overview
+    { data: boxRows, error: null },
+    // Second query: not-written-down count
     { data: Array.from({ length: writeDownCount }, (_, i) => ({ id: `wd-${i}` })), error: null },
-    // nextReviewAt query
-    { data: nextReviewAt ? [{ due: nextReviewAt }] : [], error: null },
   ]
 
-  limitMock.mockImplementation(() => responses[callIndex++])
-
-  return {
-    from: vi.fn().mockReturnValue({
-      select: selectMock, in: inMock, not: notMock, is: isMock,
-      lte: lteMock, gt: gtMock, order: orderMock, limit: limitMock,
-      eq: vi.fn().mockReturnThis(),
-    }),
+  const mockChain = {
+    select: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockImplementation(() => responses[callCount++]),
   }
+
+  return { from: vi.fn().mockReturnValue(mockChain), _today: today }
 }
 
 describe('computeDashboardSummary', () => {
-  it('returns correct combined dueCount and nextReviewAt', async () => {
-    const db = makeDb({ dueCount: 4, writeDownCount: 2, nextReviewAt: '2026-04-12T18:00:00Z' })
-    const result = await computeDashboardSummary(db as never, ['session-1'])
-    expect(result.dueCount).toBe(4)
-    expect(result.writeDownCount).toBe(2)
-    expect(result.nextReviewAt).toBe('2026-04-12T18:00:00Z')
+  it('returns leitnerDue true when a box is due today', async () => {
+    const db = makeDb({
+      boxRows: [
+        { leitner_box: 1, leitner_due_date: '2026-04-14' },
+        { leitner_box: 2, leitner_due_date: '2026-04-16' },
+      ],
+      writeDownCount: 1,
+    })
+    const result = await computeDashboardSummary(db as never, ['session-1'], '2026-04-14')
+    expect(result.leitnerDue).toBe(true)
+    expect(result.dueBoxes).toEqual([1])
+    expect(result.writeDownCount).toBe(1)
   })
 
-  it('returns zero counts when no items', async () => {
-    const db = makeDb({ dueCount: 0, writeDownCount: 0, nextReviewAt: null })
-    const result = await computeDashboardSummary(db as never, ['session-1'])
-    expect(result).toEqual({ dueCount: 0, writeDownCount: 0, nextReviewAt: null })
+  it('returns leitnerDue false and nextDueDate when nothing is due', async () => {
+    const db = makeDb({
+      boxRows: [
+        { leitner_box: 2, leitner_due_date: '2026-04-17' },
+        { leitner_box: 3, leitner_due_date: '2026-04-21' },
+      ],
+      writeDownCount: 0,
+    })
+    const result = await computeDashboardSummary(db as never, ['session-1'], '2026-04-14')
+    expect(result.leitnerDue).toBe(false)
+    expect(result.dueBoxes).toEqual([])
+    expect(result.nextDueDate).toBe('2026-04-17')
+    expect(result.writeDownCount).toBe(0)
   })
 
-  it('returns nextReviewAt null when no future cards', async () => {
-    const db = makeDb({ dueCount: 2, writeDownCount: 0, nextReviewAt: null })
-    const result = await computeDashboardSummary(db as never, ['session-1'])
-    expect(result.nextReviewAt).toBeNull()
+  it('returns leitnerDue false and nextDueDate null when no eligible cards', async () => {
+    const db = makeDb({ boxRows: [], writeDownCount: 0 })
+    const result = await computeDashboardSummary(db as never, ['session-1'], '2026-04-14')
+    expect(result.leitnerDue).toBe(false)
+    expect(result.nextDueDate).toBeNull()
   })
 })
