@@ -56,7 +56,7 @@ export function BottomNav() {
               href={tab.href}
               aria-current={active ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
-                active ? 'text-indigo-400' : 'text-text-tertiary hover:text-text-secondary'
+                active ? 'text-accent-handle' : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
               {tab.icon}
