@@ -52,7 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
           <ThemeProvider>
             <FontSizeProvider />
-            <main className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-8">{children}</main>
+            <main className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-20">{children}</main>
             <ConditionalNav />
           </ThemeProvider>
         </LanguageProvider>
