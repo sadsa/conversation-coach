@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
+import { BottomNav } from '@/components/BottomNav'
 
 const HIDDEN_ON = ['/login', '/access-denied', '/onboarding']
 
@@ -17,6 +18,7 @@ export function ConditionalNav() {
     <>
       <AppHeader isOpen={isOpen} onOpen={() => setIsOpen(true)} />
       <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <BottomNav />
     </>
   )
 }

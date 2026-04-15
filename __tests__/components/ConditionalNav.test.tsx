@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ConditionalNav } from '@/components/ConditionalNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { LanguageProvider } from '@/components/LanguageProvider'
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
@@ -30,7 +31,11 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 function wrap() {
-  return render(<ThemeProvider><ConditionalNav /></ThemeProvider>)
+  return render(
+    <LanguageProvider initialTargetLanguage="es-AR">
+      <ThemeProvider><ConditionalNav /></ThemeProvider>
+    </LanguageProvider>
+  )
 }
 
 describe('ConditionalNav', () => {
@@ -65,5 +70,17 @@ describe('ConditionalNav', () => {
     mockPathname.mockReturnValue('/sessions/abc')
     wrap()
     expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
+  })
+
+  it('renders the bottom nav on "/"', () => {
+    mockPathname.mockReturnValue('/')
+    wrap()
+    expect(screen.getByRole('navigation', { name: /quick navigation/i })).toBeInTheDocument()
+  })
+
+  it('does not render the bottom nav on "/login"', () => {
+    mockPathname.mockReturnValue('/login')
+    const { container } = wrap()
+    expect(container.firstChild).toBeNull()
   })
 })
