@@ -54,7 +54,6 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              aria-label={t(tab.labelKey)}
               aria-current={active ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
                 active ? 'text-indigo-400' : 'text-text-tertiary hover:text-text-secondary'
