@@ -118,6 +118,10 @@ export interface PracticeItem {
   flashcard_note: string | null
   importance_score: number | null
   importance_note: string | null
+  // Enriched by API — null for legacy items without annotation_id
+  segment_text: string | null
+  start_char: number | null
+  end_char: number | null
 }
 
 
@@ -139,6 +143,7 @@ export interface SessionDetail {
   segments: TranscriptSegment[]
   annotations: Annotation[]
   addedAnnotations: Record<string, string>   // annotationId -> practiceItemId
+  writtenAnnotations: string[]               // annotation IDs where written_down = true
 }
 
 export interface StatusResponse {
