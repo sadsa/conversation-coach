@@ -320,17 +320,6 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
     return true
   })
 
-  async function deleteItem(id: string): Promise<boolean> {
-    const res = await fetch(`/api/practice-items/${id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      setToastMessage(t('practiceList.deleteError'))
-      return false
-    }
-    onDeleted?.([id])
-    setDisplayItems(prev => prev.filter(i => i.id !== id))
-    return true
-  }
-
   async function markWritten(id: string): Promise<boolean> {
     const res = await fetch(`/api/practice-items/${id}`, {
       method: 'PATCH',
