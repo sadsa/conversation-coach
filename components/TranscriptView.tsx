@@ -12,12 +12,19 @@ interface Props {
   annotations: Annotation[]
   userSpeakerLabels: ('A' | 'B')[] | null
   sessionId: string
-  addedAnnotations: Map<string, string>           // annotationId -> practiceItemId
+  addedAnnotations: Map<string, string>
+  writtenAnnotations: Set<string>
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
+  onAnnotationWritten: (annotationId: string) => void
+  onAnnotationUnwritten: (annotationId: string) => void
 }
 
-export function TranscriptView({ segments, annotations, userSpeakerLabels, sessionId, addedAnnotations, onAnnotationAdded, onAnnotationRemoved }: Props) {
+export function TranscriptView({
+  segments, annotations, userSpeakerLabels, sessionId,
+  addedAnnotations, writtenAnnotations,
+  onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
+}: Props) {
   const { t } = useTranslation()
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
 
@@ -34,7 +41,6 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
       <div className="space-y-4">
         {segments.map(seg => {
           const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
-
           return (
             <div key={seg.id}>
               <div className={!isUser ? 'opacity-40' : ''}>
@@ -50,6 +56,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
                         setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
                       }}
                       savedAnnotationIds={savedAnnotationIds}
+                      writtenAnnotationIds={writtenAnnotations}
                     />
                   ) : (
                     seg.text
@@ -65,12 +72,17 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
           title={<span>{t(`type.${activeAnnotation.type}`)}</span>}
           onClose={() => setActiveAnnotation(null)}
         >
+          {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+          {/* @ts-expect-error — isWrittenDown/onAnnotationWritten/onAnnotationUnwritten added in Task 8 */}
           <AnnotationCard
             annotation={activeAnnotation}
             sessionId={sessionId}
             practiceItemId={addedAnnotations.get(activeAnnotation.id) ?? null}
+            isWrittenDown={writtenAnnotations.has(activeAnnotation.id)}
             onAnnotationAdded={onAnnotationAdded}
             onAnnotationRemoved={onAnnotationRemoved}
+            onAnnotationWritten={onAnnotationWritten}
+            onAnnotationUnwritten={onAnnotationUnwritten}
           />
         </Modal>
       )}
