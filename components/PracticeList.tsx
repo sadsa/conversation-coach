@@ -14,12 +14,40 @@ function importanceStars(score: number | null): string | null {
   return null
 }
 
+const SNIPPET_CONTEXT = 30
+
+function ContextSnippet({ segmentText, startChar, endChar, testId }: {
+  segmentText: string
+  startChar: number
+  endChar: number
+  testId: string
+}) {
+  const snippetStart = Math.max(0, startChar - SNIPPET_CONTEXT)
+  const snippetEnd = Math.min(segmentText.length, endChar + SNIPPET_CONTEXT)
+  const prefix = segmentText.slice(snippetStart, startChar)
+  const error = segmentText.slice(startChar, endChar)
+  const suffix = segmentText.slice(endChar, snippetEnd)
+  return (
+    <p
+      data-testid={testId}
+      className="text-[11px] italic text-text-tertiary border-l-2 border-border pl-2 mt-2 leading-relaxed"
+    >
+      {snippetStart > 0 && '...'}
+      {prefix}
+      <span className="not-italic bg-[var(--annotation-unreviewed-bg)] text-[var(--annotation-unreviewed-text)] rounded-sm px-0.5">
+        {error}
+      </span>
+      {suffix}
+      {snippetEnd < segmentText.length && '...'}
+    </p>
+  )
+}
+
 function SwipeableItem({
   item,
   isBulkMode,
   isSelected,
   onToggleSelect,
-  onDelete,
   onMarkWritten,
   onOpen,
 }: {
@@ -27,7 +55,6 @@ function SwipeableItem({
   isBulkMode: boolean
   isSelected: boolean
   onToggleSelect: (id: string) => void
-  onDelete: (id: string) => Promise<boolean>
   onMarkWritten: (id: string) => Promise<boolean>
   onOpen: (item: PracticeItem) => void
 }) {
@@ -35,7 +62,6 @@ function SwipeableItem({
   const [translateX, setTranslateX] = useState(0)
   const [rowHeight, setRowHeight] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [isWrittenDown, setIsWrittenDown] = useState(item.written_down)
   const rowRef = useRef<HTMLLIElement>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
@@ -44,73 +70,48 @@ function SwipeableItem({
     return () => { mountedRef.current = false }
   }, [])
 
-  async function triggerDelete() {
+  async function triggerMarkWritten() {
     if (isAnimating || !rowRef.current) return
     setIsAnimating(true)
 
-    // Phase 1: slide item fully off-screen left (200ms)
-    setTranslateX(-window.innerWidth)
+    setTranslateX(window.innerWidth)
+    const markPromise = onMarkWritten(item.id)
 
-    // Fire DELETE in parallel
-    const deletePromise = onDelete(item.id)
-
-    // Wait for slide-out animation
     await new Promise(r => setTimeout(r, 200))
     if (!mountedRef.current) return
 
-    // Phase 2: measure height, then collapse row
     const h = rowRef.current?.offsetHeight ?? 0
     setRowHeight(h)
-    // Double rAF ensures the explicit height is painted before we transition to 0
     await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
     if (!mountedRef.current) return
     setRowHeight(0)
 
-    // Wait for both collapse animation and DELETE to finish
-    const [, deleteResult] = await Promise.allSettled([
+    const [, markResult] = await Promise.allSettled([
       new Promise(r => setTimeout(r, 200)),
-      deletePromise,
+      markPromise,
     ])
     if (!mountedRef.current) return
 
-    const succeeded = deleteResult.status === 'fulfilled' && deleteResult.value === true
-
+    const succeeded = markResult.status === 'fulfilled' && markResult.value === true
     if (!succeeded) {
-      // Restore item on failure
       setRowHeight(null)
       setTranslateX(0)
       setIsAnimating(false)
     }
-    // On success: parent removes item from list via onDeleted (called inside onDelete)
-  }
-
-  async function triggerMarkWritten() {
-    if (isAnimating) return
-    setIsWrittenDown(true)
-    setTranslateX(0)
-    const ok = await onMarkWritten(item.id)
-    if (!mountedRef.current) return
-    if (!ok) setIsWrittenDown(false)
   }
 
   const handlers = useSwipeable({
     delta: 10,
     onSwiping: (e) => {
-      // Cancel long-press if swiping
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current)
         longPressTimer.current = null
       }
-      if (e.dir === 'Left') setTranslateX(-e.absX)
-      else if (e.dir === 'Right') setTranslateX(e.absX)
-      else setTranslateX(0)
-    },
-    onSwipedLeft: (e) => {
-      if (e.absX > 80) triggerDelete()
+      if (e.dir === 'Right') setTranslateX(e.absX)
       else setTranslateX(0)
     },
     onSwipedRight: (e) => {
-      if (e.absX > 80 && !isWrittenDown) triggerMarkWritten()
+      if (e.absX > 80) triggerMarkWritten()
       else setTranslateX(0)
     },
     trackMouse: false,
@@ -140,10 +141,6 @@ function SwipeableItem({
           : undefined
       }
     >
-      {/* Swipe-to-delete background (right side, swiping left) */}
-      <div className={`absolute inset-0 bg-red-600 flex items-center justify-end pr-5 rounded-xl ${translateX >= 0 ? 'invisible' : ''}`}>
-        <span className="text-white text-sm font-medium">{t('session.delete')}</span>
-      </div>
       {/* Swipe-to-written background (left side, swiping right) */}
       <div className={`absolute inset-0 bg-green-800 flex items-center pl-5 rounded-xl ${translateX <= 0 ? 'invisible' : ''}`}>
         <span className="text-white text-sm font-medium">{t('practiceList.revealWritten')}</span>
@@ -161,7 +158,7 @@ function SwipeableItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className={`relative flex items-start gap-3 px-4 py-3 bg-surface rounded-xl ${isWrittenDown ? 'opacity-60' : ''}`}
+        className="relative flex items-start gap-3 px-4 py-3 bg-surface rounded-xl"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
@@ -173,17 +170,6 @@ function SwipeableItem({
           }
         }}
       >
-        {/* Hidden test seam for triggering delete in tests */}
-        <button
-          data-testid={`delete-item-${item.id}`}
-          className="sr-only"
-          onClick={e => { e.stopPropagation(); triggerDelete() }}
-          tabIndex={-1}
-          aria-hidden="true"
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore — inert is a valid HTML attribute not yet in React's types
-          inert=""
-        />
         {/* Hidden test seam for triggering mark-written in tests */}
         <button
           data-testid={`write-item-${item.id}`}
@@ -220,26 +206,31 @@ function SwipeableItem({
             <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
               {t(`subCat.${item.sub_category}`)}
             </span>
-            {isWrittenDown
-              ? <span className="text-[10px] text-green-600 border border-green-700 rounded-full px-2 py-0.5">{t('practiceList.writtenDown')}</span>
-              : <span className="text-[10px] text-gray-500 border border-gray-700 rounded-full px-2 py-0.5">{t('practiceList.notWrittenDown')}</span>
-            }
           </div>
+          {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
+            <ContextSnippet
+              segmentText={item.segment_text}
+              startChar={item.start_char}
+              endChar={item.end_char}
+              testId={`context-snippet-${item.id}`}
+            />
+          )}
         </div>
       </div>
     </li>
   )
 }
 
+type WrittenFilter = 'hidden' | 'only' | 'all'
+
 interface Props {
   items: PracticeItem[]
   /** Called after successful API delete so the parent can update `items`. */
   onDeleted?: (ids: string[]) => void
   initialSubCategory?: SubCategory
-  initialFilterNotWritten?: boolean
 }
 
-export function PracticeList({ items, onDeleted, initialSubCategory, initialFilterNotWritten }: Props) {
+export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   const { t } = useTranslation()
   const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
   const [isBulkMode, setIsBulkMode] = useState(false)
@@ -247,14 +238,13 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
   const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(initialSubCategory !== undefined)
-  const [filterNotWritten, setFilterNotWritten] = useState(initialFilterNotWritten ?? false)
+  const [writtenFilter, setWrittenFilter] = useState<WrittenFilter>('hidden')
   const [sortByImportance, setSortByImportance] = useState(false)
   const [displayItems, setDisplayItems] = useState<PracticeItem[]>(items)
   const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   useEffect(() => {
     if (sortByImportance) {
-      // Apply importance sort to new items
       const sorted = [...items].sort((a, b) => {
         if (a.importance_score === null && b.importance_score === null) return 0
         if (a.importance_score === null) return 1
@@ -282,7 +272,6 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
     fetch(url)
       .then(r => { if (!r.ok) return; return r.json() })
       .then((data: PracticeItem[] | undefined) => {
-        // Only update if sortByImportance is still true
         if (data && sortByImportanceRef.current === sortByImportance) {
           setDisplayItems(data)
         }
@@ -314,7 +303,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
     return 'border-border text-text-secondary'
   }
 
-  const allPillClass = subCategoryFilter === null && !filterNotWritten
+  const allPillClass = writtenFilter === 'all' && subCategoryFilter === null
     ? 'border-violet-500 text-pill-violet bg-violet-500/10'
     : 'border-border text-text-secondary'
 
@@ -325,7 +314,8 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
   }, [toastMessage])
 
   const filtered = displayItems.filter(item => {
-    if (filterNotWritten && item.written_down) return false
+    if (writtenFilter === 'hidden' && item.written_down) return false
+    if (writtenFilter === 'only' && !item.written_down) return false
     if (subCategoryFilter !== null && item.sub_category !== subCategoryFilter) return false
     return true
   })
@@ -351,6 +341,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
       setToastMessage(t('practiceList.markWrittenError'))
       return false
     }
+    setDisplayItems(prev => prev.filter(i => i.id !== id))
     return true
   }
 
@@ -445,21 +436,21 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
       {!isBulkMode && (
         <div className="flex gap-2 flex-wrap text-sm">
           <button
-            onClick={() => { setSubCategoryFilter(null); setFilterNotWritten(false) }}
+            onClick={() => { setSubCategoryFilter(null); setWrittenFilter('all') }}
             className={`px-3 py-1 rounded-full border transition-colors ${allPillClass}`}
           >
             {t('practiceList.all')}
           </button>
-          {/* Pinned "Not written" filter — always second */}
+          {/* Pinned "Written" filter — always second */}
           <button
-            onClick={() => setFilterNotWritten(f => !f)}
+            onClick={() => setWrittenFilter(f => f === 'only' ? 'hidden' : 'only')}
             className={`px-3 py-1 rounded-full border transition-colors ${
-              filterNotWritten
+              writtenFilter === 'only'
                 ? 'border-amber-500 text-pill-amber bg-amber-500/10'
                 : 'border-pill-inactive-border text-pill-inactive'
             }`}
           >
-            {t('practiceList.filterNotWritten')}
+            {t('practiceList.filterWritten')}
           </button>
           <button
             onClick={() => setSortByImportance(s => !s)}
@@ -505,7 +496,6 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
             isBulkMode={isBulkMode}
             isSelected={selectedIds.has(item.id)}
             onToggleSelect={handleToggleSelect}
-            onDelete={deleteItem}
             onMarkWritten={markWritten}
             onOpen={setOpenItem}
           />
@@ -531,6 +521,14 @@ export function PracticeList({ items, onDeleted, initialSubCategory, initialFilt
             <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
               {t(`subCat.${openItem.sub_category}`)}
             </span>
+            {openItem.segment_text !== null && openItem.start_char !== null && openItem.end_char !== null && (
+              <ContextSnippet
+                segmentText={openItem.segment_text}
+                startChar={openItem.start_char}
+                endChar={openItem.end_char}
+                testId={`context-snippet-modal-${openItem.id}`}
+              />
+            )}
             {importanceStars(openItem.importance_score) && (
               <div className="pt-1">
                 {openItem.importance_note ? (

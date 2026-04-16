@@ -27,11 +27,8 @@ function PracticePageInner() {
       ? (rawSubCat as SubCategory)
       : undefined
 
-  const rawWrittenDown = searchParams.get('written_down')
-  const initialFilterNotWritten = rawWrittenDown === 'false'
-
   useEffect(() => {
-    if (rawSubCat || rawWrittenDown) router.replace(pathname)
+    if (rawSubCat) router.replace(pathname)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -61,7 +58,6 @@ function PracticePageInner() {
       <PracticeList
         items={items}
         initialSubCategory={initialSubCategory}
-        initialFilterNotWritten={initialFilterNotWritten}
         onDeleted={ids => setItems(prev => prev.filter(i => !ids.includes(i.id)))}
       />
     </div>
