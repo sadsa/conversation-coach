@@ -39,6 +39,18 @@
     --color-widget-write-bg: rgba(16, 185, 129, 0.10);
     --color-widget-write-bg-hover: rgba(16, 185, 129, 0.20);
     --color-widget-write-text: #6ee7b7;
+    /* Annotation highlight states — dark */
+    --annotation-unreviewed-bg: rgba(245, 158, 11, 0.15);
+    --annotation-unreviewed-border: #d97706;
+    --annotation-unreviewed-text: #fde68a;
+
+    --annotation-saved-bg: rgba(139, 92, 246, 0.2);
+    --annotation-saved-border: #8b5cf6;
+    --annotation-saved-text: #ddd6fe;
+
+    --annotation-written-bg: rgba(34, 197, 94, 0.12);
+    --annotation-written-border: #22c55e;
+    --annotation-written-text: #86efac;
   }
 
   [data-theme="light"] {
@@ -77,5 +89,17 @@
     --color-widget-write-bg: #d1fae5;
     --color-widget-write-bg-hover: #a7f3d0;
     --color-widget-write-text: #065f46;
+    /* Annotation highlight states */
+    --annotation-unreviewed-bg: rgba(245, 158, 11, 0.12);
+    --annotation-unreviewed-border: #b45309;
+    --annotation-unreviewed-text: #92400e;
+
+    --annotation-saved-bg: rgba(139, 92, 246, 0.12);
+    --annotation-saved-border: #6d28d9;
+    --annotation-saved-text: #4c1d95;
+
+    --annotation-written-bg: rgba(34, 197, 94, 0.1);
+    --annotation-written-border: #15803d;
+    --annotation-written-text: #14532d;
   }
 }
