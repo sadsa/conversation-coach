@@ -13,6 +13,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   const [detail, setDetail] = useState<SessionDetail | null>(null)
   const [title, setTitle] = useState('')
   const [addedAnnotations, setAddedAnnotations] = useState<Map<string, string>>(new Map())
+  const [writtenAnnotations, setWrittenAnnotations] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch(`/api/sessions/${params.id}`)
@@ -21,6 +22,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         setDetail(d)
         setTitle(d.session.title)
         setAddedAnnotations(new Map(Object.entries(d.addedAnnotations)))
+        setWrittenAnnotations(new Set(d.writtenAnnotations))
       })
   }, [params.id])
 
@@ -39,6 +41,15 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
 
   function handleAnnotationRemoved(annotationId: string) {
     setAddedAnnotations(prev => { const next = new Map(prev); next.delete(annotationId); return next })
+    setWrittenAnnotations(prev => { const next = new Set(prev); next.delete(annotationId); return next })
+  }
+
+  function handleAnnotationWritten(annotationId: string) {
+    setWrittenAnnotations(prev => new Set([...prev, annotationId]))
+  }
+
+  function handleAnnotationUnwritten(annotationId: string) {
+    setWrittenAnnotations(prev => { const next = new Set(prev); next.delete(annotationId); return next })
   }
 
   async function handleReanalyse() {
@@ -80,8 +91,11 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         userSpeakerLabels={session.user_speaker_labels ?? null}
         sessionId={params.id}
         addedAnnotations={addedAnnotations}
+        writtenAnnotations={writtenAnnotations}
         onAnnotationAdded={handleAnnotationAdded}
         onAnnotationRemoved={handleAnnotationRemoved}
+        onAnnotationWritten={handleAnnotationWritten}
+        onAnnotationUnwritten={handleAnnotationUnwritten}
       />
     </div>
   )
