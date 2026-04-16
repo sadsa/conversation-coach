@@ -103,3 +103,23 @@
     --annotation-written-text: #14532d;
   }
 }
+
+@layer components {
+  .annotation-unreviewed {
+    background-color: var(--annotation-unreviewed-bg);
+    text-decoration-color: var(--annotation-unreviewed-border);
+    color: var(--annotation-unreviewed-text);
+  }
+
+  .annotation-saved {
+    background-color: var(--annotation-saved-bg);
+    text-decoration-color: var(--annotation-saved-border);
+    color: var(--annotation-saved-text);
+  }
+
+  .annotation-written {
+    background-color: var(--annotation-written-bg);
+    text-decoration-color: var(--annotation-written-border);
+    color: var(--annotation-written-text);
+  }
+}

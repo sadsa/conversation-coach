@@ -27,7 +27,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
     return acc
   }, {})
 
-  const addedAnnotationIds = new Set(addedAnnotations.keys())
+  const savedAnnotationIds = new Set(addedAnnotations.keys())
 
   return (
     <div className="space-y-4">
@@ -49,7 +49,7 @@ export function TranscriptView({ segments, annotations, userSpeakerLabels, sessi
                       onAnnotationClick={a => {
                         setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
                       }}
-                      addedAnnotationIds={addedAnnotationIds}
+                      savedAnnotationIds={savedAnnotationIds}
                     />
                   ) : (
                     seg.text
