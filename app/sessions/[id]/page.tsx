@@ -45,7 +45,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   }
 
   function handleAnnotationWritten(annotationId: string) {
-    setWrittenAnnotations(prev => new Set([...prev, annotationId]))
+    setWrittenAnnotations(prev => { const next = new Set(prev); next.add(annotationId); return next })
   }
 
   function handleAnnotationUnwritten(annotationId: string) {

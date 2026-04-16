@@ -39,8 +39,10 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const annotationIds = (data ?? [])
-    .map((i: { annotation_id: string | null }) => i.annotation_id)
+  type ItemRow = { annotation_id: string | null }
+  const rows = (data ?? []) as unknown as ItemRow[]
+  const annotationIds = rows
+    .map(i => i.annotation_id)
     .filter(Boolean) as string[]
 
   type AnnRow = { id: string; segment_id: string; start_char: number; end_char: number }
@@ -56,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     annotationMap = new Map((annRows ?? []).map((a: AnnRow) => [a.id, a]))
 
-    const segmentIds = [...new Set((annRows ?? []).map((a: AnnRow) => a.segment_id))]
+    const segmentIds = Array.from(new Set((annRows ?? []).map((a: AnnRow) => a.segment_id)))
     if (segmentIds.length > 0) {
       const { data: segRows } = await db
         .from('transcript_segments')
@@ -67,7 +69,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const enriched = (data ?? []).map((item: { annotation_id: string | null }) => {
+  const enriched = rows.map((item) => {
     if (!item.annotation_id) {
       return { ...item, segment_text: null, start_char: null, end_char: null }
     }
