@@ -38,7 +38,50 @@ export async function GET(req: NextRequest) {
     .order(orderCol, orderOpts)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  const annotationIds = (data ?? [])
+    .map((i: { annotation_id: string | null }) => i.annotation_id)
+    .filter(Boolean) as string[]
+
+  type AnnRow = { id: string; segment_id: string; start_char: number; end_char: number }
+  type SegRow = { id: string; text: string }
+  let annotationMap = new Map<string, AnnRow>()
+  let segmentTextMap = new Map<string, string>()
+
+  if (annotationIds.length > 0) {
+    const { data: annRows } = await db
+      .from('annotations')
+      .select('id, segment_id, start_char, end_char')
+      .in('id', annotationIds)
+
+    annotationMap = new Map((annRows ?? []).map((a: AnnRow) => [a.id, a]))
+
+    const segmentIds = [...new Set((annRows ?? []).map((a: AnnRow) => a.segment_id))]
+    if (segmentIds.length > 0) {
+      const { data: segRows } = await db
+        .from('transcript_segments')
+        .select('id, text')
+        .in('id', segmentIds)
+
+      segmentTextMap = new Map((segRows ?? []).map((s: SegRow) => [s.id, s.text]))
+    }
+  }
+
+  const enriched = (data ?? []).map((item: { annotation_id: string | null }) => {
+    if (!item.annotation_id) {
+      return { ...item, segment_text: null, start_char: null, end_char: null }
+    }
+    const ann = annotationMap.get(item.annotation_id)
+    if (!ann) return { ...item, segment_text: null, start_char: null, end_char: null }
+    return {
+      ...item,
+      segment_text: segmentTextMap.get(ann.segment_id) ?? null,
+      start_char: ann.start_char,
+      end_char: ann.end_char,
+    }
+  })
+
+  return NextResponse.json(enriched)
 }
 
 export async function POST(req: NextRequest) {
