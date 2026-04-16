@@ -27,3 +27,21 @@ describe('t()', () => {
     expect(t('home.toWriteDown', 'es', { n: 5 })).toBe('5 para anotar')
   })
 })
+
+describe('annotation action i18n keys', () => {
+  it('annotation.starAria exists in en', () => {
+    expect(t('annotation.starAria', 'en')).not.toBe('annotation.starAria')
+  })
+  it('annotation.starAria exists in es', () => {
+    expect(t('annotation.starAria', 'es')).not.toBe('annotation.starAria')
+  })
+  it('annotation.stateUnsaved exists in en', () => {
+    expect(t('annotation.stateUnsaved', 'en')).not.toBe('annotation.stateUnsaved')
+  })
+  it('practiceList.filterWritten exists in en', () => {
+    expect(t('practiceList.filterWritten', 'en')).not.toBe('practiceList.filterWritten')
+  })
+  it('annotation.addToPractice is removed (falls back to key)', () => {
+    expect(t('annotation.addToPractice', 'en')).toBe('annotation.addToPractice')
+  })
+})

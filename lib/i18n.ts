@@ -96,8 +96,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'speaker.label': 'Speaker {label}',
 
     // Annotation card
-    'annotation.addToPractice': 'Add to practice list',
-    'annotation.addedToPractice': '✓ Added to practice list',
+    'annotation.starAria': 'Save this correction',
+    'annotation.unstarAria': 'Remove from saved',
+    'annotation.markWrittenAria': 'Mark as written down',
+    'annotation.unmarkWrittenAria': 'Unmark as written',
+    'annotation.stateUnsaved': 'Not saved',
+    'annotation.stateSaved': 'Saved',
+    'annotation.stateWritten': 'Written ✓',
     'type.grammar': '🔴 Grammar',
     'type.naturalness': '🟡 Naturalness',
 
@@ -132,9 +137,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.exitSelection': 'Exit selection mode',
     'practiceList.selectAll': 'Select all',
     'practiceList.deleteSelectedAria': 'Delete {n} selected items',
-    'practiceList.notWrittenDown': 'not written',
     'practiceList.writtenDown': '✓ written',
-    'practiceList.filterNotWritten': 'Not written',
+    'practiceList.filterWritten': 'Written',
     'practiceList.markWrittenError': 'Failed to mark as written — try again.',
     'practiceList.revealWritten': '✓ Written',
     'practiceList.sortImportance': 'Importance',
@@ -261,8 +265,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'speaker.label': 'Hablante {label}',
 
     // Annotation card
-    'annotation.addToPractice': 'Agregar a la lista de práctica',
-    'annotation.addedToPractice': '✓ Agregado a la lista de práctica',
+    'annotation.starAria': 'Guardar esta corrección',
+    'annotation.unstarAria': 'Quitar de guardados',
+    'annotation.markWrittenAria': 'Marcar como escrito',
+    'annotation.unmarkWrittenAria': 'Desmarcar como escrito',
+    'annotation.stateUnsaved': 'No guardado',
+    'annotation.stateSaved': 'Guardado',
+    'annotation.stateWritten': 'Escrito ✓',
     'type.grammar': '🔴 Gramática',
     'type.naturalness': '🟡 Naturalidad',
 
@@ -297,9 +306,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practiceList.exitSelection': 'Salir del modo selección',
     'practiceList.selectAll': 'Seleccionar todo',
     'practiceList.deleteSelectedAria': 'Eliminar {n} ítems seleccionados',
-    'practiceList.notWrittenDown': 'no escrito',
     'practiceList.writtenDown': '✓ escrito',
-    'practiceList.filterNotWritten': 'No escrito',
+    'practiceList.filterWritten': 'Escrito',
     'practiceList.markWrittenError': 'No se pudo marcar como escrito — intentá de nuevo.',
     'practiceList.revealWritten': '✓ Escrito',
     'practiceList.sortImportance': 'Importancia',
