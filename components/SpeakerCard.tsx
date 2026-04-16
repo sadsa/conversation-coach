@@ -19,7 +19,7 @@ export function SpeakerCard({ label, samples, onToggle, selected, disabled }: Pr
       disabled={disabled}
       className={`text-left border rounded-xl p-5 space-y-4 w-full transition-colors ${
         selected
-          ? 'border-violet-500 bg-violet-500/10'
+          ? 'border-accent-primary bg-accent-chip'
           : 'border-border hover:border-text-secondary'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
@@ -28,7 +28,7 @@ export function SpeakerCard({ label, samples, onToggle, selected, disabled }: Pr
           {t('speaker.label', { label })}
         </p>
         {selected && (
-          <span data-testid="checkmark" className="text-violet-400 text-sm">✓</span>
+          <span data-testid="checkmark" className="text-accent-primary text-sm">✓</span>
         )}
       </div>
       <ul className="space-y-2">

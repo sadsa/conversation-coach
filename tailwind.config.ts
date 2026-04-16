@@ -25,6 +25,8 @@ const config: Config = {
         "accent-chip-border": "var(--color-chip-border)",
         "on-accent-chip": "var(--color-chip-text)",
         "accent-handle": "var(--color-accent-handle)",
+        "accent-primary": "var(--color-accent-primary)",
+        "accent-primary-hover": "var(--color-accent-primary-hover)",
         "pill-violet": "var(--color-pill-violet-text)",
         "pill-amber": "var(--color-pill-amber-text)",
         "pill-inactive-border": "var(--color-pill-not-written-border)",
@@ -33,6 +35,9 @@ const config: Config = {
         "on-pill-rank1": "var(--color-pill-rank1-text)",
         "pill-rank2": "var(--color-pill-rank2-bg)",
         "on-pill-rank2": "var(--color-pill-rank2-text)",
+        "status-processing": "var(--color-status-processing)",
+        "status-ready": "var(--color-status-ready)",
+        "status-error": "var(--color-status-error)",
         "widget-cards-border": "var(--color-widget-cards-border)",
         "widget-cards-bg": "var(--color-widget-cards-bg)",
         "widget-cards-bg-hover": "var(--color-widget-cards-bg-hover)",
@@ -45,5 +50,8 @@ const config: Config = {
     },
   },
   plugins: [],
+  safelist: [
+    'transition-[grid-template-rows]',
+  ],
 };
 export default config;

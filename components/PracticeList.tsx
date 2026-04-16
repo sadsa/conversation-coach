@@ -30,7 +30,7 @@ function ContextSnippet({ segmentText, startChar, endChar, testId }: {
   return (
     <p
       data-testid={testId}
-      className="text-[11px] italic text-text-tertiary border-l-2 border-border pl-2 mt-2 leading-relaxed"
+      className="text-sm italic text-text-tertiary bg-surface-elevated rounded px-2 py-1.5 mt-2 leading-relaxed"
     >
       {snippetStart > 0 && '...'}
       {prefix}
@@ -77,17 +77,14 @@ function SwipeableItem({
     setTranslateX(window.innerWidth)
     const markPromise = onMarkWritten(item.id)
 
-    await new Promise(r => setTimeout(r, 200))
+    await new Promise(r => setTimeout(r, 220))
     if (!mountedRef.current) return
 
-    const h = rowRef.current?.offsetHeight ?? 0
-    setRowHeight(h)
-    await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
-    if (!mountedRef.current) return
+    // Collapse via grid-template-rows — no layout thrash
     setRowHeight(0)
 
     const [, markResult] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, 200)),
+      new Promise(r => setTimeout(r, 220)),
       markPromise,
     ])
     if (!mountedRef.current) return
@@ -134,16 +131,17 @@ function SwipeableItem({
   return (
     <li
       ref={rowRef}
-      className="relative overflow-hidden rounded-xl"
+      className="relative overflow-hidden rounded-xl grid"
       style={
         rowHeight !== null
-          ? { height: rowHeight, transition: 'height 0.2s ease', overflow: 'hidden' }
-          : undefined
+          ? { gridTemplateRows: rowHeight === 0 ? '0fr' : '1fr', transition: 'grid-template-rows 0.22s cubic-bezier(0.25, 1, 0.5, 1)' }
+          : { gridTemplateRows: '1fr' }
       }
     >
+      <div className="overflow-hidden min-h-0 min-w-0">
       {/* Swipe-to-written background (left side, swiping right) */}
-      <div className={`absolute inset-0 bg-green-800 flex items-center pl-5 rounded-xl ${translateX <= 0 ? 'invisible' : ''}`}>
-        <span className="text-white text-sm font-medium">{t('practiceList.revealWritten')}</span>
+      <div className={`absolute inset-0 bg-status-ready flex items-center pl-5 rounded-xl ${translateX <= 0 ? 'invisible' : ''}`}>
+        <span className="text-white font-medium">{t('practiceList.revealWritten')}</span>
       </div>
       {/* Item card */}
       <div
@@ -151,9 +149,9 @@ function SwipeableItem({
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isAnimating
-            ? 'transform 0.2s ease'
+            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
             : translateX === 0
-            ? 'transform 0.2s'
+            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
             : 'none',
           userSelect: 'none',
           touchAction: 'pan-y',
@@ -187,7 +185,7 @@ function SwipeableItem({
           checked={isSelected}
           onChange={() => onToggleSelect(item.id)}
           onClick={e => e.stopPropagation()}
-          className={`w-4 h-4 rounded accent-violet-500 flex-shrink-0 ${isBulkMode ? 'block' : 'hidden sm:block'}`}
+          className={`w-4 h-4 rounded accent-accent-primary flex-shrink-0 ${isBulkMode ? 'block' : 'hidden sm:block'}`}
           aria-label={t('practiceList.selectItem')}
         />
         <div className="flex-1 min-w-0 text-sm flex flex-col gap-0.5">
@@ -199,11 +197,11 @@ function SwipeableItem({
             <span className="font-medium text-correction">{item.correction}</span>
             {(() => {
               const stars = importanceStars(item.importance_score)
-              return stars ? <span className="text-amber-400 text-xs ml-1">{stars}</span> : null
+              return stars ? <span className="text-pill-amber text-xs ml-1">{stars}</span> : null
             })()}
           </div>
           <div className="flex gap-1.5 flex-wrap items-center">
-            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
+            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2.5 py-1 text-sm">
               {t(`subCat.${item.sub_category}`)}
             </span>
           </div>
@@ -217,6 +215,7 @@ function SwipeableItem({
           )}
         </div>
       </div>
+    </div>
     </li>
   )
 }
@@ -295,16 +294,16 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
   }, [subCategoryCounts])
 
   function pillClass(sc: SubCategory): string {
-    if (sc === subCategoryFilter) return 'border-indigo-500 text-on-accent-chip bg-indigo-500/10'
+    if (sc === subCategoryFilter) return 'border-accent-primary text-on-accent-chip bg-accent-chip'
     const count = subCategoryCounts[sc]
     if (count === 0) return 'border-border-subtle text-text-tertiary'
-    if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-red-800 bg-pill-rank1 text-on-pill-rank1'
+    if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-on-pill-rank1/30 bg-pill-rank1 text-on-pill-rank1'
     if (colourTiers.rank2 > 0 && count === colourTiers.rank2) return 'border-amber-700 bg-pill-rank2 text-on-pill-rank2'
     return 'border-border text-text-secondary'
   }
 
-  const allPillClass = writtenFilter === 'all' && subCategoryFilter === null
-    ? 'border-violet-500 text-pill-violet bg-violet-500/10'
+const allPillClass = writtenFilter === 'all' && subCategoryFilter === null
+    ? 'border-accent-primary text-accent-primary bg-accent-chip'
     : 'border-border text-text-secondary'
 
   useEffect(() => {
@@ -407,7 +406,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             onClick={deleteSelected}
             aria-label={t('practiceList.deleteSelectedAria', { n: selectedIds.size })}
             disabled={selectedIds.size === 0}
-            className="text-red-400 hover:text-red-300 disabled:opacity-40 p-1"
+            className="text-status-error hover:opacity-70 disabled:opacity-40 p-1 transition-opacity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -445,7 +444,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
             onClick={() => setSortByImportance(s => !s)}
             className={`px-3 py-1 rounded-full border transition-colors ${
               sortByImportance
-                ? 'border-indigo-500 text-on-accent-chip bg-indigo-500/10'
+                ? 'border-accent-primary text-on-accent-chip bg-accent-chip'
                 : 'border-border text-text-secondary'
             }`}
           >
@@ -491,11 +490,12 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
         ))}
       </ul>
 
-      {openItem && (
-        <Modal
-          title={t(`type.${openItem.type}`)}
-          onClose={() => { setOpenItem(null); setImportanceExpanded(false) }}
-        >
+      <Modal
+        isOpen={!!openItem}
+        title={openItem ? t(`type.${openItem.type}`) : ''}
+        onClose={() => { setOpenItem(null); setImportanceExpanded(false) }}
+      >
+        {openItem && (
           <div className="space-y-3 text-sm">
             <div>
               <>
@@ -507,7 +507,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
               </>
             </div>
             <p className="text-text-secondary leading-relaxed">{openItem.explanation}</p>
-            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
+            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2.5 py-1 text-sm">
               {t(`subCat.${openItem.sub_category}`)}
             </span>
             {openItem.segment_text !== null && openItem.start_char !== null && openItem.end_char !== null && (
@@ -524,7 +524,7 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
                   <>
                     <button
                       onClick={() => setImportanceExpanded(e => !e)}
-                      className="text-amber-400 text-base leading-none focus:outline-none"
+                      className="text-pill-amber text-base leading-none focus:outline-none"
                       aria-label={t('practiceList.importanceToggleAria')}
                     >
                       {importanceStars(openItem.importance_score)}
@@ -536,20 +536,20 @@ export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
                     )}
                   </>
                 ) : (
-                  <span className="text-amber-400 text-base leading-none">
+                  <span className="text-pill-amber text-base leading-none">
                     {importanceStars(openItem.importance_score)}
                   </span>
                 )}
               </div>
             )}
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
 
       {toastMessage && (
         <div
           role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg animate-toast-in"
         >
           {toastMessage}
         </div>

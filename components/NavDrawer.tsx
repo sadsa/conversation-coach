@@ -136,7 +136,8 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
-        className={`fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-surface border-r border-border-subtle flex flex-col transition-transform duration-300 ease-in-out ${
+        style={{ transitionTimingFunction: isOpen ? 'cubic-bezier(0.25, 1, 0.5, 1)' : 'cubic-bezier(0.5, 0, 0.75, 0)' }}
+        className={`fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-surface border-r border-border-subtle flex flex-col transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -158,7 +159,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-1.5 overflow-y-auto" aria-label="Main navigation">
+        <nav className="flex-1 py-2 overflow-y-auto" aria-label="Main navigation">
           {TABS.map(tab => {
             const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href)
             return (
@@ -167,10 +168,10 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
                 href={tab.href}
                 onClick={onClose}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-3 px-4 py-2.5 border-r-2 transition-colors ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 transition-colors ${
                   active
-                    ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400'
-                    : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                    ? 'bg-accent-chip text-accent-primary font-medium'
+                    : 'text-text-tertiary hover:bg-surface-elevated hover:text-text-secondary'
                 }`}
               >
                 {tab.icon}
@@ -187,7 +188,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         <div className="p-3">
           <button
             onClick={handleSignOut}
-            className="w-full px-4 py-2 rounded border border-border bg-surface text-text-secondary hover:bg-surface-elevated transition-colors text-sm text-left"
+            className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-text-secondary hover:bg-surface-elevated transition-colors text-left"
           >
             {t('settings.signOut')}
           </button>

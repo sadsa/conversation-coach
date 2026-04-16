@@ -67,11 +67,12 @@ export function TranscriptView({
           )
         })}
       </div>
-      {activeAnnotation && (
-        <Modal
-          title={<span>{t(`type.${activeAnnotation.type}`)}</span>}
-          onClose={() => setActiveAnnotation(null)}
-        >
+      <Modal
+        isOpen={!!activeAnnotation}
+        title={activeAnnotation ? <span>{t(`type.${activeAnnotation.type}`)}</span> : ''}
+        onClose={() => setActiveAnnotation(null)}
+      >
+        {activeAnnotation && (
           <AnnotationCard
             annotation={activeAnnotation}
             sessionId={sessionId}
@@ -82,8 +83,8 @@ export function TranscriptView({
             onAnnotationWritten={onAnnotationWritten}
             onAnnotationUnwritten={onAnnotationUnwritten}
           />
-        </Modal>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }

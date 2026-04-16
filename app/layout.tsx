@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0f0f0f',
+  themeColor: '#f8f6f2',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const uiLanguage = inferUiLanguage(initialTargetLanguage)
 
   return (
-    <html lang={uiLanguage} suppressHydrationWarning>
+    <html lang={uiLanguage} suppressHydrationWarning className="overflow-x-hidden">
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
@@ -43,12 +43,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               var s = localStorage.getItem('fontSize');
               if (s) document.documentElement.style.fontSize = s + 'px';
               var t = localStorage.getItem('theme');
-              if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+              if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             } catch (e) {}
           })();
         ` }} />
       </head>
-      <body className="min-h-screen bg-bg text-text-primary overflow-x-hidden">
+      <body className="min-h-screen bg-bg text-text-primary">
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
           <ThemeProvider>
             <FontSizeProvider />

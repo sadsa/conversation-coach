@@ -117,11 +117,11 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
   if (currentStatus === 'error') {
     const msg = ERROR_MESSAGES[currentErrorStage ?? ''] ?? t('pipeline.errorGeneric')
     return (
-      <div className="space-y-4">
-        <p className="text-red-400">{msg}</p>
+      <div className="space-y-5">
+        <p className="text-status-error">{msg}</p>
         <button
           onClick={handleRetry}
-          className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium"
+          className="px-5 py-3 bg-accent-primary hover:bg-accent-primary-hover rounded-lg font-medium text-white"
         >
           {t('pipeline.retry')}
         </button>
@@ -132,25 +132,25 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
   const currentIndex = STAGES.indexOf(currentStatus)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4">
         {STAGES.filter(s => s !== 'error').map((stage, i) => (
-          <div key={stage} className={`flex items-center gap-3 ${i <= currentIndex ? 'text-text-primary' : 'text-text-tertiary'}`}>
-            <span className={`w-2 h-2 rounded-full ${i < currentIndex ? 'bg-green-400' : i === currentIndex ? 'bg-violet-400 animate-pulse' : 'bg-border'}`} />
-            <span className="text-sm">{STAGE_LABELS[stage]}</span>
+          <div key={stage} className={`flex items-center gap-4 ${i <= currentIndex ? 'text-text-primary' : 'text-text-tertiary'}`}>
+            <span className={`w-3 h-3 rounded-full ${i < currentIndex ? 'bg-status-ready' : i === currentIndex ? 'bg-status-processing animate-pulse' : 'bg-border'}`} />
+            <span>{STAGE_LABELS[stage]}</span>
           </div>
         ))}
       </div>
       {estimatedMinutes && (
-        <p className="text-sm text-text-secondary">{t('pipeline.estimatedTime', { n: estimatedMinutes })}</p>
+        <p className="text-text-secondary">{t('pipeline.estimatedTime', { n: estimatedMinutes })}</p>
       )}
       {(showAnalysisRetry || retryingAnalysis) && (
-        <div className="space-y-1">
-          <p className="text-sm text-text-secondary">{t('pipeline.takingLong')}</p>
+        <div className="space-y-3">
+          <p className="text-text-secondary">{t('pipeline.takingLong')}</p>
           <button
             onClick={handleRetryAnalysis}
             disabled={retryingAnalysis}
-            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-lg text-sm font-medium"
+            className="px-5 py-3 bg-accent-primary hover:bg-accent-primary-hover disabled:opacity-50 rounded-lg font-medium text-white"
           >
             {retryingAnalysis ? t('pipeline.retrying') : t('pipeline.retryAnalysis')}
           </button>

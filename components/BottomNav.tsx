@@ -60,7 +60,7 @@ export function BottomNav() {
               }`}
             >
               {tab.icon}
-              <span className="text-xs font-medium">{t(tab.labelKey)}</span>
+              <span className="text-sm font-medium">{t(tab.labelKey)}</span>
             </Link>
           )
         })}

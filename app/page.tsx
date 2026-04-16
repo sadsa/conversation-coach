@@ -169,10 +169,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold mb-1">{t('home.title')}</h1>
-        <p className="text-text-secondary text-sm">{t('home.subtitle')}</p>
+        <h1 className="text-2xl font-bold mb-3">{t('home.title')}</h1>
+        <p className="text-text-secondary">{t('home.subtitle')}</p>
       </div>
 
       {/* Daily habit widget */}
@@ -180,13 +180,13 @@ export default function HomePage() {
         <Link
           href="/practice?written_down=false"
           data-testid="widget-write-down"
-          className="flex items-center px-3 py-1.5 rounded-full border border-widget-write-border bg-widget-write-bg text-sm text-widget-write-text hover:bg-widget-write-bg-hover transition-colors"
+          className="flex items-center px-4 py-2 rounded-full border border-widget-write-border bg-widget-write-bg text-widget-write-text hover:bg-widget-write-bg-hover transition-colors"
         >
           {summary !== null ? t('home.toWriteDown', { n: summary.writeDownCount }) : '—'}
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {pendingFile ? (
           <PendingUploadCard
             file={pendingFile}
@@ -200,12 +200,12 @@ export default function HomePage() {
         ) : (
           <DropZone onFile={handleFile} />
         )}
-        {uploading && <p className="text-sm text-violet-400">{t('home.uploading')}</p>}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {uploading && <p className="text-status-processing">{t('home.uploading')}</p>}
+        {error && <p className="text-status-error">{error}</p>}
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-3">{t('home.pastSessions')}</h2>
+        <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">{t('home.pastSessions')}</h2>
         <SessionList sessions={sessions} onDeleted={handleSessionDeleted} />
       </div>
     </div>

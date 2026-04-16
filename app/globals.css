@@ -4,103 +4,138 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
-    --color-bg: #030712;
-    --color-surface: #111827;
-    --color-surface-elevated: #1f2937;
-    --color-border: #374151;
-    --color-border-subtle: #1f2937;
-    --color-text-primary: #f3f4f6;
-    --color-text-secondary: #9ca3af;
-    --color-text-tertiary: #6b7280;
+    color-scheme: light;
+    /* Warm cream-tinted light palette using OKLCH */
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
     /* Semantic accent tokens */
-    --color-error-bg: #3b1a1a;
-    --color-error-text: #fca5a5;
-    --color-error-container-bg: #2d1515;
-    --color-correction-text: #86efac;
-    --color-chip-bg: #1e1b4b;
-    --color-chip-border: #3730a3;
-    --color-chip-text: #818cf8;
-    --color-accent-handle: #4338ca;
-    --color-pill-violet-text: #c4b5fd;
-    --color-pill-amber-text: #fcd34d;
-    --color-pill-not-written-border: #374151;
-    --color-pill-not-written-text: #9ca3af;
-    --color-pill-rank1-bg: rgba(69, 10, 10, 0.4);
-    --color-pill-rank1-text: #f87171;
-    --color-pill-rank2-bg: rgba(69, 26, 3, 0.4);
-    --color-pill-rank2-text: #fbbf24;
+    --color-error-bg: oklch(94% 0.04 25);
+    --color-error-text: oklch(48% 0.18 25);
+    --color-error-container-bg: oklch(96% 0.025 25);
+    --color-correction-text: oklch(48% 0.14 150);
+    --color-chip-bg: oklch(94% 0.035 285);
+    --color-chip-border: oklch(62% 0.16 285);
+    --color-chip-text: oklch(42% 0.14 285);
+    --color-accent-handle: oklch(58% 0.18 285);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-accent-primary-hover: oklch(50% 0.22 285);
+    --color-pill-violet-text: oklch(45% 0.16 300);
+    --color-pill-amber-text: oklch(48% 0.12 55);
+    --color-pill-not-written-border: oklch(78% 0.01 75);
+    --color-pill-not-written-text: oklch(55% 0.01 265);
+    --color-pill-rank1-bg: oklch(94% 0.04 25);
+    --color-pill-rank1-text: oklch(48% 0.18 25);
+    --color-pill-rank2-bg: oklch(95% 0.06 85);
+    --color-pill-rank2-text: oklch(48% 0.12 55);
+    /* Status colors */
+    --color-status-processing: oklch(55% 0.2 285);
+    --color-status-ready: oklch(52% 0.14 150);
+    --color-status-error: oklch(55% 0.2 25);
     /* Home habit widget pills */
-    --color-widget-cards-border: #5b21b6;
-    --color-widget-cards-bg: rgba(139, 92, 246, 0.10);
-    --color-widget-cards-bg-hover: rgba(139, 92, 246, 0.20);
-    --color-widget-cards-text: #c4b5fd;
-    --color-widget-write-border: #065f46;
-    --color-widget-write-bg: rgba(16, 185, 129, 0.10);
-    --color-widget-write-bg-hover: rgba(16, 185, 129, 0.20);
-    --color-widget-write-text: #6ee7b7;
-    /* Annotation highlight states — dark */
-    --annotation-unreviewed-bg: rgba(245, 158, 11, 0.15);
-    --annotation-unreviewed-border: #d97706;
-    --annotation-unreviewed-text: #fde68a;
+    --color-widget-cards-border: oklch(50% 0.18 285);
+    --color-widget-cards-bg: oklch(94% 0.035 285);
+    --color-widget-cards-bg-hover: oklch(90% 0.05 285);
+    --color-widget-cards-text: oklch(42% 0.14 285);
+    --color-widget-write-border: oklch(48% 0.12 160);
+    --color-widget-write-bg: oklch(94% 0.03 160);
+    --color-widget-write-bg-hover: oklch(90% 0.05 160);
+    --color-widget-write-text: oklch(35% 0.1 160);
+    /* Annotation highlight states — light */
+    --annotation-unreviewed-bg: oklch(95% 0.06 85);
+    --annotation-unreviewed-border: oklch(55% 0.15 55);
+    --annotation-unreviewed-text: oklch(42% 0.1 55);
 
-    --annotation-saved-bg: rgba(139, 92, 246, 0.2);
-    --annotation-saved-border: #8b5cf6;
-    --annotation-saved-text: #ddd6fe;
+    --annotation-saved-bg: oklch(94% 0.04 285);
+    --annotation-saved-border: oklch(50% 0.16 285);
+    --annotation-saved-text: oklch(35% 0.14 285);
 
-    --annotation-written-bg: rgba(34, 197, 94, 0.12);
-    --annotation-written-border: #22c55e;
-    --annotation-written-text: #86efac;
+    --annotation-written-bg: oklch(94% 0.04 150);
+    --annotation-written-border: oklch(45% 0.12 150);
+    --annotation-written-text: oklch(30% 0.1 150);
   }
 
-  [data-theme="light"] {
-    color-scheme: light;
-    --color-bg: #f0f4ff;
-    --color-surface: #ffffff;
-    --color-surface-elevated: #e8eef8;
-    --color-border: #cbd5e1;
-    --color-border-subtle: #e2e8f0;
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #475569;
-    --color-text-tertiary: #64748b;
+  [data-theme="dark"] {
+    color-scheme: dark;
+    /* Warm navy-tinted dark palette using OKLCH */
+    --color-bg: oklch(14% 0.02 265);
+    --color-surface: oklch(20% 0.018 265);
+    --color-surface-elevated: oklch(26% 0.016 265);
+    --color-border: oklch(36% 0.012 265);
+    --color-border-subtle: oklch(26% 0.01 265);
+    --color-text-primary: oklch(94% 0.008 75);
+    --color-text-secondary: oklch(72% 0.008 75);
+    --color-text-tertiary: oklch(58% 0.006 75);
     /* Semantic accent tokens */
-    --color-error-bg: #fee2e2;
-    --color-error-text: #b91c1c;
-    --color-error-container-bg: #fef2f2;
-    --color-correction-text: #15803d;
-    --color-chip-bg: #e0e7ff;
-    --color-chip-border: #818cf8;
-    --color-chip-text: #4338ca;
-    --color-accent-handle: #818cf8;
-    --color-pill-violet-text: #6d28d9;
-    --color-pill-amber-text: #92400e;
-    --color-pill-not-written-border: #d1d5db;
-    --color-pill-not-written-text: #6b7280;
-    --color-pill-rank1-bg: #fee2e2;
-    --color-pill-rank1-text: #b91c1c;
-    --color-pill-rank2-bg: #fef3c7;
-    --color-pill-rank2-text: #92400e;
+    --color-error-bg: oklch(28% 0.08 25);
+    --color-error-text: oklch(78% 0.12 25);
+    --color-error-container-bg: oklch(22% 0.06 25);
+    --color-correction-text: oklch(78% 0.14 150);
+    --color-chip-bg: oklch(28% 0.08 285);
+    --color-chip-border: oklch(52% 0.14 285);
+    --color-chip-text: oklch(75% 0.12 285);
+    --color-accent-handle: oklch(55% 0.18 285);
+    --color-accent-primary: oklch(62% 0.18 285);
+    --color-accent-primary-hover: oklch(68% 0.16 285);
+    --color-pill-violet-text: oklch(80% 0.1 300);
+    --color-pill-amber-text: oklch(85% 0.12 85);
+    --color-pill-not-written-border: oklch(36% 0.01 265);
+    --color-pill-not-written-text: oklch(65% 0.008 75);
+    --color-pill-rank1-bg: oklch(28% 0.1 25);
+    --color-pill-rank1-text: oklch(75% 0.15 25);
+    --color-pill-rank2-bg: oklch(30% 0.1 70);
+    --color-pill-rank2-text: oklch(82% 0.12 85);
+    /* Status colors */
+    --color-status-processing: oklch(68% 0.16 285);
+    --color-status-ready: oklch(75% 0.14 150);
+    --color-status-error: oklch(72% 0.16 25);
     /* Home habit widget pills */
-    --color-widget-cards-border: #7c3aed;
-    --color-widget-cards-bg: #ede9fe;
-    --color-widget-cards-bg-hover: #ddd6fe;
-    --color-widget-cards-text: #5b21b6;
-    --color-widget-write-border: #059669;
-    --color-widget-write-bg: #d1fae5;
-    --color-widget-write-bg-hover: #a7f3d0;
-    --color-widget-write-text: #065f46;
-    /* Annotation highlight states */
-    --annotation-unreviewed-bg: rgba(245, 158, 11, 0.12);
-    --annotation-unreviewed-border: #b45309;
-    --annotation-unreviewed-text: #92400e;
+    --color-widget-cards-border: oklch(50% 0.18 285);
+    --color-widget-cards-bg: oklch(28% 0.08 285);
+    --color-widget-cards-bg-hover: oklch(32% 0.1 285);
+    --color-widget-cards-text: oklch(80% 0.1 285);
+    --color-widget-write-border: oklch(48% 0.12 160);
+    --color-widget-write-bg: oklch(25% 0.06 160);
+    --color-widget-write-bg-hover: oklch(30% 0.08 160);
+    --color-widget-write-text: oklch(80% 0.1 160);
+    /* Annotation highlight states — dark */
+    --annotation-unreviewed-bg: oklch(30% 0.08 85);
+    --annotation-unreviewed-border: oklch(60% 0.14 55);
+    --annotation-unreviewed-text: oklch(88% 0.08 85);
 
-    --annotation-saved-bg: rgba(139, 92, 246, 0.12);
-    --annotation-saved-border: #6d28d9;
-    --annotation-saved-text: #4c1d95;
+    --annotation-saved-bg: oklch(28% 0.1 285);
+    --annotation-saved-border: oklch(62% 0.14 285);
+    --annotation-saved-text: oklch(88% 0.08 285);
 
-    --annotation-written-bg: rgba(34, 197, 94, 0.1);
-    --annotation-written-border: #15803d;
-    --annotation-written-text: #14532d;
+    --annotation-written-bg: oklch(25% 0.08 150);
+    --annotation-written-border: oklch(60% 0.12 150);
+    --annotation-written-text: oklch(82% 0.1 150);
+  }
+}
+
+@layer base {
+  :root {
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -121,5 +156,16 @@
     background-color: var(--annotation-written-bg);
     text-decoration-color: var(--annotation-written-border);
     color: var(--annotation-written-text);
+  }
+}
+
+@layer utilities {
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  .animate-toast-in {
+    animation: toast-in 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
   }
 }

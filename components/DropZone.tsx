@@ -47,17 +47,17 @@ export function DropZone({ onFile }: Props) {
           if (file) handleFile(file)
         }}
         onClick={() => inputRef.current?.click()}
-        className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors
-          ${dragOver ? 'border-indigo-500 bg-indigo-500/10' : 'border-border hover:border-text-secondary'}`}
+        className={`border rounded-xl p-5 flex items-center gap-4 cursor-pointer transition-colors
+          ${dragOver ? 'border-accent-primary bg-accent-chip' : 'border-border hover:border-text-secondary'}`}
       >
-        <span className="text-2xl flex-shrink-0" aria-hidden="true">🎙️</span>
+        <span className="text-3xl flex-shrink-0" aria-hidden="true">🎙️</span>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-text-primary text-sm">{t('dropzone.title')}</p>
-          <p className="text-xs text-text-tertiary mt-0.5">{t('dropzone.formats')}</p>
+          <p className="font-semibold text-text-primary">{t('dropzone.title')}</p>
+          <p className="text-sm text-text-tertiary mt-1">{t('dropzone.formats')}</p>
         </div>
         <button
           type="button"
-          className="flex-shrink-0 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors text-white"
+          className="flex-shrink-0 px-4 py-2 bg-accent-primary hover:bg-accent-primary-hover rounded-lg font-medium transition-colors text-white"
           onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
         >
           {t('dropzone.browse')}
@@ -70,7 +70,7 @@ export function DropZone({ onFile }: Props) {
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />
       </div>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-status-error">{error}</p>}
     </div>
   )
 }

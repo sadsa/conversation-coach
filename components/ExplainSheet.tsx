@@ -31,7 +31,7 @@ export function ExplainSheet({ isOpen, onClose, original, correction, note }: Ex
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={{ type: 'tween', duration: 0.32, ease: [0.25, 1, 0.5, 1] }}
             drag="y"
             dragConstraints={{ top: 0 }}
             dragElastic={{ top: 0, bottom: 0.4 }}
@@ -60,7 +60,7 @@ export function ExplainSheet({ isOpen, onClose, original, correction, note }: Ex
             {note && (
               <>
                 <hr className="border-accent-chip-border mb-4 opacity-40" />
-                <p className="text-sm text-text-secondary leading-relaxed">{note}</p>
+                <p className="text-text-secondary leading-relaxed">{note}</p>
               </>
             )}
           </motion.div>

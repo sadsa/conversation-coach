@@ -104,9 +104,9 @@ export function AnnotationCard({
     : t('annotation.markWrittenAria')
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <p className="text-base">
-        <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
+        <span className="bg-error-surface text-on-error-surface px-2 py-1 rounded">
           {annotation.original}
         </span>
         {' → '}
@@ -114,8 +114,8 @@ export function AnnotationCard({
           {annotation.correction}
         </span>
       </p>
-      <p className="text-sm text-text-secondary leading-relaxed">{annotation.explanation}</p>
-      <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
+      <p className="text-text-secondary leading-relaxed">{annotation.explanation}</p>
+      <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
         {t(`subCat.${annotation.sub_category}`)}
       </span>
       {importanceStars(annotation.importance_score) && (
@@ -124,7 +124,7 @@ export function AnnotationCard({
             <>
               <button
                 onClick={() => setImportanceExpanded(e => !e)}
-                className="text-amber-400 text-base leading-none focus:outline-none"
+                className="text-pill-amber text-base leading-none focus:outline-none"
                 aria-label={t('practiceList.importanceToggleAria')}
               >
                 {importanceStars(annotation.importance_score)}
@@ -136,23 +136,23 @@ export function AnnotationCard({
               )}
             </>
           ) : (
-            <span className="text-amber-400 text-base leading-none">
+            <span className="text-pill-amber text-base leading-none">
               {importanceStars(annotation.importance_score)}
             </span>
           )}
         </div>
       )}
       {/* Action row */}
-      <div className="flex items-center gap-2 pt-4 border-t border-border">
-        <span className="text-xs text-text-tertiary mr-auto">{stateHint}</span>
+      <div className="flex items-center gap-3 pt-5 border-t border-border">
+        <span className="text-sm text-text-tertiary mr-auto">{stateHint}</span>
         <button
           onClick={handleStar}
           disabled={loadingStar}
           aria-label={starAriaLabel}
-          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-base transition-colors disabled:opacity-40 ${
+          className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg transition-colors disabled:opacity-40 ${
             practiceItemId
               ? 'border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)]'
-              : 'border-border bg-surface text-text-tertiary hover:border-border-hover'
+              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary'
           }`}
         >
           {practiceItemId ? '★' : '☆'}
@@ -161,10 +161,10 @@ export function AnnotationCard({
           onClick={handleCheck}
           disabled={!practiceItemId || loadingCheck}
           aria-label={checkAriaLabel}
-          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-base transition-colors disabled:opacity-30 ${
+          className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg transition-colors disabled:opacity-30 ${
             isWrittenDown
               ? 'border-[var(--annotation-written-border)] bg-[var(--annotation-written-bg)] text-[var(--annotation-written-text)]'
-              : 'border-border bg-surface text-text-tertiary hover:border-border-hover'
+              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary'
           }`}
         >
           ✓

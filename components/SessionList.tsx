@@ -20,8 +20,8 @@ function statusLabel(status: string, t: (key: string) => string): string {
 }
 
 const STATUS_COLOUR: Record<string, string> = {
-  ready: 'text-green-400',
-  error: 'text-red-400',
+  ready: 'text-status-ready',
+  error: 'text-status-error',
 }
 
 const TERMINAL_STATUSES = new Set(['ready', 'error'])
@@ -55,22 +55,18 @@ function SwipeableSessionItem({
     if (isAnimating || !rowRef.current) return
     setIsAnimating(true)
 
-    // Phase 1: slide item fully off-screen left (200ms), fire API call in parallel
+    // Phase 1: slide item off-screen left (220ms), fire API call in parallel
     setTranslateX(-window.innerWidth)
     const deletePromise = onDelete(session.id)
 
-    await new Promise(r => setTimeout(r, 200))
+    await new Promise(r => setTimeout(r, 220))
     if (!mountedRef.current) return
 
-    // Phase 2: measure height, then collapse row
-    const h = rowRef.current?.offsetHeight ?? 0
-    setRowHeight(h)
-    await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
-    if (!mountedRef.current) return
+    // Phase 2: collapse row via grid-template-rows (no layout thrash)
     setRowHeight(0)
 
     const [, deleteResult] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, 200)),
+      new Promise(r => setTimeout(r, 220)),
       deletePromise,
     ])
     if (!mountedRef.current) return
@@ -78,7 +74,6 @@ function SwipeableSessionItem({
     const succeeded = deleteResult.status === 'fulfilled' && deleteResult.value === true
 
     if (!succeeded) {
-      // Restore on failure
       setRowHeight(null)
       setTranslateX(0)
       setIsAnimating(false)
@@ -115,16 +110,17 @@ function SwipeableSessionItem({
   return (
     <li
       ref={rowRef}
-      className="relative overflow-hidden"
+      className="relative overflow-hidden grid"
       style={
         rowHeight !== null
-          ? { height: rowHeight, transition: 'height 0.2s ease', overflow: 'hidden' }
-          : undefined
+          ? { gridTemplateRows: rowHeight === 0 ? '0fr' : '1fr', transition: 'grid-template-rows 0.22s cubic-bezier(0.25, 1, 0.5, 1)' }
+          : { gridTemplateRows: '1fr' }
       }
     >
+      <div className="overflow-hidden min-h-0 min-w-0">
       {/* Swipe-to-delete background */}
-      <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-5">
-        <span className="text-white text-sm font-medium">{t('session.delete')}</span>
+      <div className="absolute inset-0 bg-status-error flex items-center justify-end pr-5">
+        <span className="text-white font-medium">{t('session.delete')}</span>
       </div>
 
       {/* Session card */}
@@ -133,14 +129,14 @@ function SwipeableSessionItem({
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isAnimating
-            ? 'transform 0.2s ease'
+            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
             : translateX === 0
-            ? 'transform 0.2s'
+            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
             : 'none',
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className={`relative bg-surface${isProcessing ? ' border-l-2 border-indigo-600' : ''}`}
+        className={`relative${isProcessing ? ' bg-accent-chip' : ' bg-surface'}`}
       >
         {/* Hidden test seam for triggering delete in tests */}
         <button
@@ -156,15 +152,15 @@ function SwipeableSessionItem({
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
           onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
-          className={`flex items-center gap-3 py-3 min-w-0 ${isProcessing ? 'pl-3 pr-4' : 'px-4'}`}
+          className="flex items-center gap-4 py-4 px-5 min-w-0"
         >
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate text-text-primary">{session.title}</p>
-            <div className="flex items-center gap-1.5 text-xs text-text-secondary mt-0.5 flex-wrap">
+            <p className="text-lg font-medium truncate text-text-primary">{session.title}</p>
+            <div className="flex items-center gap-2 text-sm text-text-secondary mt-1.5 flex-wrap">
               <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
                 {isProcessing && (
                   <svg
-                    className="w-3 h-3 animate-spin text-indigo-400"
+                    className="w-3 h-3 animate-spin text-status-processing"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -187,7 +183,7 @@ function SwipeableSessionItem({
               {processingSeconds != null && (
                 <>
                   <span>·</span>
-                  <span className="text-indigo-400">⚡ {formatDuration(processingSeconds)}</span>
+                  <span className="text-status-processing">⚡ {formatDuration(processingSeconds)}</span>
                 </>
               )}
             </div>
@@ -202,31 +198,30 @@ function SwipeableSessionItem({
         </Link>
       </div>
 
-      {/* Confirmation modal — owned by this item so triggerDelete is called directly */}
-      {confirmPending && (
-        <Modal title={t('session.deleteTitle')} onClose={() => setConfirmPending(false)}>
-          <div className="space-y-4 text-sm">
-            <p className="text-text-secondary leading-relaxed">
-              <strong className="text-text-primary">{session.title}</strong>{' '}
-              {t('session.deleteWarning')}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmPending(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-sm font-medium"
-              >
-                {t('session.cancelButton')}
-              </button>
-              <button
-                onClick={() => { setConfirmPending(false); triggerDelete() }}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold"
-              >
-                {t('session.deleteButton')}
-              </button>
-            </div>
+      {/* Confirmation modal */}
+      <Modal isOpen={confirmPending} title={t('session.deleteTitle')} onClose={() => setConfirmPending(false)}>
+        <div className="space-y-5">
+          <p className="text-text-secondary leading-relaxed">
+            <strong className="text-text-primary">{session.title}</strong>{' '}
+            {t('session.deleteWarning')}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setConfirmPending(false)}
+              className="flex-1 py-3 rounded-xl border border-border text-text-secondary font-medium hover:bg-surface-elevated transition-colors"
+            >
+              {t('session.cancelButton')}
+            </button>
+            <button
+              onClick={() => { setConfirmPending(false); triggerDelete() }}
+              className="flex-1 py-3 rounded-xl bg-status-error text-white font-semibold hover:opacity-90 transition-opacity"
+            >
+              {t('session.deleteButton')}
+            </button>
           </div>
-        </Modal>
-      )}
+        </div>
+      </Modal>
+    </div>
     </li>
   )
 }
@@ -257,7 +252,7 @@ export function SessionList({ sessions, onDeleted }: Props) {
   }
 
   if (sessions.length === 0) {
-    return <p className="text-text-tertiary text-sm">{t('session.noSessions')}</p>
+    return <p className="text-text-tertiary py-4">{t('session.noSessions')}</p>
   }
 
   return (
@@ -275,7 +270,7 @@ export function SessionList({ sessions, onDeleted }: Props) {
       {toastMessage && (
         <div
           role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg animate-toast-in"
         >
           {toastMessage}
         </div>

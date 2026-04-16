@@ -1,14 +1,16 @@
 // components/Modal.tsx
 'use client'
 import { useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Props {
+  isOpen?: boolean
   title: React.ReactNode
   onClose: () => void
   children: React.ReactNode
 }
 
-export function Modal({ title, onClose, children }: Props) {
+function ModalContent({ title, onClose, children }: Omit<Props, 'isOpen'>) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
@@ -28,33 +30,57 @@ export function Modal({ title, onClose, children }: Props) {
   }, [onClose])
 
   return (
-    <div
+    <motion.div
       data-testid="modal-backdrop"
       className="fixed inset-0 bg-black/65 flex items-center justify-center p-5 z-50"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
     >
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         className="bg-surface-elevated rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">
-          <div id="modal-title" className="text-sm font-semibold">{title}</div>
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border">
+          <div id="modal-title" className="font-semibold">{title}</div>
           <button
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 rounded-full bg-border flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors text-sm"
+            className="w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-border transition-colors"
           >
             ✕
           </button>
         </div>
-        <div className="p-4">
+        <div className="p-5">
           {children}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
+}
+
+/**
+ * Modal supports two usage patterns:
+ * 1. Controlled: <Modal isOpen={bool} ...> — handles enter/exit animations automatically
+ * 2. Legacy conditional: {bool && <Modal ...>} — entry animation plays, exit is instant
+ */
+export function Modal({ isOpen, title, onClose, children }: Props) {
+  if (isOpen !== undefined) {
+    return (
+      <AnimatePresence>
+        {isOpen && <ModalContent title={title} onClose={onClose}>{children}</ModalContent>}
+      </AnimatePresence>
+    )
+  }
+  return <ModalContent title={title} onClose={onClose}>{children}</ModalContent>
 }
