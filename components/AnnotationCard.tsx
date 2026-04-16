@@ -15,70 +15,104 @@ interface Props {
   annotation: Annotation
   sessionId: string
   practiceItemId: string | null
+  isWrittenDown: boolean
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
+  onAnnotationWritten: (annotationId: string) => void
+  onAnnotationUnwritten: (annotationId: string) => void
 }
 
-export function AnnotationCard({ annotation, sessionId, practiceItemId: initialPracticeItemId, onAnnotationAdded, onAnnotationRemoved }: Props) {
+export function AnnotationCard({
+  annotation, sessionId, practiceItemId: initialPracticeItemId, isWrittenDown: initialIsWrittenDown,
+  onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
+}: Props) {
   const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
-  const [loading, setLoading] = useState(false)
+  const [isWrittenDown, setIsWrittenDown] = useState(initialIsWrittenDown)
+  const [loadingStar, setLoadingStar] = useState(false)
+  const [loadingCheck, setLoadingCheck] = useState(false)
   const [importanceExpanded, setImportanceExpanded] = useState(false)
 
-  async function handleAdd() {
-    setLoading(true)
-    const res = await fetch('/api/practice-items', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        annotation_id: annotation.id,
-        type: annotation.type,
-        original: annotation.original,
-        correction: annotation.correction,
-        explanation: annotation.explanation,
-        sub_category: annotation.sub_category,
-        flashcard_front: annotation.flashcard_front ?? null,
-        flashcard_back: annotation.flashcard_back ?? null,
-        flashcard_note: annotation.flashcard_note ?? null,
-        importance_score: annotation.importance_score ?? null,
-        importance_note: annotation.importance_note ?? null,
-      }),
-    })
-    if (res.ok) {
-      const { id } = await res.json() as { id: string }
-      setPracticeItemId(id)
-      onAnnotationAdded(annotation.id, id)
+  async function handleStar() {
+    if (practiceItemId) {
+      setLoadingStar(true)
+      const res = await fetch(`/api/practice-items/${practiceItemId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPracticeItemId(null)
+        setIsWrittenDown(false)
+        onAnnotationRemoved(annotation.id)
+      }
+      setLoadingStar(false)
     } else {
-      console.error('Failed to add practice item')
+      setLoadingStar(true)
+      const res = await fetch('/api/practice-items', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          annotation_id: annotation.id,
+          type: annotation.type,
+          original: annotation.original,
+          correction: annotation.correction,
+          explanation: annotation.explanation,
+          sub_category: annotation.sub_category,
+          flashcard_front: annotation.flashcard_front ?? null,
+          flashcard_back: annotation.flashcard_back ?? null,
+          flashcard_note: annotation.flashcard_note ?? null,
+          importance_score: annotation.importance_score ?? null,
+          importance_note: annotation.importance_note ?? null,
+        }),
+      })
+      if (res.ok) {
+        const { id } = await res.json() as { id: string }
+        setPracticeItemId(id)
+        onAnnotationAdded(annotation.id, id)
+      }
+      setLoadingStar(false)
     }
-    setLoading(false)
   }
 
-  async function handleRemove() {
-    setLoading(true)
-    const res = await fetch(`/api/practice-items/${practiceItemId}`, { method: 'DELETE' })
+  async function handleCheck() {
+    if (!practiceItemId) return
+    setLoadingCheck(true)
+    const newValue = !isWrittenDown
+    const res = await fetch(`/api/practice-items/${practiceItemId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ written_down: newValue }),
+    })
     if (res.ok) {
-      setPracticeItemId(null)
-      onAnnotationRemoved(annotation.id)
-    } else {
-      console.error('Failed to remove practice item')
+      setIsWrittenDown(newValue)
+      if (newValue) onAnnotationWritten(annotation.id)
+      else onAnnotationUnwritten(annotation.id)
     }
-    setLoading(false)
+    setLoadingCheck(false)
   }
+
+  const stateHint = isWrittenDown
+    ? t('annotation.stateWritten')
+    : practiceItemId
+    ? t('annotation.stateSaved')
+    : t('annotation.stateUnsaved')
+
+  const starAriaLabel = practiceItemId
+    ? t('annotation.unstarAria')
+    : t('annotation.starAria')
+
+  const checkAriaLabel = isWrittenDown
+    ? t('annotation.unmarkWrittenAria')
+    : t('annotation.markWrittenAria')
 
   return (
     <div className="space-y-3">
       <p className="text-base">
-        <>
-          <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
-            {annotation.original}
-          </span>
-          {' → '}
-          <span className="font-semibold text-lg text-correction">
-            {annotation.correction}
-          </span>
-        </>
+        <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
+          {annotation.original}
+        </span>
+        {' → '}
+        <span className="font-semibold text-lg text-correction">
+          {annotation.correction}
+        </span>
       </p>
       <p className="text-sm text-text-secondary leading-relaxed">{annotation.explanation}</p>
       <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2 py-0.5 text-xs">
@@ -108,25 +142,34 @@ export function AnnotationCard({ annotation, sessionId, practiceItemId: initialP
           )}
         </div>
       )}
-      {practiceItemId ? (
+      {/* Action row */}
+      <div className="flex items-center gap-2 pt-4 border-t border-border">
+        <span className="text-xs text-text-tertiary mr-auto">{stateHint}</span>
         <button
-          onClick={handleRemove}
-          disabled={loading}
-          className="w-full py-3 rounded-xl bg-surface-elevated hover:bg-border text-sm text-text-secondary transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          onClick={handleStar}
+          disabled={loadingStar}
+          aria-label={starAriaLabel}
+          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-base transition-colors disabled:opacity-40 ${
+            practiceItemId
+              ? 'border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)]'
+              : 'border-border bg-surface text-text-tertiary hover:border-border-hover'
+          }`}
         >
-          {loading && <span className="inline-block w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin" />}
-          {t('annotation.addedToPractice')}
+          {practiceItemId ? '★' : '☆'}
         </button>
-      ) : (
         <button
-          onClick={handleAdd}
-          disabled={loading}
-          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-base font-semibold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          onClick={handleCheck}
+          disabled={!practiceItemId || loadingCheck}
+          aria-label={checkAriaLabel}
+          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-base transition-colors disabled:opacity-30 ${
+            isWrittenDown
+              ? 'border-[var(--annotation-written-border)] bg-[var(--annotation-written-bg)] text-[var(--annotation-written-text)]'
+              : 'border-border bg-surface text-text-tertiary hover:border-border-hover'
+          }`}
         >
-          {loading && <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {t('annotation.addToPractice')}
+          ✓
         </button>
-      )}
+      </div>
     </div>
   )
 }

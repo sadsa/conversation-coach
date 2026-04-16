@@ -72,8 +72,6 @@ export function TranscriptView({
           title={<span>{t(`type.${activeAnnotation.type}`)}</span>}
           onClose={() => setActiveAnnotation(null)}
         >
-          {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-          {/* @ts-expect-error — isWrittenDown/onAnnotationWritten/onAnnotationUnwritten added in Task 8 */}
           <AnnotationCard
             annotation={activeAnnotation}
             sessionId={sessionId}
