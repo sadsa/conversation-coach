@@ -5,105 +5,105 @@ import userEvent from '@testing-library/user-event'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import type { Annotation } from '@/lib/types'
 
-describe('AnnotatedText', () => {
-  const text = 'Yo fui al mercado.'
-  const annotations: Annotation[] = [
-    {
-      id: 'ann-1',
-      session_id: 's1',
-      segment_id: 'seg-1',
-      type: 'grammar',
-      original: 'Yo fui',
-      start_char: 0,
-      end_char: 6,
-      correction: 'Fui',
-      explanation: 'Drop the pronoun.',
-      sub_category: 'other',
-    },
-  ]
+const text = 'Yo fui al mercado.'
+const annotation: Annotation = {
+  id: 'ann-1',
+  session_id: 's1',
+  segment_id: 'seg-1',
+  type: 'grammar',
+  original: 'Yo fui',
+  start_char: 0,
+  end_char: 6,
+  correction: 'Fui',
+  explanation: 'Drop the pronoun.',
+  sub_category: 'other',
+  flashcard_front: null,
+  flashcard_back: null,
+  flashcard_note: null,
+  importance_score: null,
+  importance_note: null,
+}
 
+describe('AnnotatedText', () => {
   it('renders plain text when no annotations', () => {
     render(<AnnotatedText text={text} annotations={[]} onAnnotationClick={() => {}} />)
     expect(screen.getByText(text)).toBeInTheDocument()
   })
 
-  it('renders a highlighted span for the annotated phrase', () => {
-    render(<AnnotatedText text={text} annotations={annotations} onAnnotationClick={() => {}} />)
-    const span = screen.getByText('Yo fui')
-    expect(span.tagName).toBe('MARK')
-    expect(span).toHaveClass('cursor-pointer')
+  it('renders a highlighted mark for the annotated phrase', () => {
+    render(<AnnotatedText text={text} annotations={[annotation]} onAnnotationClick={() => {}} />)
+    expect(screen.getByText('Yo fui').tagName).toBe('MARK')
   })
 
-  it('calls onAnnotationClick with the annotation when the mark is clicked', async () => {
+  it('calls onAnnotationClick when mark is clicked', async () => {
     const onClick = vi.fn()
-    render(<AnnotatedText text={text} annotations={annotations} onAnnotationClick={onClick} />)
+    render(<AnnotatedText text={text} annotations={[annotation]} onAnnotationClick={onClick} />)
     await userEvent.click(screen.getByText('Yo fui'))
-    expect(onClick).toHaveBeenCalledWith(annotations[0])
+    expect(onClick).toHaveBeenCalledWith(annotation)
   })
 
-  it('renders text before and after the highlight correctly', () => {
-    render(<AnnotatedText text={text} annotations={annotations} onAnnotationClick={() => {}} />)
+  it('renders text before and after the highlight', () => {
+    render(<AnnotatedText text={text} annotations={[annotation]} onAnnotationClick={() => {}} />)
     expect(screen.getByText(' al mercado.')).toBeInTheDocument()
   })
 
-  it('applies dark-chip colour classes to grammar annotations', () => {
-    render(<AnnotatedText text={text} annotations={annotations} onAnnotationClick={() => {}} />)
+  it('applies unreviewed style when not in savedAnnotationIds or writtenAnnotationIds', () => {
+    render(<AnnotatedText text={text} annotations={[annotation]} onAnnotationClick={() => {}} />)
     const mark = screen.getByText('Yo fui')
-    expect(mark).toHaveClass('bg-[#3b1a1a]')
-    expect(mark).toHaveClass('text-[#fca5a5]')
-    expect(mark).toHaveClass('decoration-[#f87171]')
+    expect(mark).toHaveClass('annotation-unreviewed')
   })
 
-  it('shows the added badge when the annotation is in addedAnnotationIds', () => {
+  it('applies saved style when annotation is in savedAnnotationIds', () => {
     render(
       <AnnotatedText
         text={text}
-        annotations={annotations}
+        annotations={[annotation]}
         onAnnotationClick={() => {}}
-        addedAnnotationIds={new Set(['ann-1'])}
+        savedAnnotationIds={new Set(['ann-1'])}
       />
     )
-    expect(screen.getByTestId('annotation-added-badge-ann-1')).toBeInTheDocument()
+    expect(screen.getByText('Yo fui')).toHaveClass('annotation-saved')
   })
 
-  it('does not show the added badge when addedAnnotationIds is empty', () => {
+  it('applies written style when annotation is in writtenAnnotationIds', () => {
     render(
       <AnnotatedText
         text={text}
-        annotations={annotations}
+        annotations={[annotation]}
         onAnnotationClick={() => {}}
-        addedAnnotationIds={new Set()}
+        savedAnnotationIds={new Set(['ann-1'])}
+        writtenAnnotationIds={new Set(['ann-1'])}
       />
     )
-    expect(screen.queryByTestId('annotation-added-badge-ann-1')).not.toBeInTheDocument()
+    expect(screen.getByText('Yo fui')).toHaveClass('annotation-written')
   })
 
-  it('preserves colour classes on an added annotation mark', () => {
+  it('written style takes priority over saved style', () => {
     render(
       <AnnotatedText
         text={text}
-        annotations={annotations}
+        annotations={[annotation]}
         onAnnotationClick={() => {}}
-        addedAnnotationIds={new Set(['ann-1'])}
+        savedAnnotationIds={new Set(['ann-1'])}
+        writtenAnnotationIds={new Set(['ann-1'])}
       />
     )
     const mark = screen.getByText('Yo fui')
-    expect(mark).toHaveClass('bg-[#3b1a1a]')
-    expect(mark).toHaveClass('text-[#fca5a5]')
-    expect(mark).toHaveClass('decoration-[#f87171]')
+    expect(mark).toHaveClass('annotation-written')
+    expect(mark).not.toHaveClass('annotation-saved')
   })
 
-  it('still calls onAnnotationClick when an added annotation mark is clicked', async () => {
+  it('still calls onAnnotationClick on a saved annotation', async () => {
     const onClick = vi.fn()
     render(
       <AnnotatedText
         text={text}
-        annotations={annotations}
+        annotations={[annotation]}
         onAnnotationClick={onClick}
-        addedAnnotationIds={new Set(['ann-1'])}
+        savedAnnotationIds={new Set(['ann-1'])}
       />
     )
     await userEvent.click(screen.getByText('Yo fui'))
-    expect(onClick).toHaveBeenCalledWith(annotations[0])
+    expect(onClick).toHaveBeenCalledWith(annotation)
   })
 })
