@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data: practiceItems } = await db
     .from('practice_items')
-    .select('id, annotation_id')
+    .select('id, annotation_id, written_down')
     .eq('session_id', params.id)
 
   const addedAnnotations = (practiceItems ?? []).reduce<Record<string, string>>(
@@ -44,11 +44,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
     {}
   )
 
+  const writtenAnnotations = (practiceItems ?? [])
+    .filter((p: { annotation_id: string | null; written_down: boolean }) => p.annotation_id && p.written_down)
+    .map((p: { annotation_id: string }) => p.annotation_id)
+
   return NextResponse.json({
     session,
     segments: segments ?? [],
     annotations: annotations ?? [],
     addedAnnotations,
+    writtenAnnotations,
   })
 }
 

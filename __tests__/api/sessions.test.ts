@@ -200,6 +200,55 @@ describe('GET /api/sessions/:id', () => {
     const res = await getDetail(req, { params: { id: 'unknown' } })
     expect(res.status).toBe(404)
   })
+
+  it('returns writtenAnnotations array with IDs of written practice items', async () => {
+    vi.mocked(createServerClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 's1', title: 'Test', status: 'ready', error_stage: null, duration_seconds: 60, detected_speaker_count: 2, user_speaker_labels: ['A'], created_at: '2026-03-15' },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }
+        if (table === 'transcript_segments') return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+        }
+        if (table === 'annotations') return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        }
+        // practice_items — one written, one not
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                { id: 'pi-1', annotation_id: 'ann-1', written_down: true },
+                { id: 'pi-2', annotation_id: 'ann-2', written_down: false },
+              ],
+              error: null,
+            }),
+          }),
+        }
+      }),
+    } as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost/api/sessions/s1')
+    const res = await getDetail(req, { params: { id: 's1' } })
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.writtenAnnotations).toEqual(['ann-1'])
+  })
 })
 
 describe('PATCH /api/sessions/:id', () => {
