@@ -15,6 +15,10 @@ const grammarItem: PracticeItem = {
   written_down: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
   flashcard_front: null, flashcard_back: null, flashcard_note: null,
+  importance_score: null, importance_note: null,
+  segment_text: 'Ayer Yo fui al mercado con ella.',
+  start_char: 6,
+  end_char: 12,
 }
 
 const subjectiveItem: PracticeItem = {
@@ -24,6 +28,8 @@ const subjectiveItem: PracticeItem = {
   written_down: false,
   created_at: '2026-03-15', updated_at: '2026-03-15',
   flashcard_front: null, flashcard_back: null, flashcard_note: null,
+  importance_score: null, importance_note: null,
+  segment_text: null, start_char: null, end_char: null,
 }
 
 describe('PracticeList', () => {
@@ -122,8 +128,8 @@ describe('PracticeList — bulk toolbar', () => {
 describe('PracticeList — sub-category filter', () => {
   it('filters to only items matching initialSubCategory', () => {
     const items: PracticeItem[] = [
-      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, written_down: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
-      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, written_down: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null },
+      { id: '1', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'subjunctive', original: 'vengas', correction: 'venís', explanation: '', reviewed: false, written_down: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null, importance_score: null, importance_note: null, segment_text: null, start_char: null, end_char: null },
+      { id: '2', session_id: 's1', annotation_id: null, type: 'grammar', sub_category: 'ser-estar', original: 'Soy', correction: 'Estoy', explanation: '', reviewed: false, written_down: false, created_at: '', updated_at: '', flashcard_front: null, flashcard_back: null, flashcard_note: null, importance_score: null, importance_note: null, segment_text: null, start_char: null, end_char: null },
     ]
     render(<PracticeList items={items} initialSubCategory="subjunctive" />)
     expect(screen.getByText('vengas')).toBeInTheDocument()
@@ -131,37 +137,16 @@ describe('PracticeList — sub-category filter', () => {
   })
 })
 
-describe('PracticeList — swipe delete', () => {
-  it('calls DELETE API when onDelete is triggered', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
-    global.fetch = mockFetch
-    const onDeleted = vi.fn()
-    render(<PracticeList items={[grammarItem]} onDeleted={onDeleted} />)
-
-    const deleteButton = screen.getByTestId(`delete-item-${grammarItem.id}`)
-    await userEvent.click(deleteButton)
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      `/api/practice-items/${grammarItem.id}`,
-      { method: 'DELETE' }
-    )
+describe('PracticeList — delete is bulk-only', () => {
+  it('does not have a swipe-left delete test seam', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(screen.queryByTestId(`delete-item-${grammarItem.id}`)).not.toBeInTheDocument()
   })
 
-  it('shows error toast when DELETE fails', async () => {
-    vi.useFakeTimers()
-    global.fetch = vi.fn().mockResolvedValue({ ok: false })
+  it('delete button appears in bulk toolbar when items selected', async () => {
     render(<PracticeList items={[grammarItem]} />)
-
-    const deleteButton = screen.getByTestId(`delete-item-${grammarItem.id}`)
-    // fireEvent is used here because userEvent deadlocks with vi.useFakeTimers()
-    await act(async () => {
-      fireEvent.click(deleteButton)
-      await vi.runAllTimersAsync()
-    })
-
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText(/couldn't delete/i)).toBeInTheDocument()
-    vi.useRealTimers()
+    await userEvent.click(screen.getByRole('checkbox', { name: /select item/i }))
+    expect(screen.getByRole('button', { name: /delete.*selected/i })).toBeInTheDocument()
   })
 })
 
@@ -247,93 +232,21 @@ describe('PracticeList — sub-category pill row', () => {
   })
 })
 
-describe('PracticeList — written_down status tag', () => {
-  it('shows "not written" tag on an unwritten item', () => {
+describe('PracticeList — written_down status chip removed', () => {
+  it('does not show "not written" chip on list items', () => {
     render(<PracticeList items={[grammarItem]} />)
-    expect(screen.getByText('not written')).toBeInTheDocument()
-  })
-
-  it('shows "✓ written" tag on a written item', () => {
-    const writtenItem: PracticeItem = { ...grammarItem, written_down: true }
-    render(<PracticeList items={[writtenItem]} />)
-    expect(screen.getByText('✓ written')).toBeInTheDocument()
-  })
-
-  it('does not render a type dot', () => {
-    render(<PracticeList items={[grammarItem]} />)
-    expect(document.querySelector('.bg-red-400')).not.toBeInTheDocument()
-    expect(document.querySelector('.bg-yellow-400')).not.toBeInTheDocument()
+    expect(screen.queryByText('not written')).not.toBeInTheDocument()
   })
 })
 
-describe('PracticeList — Not written filter pill', () => {
-  it('shows "Not written" pill as second pill after "All"', () => {
+describe('PracticeList — Written filter pill', () => {
+  it('shows "Written" pill as second pill after "All"', () => {
     render(<PracticeList items={[grammarItem]} />)
     const buttons = screen.getAllByRole('button')
     const allIdx = buttons.findIndex(b => /^all$/i.test(b.textContent?.trim() ?? ''))
-    const notWrittenIdx = buttons.findIndex(b => /^not written$/i.test(b.textContent?.trim() ?? ''))
+    const writtenIdx = buttons.findIndex(b => /^written$/i.test(b.textContent?.trim() ?? ''))
     expect(allIdx).toBeGreaterThanOrEqual(0)
-    expect(notWrittenIdx).toBe(allIdx + 1)
-  })
-
-  it('filters to unwritten items when Not written pill is clicked', async () => {
-    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
-    render(<PracticeList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
-    expect(screen.getByText('Yo fui')).toBeInTheDocument()
-    expect(screen.queryByText('escrito')).not.toBeInTheDocument()
-  })
-
-  it('clicking Not written again (toggle) shows all items', async () => {
-    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
-    render(<PracticeList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
-    expect(screen.getByText('escrito')).toBeInTheDocument()
-  })
-
-  it('clicking All clears the Not written filter', async () => {
-    const writtenItem: PracticeItem = { ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto' }
-    render(<PracticeList items={[grammarItem, writtenItem]} />)
-
-    // Activate "Not written" filter — written item should disappear
-    await userEvent.click(screen.getByRole('button', { name: /^not written$/i }))
-    expect(screen.queryByText('escrito')).not.toBeInTheDocument()
-
-    // "All" pill should now be inactive (no violet class)
-    const allButton = screen.getByRole('button', { name: /^all$/i })
-    expect(allButton.className).not.toMatch(/violet/)
-
-    // Clicking "All" should clear the filter and show written item again
-    await userEvent.click(allButton)
-    expect(screen.getByText('escrito')).toBeInTheDocument()
-  })
-})
-
-describe('PracticeList — initialFilterNotWritten', () => {
-  const writtenItem: PracticeItem = {
-    ...grammarItem,
-    id: 'written-1',
-    written_down: true,
-  }
-  const notWrittenItem: PracticeItem = {
-    ...grammarItem,
-    id: 'not-written-1',
-    written_down: false,
-  }
-
-  it('shows only unwritten items when initialFilterNotWritten is true', () => {
-    render(<PracticeList items={[writtenItem, notWrittenItem]} initialFilterNotWritten={true} />)
-    // The written item should be hidden
-    expect(screen.queryByTestId(`delete-item-${writtenItem.id}`)).not.toBeInTheDocument()
-    // The not-written item should be visible
-    expect(screen.getByTestId(`delete-item-${notWrittenItem.id}`)).toBeInTheDocument()
-  })
-
-  it('shows all items when initialFilterNotWritten is false', () => {
-    render(<PracticeList items={[writtenItem, notWrittenItem]} initialFilterNotWritten={false} />)
-    expect(screen.getByTestId(`delete-item-${writtenItem.id}`)).toBeInTheDocument()
-    expect(screen.getByTestId(`delete-item-${notWrittenItem.id}`)).toBeInTheDocument()
+    expect(writtenIdx).toBe(allIdx + 1)
   })
 })
 
@@ -369,5 +282,67 @@ describe('PracticeList — swipe right to mark written', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(screen.getByText(/failed to mark as written/i)).toBeInTheDocument()
     vi.useRealTimers()
+  })
+
+  it('removes item from list after successful mark-written', async () => {
+    vi.useFakeTimers()
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    render(<PracticeList items={[grammarItem]} />)
+
+    const writeButton = screen.getByTestId(`write-item-${grammarItem.id}`)
+    await act(async () => {
+      fireEvent.click(writeButton)
+      await vi.runAllTimersAsync()
+    })
+
+    expect(screen.queryByText('Yo fui')).not.toBeInTheDocument()
+    vi.useRealTimers()
+  })
+})
+
+describe('PracticeList — default filter hides written items', () => {
+  const writtenItem: PracticeItem = {
+    ...grammarItem, id: 'item-w', written_down: true, original: 'escrito', correction: 'correcto',
+  }
+
+  it('hides written items by default', () => {
+    render(<PracticeList items={[grammarItem, writtenItem]} />)
+    expect(screen.getByText('Yo fui')).toBeInTheDocument()
+    expect(screen.queryByText('escrito')).not.toBeInTheDocument()
+  })
+
+  it('shows written items when Written filter is active', async () => {
+    render(<PracticeList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /^written$/i }))
+    expect(screen.queryByText('Yo fui')).not.toBeInTheDocument()
+    expect(screen.getByText('escrito')).toBeInTheDocument()
+  })
+
+  it('shows all items when All is clicked after Written filter', async () => {
+    render(<PracticeList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /^written$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^all$/i }))
+    expect(screen.getByText('Yo fui')).toBeInTheDocument()
+    expect(screen.getByText('escrito')).toBeInTheDocument()
+  })
+})
+
+describe('PracticeList — context snippet', () => {
+  it('renders context snippet when segment_text is present', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    // grammarItem has segment_text 'Ayer Yo fui al mercado con ella.' with start=6, end=12
+    // ContextSnippet should show the error text 'Yo fui' highlighted
+    expect(screen.getByTestId(`context-snippet-${grammarItem.id}`)).toBeInTheDocument()
+  })
+
+  it('does not render snippet when segment_text is null', () => {
+    render(<PracticeList items={[subjectiveItem]} />)
+    expect(screen.queryByTestId(`context-snippet-${subjectiveItem.id}`)).not.toBeInTheDocument()
+  })
+
+  it('renders context snippet in detail modal', async () => {
+    render(<PracticeList items={[grammarItem]} />)
+    await userEvent.click(screen.getByText('Fui'))
+    expect(screen.getByTestId(`context-snippet-modal-${grammarItem.id}`)).toBeInTheDocument()
   })
 })
