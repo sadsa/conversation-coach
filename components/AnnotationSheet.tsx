@@ -58,7 +58,13 @@ export function AnnotationSheet({
   const prefersReducedMotion = useReducedMotion()
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const asideRef = useRef<HTMLElement>(null)
+  // Set by the aside's React capture handler before the native document
+  // listener fires. React events delegate from the root container, which is a
+  // descendant of <body>, so our onMouseDownCapture on the aside runs strictly
+  // before document.addEventListener('mousedown') in the bubble phase. Using a
+  // flag instead of ref.contains avoids edge cases with SVG targets and
+  // framer-motion's re-renders racing with the ref attachment.
+  const insidePointerRef = useRef(false)
 
   const isOpen = annotation !== null
 
@@ -82,10 +88,12 @@ export function AnnotationSheet({
     // annotation mark, which should swap content via TranscriptView's own
     // onClick handler instead of closing-then-reopening.
     function handlePointerDown(e: MouseEvent | TouchEvent) {
+      if (insidePointerRef.current) {
+        insidePointerRef.current = false
+        return
+      }
       const target = e.target as Element | null
-      if (!target) return
-      if (asideRef.current?.contains(target)) return
-      if (target.closest('[data-annotation-id]')) return
+      if (target?.closest('[data-annotation-id]')) return
       onClose()
     }
 
@@ -99,6 +107,10 @@ export function AnnotationSheet({
       previousFocusRef.current?.focus()
     }
   }, [isOpen, onClose, onPrev, onNext, hasPrev, hasNext])
+
+  function markInsidePointer() {
+    insidePointerRef.current = true
+  }
 
   const swipeHandlers = useSwipeable({
     onSwipedDown: (e) => { if (e.absY > 60) onClose() },
@@ -121,9 +133,10 @@ export function AnnotationSheet({
   return (
     <>
       <aside
-        ref={asideRef}
         role="complementary"
         aria-label={t('transcript.openCorrection')}
+        onMouseDownCapture={markInsidePointer}
+        onTouchStartCapture={markInsidePointer}
         className={`
           fixed left-0 right-0 bottom-0 z-40
           md:left-auto md:top-11 md:right-0 md:bottom-0 md:w-[400px]
