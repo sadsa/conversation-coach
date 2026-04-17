@@ -1,9 +1,8 @@
 // components/TranscriptView.tsx
 'use client'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnnotatedText } from '@/components/AnnotatedText'
-import { Modal } from '@/components/Modal'
-import { AnnotationCard } from '@/components/AnnotationCard'
+import { AnnotationSheet } from '@/components/AnnotationSheet'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
@@ -26,7 +25,7 @@ export function TranscriptView({
   onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
 }: Props) {
   const { t } = useTranslation()
-  const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null)
+  const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null)
 
   const annotationsBySegment = annotations.reduce<Record<string, Annotation[]>>((acc, a) => {
     if (!acc[a.segment_id]) acc[a.segment_id] = []
@@ -34,29 +33,118 @@ export function TranscriptView({
     return acc
   }, {})
 
-  const savedAnnotationIds = new Set(addedAnnotations.keys())
+  const savedAnnotationIds = useMemo(() => new Set(addedAnnotations.keys()), [addedAnnotations])
+
+  /**
+   * Flat ordered list of annotations on user-attributable segments, used to
+   * compute prev/next for the AnnotationSheet.
+   */
+  const orderedAnnotations = useMemo<Annotation[]>(() => {
+    return segments.flatMap(seg => {
+      const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
+      if (!isUser) return []
+      const segAnns = annotationsBySegment[seg.id] ?? []
+      return [...segAnns].sort((a, b) => a.start_char - b.start_char)
+    })
+  }, [segments, userSpeakerLabels, annotationsBySegment])
+
+  const activeIndex = activeAnnotationId
+    ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
+    : -1
+  const activeAnnotation = activeIndex >= 0 ? orderedAnnotations[activeIndex] : null
+
+  function handleClick(a: Annotation) {
+    setActiveAnnotationId(prev => (prev === a.id ? null : a.id))
+  }
+
+  function handlePrev() {
+    if (activeIndex > 0) setActiveAnnotationId(orderedAnnotations[activeIndex - 1].id)
+  }
+
+  function handleNext() {
+    if (activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1) {
+      setActiveAnnotationId(orderedAnnotations[activeIndex + 1].id)
+    }
+  }
+
+  // When the active annotation changes, scroll the corresponding mark into a
+  // visible band so the user keeps their place. On mobile the sheet covers
+  // the bottom ~55%, so we aim for the upper third. On desktop the sheet is
+  // a side panel and the mark only needs to be in the viewport.
+  useEffect(() => {
+    if (!activeAnnotationId) return
+    if (typeof window === 'undefined') return
+    const el = document.querySelector(`[data-annotation-id="${activeAnnotationId}"]`)
+    if (!(el instanceof HTMLElement)) return
+    // matchMedia is unavailable in some test environments; default to mobile
+    // layout + reduced motion if missing.
+    const reduced = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : true
+    const isWide = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 768px)').matches
+      : false
+    const rect = el.getBoundingClientRect()
+    const targetY = isWide ? window.innerHeight * 0.4 : window.innerHeight * 0.25
+    const delta = rect.top - targetY
+    if (Math.abs(delta) < 8) return
+    if (typeof window.scrollBy === 'function') {
+      window.scrollBy({ top: delta, behavior: reduced ? 'auto' : 'smooth' })
+    }
+  }, [activeAnnotationId])
+
+  const userLabel = t('transcript.you')
+  const themLabel = t('transcript.them')
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
+    <div>
+      {/* Inline legend — explains the colour states without forcing the user
+          to learn them by trial. Only shown when there are annotations. */}
+      {annotations.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-tertiary mb-5">
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="annotation-unreviewed inline-block w-3 h-3 rounded-sm" />
+            {t('transcript.legend.amber')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="annotation-saved inline-block w-3 h-3 rounded-sm" />
+            {t('transcript.legend.violet')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="annotation-written inline-block w-3 h-3 rounded-sm" />
+            {t('transcript.legend.green')}
+          </span>
+        </div>
+      )}
+
+      <div
+        className="space-y-6 max-w-prose"
+        // Bottom padding makes room for the docked sheet on mobile so the
+        // last few turns can scroll above it. Removed automatically when
+        // the sheet closes.
+        style={activeAnnotationId ? { paddingBottom: '60vh' } : undefined}
+      >
         {segments.map(seg => {
           const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
           return (
             <div key={seg.id}>
-              <div className={!isUser ? 'opacity-40' : ''}>
-                <p className="text-xs text-text-tertiary uppercase tracking-wide mb-0.5">
-                  {isUser ? 'You' : 'Them'}
+              <div
+                className={!isUser ? 'opacity-40 hover:opacity-100 focus-within:opacity-100 transition-opacity' : ''}
+                data-speaker-role={isUser ? 'user' : 'partner'}
+              >
+                <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1.5 font-medium">
+                  {isUser ? userLabel : themLabel}
                 </p>
-                <span className="text-sm leading-relaxed break-words">
+                <span className="text-base md:text-lg leading-loose break-words text-text-primary">
                   {isUser && (annotationsBySegment[seg.id] ?? []).length > 0 ? (
                     <AnnotatedText
                       text={seg.text}
                       annotations={annotationsBySegment[seg.id] ?? []}
-                      onAnnotationClick={a => {
-                        setActiveAnnotation(activeAnnotation?.id === a.id ? null : a)
-                      }}
+                      onAnnotationClick={handleClick}
                       savedAnnotationIds={savedAnnotationIds}
                       writtenAnnotationIds={writtenAnnotations}
+                      activeAnnotationId={activeAnnotationId}
+                      openLabel={t('transcript.openCorrection')}
                     />
                   ) : (
                     seg.text
@@ -67,24 +155,23 @@ export function TranscriptView({
           )
         })}
       </div>
-      <Modal
-        isOpen={!!activeAnnotation}
-        title={activeAnnotation ? <span>{t(`type.${activeAnnotation.type}`)}</span> : ''}
-        onClose={() => setActiveAnnotation(null)}
-      >
-        {activeAnnotation && (
-          <AnnotationCard
-            annotation={activeAnnotation}
-            sessionId={sessionId}
-            practiceItemId={addedAnnotations.get(activeAnnotation.id) ?? null}
-            isWrittenDown={writtenAnnotations.has(activeAnnotation.id)}
-            onAnnotationAdded={onAnnotationAdded}
-            onAnnotationRemoved={onAnnotationRemoved}
-            onAnnotationWritten={onAnnotationWritten}
-            onAnnotationUnwritten={onAnnotationUnwritten}
-          />
-        )}
-      </Modal>
+
+      <AnnotationSheet
+        annotation={activeAnnotation}
+        position={activeAnnotation ? { current: activeIndex + 1, total: orderedAnnotations.length } : null}
+        hasPrev={activeIndex > 0}
+        hasNext={activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1}
+        onClose={() => setActiveAnnotationId(null)}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        sessionId={sessionId}
+        practiceItemId={activeAnnotation ? (addedAnnotations.get(activeAnnotation.id) ?? null) : null}
+        isWrittenDown={activeAnnotation ? writtenAnnotations.has(activeAnnotation.id) : false}
+        onAnnotationAdded={onAnnotationAdded}
+        onAnnotationRemoved={onAnnotationRemoved}
+        onAnnotationWritten={onAnnotationWritten}
+        onAnnotationUnwritten={onAnnotationUnwritten}
+      />
     </div>
   )
 }

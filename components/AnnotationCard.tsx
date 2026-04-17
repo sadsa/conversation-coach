@@ -1,8 +1,9 @@
 // components/AnnotationCard.tsx
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Icon } from '@/components/Icon'
 
 function importanceStars(score: number | null): string | null {
   if (score === 3) return '★★★'
@@ -23,7 +24,9 @@ interface Props {
 }
 
 export function AnnotationCard({
-  annotation, sessionId, practiceItemId: initialPracticeItemId, isWrittenDown: initialIsWrittenDown,
+  annotation, sessionId,
+  practiceItemId: initialPracticeItemId,
+  isWrittenDown: initialIsWrittenDown,
   onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
 }: Props) {
   const { t } = useTranslation()
@@ -32,8 +35,27 @@ export function AnnotationCard({
   const [loadingStar, setLoadingStar] = useState(false)
   const [loadingCheck, setLoadingCheck] = useState(false)
   const [importanceExpanded, setImportanceExpanded] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  // Reset local state when the annotation prop changes (e.g. user navigates
+  // prev/next in the AnnotationSheet — same component instance, new annotation).
+  useEffect(() => {
+    setPracticeItemId(initialPracticeItemId)
+    setIsWrittenDown(initialIsWrittenDown)
+    setImportanceExpanded(false)
+    setErrorMessage(null)
+  }, [annotation.id, initialPracticeItemId, initialIsWrittenDown])
+
+  // Auto-clear inline errors so they don't linger.
+  useEffect(() => {
+    if (!errorMessage) return
+    const timer = setTimeout(() => setErrorMessage(null), 3500)
+    return () => clearTimeout(timer)
+  }, [errorMessage])
 
   async function handleStar() {
+    if (loadingStar) return
+    setErrorMessage(null)
     if (practiceItemId) {
       setLoadingStar(true)
       const res = await fetch(`/api/practice-items/${practiceItemId}`, { method: 'DELETE' })
@@ -41,6 +63,8 @@ export function AnnotationCard({
         setPracticeItemId(null)
         setIsWrittenDown(false)
         onAnnotationRemoved(annotation.id)
+      } else {
+        setErrorMessage(t('annotation.saveError'))
       }
       setLoadingStar(false)
     } else {
@@ -67,24 +91,33 @@ export function AnnotationCard({
         const { id } = await res.json() as { id: string }
         setPracticeItemId(id)
         onAnnotationAdded(annotation.id, id)
+      } else {
+        setErrorMessage(t('annotation.saveError'))
       }
       setLoadingStar(false)
     }
   }
 
   async function handleCheck() {
-    if (!practiceItemId) return
-    setLoadingCheck(true)
+    if (!practiceItemId || loadingCheck) return
+    setErrorMessage(null)
     const newValue = !isWrittenDown
+    // Optimistic update — flip immediately, revert on error.
+    setIsWrittenDown(newValue)
+    if (newValue) onAnnotationWritten(annotation.id)
+    else onAnnotationUnwritten(annotation.id)
+
+    setLoadingCheck(true)
     const res = await fetch(`/api/practice-items/${practiceItemId}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ written_down: newValue }),
     })
-    if (res.ok) {
-      setIsWrittenDown(newValue)
-      if (newValue) onAnnotationWritten(annotation.id)
-      else onAnnotationUnwritten(annotation.id)
+    if (!res.ok) {
+      setIsWrittenDown(!newValue)
+      if (newValue) onAnnotationUnwritten(annotation.id)
+      else onAnnotationWritten(annotation.id)
+      setErrorMessage(t('annotation.writtenError'))
     }
     setLoadingCheck(false)
   }
@@ -104,71 +137,95 @@ export function AnnotationCard({
     : t('annotation.markWrittenAria')
 
   return (
-    <div className="space-y-4">
-      <p className="text-base">
+    <div className="space-y-5">
+      {/* Original → Correction. Bigger and more readable than before; this is
+          what the user is here to study. */}
+      <p className="text-base md:text-lg leading-relaxed">
         <span className="bg-error-surface text-on-error-surface px-2 py-1 rounded">
           {annotation.original}
         </span>
-        {' → '}
-        <span className="font-semibold text-lg text-correction">
+        <span className="mx-2 text-text-tertiary" aria-hidden="true">→</span>
+        <span className="font-semibold text-lg md:text-xl text-correction">
           {annotation.correction}
         </span>
       </p>
-      <p className="text-text-secondary leading-relaxed">{annotation.explanation}</p>
-      <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
-        {t(`subCat.${annotation.sub_category}`)}
-      </span>
-      {importanceStars(annotation.importance_score) && (
-        <div>
-          {annotation.importance_note ? (
-            <>
-              <button
-                onClick={() => setImportanceExpanded(e => !e)}
-                className="text-pill-amber text-base leading-none focus:outline-none"
-                aria-label={t('practiceList.importanceToggleAria')}
-              >
-                {importanceStars(annotation.importance_score)}
-              </button>
-              {importanceExpanded && (
-                <p className="mt-1.5 text-text-secondary text-xs leading-relaxed">
-                  {annotation.importance_note}
-                </p>
-              )}
-            </>
+
+      <p className="text-text-secondary leading-relaxed text-base">
+        {annotation.explanation}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
+          {t(`subCat.${annotation.sub_category}`)}
+        </span>
+
+        {importanceStars(annotation.importance_score) && (
+          annotation.importance_note ? (
+            <button
+              onClick={() => setImportanceExpanded(e => !e)}
+              className="text-pill-amber text-base leading-none focus:outline-none rounded px-1"
+              aria-label={t('practiceList.importanceToggleAria')}
+              aria-expanded={importanceExpanded}
+            >
+              {importanceStars(annotation.importance_score)}
+            </button>
           ) : (
             <span className="text-pill-amber text-base leading-none">
               {importanceStars(annotation.importance_score)}
             </span>
-          )}
-        </div>
+          )
+        )}
+      </div>
+
+      {importanceExpanded && annotation.importance_note && (
+        <p className="text-text-secondary text-sm leading-relaxed -mt-3">
+          {annotation.importance_note}
+        </p>
       )}
-      {/* Action row */}
-      <div className="flex items-center gap-3 pt-5 border-t border-border">
+
+      {/* Action row. Bigger touch targets (44×44 min), real SVG icons, and
+          a state hint with screen-reader live region for feedback. */}
+      <div className="flex items-center gap-3 pt-4 border-t border-border">
         <span className="text-sm text-text-tertiary mr-auto">{stateHint}</span>
+
         <button
           onClick={handleStar}
           disabled={loadingStar}
           aria-label={starAriaLabel}
-          className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg transition-colors disabled:opacity-40 ${
+          aria-pressed={!!practiceItemId}
+          className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 ${
             practiceItemId
               ? 'border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)]'
-              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary'
+              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary hover:text-text-secondary'
           }`}
         >
-          {practiceItemId ? '★' : '☆'}
+          <Icon
+            name="star"
+            className={`w-5 h-5 ${practiceItemId ? 'fill-current' : ''}`}
+          />
         </button>
+
         <button
           onClick={handleCheck}
           disabled={!practiceItemId || loadingCheck}
           aria-label={checkAriaLabel}
-          className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg transition-colors disabled:opacity-30 ${
+          aria-pressed={isWrittenDown}
+          className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-30 ${
             isWrittenDown
               ? 'border-[var(--annotation-written-border)] bg-[var(--annotation-written-bg)] text-[var(--annotation-written-text)]'
-              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary'
+              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary hover:text-text-secondary'
           }`}
         >
-          ✓
+          <Icon name="check" className="w-5 h-5" />
         </button>
+      </div>
+
+      {/* Live region for failure feedback. role=status so it's polite and
+          doesn't interrupt the user mid-action. */}
+      <div role="status" aria-live="polite" className="min-h-[1rem]">
+        {errorMessage && (
+          <p className="text-status-error text-sm">{errorMessage}</p>
+        )}
       </div>
     </div>
   )
