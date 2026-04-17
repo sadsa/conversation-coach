@@ -13,7 +13,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
-- **Leitner box scheduler** — 5-box physical flashcard review system (no ts-fsrs)
+- **`ts-fsrs`** in deps for upcoming SRS scheduling (DB columns added in migration `20260410`; UI not yet wired up)
 - **Vitest** + React Testing Library — unit/component tests
 
 ## Commands
@@ -24,13 +24,14 @@ npm run build        # production build
 npm run lint         # ESLint
 npm test             # run all tests (Vitest)
 npm test -- <path>   # run a single test file
+npm run test:watch   # vitest in watch mode
 ```
 
 ## Project Structure
 
 ```
 app/
-  page.tsx                        # Screen 1: Upload / Home (Leitner CTA widget + write-down pill)
+  page.tsx                        # Screen 1: Upload / Home (recent sessions + write-down pill)
   login/page.tsx                  # Magic-link login (public)
   access-denied/page.tsx          # Shown when email not in allowlist (public)
   onboarding/page.tsx             # First-login target language selection
@@ -41,16 +42,21 @@ app/
     identify/page.tsx             # Screen 3: Speaker Identification
   practice/page.tsx               # Screen 5: Practice Items
   insights/page.tsx               # Screen 6: Insights (sub-category mistake tracking)
-  flashcards/page.tsx             # Screen 7: Leitner dashboard (pile overview + log outcomes)
   settings/page.tsx               # Settings: language, theme, sign-out, version
+  share-target/page.tsx           # PWA Web Share Target receiver
+  loading.tsx                     # Global Next.js loading boundary
   api/                            # All API routes (Next.js route handlers)
 components/
   AppHeader.tsx                   # Top nav bar with hamburger + theme toggle
   NavDrawer.tsx                   # Slide-out nav drawer (TABS array here)
-  ConditionalNav.tsx              # Composes AppHeader + NavDrawer
+  BottomNav.tsx                   # Mobile bottom tab bar (Home/Practice/Insights/Settings)
+  ConditionalNav.tsx              # Composes AppHeader + NavDrawer + BottomNav
   ThemeProvider.tsx               # Dark/light theme context
+  ThemeToggle.tsx                 # Theme switcher button
+  FontSizeProvider.tsx            # User-controllable font scale
   LanguageProvider.tsx            # UI language context with live switching
-  LeitnerDashboard.tsx            # Pile strip + per-card ✓/✗ + confirm button for physical review
+  AnnotationSheet.tsx             # Docked review panel (bottom on mobile, right on desktop) — replaces modal for transcript review
+  Icon.tsx                        # Shared inline-SVG icon set (no icon dep)
   ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
@@ -58,8 +64,7 @@ lib/
   i18n.ts                         # t() translation function + TRANSLATIONS dict
   insights.ts                     # fetchInsightsData() — uses Supabase RPC
   push.ts                         # sendPushNotification helper
-  leitner.ts                      # leitnerPass(), leitnerFail(), formatDateISO() — pure logic, no DB
-  dashboard-summary.ts            # computeDashboardSummary() → { leitnerDue, dueBoxes, nextDueDate, writeDownCount }
+  dashboard-summary.ts            # computeDashboardSummary() → { writeDownCount, ... }
   supabase-server.ts              # Supabase client for server components/routes
   supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
@@ -82,7 +87,7 @@ The audio pipeline flows through these statuses: `uploading → transcribing →
 5. Speaker label submitted via `POST /api/sessions/:id/speaker` → triggers Claude analysis
 6. Claude returns structured JSON annotations; practice items written to DB; audio deleted from R2; status → `ready`
 
-Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and annotation-derived practice items.
+Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the session and re-runs Claude. **Practice items are NOT touched** — they keep their flashcards even when the underlying annotation is regenerated, so the user-facing copy in the confirmation dialog (`reanalyse.body` in `lib/i18n.ts`) reflects this.
 
 ## Key Design Decisions
 
@@ -90,7 +95,9 @@ Re-analysis via `POST /api/sessions/:id/analyse` replaces all annotations and an
 - **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
 - **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
 - **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
-- **Leitner flashcards**: 5-box physical review system. `lib/leitner.ts` has pure pass/fail logic. `GET /api/practice-items?flashcards=due` returns `LeitnerResponse { boxes, cards, activeBox }` — lowest due box's cards. `POST /api/practice-items/leitner-review` accepts `{ results: [{id, passed}] }` and advances/resets box in bulk. Setting `written_down = true` auto-sets `leitner_box = 1` and `leitner_due_date = today`. Box intervals: 1→1d, 2→3d, 3→7d, 4→14d, 5→28d. Pass advances box; fail resets to box 1.
+- **Practice items, no scheduler (yet)**: The Leitner system was removed (migration `20260415_drop_leitner_columns.sql`). FSRS columns (`fsrs_state`, `due`, `stability`, …) were added by migration `20260410` for a future SRS, but no UI/API consumes them yet. Practice items currently expose only `written_down` and `importance_score`.
+- **Annotation review uses a docked sheet, not a modal**: `components/AnnotationSheet.tsx` is the central transcript-review pattern — bottom-anchored on mobile, right-side panel on desktop, no backdrop, with prev/next nav, swipe gestures, and `activeAnnotationId` ring on the source `<mark>`. Wire new annotation interactions through it; do not reach for `Modal`.
+- **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced as a star count + expandable note in `AnnotationCard` and `PracticeList`. Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
 - **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
 - **Practice sub-category filter**: `?sub_category=<key>` URL param seeds the active pill on load. 14-pill row (All + 13 sub-categories), sorted by count, colour-coded. Linked from Insights "See all examples" cards.
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
@@ -122,8 +129,9 @@ The `analyseUserTurns` function in `lib/claude.ts` accepts `targetLanguage: Targ
 - **`GET /api/practice-items` uses an explicit `.select()` column list** (not `'*'`). Append new column names to the string; do not switch to `select('*')`.
 - **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
 - **`react-swipeable` is already installed** (used by `PracticeList.tsx`). Import `useSwipeable` directly.
-- **Navigation uses `NavDrawer`** (`components/NavDrawer.tsx`). Add new nav tabs by inserting `{ href, label, icon }` objects in the `TABS` array there. (`BottomNav` was removed.)
+- **Navigation lives in two places**: `components/NavDrawer.tsx` (slide-out, full nav) and `components/BottomNav.tsx` (mobile bottom tabs). Both have their own `TABS` array — update both when adding/removing routes.
 - **`written_down` on `practice_items`**: boolean field; `?written_down=false` deep-link seeds the filter on the practice page.
+- **`ts-fsrs` is installed but unused**: SRS columns exist on `practice_items` (`fsrs_state`, `due`, `stability`, …) from migration `20260410`. The library and columns are reserved for an upcoming scheduler — do not remove either.
 
 ## Supabase CLI
 

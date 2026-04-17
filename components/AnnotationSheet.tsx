@@ -58,6 +58,7 @@ export function AnnotationSheet({
   const prefersReducedMotion = useReducedMotion()
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const asideRef = useRef<HTMLElement>(null)
 
   const isOpen = annotation !== null
 
@@ -76,9 +77,25 @@ export function AnnotationSheet({
         onNext()
       }
     }
+
+    // Close when the user taps anywhere outside the sheet — except on another
+    // annotation mark, which should swap content via TranscriptView's own
+    // onClick handler instead of closing-then-reopening.
+    function handlePointerDown(e: MouseEvent | TouchEvent) {
+      const target = e.target as Element | null
+      if (!target) return
+      if (asideRef.current?.contains(target)) return
+      if (target.closest('[data-annotation-id]')) return
+      onClose()
+    }
+
     document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
       previousFocusRef.current?.focus()
     }
   }, [isOpen, onClose, onPrev, onNext, hasPrev, hasNext])
@@ -104,11 +121,12 @@ export function AnnotationSheet({
   return (
     <>
       <aside
+        ref={asideRef}
         role="complementary"
         aria-label={t('transcript.openCorrection')}
         className={`
           fixed left-0 right-0 bottom-0 z-40
-          md:left-auto md:top-0 md:right-0 md:bottom-0 md:w-[400px]
+          md:left-auto md:top-11 md:right-0 md:bottom-0 md:w-[400px]
           bg-surface-elevated border-t border-border md:border-t-0 md:border-l
           shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.18)] md:shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.12)]
           rounded-t-2xl md:rounded-none
