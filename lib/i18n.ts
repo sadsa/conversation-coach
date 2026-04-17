@@ -97,10 +97,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.legend.green': 'written down',
     'transcript.openCorrection': 'Open correction',
     'transcript.themRevealHint': 'Tap to read',
+    'transcript.markState.written': 'written down',
+    'transcript.markState.saved': 'saved',
+    'transcript.markState.unreviewed': 'needs review',
 
     // Re-analyse confirmation
     'reanalyse.title': 'Replace this session\'s corrections?',
-    'reanalyse.body': 'Re-analysing rewrites every correction for this session and removes any practice items you saved from them. Items you\'ve already written down keep their flashcards.',
+    'reanalyse.body': 'Re-analysing rewrites every correction for this session. Practice items you\'ve saved keep their flashcards — only the corrections shown here are replaced.',
     'reanalyse.confirm': 'Replace corrections',
     'reanalyse.cancel': 'Keep current',
     'reanalyse.error': 'Couldn\'t start re-analysis — try again.',
@@ -293,10 +296,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.legend.green': 'escritas',
     'transcript.openCorrection': 'Abrir corrección',
     'transcript.themRevealHint': 'Tocá para leer',
+    'transcript.markState.written': 'anotado',
+    'transcript.markState.saved': 'guardado',
+    'transcript.markState.unreviewed': 'pendiente',
 
     // Re-analyse confirmation
     'reanalyse.title': '¿Reemplazar las correcciones de esta sesión?',
-    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta sesión y elimina los ítems de práctica que hayas guardado desde ellas. Los ítems que ya escribiste conservan sus tarjetas.',
+    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta sesión. Los ítems de práctica que hayas guardado conservan sus tarjetas — solo se reemplazan las correcciones que ves acá.',
     'reanalyse.confirm': 'Reemplazar correcciones',
     'reanalyse.cancel': 'Mantener',
     'reanalyse.error': 'No se pudo iniciar el re-análisis — intentá de nuevo.',

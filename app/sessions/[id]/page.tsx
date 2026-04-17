@@ -89,13 +89,21 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   async function handleReanalyse() {
     setReanalyseError(null)
     setReanalysing(true)
-    const res = await fetch(`/api/sessions/${params.id}/analyse`, { method: 'POST' })
-    setReanalysing(false)
-    if (res.ok) {
-      setConfirmReanalyse(false)
-      router.push(`/sessions/${params.id}/status`)
-    } else {
+    try {
+      const res = await fetch(`/api/sessions/${params.id}/analyse`, { method: 'POST' })
+      if (res.ok) {
+        setConfirmReanalyse(false)
+        router.push(`/sessions/${params.id}/status`)
+      } else {
+        setReanalyseError(t('reanalyse.error'))
+      }
+    } catch {
+      // Network failure (offline, DNS, abort) — keep the dialog open with an
+      // inline error so the user can retry or cancel instead of being trapped
+      // by `disabled={reanalysing}` on the buttons.
       setReanalyseError(t('reanalyse.error'))
+    } finally {
+      setReanalysing(false)
     }
   }
 

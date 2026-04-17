@@ -192,7 +192,7 @@ export function AnnotationSheet({
                 ref={closeButtonRef}
                 type="button"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t('sheet.close')}
                 className="w-9 h-9 ml-1 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg transition-colors"
               >
                 <Icon name="close" className="w-5 h-5" />

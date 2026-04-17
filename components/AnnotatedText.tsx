@@ -12,6 +12,19 @@ interface Props {
   activeAnnotationId?: string | null
   /** Accessible label for the mark button (defaults to "Open correction"). */
   openLabel?: string
+  /**
+   * Localised state suffixes appended to the mark's aria-label.
+   * Defaults are English fallbacks; callers should supply localised strings
+   * via `t('transcript.markState.*')` so screen-reader output matches the UI
+   * language.
+   */
+  stateLabels?: { written: string; saved: string; unreviewed: string }
+}
+
+const DEFAULT_STATE_LABELS = {
+  written: 'written down',
+  saved: 'saved',
+  unreviewed: 'needs review',
 }
 
 interface Span {
@@ -71,6 +84,7 @@ export function AnnotatedText({
   writtenAnnotationIds = new Set(),
   activeAnnotationId = null,
   openLabel = 'Open correction',
+  stateLabels = DEFAULT_STATE_LABELS,
 }: Props) {
   const spans = buildSpans(text, annotations)
 
@@ -83,10 +97,10 @@ export function AnnotatedText({
           const stateClass = annotationClass(ann.id, savedAnnotationIds, writtenAnnotationIds)
           const isActive = ann.id === activeAnnotationId
           const stateText = writtenAnnotationIds.has(ann.id)
-            ? 'written down'
+            ? stateLabels.written
             : savedAnnotationIds.has(ann.id)
-              ? 'saved'
-              : 'needs review'
+              ? stateLabels.saved
+              : stateLabels.unreviewed
           return (
             <mark
               key={i}
