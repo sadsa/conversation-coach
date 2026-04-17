@@ -6,6 +6,7 @@ import { TranscriptView } from '@/components/TranscriptView'
 import { InlineEdit } from '@/components/InlineEdit'
 import { Modal } from '@/components/Modal'
 import { Icon } from '@/components/Icon'
+import { IconButton } from '@/components/IconButton'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionDetail } from '@/lib/types'
 
@@ -141,16 +142,15 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
               tapped by accident. The transcript page only has one secondary
               action right now (Re-analyse), but this scales when more land. */}
           <div className="relative shrink-0" ref={menuRef}>
-            <button
-              type="button"
+            <IconButton
+              icon="more"
+              size="lg"
               onClick={() => setMenuOpen(o => !o)}
               aria-label={t('transcript.moreActions')}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              className="w-10 h-10 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
-            >
-              <Icon name="more" className="w-5 h-5" />
-            </button>
+            />
+
             {menuOpen && (
               <div
                 role="menu"

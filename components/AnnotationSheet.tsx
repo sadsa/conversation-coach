@@ -5,7 +5,7 @@ import { useReducedMotion } from 'framer-motion'
 import { useSwipeable } from 'react-swipeable'
 import { useTranslation } from '@/components/LanguageProvider'
 import { AnnotationCard } from '@/components/AnnotationCard'
-import { Icon } from '@/components/Icon'
+import { IconButton } from '@/components/IconButton'
 import type { Annotation, AnnotationType } from '@/lib/types'
 
 interface Props {
@@ -170,33 +170,28 @@ export function AnnotationSheet({
             )}
 
             <div className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
+              <IconButton
+                icon="chevron-left"
                 onClick={onPrev}
                 disabled={!hasPrev}
                 aria-label={t('sheet.prev')}
-                className="w-9 h-9 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-              >
-                <Icon name="chevron-left" className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
+                hoverBg="bg"
+              />
+              <IconButton
+                icon="chevron-right"
                 onClick={onNext}
                 disabled={!hasNext}
                 aria-label={t('sheet.next')}
-                className="w-9 h-9 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-              >
-                <Icon name="chevron-right" className="w-5 h-5" />
-              </button>
-              <button
+                hoverBg="bg"
+              />
+              <IconButton
                 ref={closeButtonRef}
-                type="button"
+                icon="close"
                 onClick={onClose}
                 aria-label={t('sheet.close')}
-                className="w-9 h-9 ml-1 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg transition-colors"
-              >
-                <Icon name="close" className="w-5 h-5" />
-              </button>
+                hoverBg="bg"
+                className="ml-1"
+              />
             </div>
           </header>
 

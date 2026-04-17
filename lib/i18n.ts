@@ -22,6 +22,45 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.practice': 'Practice',
     'nav.insights': 'Insights',
     'nav.settings': 'Settings',
+    'nav.session': 'Session',
+    'nav.skipToContent': 'Skip to content',
+    'nav.back': 'Back',
+    'nav.signOut': 'Sign out',
+
+    // Auth — login page
+    'auth.signInTitle': 'Conversation Coach',
+    'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
+    'auth.emailLabel': 'Email',
+    'auth.emailPlaceholder': 'you@example.com',
+    'auth.submit': 'Email me a sign-in link',
+    'auth.submitting': 'Sending…',
+    'auth.invitedNote':
+      "Access is invite-only. We'll email you a one-time link — no password needed.",
+    'auth.linkSentTo': 'Sign-in link sent to {email}.',
+    'auth.linkSentNote':
+      "Open it on this device to continue. Check your spam folder if you don't see it within a minute.",
+    'auth.useDifferentEmail': 'Use a different email',
+    'auth.invalidEmail': "That doesn't look like an email address.",
+    'auth.error.rateLimit':
+      "Too many sign-in attempts. Wait a minute, then try again.",
+    'auth.error.signupDisabled':
+      "Sign-ups are paused right now. Reach out to the person who shared this app.",
+    'auth.error.invalidEmail':
+      "We couldn't send to that address. Double-check it and try again.",
+    'auth.error.generic': "We couldn't send the link — please try again.",
+
+    // Access denied
+    'accessDenied.title': 'Access required',
+    'accessDenied.subtitle':
+      "Conversation Coach is invite-only. Your email isn't on the list yet.",
+    'accessDenied.emailButton': 'Email a request to the owner',
+    'accessDenied.copyPrefix': 'or copy {email}',
+    'accessDenied.copied': 'Copied',
+    'accessDenied.fallback':
+      'Reach out to the person who shared this app to request access.',
+    'accessDenied.signOut': 'Sign out and use a different email',
+    'accessDenied.requestSubject': 'Conversation Coach access request',
+    'accessDenied.requestBody': "Hi,\n\nI'd like to request access to Conversation Coach.\n\nThanks,",
 
     // Home page
     'home.title': 'Conversation Coach',
@@ -150,29 +189,34 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} to write down',
 
     // Practice page
-    'practice.title': 'Practice Items',
-    'practice.subtitle': '{n} item across all sessions',
-    'practice.subtitlePlural': '{n} items across all sessions',
+    'practice.title': 'Practice',
+    'practice.subtitle': 'Corrections you saved. Tap one to mark it once you\'ve written it on a card.',
     'practice.loading': 'Loading…',
     'practice.error': 'Error: {msg}',
 
-    // Practice list
-    'practiceList.all': 'All',
-    'practiceList.noItems': 'No items match this filter.',
-    'practiceList.selected': '{n} selected',
+    // Practice list — segmented Active / Archive view
+    'practiceList.viewLabel': 'Practice items',
+    'practiceList.active': 'To write down',
+    'practiceList.archive': 'Written',
+    'practiceList.emptyActiveCaption': 'Saved corrections look like this.',
+    'practiceList.emptyActiveCta': 'Start a session to save more →',
+    'practiceList.emptyArchive': 'Nothing here yet. Items show up here once you mark them as written.',
+    'practiceList.markRowAria': 'Mark "{original}" as written',
+    'practiceList.movedToArchive': 'Moved to Written',
+    'practiceList.movedToActive': 'Moved back to your list',
+    'practiceList.movedToTrash': 'Item deleted',
+    'practiceList.undo': 'Undo',
     'practiceList.deleteError': 'Couldn\'t delete item — try again.',
-    'practiceList.deletePartialError': 'Some items couldn\'t be deleted — try again.',
-    'practiceList.moreCategories': 'More +{n}',
-    'practiceList.selectItem': 'Select item',
-    'practiceList.exitSelection': 'Exit selection mode',
-    'practiceList.selectAll': 'Select all',
-    'practiceList.deleteSelectedAria': 'Delete {n} selected items',
-    'practiceList.writtenDown': '✓ written',
-    'practiceList.filterWritten': 'Written',
-    'practiceList.markWrittenError': 'Failed to mark as written — try again.',
-    'practiceList.revealWritten': '✓ Written',
-    'practiceList.sortImportance': 'Importance',
+    'practiceList.markWrittenError': 'Couldn\'t update — try again.',
     'practiceList.importanceToggleAria': 'Toggle importance explanation',
+
+    // Practice review sheet (docked)
+    'practiceSheet.aria': 'Review practice item',
+    'practiceSheet.titleActive': 'Saved correction',
+    'practiceSheet.titleArchive': 'Written',
+    'practiceSheet.markWritten': 'Mark as written',
+    'practiceSheet.moveToActive': 'Move back',
+    'practiceSheet.deleteAria': 'Delete this item',
 
 
     // Insights page
@@ -221,6 +265,45 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.practice': 'Práctica',
     'nav.insights': 'Estadísticas',
     'nav.settings': 'Configuración',
+    'nav.session': 'Sesión',
+    'nav.skipToContent': 'Saltar al contenido',
+    'nav.back': 'Atrás',
+    'nav.signOut': 'Cerrar sesión',
+
+    // Auth — login page
+    'auth.signInTitle': 'Entrenador de conversación',
+    'auth.signInSubtitle': 'Iniciá sesión para revisar tus conversaciones grabadas.',
+    'auth.emailLabel': 'Correo electrónico',
+    'auth.emailPlaceholder': 'vos@ejemplo.com',
+    'auth.submit': 'Enviame un enlace de inicio',
+    'auth.submitting': 'Enviando…',
+    'auth.invitedNote':
+      'El acceso es por invitación. Te enviamos un enlace de un solo uso — sin contraseña.',
+    'auth.linkSentTo': 'Enlace de inicio enviado a {email}.',
+    'auth.linkSentNote':
+      'Abrilo en este dispositivo para continuar. Revisá la carpeta de spam si no lo ves en un minuto.',
+    'auth.useDifferentEmail': 'Usar otro correo',
+    'auth.invalidEmail': 'Eso no parece una dirección de correo válida.',
+    'auth.error.rateLimit':
+      'Demasiados intentos. Esperá un minuto y volvé a intentar.',
+    'auth.error.signupDisabled':
+      'Los registros están pausados ahora. Contactá a quien compartió esta app.',
+    'auth.error.invalidEmail':
+      'No pudimos enviar a esa dirección. Revisala e intentá de nuevo.',
+    'auth.error.generic': 'No pudimos enviar el enlace — por favor intentá de nuevo.',
+
+    // Access denied
+    'accessDenied.title': 'Acceso requerido',
+    'accessDenied.subtitle':
+      'Conversation Coach es por invitación. Tu correo todavía no está en la lista.',
+    'accessDenied.emailButton': 'Enviar una solicitud al propietario',
+    'accessDenied.copyPrefix': 'o copiar {email}',
+    'accessDenied.copied': 'Copiado',
+    'accessDenied.fallback':
+      'Contactá a quien compartió esta app para solicitar acceso.',
+    'accessDenied.signOut': 'Cerrar sesión y usar otro correo',
+    'accessDenied.requestSubject': 'Solicitud de acceso a Conversation Coach',
+    'accessDenied.requestBody': 'Hola,\n\nMe gustaría solicitar acceso a Conversation Coach.\n\nGracias,',
 
     // Home page
     'home.title': 'Entrenador de conversación',
@@ -349,29 +432,34 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} para anotar',
 
     // Practice page
-    'practice.title': 'Ítems de práctica',
-    'practice.subtitle': '{n} ítem en todas las sesiones',
-    'practice.subtitlePlural': '{n} ítems en todas las sesiones',
+    'practice.title': 'Práctica',
+    'practice.subtitle': 'Correcciones que guardaste. Tocá una para marcarla una vez que la hayas escrito en una tarjeta.',
     'practice.loading': 'Cargando…',
     'practice.error': 'Error: {msg}',
 
-    // Practice list
-    'practiceList.all': 'Todos',
-    'practiceList.noItems': 'Ningún ítem coincide con este filtro.',
-    'practiceList.selected': '{n} seleccionados',
+    // Practice list — segmented Active / Archive view
+    'practiceList.viewLabel': 'Ítems de práctica',
+    'practiceList.active': 'Para anotar',
+    'practiceList.archive': 'Escritos',
+    'practiceList.emptyActiveCaption': 'Las correcciones guardadas se ven así.',
+    'practiceList.emptyActiveCta': 'Empezá una sesión para guardar más →',
+    'practiceList.emptyArchive': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
+    'practiceList.markRowAria': 'Marcar "{original}" como escrito',
+    'practiceList.movedToArchive': 'Movido a Escritos',
+    'practiceList.movedToActive': 'Vuelto a tu lista',
+    'practiceList.movedToTrash': 'Ítem eliminado',
+    'practiceList.undo': 'Deshacer',
     'practiceList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
-    'practiceList.deletePartialError': 'Algunos ítems no se pudieron eliminar — intentá de nuevo.',
-    'practiceList.moreCategories': 'Más +{n}',
-    'practiceList.selectItem': 'Seleccionar ítem',
-    'practiceList.exitSelection': 'Salir del modo selección',
-    'practiceList.selectAll': 'Seleccionar todo',
-    'practiceList.deleteSelectedAria': 'Eliminar {n} ítems seleccionados',
-    'practiceList.writtenDown': '✓ escrito',
-    'practiceList.filterWritten': 'Escrito',
-    'practiceList.markWrittenError': 'No se pudo marcar como escrito — intentá de nuevo.',
-    'practiceList.revealWritten': '✓ Escrito',
-    'practiceList.sortImportance': 'Importancia',
+    'practiceList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
     'practiceList.importanceToggleAria': 'Alternar explicación de importancia',
+
+    // Practice review sheet (docked)
+    'practiceSheet.aria': 'Revisar ítem de práctica',
+    'practiceSheet.titleActive': 'Corrección guardada',
+    'practiceSheet.titleArchive': 'Escritos',
+    'practiceSheet.markWritten': 'Marcar como escrito',
+    'practiceSheet.moveToActive': 'Volver atrás',
+    'practiceSheet.deleteAria': 'Eliminar este ítem',
 
 
     // Insights page

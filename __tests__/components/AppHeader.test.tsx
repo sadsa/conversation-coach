@@ -5,6 +5,10 @@ import userEvent from '@testing-library/user-event'
 import { AppHeader } from '@/components/AppHeader'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+}))
+
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
   return {

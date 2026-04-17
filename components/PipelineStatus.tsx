@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Button } from '@/components/Button'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
 
@@ -119,12 +120,9 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     return (
       <div className="space-y-5">
         <p className="text-status-error">{msg}</p>
-        <button
-          onClick={handleRetry}
-          className="px-5 py-3 bg-accent-primary hover:bg-accent-primary-hover rounded-lg font-medium text-white"
-        >
+        <Button size="md" onClick={handleRetry}>
           {t('pipeline.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -147,13 +145,9 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
       {(showAnalysisRetry || retryingAnalysis) && (
         <div className="space-y-3">
           <p className="text-text-secondary">{t('pipeline.takingLong')}</p>
-          <button
-            onClick={handleRetryAnalysis}
-            disabled={retryingAnalysis}
-            className="px-5 py-3 bg-accent-primary hover:bg-accent-primary-hover disabled:opacity-50 rounded-lg font-medium text-white"
-          >
+          <Button size="md" onClick={handleRetryAnalysis} disabled={retryingAnalysis}>
             {retryingAnalysis ? t('pipeline.retrying') : t('pipeline.retryAnalysis')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

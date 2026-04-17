@@ -46,6 +46,7 @@ const config: Config = {
         "widget-write-bg": "var(--color-widget-write-bg)",
         "widget-write-bg-hover": "var(--color-widget-write-bg-hover)",
         "widget-write-text": "var(--color-widget-write-text)",
+        scrim: "var(--color-scrim)",
       },
     },
   },

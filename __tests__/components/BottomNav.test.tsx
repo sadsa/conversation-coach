@@ -25,16 +25,12 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/')
   })
 
-  it('renders Home and Practice tabs', () => {
+  it('renders all four nav tabs', () => {
     wrap()
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /practice/i })).toBeInTheDocument()
-  })
-
-  it('does not render Insights or Settings tabs', () => {
-    wrap()
-    expect(screen.queryByRole('link', { name: /insights/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /settings/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })
 
   it('marks Home active on "/"', () => {
@@ -62,10 +58,15 @@ describe('BottomNav', () => {
     expect(screen.getByRole('link', { name: /practice/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks neither tab active on "/settings"', () => {
+  it('marks Settings active on "/settings"', () => {
     mockPathname.mockReturnValue('/settings')
     wrap()
+    expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('link', { name: /practice/i })).not.toHaveAttribute('aria-current')
+  })
+
+  it('hides itself on md+ viewports via the md:hidden utility', () => {
+    const { container } = wrap()
+    expect(container.querySelector('nav')).toHaveClass('md:hidden')
   })
 })

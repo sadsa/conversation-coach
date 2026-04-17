@@ -13,6 +13,9 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
+- **`framer-motion`** — sheet entrance animations + `useReducedMotion`
+- **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `PracticeItemSheet`, `PracticeList`
+- **`web-push`** — VAPID Web Push for analysis-completion notifications
 - **`ts-fsrs`** in deps for upcoming SRS scheduling (DB columns added in migration `20260410`; UI not yet wired up)
 - **Vitest** + React Testing Library — unit/component tests
 
@@ -56,7 +59,13 @@ components/
   FontSizeProvider.tsx            # User-controllable font scale
   LanguageProvider.tsx            # UI language context with live switching
   AnnotationSheet.tsx             # Docked review panel (bottom on mobile, right on desktop) — replaces modal for transcript review
+  PracticeItemSheet.tsx           # Docked review sheet for practice items (mirrors AnnotationSheet)
   Icon.tsx                        # Shared inline-SVG icon set (no icon dep)
+  # Shared UI primitives — prefer these over inlining new ones:
+  Button.tsx                      # `<Button>` + `buttonStyles()` for primary/secondary actions
+  IconButton.tsx                  # Square icon-only button (toolbar / dismiss / nav-arrow)
+  Skeleton.tsx                    # `<Skeleton>` + `<SkeletonRow>` for loading.tsx boundaries
+  StrikeOriginal.tsx              # Shared "wrong → right" treatment (row + sheet + empty state)
   ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
@@ -99,7 +108,9 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Annotation review uses a docked sheet, not a modal**: `components/AnnotationSheet.tsx` is the central transcript-review pattern — bottom-anchored on mobile, right-side panel on desktop, no backdrop, with prev/next nav, swipe gestures, and `activeAnnotationId` ring on the source `<mark>`. Wire new annotation interactions through it; do not reach for `Modal`.
 - **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced as a star count + expandable note in `AnnotationCard` and `PracticeList`. Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
 - **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
-- **Practice sub-category filter**: `?sub_category=<key>` URL param seeds the active pill on load. 14-pill row (All + 13 sub-categories), sorted by count, colour-coded. Linked from Insights "See all examples" cards.
+- **Practice page = Active ↔ Written segmented control**: `PracticeList` exposes only two views (`active` = `!written_down`, `archive` = `written_down`). Sub-category pills, importance sort UI, and bulk-select were removed in the simplification pass — category filtering belongs on the Insights page now. `InsightsCardList` still links to `/practice?sub_category=…` but the param is currently a no-op (kept so the URL doesn't break; revisit when category filtering returns).
+- **Practice fast-path + undoable delete**: Active rows render a trailing tap target (Gmail pattern) that flips `written_down` without opening the sheet. Delete is optimistic with a 5-second undo window — the row hides immediately, `DELETE` only fires after the timer expires, Undo cancels the network call entirely. Toast lives at `bottom-[var(--toast-bottom)]` (5rem mobile / 1.25rem desktop) defined in `globals.css`.
+- **`<StrikeOriginal>` is the canonical "wrong → right" primitive** (`components/StrikeOriginal.tsx`) — used by `PracticeList` rows, `PracticeItemSheet`, and the empty-state example. Change colour or sizing once, all three surfaces follow.
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
@@ -130,7 +141,7 @@ The `analyseUserTurns` function in `lib/claude.ts` accepts `targetLanguage: Targ
 - **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
 - **`react-swipeable` is already installed** (used by `PracticeList.tsx`). Import `useSwipeable` directly.
 - **Navigation lives in two places**: `components/NavDrawer.tsx` (slide-out, full nav) and `components/BottomNav.tsx` (mobile bottom tabs). Both have their own `TABS` array — update both when adding/removing routes.
-- **`written_down` on `practice_items`**: boolean field; `?written_down=false` deep-link seeds the filter on the practice page.
+- **`written_down` on `practice_items`**: boolean field; drives the Active/Written segmented control in `PracticeList`. There is no deep-link query param — the view is always client-state, defaulting to Active.
 - **`ts-fsrs` is installed but unused**: SRS columns exist on `practice_items` (`fsrs_state`, `due`, `stability`, …) from migration `20260410`. The library and columns are reserved for an upcoming scheduler — do not remove either.
 
 ## Supabase CLI

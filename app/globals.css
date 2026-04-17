@@ -130,6 +130,15 @@
   :root {
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    /* Toast clears the mobile bottom-nav (h-16 = 4rem) by default.
+       On md+ the bottom-nav is hidden, so the toast can sit closer to the edge. */
+    --toast-bottom: 5rem;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --toast-bottom: 1.25rem;
+    }
   }
 
   :focus-visible {
