@@ -2,6 +2,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Button } from '@/components/Button'
 
 const ACCEPTED_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'audio/opus']
 const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.opus']
@@ -55,13 +56,13 @@ export function DropZone({ onFile }: Props) {
           <p className="font-semibold text-text-primary">{t('dropzone.title')}</p>
           <p className="text-sm text-text-tertiary mt-1">{t('dropzone.formats')}</p>
         </div>
-        <button
-          type="button"
-          className="flex-shrink-0 px-4 py-2 bg-accent-primary hover:bg-accent-primary-hover rounded-lg font-medium transition-colors text-white"
+        <Button
+          size="sm"
+          className="flex-shrink-0"
           onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
         >
           {t('dropzone.browse')}
-        </button>
+        </Button>
         <input
           ref={inputRef}
           type="file"

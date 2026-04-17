@@ -3,6 +3,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Button, buttonStyles } from '@/components/Button'
 
 const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL || ''
 
@@ -50,7 +51,7 @@ export default function AccessDeniedPage() {
           <div className="space-y-3">
             <a
               href={`mailto:${OWNER_EMAIL}?subject=${subject}&body=${body}`}
-              className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-accent-primary hover:bg-accent-primary-hover text-white font-medium text-sm transition-colors"
+              className={buttonStyles({ variant: 'primary', size: 'sm', fullWidth: true })}
             >
               {t('accessDenied.emailButton')}
             </a>
@@ -70,13 +71,9 @@ export default function AccessDeniedPage() {
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={signOut}
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors text-sm font-medium"
-        >
+        <Button variant="secondary" size="sm" fullWidth onClick={signOut}>
           {t('accessDenied.signOut')}
-        </button>
+        </Button>
       </div>
     </div>
   )

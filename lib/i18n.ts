@@ -189,29 +189,31 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} to write down',
 
     // Practice page
-    'practice.title': 'Practice Items',
-    'practice.subtitle': '{n} item across all sessions',
-    'practice.subtitlePlural': '{n} items across all sessions',
+    'practice.title': 'Practice',
+    'practice.subtitle': 'Corrections you saved. Tap one to mark it once you\'ve written it on a card.',
     'practice.loading': 'Loading…',
     'practice.error': 'Error: {msg}',
 
-    // Practice list
-    'practiceList.all': 'All',
-    'practiceList.noItems': 'No items match this filter.',
-    'practiceList.selected': '{n} selected',
+    // Practice list — segmented Active / Archive view
+    'practiceList.viewLabel': 'Practice items',
+    'practiceList.active': 'To write down',
+    'practiceList.archive': 'Archive',
+    'practiceList.emptyActive': 'All caught up. Save corrections from a session\'s transcript to add them here.',
+    'practiceList.emptyArchive': 'Nothing here yet. Items move to the archive once you mark them as written.',
+    'practiceList.movedToArchive': 'Moved to archive',
+    'practiceList.movedToActive': 'Moved back to your list',
+    'practiceList.undo': 'Undo',
     'practiceList.deleteError': 'Couldn\'t delete item — try again.',
-    'practiceList.deletePartialError': 'Some items couldn\'t be deleted — try again.',
-    'practiceList.moreCategories': 'More +{n}',
-    'practiceList.selectItem': 'Select item',
-    'practiceList.exitSelection': 'Exit selection mode',
-    'practiceList.selectAll': 'Select all',
-    'practiceList.deleteSelectedAria': 'Delete {n} selected items',
-    'practiceList.writtenDown': '✓ written',
-    'practiceList.filterWritten': 'Written',
-    'practiceList.markWrittenError': 'Failed to mark as written — try again.',
-    'practiceList.revealWritten': '✓ Written',
-    'practiceList.sortImportance': 'Importance',
+    'practiceList.markWrittenError': 'Couldn\'t update — try again.',
     'practiceList.importanceToggleAria': 'Toggle importance explanation',
+
+    // Practice review sheet (docked)
+    'practiceSheet.aria': 'Review practice item',
+    'practiceSheet.titleActive': 'Saved correction',
+    'practiceSheet.titleArchive': 'Archived',
+    'practiceSheet.markWritten': 'Mark as written',
+    'practiceSheet.moveToActive': 'Move back to list',
+    'practiceSheet.deleteAria': 'Delete this item',
 
 
     // Insights page
@@ -427,29 +429,31 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} para anotar',
 
     // Practice page
-    'practice.title': 'Ítems de práctica',
-    'practice.subtitle': '{n} ítem en todas las sesiones',
-    'practice.subtitlePlural': '{n} ítems en todas las sesiones',
+    'practice.title': 'Práctica',
+    'practice.subtitle': 'Correcciones que guardaste. Tocá una para marcarla una vez que la hayas escrito en una tarjeta.',
     'practice.loading': 'Cargando…',
     'practice.error': 'Error: {msg}',
 
-    // Practice list
-    'practiceList.all': 'Todos',
-    'practiceList.noItems': 'Ningún ítem coincide con este filtro.',
-    'practiceList.selected': '{n} seleccionados',
+    // Practice list — segmented Active / Archive view
+    'practiceList.viewLabel': 'Ítems de práctica',
+    'practiceList.active': 'Para anotar',
+    'practiceList.archive': 'Archivo',
+    'practiceList.emptyActive': 'Estás al día. Guardá correcciones desde la transcripción de una sesión para agregarlas acá.',
+    'practiceList.emptyArchive': 'Todavía no hay nada acá. Los ítems pasan al archivo cuando los marcás como escritos.',
+    'practiceList.movedToArchive': 'Movido al archivo',
+    'practiceList.movedToActive': 'Vuelto a tu lista',
+    'practiceList.undo': 'Deshacer',
     'practiceList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
-    'practiceList.deletePartialError': 'Algunos ítems no se pudieron eliminar — intentá de nuevo.',
-    'practiceList.moreCategories': 'Más +{n}',
-    'practiceList.selectItem': 'Seleccionar ítem',
-    'practiceList.exitSelection': 'Salir del modo selección',
-    'practiceList.selectAll': 'Seleccionar todo',
-    'practiceList.deleteSelectedAria': 'Eliminar {n} ítems seleccionados',
-    'practiceList.writtenDown': '✓ escrito',
-    'practiceList.filterWritten': 'Escrito',
-    'practiceList.markWrittenError': 'No se pudo marcar como escrito — intentá de nuevo.',
-    'practiceList.revealWritten': '✓ Escrito',
-    'practiceList.sortImportance': 'Importancia',
+    'practiceList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
     'practiceList.importanceToggleAria': 'Alternar explicación de importancia',
+
+    // Practice review sheet (docked)
+    'practiceSheet.aria': 'Revisar ítem de práctica',
+    'practiceSheet.titleActive': 'Corrección guardada',
+    'practiceSheet.titleArchive': 'Archivado',
+    'practiceSheet.markWritten': 'Marcar como escrito',
+    'practiceSheet.moveToActive': 'Volver a la lista',
+    'practiceSheet.deleteAria': 'Eliminar este ítem',
 
 
     // Insights page

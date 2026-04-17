@@ -38,10 +38,19 @@ describe('annotation action i18n keys', () => {
   it('annotation.stateUnsaved exists in en', () => {
     expect(t('annotation.stateUnsaved', 'en')).not.toBe('annotation.stateUnsaved')
   })
-  it('practiceList.filterWritten exists in en', () => {
-    expect(t('practiceList.filterWritten', 'en')).not.toBe('practiceList.filterWritten')
+  it('practiceList.active exists in en', () => {
+    expect(t('practiceList.active', 'en')).not.toBe('practiceList.active')
+  })
+  it('practiceList.archive exists in es', () => {
+    expect(t('practiceList.archive', 'es')).not.toBe('practiceList.archive')
+  })
+  it('practiceSheet.markWritten exists in en', () => {
+    expect(t('practiceSheet.markWritten', 'en')).not.toBe('practiceSheet.markWritten')
   })
   it('annotation.addToPractice is removed (falls back to key)', () => {
     expect(t('annotation.addToPractice', 'en')).toBe('annotation.addToPractice')
+  })
+  it('practiceList.filterWritten is removed (falls back to key)', () => {
+    expect(t('practiceList.filterWritten', 'en')).toBe('practiceList.filterWritten')
   })
 })

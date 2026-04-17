@@ -1,20 +1,12 @@
 // components/PracticeList.tsx
 'use client'
-import { useState, useRef, useEffect, useMemo } from 'react'
-import { useSwipeable } from 'react-swipeable'
-import type { PracticeItem, SubCategory } from '@/lib/types'
-import { SUB_CATEGORIES } from '@/lib/types'
-import { Modal } from '@/components/Modal'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import type { PracticeItem } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
-
-function importanceStars(score: number | null): string | null {
-  if (score === 3) return '★★★'
-  if (score === 2) return '★★☆'
-  if (score === 1) return '★☆☆'
-  return null
-}
+import { PracticeItemSheet } from '@/components/PracticeItemSheet'
 
 const SNIPPET_CONTEXT = 30
+const UNDO_TIMEOUT_MS = 5000
 
 function ContextSnippet({ segmentText, startChar, endChar, testId }: {
   segmentText: string
@@ -30,528 +22,306 @@ function ContextSnippet({ segmentText, startChar, endChar, testId }: {
   return (
     <p
       data-testid={testId}
-      className="text-sm italic text-text-tertiary bg-surface-elevated rounded px-2 py-1.5 mt-2 leading-relaxed"
+      className="text-sm italic text-text-tertiary leading-relaxed"
     >
-      {snippetStart > 0 && '...'}
+      {snippetStart > 0 && '…'}
       {prefix}
-      <span className="not-italic bg-[var(--annotation-unreviewed-bg)] text-[var(--annotation-unreviewed-text)] rounded-sm px-0.5">
-        {error}
-      </span>
+      <span className="not-italic text-text-secondary">{error}</span>
       {suffix}
-      {snippetEnd < segmentText.length && '...'}
+      {snippetEnd < segmentText.length && '…'}
     </p>
   )
 }
 
-function SwipeableItem({
-  item,
-  isBulkMode,
-  isSelected,
-  onToggleSelect,
-  onMarkWritten,
-  onOpen,
-}: {
+type View = 'active' | 'archive'
+
+interface RowProps {
   item: PracticeItem
-  isBulkMode: boolean
-  isSelected: boolean
-  onToggleSelect: (id: string) => void
-  onMarkWritten: (id: string) => Promise<boolean>
-  onOpen: (item: PracticeItem) => void
-}) {
-  const { t } = useTranslation()
-  const [translateX, setTranslateX] = useState(0)
-  const [rowHeight, setRowHeight] = useState<number | null>(null)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const rowRef = useRef<HTMLLIElement>(null)
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const mountedRef = useRef(true)
+  isArchive: boolean
+  onOpen: () => void
+}
 
-  useEffect(() => {
-    return () => { mountedRef.current = false }
-  }, [])
-
-  async function triggerMarkWritten() {
-    if (isAnimating || !rowRef.current) return
-    setIsAnimating(true)
-
-    setTranslateX(window.innerWidth)
-    const markPromise = onMarkWritten(item.id)
-
-    await new Promise(r => setTimeout(r, 220))
-    if (!mountedRef.current) return
-
-    // Collapse via grid-template-rows — no layout thrash
-    setRowHeight(0)
-
-    const [, markResult] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, 220)),
-      markPromise,
-    ])
-    if (!mountedRef.current) return
-
-    const succeeded = markResult.status === 'fulfilled' && markResult.value === true
-    if (!succeeded) {
-      setRowHeight(null)
-      setTranslateX(0)
-      setIsAnimating(false)
-    }
-  }
-
-  const handlers = useSwipeable({
-    delta: 10,
-    onSwiping: (e) => {
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current)
-        longPressTimer.current = null
-      }
-      if (e.dir === 'Right') setTranslateX(e.absX)
-      else setTranslateX(0)
-    },
-    onSwipedRight: (e) => {
-      if (e.absX > 80) triggerMarkWritten()
-      else setTranslateX(0)
-    },
-    trackMouse: false,
-  })
-
-  function handleTouchStart() {
-    if (isBulkMode) return
-    longPressTimer.current = setTimeout(() => {
-      onToggleSelect(item.id)
-    }, 300)
-  }
-
-  function handleTouchEnd() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
-    }
-  }
-
+function PracticeRow({ item, isArchive, onOpen }: RowProps) {
   return (
-    <li
-      ref={rowRef}
-      className="relative overflow-hidden rounded-xl grid"
-      style={
-        rowHeight !== null
-          ? { gridTemplateRows: rowHeight === 0 ? '0fr' : '1fr', transition: 'grid-template-rows 0.22s cubic-bezier(0.25, 1, 0.5, 1)' }
-          : { gridTemplateRows: '1fr' }
-      }
-    >
-      <div className="overflow-hidden min-h-0 min-w-0">
-      {/* Swipe-to-written background (left side, swiping right) */}
-      <div className={`absolute inset-0 bg-status-ready flex items-center pl-5 rounded-xl ${translateX <= 0 ? 'invisible' : ''}`}>
-        <span className="text-white font-medium">{t('practiceList.revealWritten')}</span>
-      </div>
-      {/* Item card */}
-      <div
-        {...handlers}
-        style={{
-          transform: `translateX(${translateX}px)`,
-          transition: isAnimating
-            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
-            : translateX === 0
-            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
-            : 'none',
-          userSelect: 'none',
-          touchAction: 'pan-y',
-        }}
-        className="relative flex items-start gap-3 px-4 py-3 bg-surface rounded-xl"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-        onClick={() => {
-          if (isBulkMode) {
-            onToggleSelect(item.id)
-          } else if (translateX === 0) {
-            onOpen(item)
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        data-practice-item-id={item.id}
+        data-testid={`practice-row-${item.id}`}
+        className={`
+          w-full text-left flex flex-col gap-1.5 px-4 py-3.5 rounded-xl
+          transition-colors border
+          ${isArchive
+            ? 'bg-surface/60 border-border-subtle hover:bg-surface'
+            : 'bg-surface border-border-subtle hover:border-border'
           }
-        }}
+        `}
       >
-        {/* Hidden test seam for triggering mark-written in tests */}
-        <button
-          data-testid={`write-item-${item.id}`}
-          className="sr-only"
-          onClick={e => { e.stopPropagation(); triggerMarkWritten() }}
-          tabIndex={-1}
-          aria-hidden="true"
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore — inert is a valid HTML attribute not yet in React's types
-          inert=""
-        />
-        {/* Bulk-select checkbox */}
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onToggleSelect(item.id)}
-          onClick={e => e.stopPropagation()}
-          className={`w-4 h-4 rounded accent-accent-primary flex-shrink-0 ${isBulkMode ? 'block' : 'hidden sm:block'}`}
-          aria-label={t('practiceList.selectItem')}
-        />
-        <div className="flex-1 min-w-0 text-sm flex flex-col gap-0.5">
-          <div>
-            <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
-              {item.original}
-            </span>
-            {' → '}
-            <span className="font-medium text-correction">{item.correction}</span>
-            {(() => {
-              const stars = importanceStars(item.importance_score)
-              return stars ? <span className="text-pill-amber text-xs ml-1">{stars}</span> : null
-            })()}
-          </div>
-          <div className="flex gap-1.5 flex-wrap items-center">
-            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2.5 py-1 text-sm">
-              {t(`subCat.${item.sub_category}`)}
-            </span>
-          </div>
-          {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
-            <ContextSnippet
-              segmentText={item.segment_text}
-              startChar={item.start_char}
-              endChar={item.end_char}
-              testId={`context-snippet-${item.id}`}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+        <p className="text-base leading-relaxed">
+          <span
+            className={`mr-2 ${
+              isArchive
+                ? 'text-text-tertiary line-through decoration-text-tertiary/30'
+                : 'text-text-tertiary line-through decoration-text-tertiary/40'
+            }`}
+          >
+            {item.original}
+          </span>
+          <span
+            className={`font-semibold ${
+              isArchive ? 'text-text-secondary' : 'text-correction'
+            }`}
+          >
+            {item.correction}
+          </span>
+        </p>
+        {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
+          <ContextSnippet
+            segmentText={item.segment_text}
+            startChar={item.start_char}
+            endChar={item.end_char}
+            testId={`context-snippet-${item.id}`}
+          />
+        )}
+      </button>
     </li>
   )
 }
 
-type WrittenFilter = 'hidden' | 'only' | 'all'
+interface SegmentedProps {
+  view: View
+  activeCount: number
+  archiveCount: number
+  onChange: (next: View) => void
+}
+
+function Segmented({ view, activeCount, archiveCount, onChange }: SegmentedProps) {
+  const { t } = useTranslation()
+  function segClass(active: boolean) {
+    return `
+      px-4 py-1.5 rounded-full text-sm transition-colors
+      ${active
+        ? 'bg-accent-chip text-on-accent-chip'
+        : 'text-text-secondary hover:text-text-primary'
+      }
+    `
+  }
+  return (
+    <div
+      role="tablist"
+      aria-label={t('practiceList.viewLabel')}
+      className="inline-flex rounded-full border border-border bg-surface p-0.5"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={view === 'active'}
+        onClick={() => onChange('active')}
+        className={segClass(view === 'active')}
+      >
+        {t('practiceList.active')}{' '}
+        <span className="tabular-nums opacity-70">{activeCount}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={view === 'archive'}
+        onClick={() => onChange('archive')}
+        className={segClass(view === 'archive')}
+      >
+        {t('practiceList.archive')}{' '}
+        <span className="tabular-nums opacity-70">{archiveCount}</span>
+      </button>
+    </div>
+  )
+}
+
+interface ToastState {
+  message: string
+  onUndo?: () => void | Promise<void>
+  key: number
+}
 
 interface Props {
   items: PracticeItem[]
-  /** Called after successful API delete so the parent can update `items`. */
+  /** Called after a successful API delete so the parent can update its `items` list. */
   onDeleted?: (ids: string[]) => void
-  initialSubCategory?: SubCategory
+  /** Optional initial view — defaults to 'active'. */
+  initialView?: View
 }
 
-export function PracticeList({ items, onDeleted, initialSubCategory }: Props) {
+export function PracticeList({ items, onDeleted, initialView = 'active' }: Props) {
   const { t } = useTranslation()
-  const [subCategoryFilter, setSubCategoryFilter] = useState<SubCategory | null>(initialSubCategory ?? null)
-  const [isBulkMode, setIsBulkMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [openItem, setOpenItem] = useState<PracticeItem | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [isExpanded, setIsExpanded] = useState(initialSubCategory !== undefined)
-  const [writtenFilter, setWrittenFilter] = useState<WrittenFilter>('hidden')
-  const [sortByImportance, setSortByImportance] = useState(false)
-  const [displayItems, setDisplayItems] = useState<PracticeItem[]>(items)
-  const [importanceExpanded, setImportanceExpanded] = useState(false)
+  const [view, setView] = useState<View>(initialView)
+  const [allItems, setAllItems] = useState<PracticeItem[]>(items)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastState | null>(null)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync items prop into local state. Local state lets us optimistically flip
+  // written_down without round-tripping through the parent.
+  useEffect(() => {
+    setAllItems(items)
+  }, [items])
 
   useEffect(() => {
-    if (sortByImportance) {
-      const sorted = [...items].sort((a, b) => {
-        if (a.importance_score === null && b.importance_score === null) return 0
-        if (a.importance_score === null) return 1
-        if (b.importance_score === null) return -1
-        return b.importance_score - a.importance_score
-      })
-      setDisplayItems(sorted)
-    } else {
-      setDisplayItems(items)
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     }
-  }, [items, sortByImportance])
+  }, [])
 
-  const isFirstRender = useRef(true)
-  const sortByImportanceRef = useRef(sortByImportance)
-  useEffect(() => {
-    sortByImportanceRef.current = sortByImportance
-  }, [sortByImportance])
+  const activeCount = useMemo(
+    () => allItems.filter(i => !i.written_down).length,
+    [allItems]
+  )
+  const archiveCount = useMemo(
+    () => allItems.filter(i => i.written_down).length,
+    [allItems]
+  )
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
-    const url = '/api/practice-items' + (sortByImportance ? '?sort=importance' : '')
-    fetch(url)
-      .then(r => { if (!r.ok) return; return r.json() })
-      .then((data: PracticeItem[] | undefined) => {
-        if (data && sortByImportanceRef.current === sortByImportance) {
-          setDisplayItems(data)
-        }
-      })
-      .catch(() => {/* keep existing items on error */})
-  }, [sortByImportance])
+  const visible = useMemo(() => {
+    return allItems.filter(i =>
+      view === 'active' ? !i.written_down : i.written_down
+    )
+  }, [allItems, view])
 
-  const subCategoryCounts = useMemo(() => {
-    const counts = Object.fromEntries(SUB_CATEGORIES.map(sc => [sc, 0])) as Record<SubCategory, number>
-    for (const item of displayItems) counts[item.sub_category] = (counts[item.sub_category] ?? 0) + 1
-    return counts
-  }, [displayItems])
+  const openIndex = openId !== null ? visible.findIndex(i => i.id === openId) : -1
+  const openItem = openIndex >= 0 ? visible[openIndex] : null
+  const hasPrev = openIndex > 0
+  const hasNext = openIndex >= 0 && openIndex < visible.length - 1
 
-  const sortedSubCategories = useMemo(() => {
-    return [...SUB_CATEGORIES].sort((a, b) => subCategoryCounts[b] - subCategoryCounts[a])
-  }, [subCategoryCounts])
-
-  const colourTiers = useMemo(() => {
-    const nonZero = Array.from(new Set(Object.values(subCategoryCounts).filter(c => c > 0))).sort((a, b) => b - a)
-    return { rank1: nonZero[0] ?? 0, rank2: nonZero[1] ?? 0 }
-  }, [subCategoryCounts])
-
-  function pillClass(sc: SubCategory): string {
-    if (sc === subCategoryFilter) return 'border-accent-primary text-on-accent-chip bg-accent-chip'
-    const count = subCategoryCounts[sc]
-    if (count === 0) return 'border-border-subtle text-text-tertiary'
-    if (colourTiers.rank1 > 0 && count === colourTiers.rank1) return 'border-on-pill-rank1/30 bg-pill-rank1 text-on-pill-rank1'
-    if (colourTiers.rank2 > 0 && count === colourTiers.rank2) return 'border-amber-700 bg-pill-rank2 text-on-pill-rank2'
-    return 'border-border text-text-secondary'
+  function showToast(message: string, onUndo?: () => void | Promise<void>) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({ message, onUndo, key: Date.now() })
+    toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
   }
 
-const allPillClass = writtenFilter === 'all' && subCategoryFilter === null
-    ? 'border-accent-primary text-accent-primary bg-accent-chip'
-    : 'border-border text-text-secondary'
-
-  useEffect(() => {
-    if (!toastMessage) return
-    const timeoutId = setTimeout(() => setToastMessage(null), 3000)
-    return () => clearTimeout(timeoutId)
-  }, [toastMessage])
-
-  const filtered = displayItems.filter(item => {
-    if (writtenFilter === 'hidden' && item.written_down) return false
-    if (writtenFilter === 'only' && !item.written_down) return false
-    if (subCategoryFilter !== null && item.sub_category !== subCategoryFilter) return false
-    return true
-  })
-
-  async function markWritten(id: string): Promise<boolean> {
+  async function patchWritten(id: string, written: boolean): Promise<boolean> {
     const res = await fetch(`/api/practice-items/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ written_down: true }),
+      body: JSON.stringify({ written_down: written }),
     })
-    if (!res.ok) {
-      setToastMessage(t('practiceList.markWrittenError'))
+    return res.ok
+  }
+
+  async function handleToggleWritten(item: PracticeItem): Promise<boolean> {
+    const previous = item.written_down
+    const next = !previous
+
+    setAllItems(prev =>
+      prev.map(i => (i.id === item.id ? { ...i, written_down: next } : i))
+    )
+    setOpenId(null)
+
+    const ok = await patchWritten(item.id, next)
+    if (!ok) {
+      setAllItems(prev =>
+        prev.map(i => (i.id === item.id ? { ...i, written_down: previous } : i))
+      )
+      showToast(t('practiceList.markWrittenError'))
       return false
     }
-    setDisplayItems(prev => prev.filter(i => i.id !== id))
+
+    const message = next
+      ? t('practiceList.movedToArchive')
+      : t('practiceList.movedToActive')
+
+    showToast(message, async () => {
+      const reverted = await patchWritten(item.id, previous)
+      if (reverted) {
+        setAllItems(prev =>
+          prev.map(i => (i.id === item.id ? { ...i, written_down: previous } : i))
+        )
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+        setToast(null)
+      } else {
+        showToast(t('practiceList.markWrittenError'))
+      }
+    })
+
     return true
   }
 
-  function handleToggleSelect(id: string) {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-    if (!isBulkMode) setIsBulkMode(true)
+  async function handleDelete(item: PracticeItem): Promise<boolean> {
+    const res = await fetch(`/api/practice-items/${item.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      showToast(t('practiceList.deleteError'))
+      return false
+    }
+    setAllItems(prev => prev.filter(i => i.id !== item.id))
+    setOpenId(null)
+    onDeleted?.([item.id])
+    return true
   }
 
-  function exitBulkMode() {
-    setIsBulkMode(false)
-    setSelectedIds(new Set())
-  }
-
-  async function deleteSelected() {
-    const ids = Array.from(selectedIds)
-    const results = await Promise.allSettled(
-      ids.map(id => fetch(`/api/practice-items/${id}`, { method: 'DELETE' }))
-    )
-    const succeeded = results
-      .map((r, i) => ({ r, id: ids[i] }))
-      .filter(({ r }) => r.status === 'fulfilled' && (r as PromiseFulfilledResult<Response>).value.ok)
-      .map(({ id }) => id)
-    if (succeeded.length < ids.length) {
-      setToastMessage(t('practiceList.deletePartialError'))
-    }
-    if (succeeded.length > 0) {
-      onDeleted?.(succeeded)
-      setDisplayItems(prev => prev.filter(i => !succeeded.includes(i.id)))
-    }
-    exitBulkMode()
-  }
+  const emptyCopy = view === 'active'
+    ? t('practiceList.emptyActive')
+    : t('practiceList.emptyArchive')
 
   return (
-    <div className="space-y-4">
-      {/* Bulk action toolbar — sticky, shown only in bulk mode */}
-      {isBulkMode && (
-        <div className="sticky top-0 z-30 flex items-center gap-3 px-3 py-2 bg-accent-chip border border-accent-chip-border rounded-xl text-sm">
-          {/* Back / exit button */}
-          <button
-            onClick={exitBulkMode}
-            aria-label={t('practiceList.exitSelection')}
-            className="text-on-accent-chip hover:text-text-primary p-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-              className="w-5 h-5" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
+    <div className="space-y-5">
+      <Segmented
+        view={view}
+        activeCount={activeCount}
+        archiveCount={archiveCount}
+        onChange={next => {
+          setOpenId(null)
+          setView(next)
+        }}
+      />
 
-          <span className="text-on-accent-chip text-sm flex-1">{t('practiceList.selected', { n: selectedIds.size })}</span>
-
-          {/* Select all */}
-          <button
-            onClick={() => setSelectedIds(new Set(filtered.map(i => i.id)))}
-            aria-label={t('practiceList.selectAll')}
-            className="text-on-accent-chip hover:text-text-primary p-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-              className="w-5 h-5" aria-hidden="true">
-              <polyline points="9 11 12 14 22 4" />
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-            </svg>
-          </button>
-
-          {/* Delete */}
-          <button
-            onClick={deleteSelected}
-            aria-label={t('practiceList.deleteSelectedAria', { n: selectedIds.size })}
-            disabled={selectedIds.size === 0}
-            className="text-status-error hover:opacity-70 disabled:opacity-40 p-1 transition-opacity"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-              className="w-5 h-5" aria-hidden="true">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6" />
-              <path d="M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-          </button>
-        </div>
+      {visible.length === 0 ? (
+        <p className="text-text-tertiary text-sm py-8 leading-relaxed max-w-prose">
+          {emptyCopy}
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {visible.map(item => (
+            <PracticeRow
+              key={item.id}
+              item={item}
+              isArchive={view === 'archive'}
+              onOpen={() => setOpenId(item.id)}
+            />
+          ))}
+        </ul>
       )}
 
-      {!isBulkMode && (
-        <div className="flex gap-2 flex-wrap text-sm">
-          <button
-            onClick={() => { setSubCategoryFilter(null); setWrittenFilter('all') }}
-            className={`px-3 py-1 rounded-full border transition-colors ${allPillClass}`}
-          >
-            {t('practiceList.all')}
-          </button>
-          {/* Pinned "Written" filter — always second */}
-          <button
-            onClick={() => setWrittenFilter(f => f === 'only' ? 'hidden' : 'only')}
-            className={`px-3 py-1 rounded-full border transition-colors ${
-              writtenFilter === 'only'
-                ? 'border-amber-500 text-pill-amber bg-amber-500/10'
-                : 'border-pill-inactive-border text-pill-inactive'
-            }`}
-          >
-            {t('practiceList.filterWritten')}
-          </button>
-          <button
-            onClick={() => setSortByImportance(s => !s)}
-            className={`px-3 py-1 rounded-full border transition-colors ${
-              sortByImportance
-                ? 'border-accent-primary text-on-accent-chip bg-accent-chip'
-                : 'border-border text-text-secondary'
-            }`}
-          >
-            ★ {t('practiceList.sortImportance')}
-          </button>
-          {(isExpanded ? sortedSubCategories : sortedSubCategories.slice(0, 3)).map(sc => (
+      <PracticeItemSheet
+        item={openItem}
+        position={openItem ? { current: openIndex + 1, total: visible.length } : null}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+        isArchive={view === 'archive'}
+        onClose={() => setOpenId(null)}
+        onPrev={() => {
+          if (hasPrev) setOpenId(visible[openIndex - 1].id)
+        }}
+        onNext={() => {
+          if (hasNext) setOpenId(visible[openIndex + 1].id)
+        }}
+        onToggleWritten={handleToggleWritten}
+        onDelete={handleDelete}
+      />
+
+      {toast && (
+        <div
+          key={toast.key}
+          role="alert"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg animate-toast-in"
+        >
+          <span>{toast.message}</span>
+          {toast.onUndo && (
             <button
-              key={sc}
-              onClick={() => setSubCategoryFilter(subCategoryFilter === sc ? null : sc)}
-              className={`px-3 py-1 rounded-full border transition-colors ${pillClass(sc)}`}
+              type="button"
+              onClick={() => toast.onUndo?.()}
+              className="text-accent-primary font-medium hover:underline"
             >
-              {t(`subCat.${sc}`)}
-              {' '}
-              <span className="text-[11px] opacity-80">{subCategoryCounts[sc]}</span>
-            </button>
-          ))}
-          {!isExpanded && sortedSubCategories.length > 3 && (
-            <button
-              onClick={() => setIsExpanded(true)}
-              className="px-3 py-1 rounded-full border border-border text-text-secondary transition-colors"
-            >
-              {t('practiceList.moreCategories', { n: sortedSubCategories.length - 3 })}
+              {t('practiceList.undo')}
             </button>
           )}
-        </div>
-      )}
-
-      {filtered.length === 0 && (
-        <p className="text-text-tertiary text-sm">{t('practiceList.noItems')}</p>
-      )}
-
-      <ul className="space-y-2">
-        {filtered.map(item => (
-          <SwipeableItem
-            key={item.id}
-            item={item}
-            isBulkMode={isBulkMode}
-            isSelected={selectedIds.has(item.id)}
-            onToggleSelect={handleToggleSelect}
-            onMarkWritten={markWritten}
-            onOpen={setOpenItem}
-          />
-        ))}
-      </ul>
-
-      <Modal
-        isOpen={!!openItem}
-        title={openItem ? t(`type.${openItem.type}`) : ''}
-        onClose={() => { setOpenItem(null); setImportanceExpanded(false) }}
-      >
-        {openItem && (
-          <div className="space-y-3 text-sm">
-            <div>
-              <>
-                <span className="bg-error-surface text-on-error-surface px-1.5 py-0.5 rounded">
-                  {openItem.original}
-                </span>
-                <span className="mx-2 text-text-secondary">→</span>
-                <span className="font-medium text-correction">{openItem.correction}</span>
-              </>
-            </div>
-            <p className="text-text-secondary leading-relaxed">{openItem.explanation}</p>
-            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-2.5 py-1 text-sm">
-              {t(`subCat.${openItem.sub_category}`)}
-            </span>
-            {openItem.segment_text !== null && openItem.start_char !== null && openItem.end_char !== null && (
-              <ContextSnippet
-                segmentText={openItem.segment_text}
-                startChar={openItem.start_char}
-                endChar={openItem.end_char}
-                testId={`context-snippet-modal-${openItem.id}`}
-              />
-            )}
-            {importanceStars(openItem.importance_score) && (
-              <div className="pt-1">
-                {openItem.importance_note ? (
-                  <>
-                    <button
-                      onClick={() => setImportanceExpanded(e => !e)}
-                      className="text-pill-amber text-base leading-none focus:outline-none"
-                      aria-label={t('practiceList.importanceToggleAria')}
-                    >
-                      {importanceStars(openItem.importance_score)}
-                    </button>
-                    {importanceExpanded && (
-                      <p className="mt-1.5 text-text-secondary text-xs leading-relaxed">
-                        {openItem.importance_note}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-pill-amber text-base leading-none">
-                    {importanceStars(openItem.importance_score)}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-
-      {toastMessage && (
-        <div
-          role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg animate-toast-in"
-        >
-          {toastMessage}
         </div>
       )}
     </div>

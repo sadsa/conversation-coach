@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Button } from '@/components/Button'
 
 // Loose RFC-5322-ish check: localpart@domain.tld. Permissive on purpose —
 // Supabase will reject anything truly malformed, so this is just to catch
@@ -162,13 +163,9 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
-            <button
-              type="submit"
-              disabled={submitDisabled}
-              className="w-full px-4 py-2.5 rounded-lg bg-accent-primary hover:bg-accent-primary-hover text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+            <Button type="submit" size="sm" fullWidth disabled={submitDisabled}>
               {loading ? t('auth.submitting') : t('auth.submit')}
-            </button>
+            </Button>
             <p className="text-xs text-text-tertiary text-center">
               {t('auth.invitedNote')}
             </p>
