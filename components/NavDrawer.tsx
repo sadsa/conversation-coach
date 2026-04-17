@@ -6,66 +6,7 @@ import { useEffect, useRef } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useTranslation } from '@/components/LanguageProvider'
-
-const TABS = [
-  {
-    href: '/',
-    labelKey: 'nav.home',
-    exact: true,
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-        className="w-5 h-5 flex-shrink-0" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-    ),
-  },
-  {
-    href: '/practice',
-    labelKey: 'nav.practice',
-    exact: false,
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-        className="w-5 h-5 flex-shrink-0" aria-hidden="true">
-        <line x1="8" y1="6" x2="21" y2="6" />
-        <line x1="8" y1="12" x2="21" y2="12" />
-        <line x1="8" y1="18" x2="21" y2="18" />
-        <line x1="3" y1="6" x2="3.01" y2="6" />
-        <line x1="3" y1="12" x2="3.01" y2="12" />
-        <line x1="3" y1="18" x2="3.01" y2="18" />
-      </svg>
-    ),
-  },
-  {
-    href: '/insights',
-    labelKey: 'nav.insights',
-    exact: false,
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-        className="w-5 h-5 flex-shrink-0" aria-hidden="true">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
-  },
-  {
-    href: '/settings',
-    labelKey: 'nav.settings',
-    exact: false,
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-        className="w-5 h-5 flex-shrink-0" aria-hidden="true">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
-  },
-]
+import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
 
 interface NavDrawerProps {
   isOpen: boolean
@@ -73,7 +14,7 @@ interface NavDrawerProps {
 }
 
 export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   const router = useRouter()
   const { t } = useTranslation()
 
@@ -97,6 +38,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  const drawerRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   // Focus close button when drawer opens
@@ -104,6 +46,32 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
     if (isOpen && closeButtonRef.current) {
       closeButtonRef.current.focus()
     }
+  }, [isOpen])
+
+  // Focus trap — keep Tab navigation cycling inside the drawer while open.
+  // The drawer has aria-modal="true"; without this, focus would escape into
+  // the page underneath, which violates the modal contract.
+  useEffect(() => {
+    if (!isOpen) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Tab' || !drawerRef.current) return
+      const focusables = drawerRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      if (e.shiftKey && active === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
   const swipeHandlers = useSwipeable({
@@ -119,10 +87,12 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — uses the brand-tinted scrim token defined in globals.css
+          rather than pure black, so the dimming feels cohesive with the
+          warm-cream surface underneath. */}
       <div
         data-testid="nav-backdrop"
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-scrim transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -132,6 +102,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
       {/* Drawer panel */}
       <div
         {...swipeHandlers}
+        ref={drawerRef}
         id="nav-drawer"
         role="dialog"
         aria-modal="true"
@@ -141,13 +112,15 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Close button — same height as the header bar */}
-        <div className="flex items-center justify-end h-11 px-4 border-b border-border-subtle">
+        {/* Close button — same height as the header bar. Mirrored to the
+            top-left so it occupies the same screen position as the hamburger
+            that opened it. */}
+        <div className="flex items-center h-11 px-4 border-b border-border-subtle">
           <button
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close menu"
-            className="p-1 text-text-tertiary hover:text-text-secondary transition-colors"
+            className="p-2.5 -ml-2.5 text-text-secondary hover:text-text-primary transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -160,8 +133,8 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
 
         {/* Nav items */}
         <nav className="flex-1 py-2 overflow-y-auto" aria-label="Main navigation">
-          {TABS.map(tab => {
-            const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href)
+          {NAV_TABS.map(tab => {
+            const active = isTabActive(tab, pathname)
             return (
               <Link
                 key={tab.href}
@@ -184,13 +157,23 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         {/* Divider */}
         <div className="border-t border-border-subtle mx-3" />
 
-        {/* Sign out */}
+        {/* Sign out — destructive auth action, treated quieter than the
+            primary nav but with a distinct error tint on hover so it doesn't
+            blend into the navigation list. The icon adds an unambiguous
+            "leave" affordance. */}
         <div className="p-3">
           <button
             onClick={handleSignOut}
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-surface text-text-secondary hover:bg-surface-elevated transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-text-tertiary hover:bg-error-surface hover:text-on-error-surface transition-colors text-left text-sm font-medium"
           >
-            {t('settings.signOut')}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+              className="w-5 h-5 flex-shrink-0" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>{t('nav.signOut')}</span>
           </button>
         </div>
       </div>

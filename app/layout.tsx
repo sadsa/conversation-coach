@@ -52,7 +52,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
           <ThemeProvider>
             <FontSizeProvider />
-            <main className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-20">{children}</main>
+            {/* tabIndex={-1} so the skip-to-content link in AppHeader actually
+                moves focus here on activation. Without it, browsers scroll to
+                the anchor but the next Tab fires from <body>, defeating the
+                whole point for keyboard / screen-reader users. */}
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-20 focus:outline-none"
+            >
+              {children}
+            </main>
             <ConditionalNav />
           </ThemeProvider>
         </LanguageProvider>

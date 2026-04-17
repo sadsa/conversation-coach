@@ -22,6 +22,45 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.practice': 'Practice',
     'nav.insights': 'Insights',
     'nav.settings': 'Settings',
+    'nav.session': 'Session',
+    'nav.skipToContent': 'Skip to content',
+    'nav.back': 'Back',
+    'nav.signOut': 'Sign out',
+
+    // Auth — login page
+    'auth.signInTitle': 'Conversation Coach',
+    'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
+    'auth.emailLabel': 'Email',
+    'auth.emailPlaceholder': 'you@example.com',
+    'auth.submit': 'Email me a sign-in link',
+    'auth.submitting': 'Sending…',
+    'auth.invitedNote':
+      "Access is invite-only. We'll email you a one-time link — no password needed.",
+    'auth.linkSentTo': 'Sign-in link sent to {email}.',
+    'auth.linkSentNote':
+      "Open it on this device to continue. Check your spam folder if you don't see it within a minute.",
+    'auth.useDifferentEmail': 'Use a different email',
+    'auth.invalidEmail': "That doesn't look like an email address.",
+    'auth.error.rateLimit':
+      "Too many sign-in attempts. Wait a minute, then try again.",
+    'auth.error.signupDisabled':
+      "Sign-ups are paused right now. Reach out to the person who shared this app.",
+    'auth.error.invalidEmail':
+      "We couldn't send to that address. Double-check it and try again.",
+    'auth.error.generic': "We couldn't send the link — please try again.",
+
+    // Access denied
+    'accessDenied.title': 'Access required',
+    'accessDenied.subtitle':
+      "Conversation Coach is invite-only. Your email isn't on the list yet.",
+    'accessDenied.emailButton': 'Email a request to the owner',
+    'accessDenied.copyPrefix': 'or copy {email}',
+    'accessDenied.copied': 'Copied',
+    'accessDenied.fallback':
+      'Reach out to the person who shared this app to request access.',
+    'accessDenied.signOut': 'Sign out and use a different email',
+    'accessDenied.requestSubject': 'Conversation Coach access request',
+    'accessDenied.requestBody': "Hi,\n\nI'd like to request access to Conversation Coach.\n\nThanks,",
 
     // Home page
     'home.title': 'Conversation Coach',
@@ -221,6 +260,45 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.practice': 'Práctica',
     'nav.insights': 'Estadísticas',
     'nav.settings': 'Configuración',
+    'nav.session': 'Sesión',
+    'nav.skipToContent': 'Saltar al contenido',
+    'nav.back': 'Atrás',
+    'nav.signOut': 'Cerrar sesión',
+
+    // Auth — login page
+    'auth.signInTitle': 'Entrenador de conversación',
+    'auth.signInSubtitle': 'Iniciá sesión para revisar tus conversaciones grabadas.',
+    'auth.emailLabel': 'Correo electrónico',
+    'auth.emailPlaceholder': 'vos@ejemplo.com',
+    'auth.submit': 'Enviame un enlace de inicio',
+    'auth.submitting': 'Enviando…',
+    'auth.invitedNote':
+      'El acceso es por invitación. Te enviamos un enlace de un solo uso — sin contraseña.',
+    'auth.linkSentTo': 'Enlace de inicio enviado a {email}.',
+    'auth.linkSentNote':
+      'Abrilo en este dispositivo para continuar. Revisá la carpeta de spam si no lo ves en un minuto.',
+    'auth.useDifferentEmail': 'Usar otro correo',
+    'auth.invalidEmail': 'Eso no parece una dirección de correo válida.',
+    'auth.error.rateLimit':
+      'Demasiados intentos. Esperá un minuto y volvé a intentar.',
+    'auth.error.signupDisabled':
+      'Los registros están pausados ahora. Contactá a quien compartió esta app.',
+    'auth.error.invalidEmail':
+      'No pudimos enviar a esa dirección. Revisala e intentá de nuevo.',
+    'auth.error.generic': 'No pudimos enviar el enlace — por favor intentá de nuevo.',
+
+    // Access denied
+    'accessDenied.title': 'Acceso requerido',
+    'accessDenied.subtitle':
+      'Conversation Coach es por invitación. Tu correo todavía no está en la lista.',
+    'accessDenied.emailButton': 'Enviar una solicitud al propietario',
+    'accessDenied.copyPrefix': 'o copiar {email}',
+    'accessDenied.copied': 'Copiado',
+    'accessDenied.fallback':
+      'Contactá a quien compartió esta app para solicitar acceso.',
+    'accessDenied.signOut': 'Cerrar sesión y usar otro correo',
+    'accessDenied.requestSubject': 'Solicitud de acceso a Conversation Coach',
+    'accessDenied.requestBody': 'Hola,\n\nMe gustaría solicitar acceso a Conversation Coach.\n\nGracias,',
 
     // Home page
     'home.title': 'Entrenador de conversación',
