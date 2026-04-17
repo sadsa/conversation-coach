@@ -145,6 +145,11 @@ export function TranscriptView({
                       writtenAnnotationIds={writtenAnnotations}
                       activeAnnotationId={activeAnnotationId}
                       openLabel={t('transcript.openCorrection')}
+                      stateLabels={{
+                        written: t('transcript.markState.written'),
+                        saved: t('transcript.markState.saved'),
+                        unreviewed: t('transcript.markState.unreviewed'),
+                      }}
                     />
                   ) : (
                     seg.text
