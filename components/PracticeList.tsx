@@ -1,9 +1,12 @@
 // components/PracticeList.tsx
 'use client'
+import Link from 'next/link'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { PracticeItem } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { PracticeItemSheet } from '@/components/PracticeItemSheet'
+import { StrikeOriginal } from '@/components/StrikeOriginal'
+import { Icon } from '@/components/Icon'
 
 const SNIPPET_CONTEXT = 30
 const UNDO_TIMEOUT_MS = 5000
@@ -39,52 +42,60 @@ interface RowProps {
   item: PracticeItem
   isArchive: boolean
   onOpen: () => void
+  /** When provided, renders a trailing "mark as written" tap target (Gmail pattern). */
+  onMarkWritten?: () => void
 }
 
-function PracticeRow({ item, isArchive, onOpen }: RowProps) {
+function PracticeRow({ item, isArchive, onOpen, onMarkWritten }: RowProps) {
+  const { t } = useTranslation()
   return (
     <li>
-      <button
-        type="button"
-        onClick={onOpen}
-        data-practice-item-id={item.id}
-        data-testid={`practice-row-${item.id}`}
+      <div
         className={`
-          w-full text-left flex flex-col gap-1.5 px-4 py-3.5 rounded-xl
-          transition-colors border
+          flex items-stretch rounded-xl border transition-colors
           ${isArchive
             ? 'bg-surface/60 border-border-subtle hover:bg-surface'
-            : 'bg-surface border-border-subtle hover:border-border'
+            : 'bg-surface border-border-subtle hover:bg-surface-elevated hover:border-border'
           }
         `}
       >
-        <p className="text-base leading-relaxed">
-          <span
-            className={`mr-2 ${
-              isArchive
-                ? 'text-text-tertiary line-through decoration-text-tertiary/30'
-                : 'text-text-tertiary line-through decoration-text-tertiary/40'
-            }`}
-          >
-            {item.original}
-          </span>
-          <span
-            className={`font-semibold ${
-              isArchive ? 'text-text-secondary' : 'text-correction'
-            }`}
-          >
-            {item.correction}
-          </span>
-        </p>
-        {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
-          <ContextSnippet
-            segmentText={item.segment_text}
-            startChar={item.start_char}
-            endChar={item.end_char}
-            testId={`context-snippet-${item.id}`}
+        <button
+          type="button"
+          onClick={onOpen}
+          data-practice-item-id={item.id}
+          data-testid={`practice-row-${item.id}`}
+          className="flex-1 min-w-0 text-left flex flex-col gap-1.5 px-4 py-3.5 rounded-l-xl"
+        >
+          <StrikeOriginal
+            original={item.original}
+            correction={item.correction}
+            muted={isArchive}
           />
+          {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
+            <ContextSnippet
+              segmentText={item.segment_text}
+              startChar={item.start_char}
+              endChar={item.end_char}
+              testId={`context-snippet-${item.id}`}
+            />
+          )}
+        </button>
+        {onMarkWritten && (
+          <button
+            type="button"
+            onClick={onMarkWritten}
+            aria-label={t('practiceList.markRowAria', { original: item.original })}
+            data-testid={`row-mark-written-${item.id}`}
+            className="
+              self-stretch w-12 flex items-center justify-center rounded-r-xl
+              text-text-tertiary hover:text-widget-write-text hover:bg-widget-write-bg/40
+              transition-colors
+            "
+          >
+            <Icon name="check" className="w-5 h-5" />
+          </button>
         )}
-      </button>
+      </div>
     </li>
   )
 }
@@ -145,10 +156,38 @@ interface ToastState {
 
 interface Props {
   items: PracticeItem[]
-  /** Called after a successful API delete so the parent can update its `items` list. */
+  /** Called once an item is *fully* gone (after the undo window expires). */
   onDeleted?: (ids: string[]) => void
   /** Optional initial view — defaults to 'active'. */
   initialView?: View
+}
+
+function compareNewestFirst(a: PracticeItem, b: PracticeItem): number {
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+}
+
+function EmptyActive() {
+  const { t } = useTranslation()
+  return (
+    <div className="py-6 space-y-5 max-w-prose">
+      {/* Faded example row — same visual grammar as the real rows so the
+          empty state teaches by showing, not just telling. */}
+      <div
+        className="rounded-xl border border-border-subtle bg-surface px-4 py-3.5 opacity-70"
+        aria-hidden="true"
+      >
+        <StrikeOriginal original="Yo fui" correction="Fui" />
+        <p className="text-sm italic text-text-tertiary leading-relaxed mt-1.5">
+          {t('practiceList.emptyActiveCaption')}
+        </p>
+      </div>
+      <p className="text-text-secondary text-sm leading-relaxed">
+        <Link href="/" className="text-accent-primary font-medium hover:underline">
+          {t('practiceList.emptyActiveCta')}
+        </Link>
+      </p>
+    </div>
+  )
 }
 
 export function PracticeList({ items, onDeleted, initialView = 'active' }: Props) {
@@ -160,7 +199,7 @@ export function PracticeList({ items, onDeleted, initialView = 'active' }: Props
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Sync items prop into local state. Local state lets us optimistically flip
-  // written_down without round-tripping through the parent.
+  // written_down or hide deleted rows without round-tripping through the parent.
   useEffect(() => {
     setAllItems(items)
   }, [items])
@@ -244,21 +283,60 @@ export function PracticeList({ items, onDeleted, initialView = 'active' }: Props
     return true
   }
 
+  /**
+   * Optimistic delete with an undo window:
+   *   1. hide the row immediately + show toast with Undo
+   *   2. only fire DELETE after UNDO_TIMEOUT_MS if not cancelled
+   *   3. if Undo is clicked, restore the row in place; no network call ever happens
+   *   4. if DELETE fails, restore the row + show an error toast
+   *
+   * Returning quickly (vs. awaiting the network) keeps the sheet's busy state
+   * snappy; the parent's `onDeleted` is only called once the row is truly gone.
+   */
   async function handleDelete(item: PracticeItem): Promise<boolean> {
-    const res = await fetch(`/api/practice-items/${item.id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      showToast(t('practiceList.deleteError'))
-      return false
-    }
+    const snapshot = item
+
     setAllItems(prev => prev.filter(i => i.id !== item.id))
     setOpenId(null)
-    onDeleted?.([item.id])
+
+    let cancelled = false
+    let pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null
+
+    function restoreRow() {
+      setAllItems(prev =>
+        prev.find(i => i.id === snapshot.id)
+          ? prev
+          : [...prev, snapshot].sort(compareNewestFirst)
+      )
+    }
+
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({
+      key: Date.now(),
+      message: t('practiceList.movedToTrash'),
+      onUndo: () => {
+        cancelled = true
+        if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer)
+        restoreRow()
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+        setToast(null)
+      },
+    })
+    toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
+
+    pendingDeleteTimer = setTimeout(async () => {
+      if (cancelled) return
+      const res = await fetch(`/api/practice-items/${snapshot.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        restoreRow()
+        showToast(t('practiceList.deleteError'))
+        return
+      }
+      onDeleted?.([snapshot.id])
+    }, UNDO_TIMEOUT_MS)
+
     return true
   }
-
-  const emptyCopy = view === 'active'
-    ? t('practiceList.emptyActive')
-    : t('practiceList.emptyArchive')
 
   return (
     <div className="space-y-5">
@@ -273,9 +351,13 @@ export function PracticeList({ items, onDeleted, initialView = 'active' }: Props
       />
 
       {visible.length === 0 ? (
-        <p className="text-text-tertiary text-sm py-8 leading-relaxed max-w-prose">
-          {emptyCopy}
-        </p>
+        view === 'active' ? (
+          <EmptyActive />
+        ) : (
+          <p className="text-text-tertiary text-sm py-8 leading-relaxed max-w-prose">
+            {t('practiceList.emptyArchive')}
+          </p>
+        )
       ) : (
         <ul className="space-y-2">
           {visible.map(item => (
@@ -284,6 +366,9 @@ export function PracticeList({ items, onDeleted, initialView = 'active' }: Props
               item={item}
               isArchive={view === 'archive'}
               onOpen={() => setOpenId(item.id)}
+              onMarkWritten={
+                view === 'active' ? () => handleToggleWritten(item) : undefined
+              }
             />
           ))}
         </ul>
@@ -310,7 +395,13 @@ export function PracticeList({ items, onDeleted, initialView = 'active' }: Props
         <div
           key={toast.key}
           role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg animate-toast-in"
+          className="
+            fixed bottom-[var(--toast-bottom)] left-1/2 -translate-x-1/2 z-50
+            flex items-center gap-3 px-4 py-2.5
+            bg-surface-elevated border border-border rounded-xl
+            text-sm text-text-primary shadow-lg
+            animate-toast-in
+          "
         >
           <span>{toast.message}</span>
           {toast.onUndo && (

@@ -1,5 +1,5 @@
 // __tests__/components/PracticeList.test.tsx
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PracticeList } from '@/components/PracticeList'
@@ -70,24 +70,24 @@ describe('PracticeList — rows', () => {
   })
 })
 
-describe('PracticeList — segmented Active/Archive control', () => {
+describe('PracticeList — segmented Active/Written control', () => {
   it('defaults to the Active view and hides written items', () => {
     render(<PracticeList items={[grammarItem, writtenItem]} />)
     expect(screen.getByTestId(`practice-row-${grammarItem.id}`)).toBeInTheDocument()
     expect(screen.queryByTestId(`practice-row-${writtenItem.id}`)).not.toBeInTheDocument()
   })
 
-  it('shows both Active and Archive tabs with counts', () => {
+  it('shows both Active and Written tabs with counts', () => {
     render(<PracticeList items={[grammarItem, subjectiveItem, writtenItem]} />)
     const activeTab = screen.getByRole('tab', { name: /to write down/i })
-    const archiveTab = screen.getByRole('tab', { name: /archive/i })
+    const writtenTab = screen.getByRole('tab', { name: /written/i })
     expect(within(activeTab).getByText('2')).toBeInTheDocument()
-    expect(within(archiveTab).getByText('1')).toBeInTheDocument()
+    expect(within(writtenTab).getByText('1')).toBeInTheDocument()
   })
 
-  it('switches to Archive view on click and shows only written items', async () => {
+  it('switches to the Written view on click and shows only written items', async () => {
     render(<PracticeList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /archive/i }))
+    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
     expect(screen.queryByTestId(`practice-row-${grammarItem.id}`)).not.toBeInTheDocument()
     expect(screen.getByTestId(`practice-row-${writtenItem.id}`)).toBeInTheDocument()
   })
@@ -95,7 +95,7 @@ describe('PracticeList — segmented Active/Archive control', () => {
   it('marks the active tab with aria-selected', () => {
     render(<PracticeList items={[grammarItem]} />)
     expect(screen.getByRole('tab', { name: /to write down/i })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('tab', { name: /archive/i })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: /written/i })).toHaveAttribute('aria-selected', 'false')
   })
 
   it('does not render legacy filter pills (sub-category, importance, written)', () => {
@@ -108,15 +108,62 @@ describe('PracticeList — segmented Active/Archive control', () => {
 })
 
 describe('PracticeList — empty states', () => {
-  it('shows the active empty copy when there is nothing to write down', () => {
+  it('shows the teaching empty-state with example + CTA when nothing to write down', () => {
     render(<PracticeList items={[writtenItem]} />)
-    expect(screen.getByText(/all caught up/i)).toBeInTheDocument()
+    expect(screen.getByText(/saved corrections look like this/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /start a session/i })).toBeInTheDocument()
   })
 
-  it('shows the archive empty copy when there is nothing archived', async () => {
+  it('shows the Written empty copy when nothing has been marked yet', async () => {
     render(<PracticeList items={[grammarItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /archive/i }))
-    expect(screen.getByText(/items move to the archive/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
+    expect(screen.getByText(/once you mark them as written/i)).toBeInTheDocument()
+  })
+})
+
+describe('PracticeList — fast-path mark-written from the row', () => {
+  it('renders a trailing mark-written button on Active rows', () => {
+    render(<PracticeList items={[grammarItem]} />)
+    expect(screen.getByTestId(`row-mark-written-${grammarItem.id}`)).toBeInTheDocument()
+  })
+
+  it('does not render the trailing button on Written-view rows', async () => {
+    render(<PracticeList items={[writtenItem]} />)
+    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
+    expect(screen.queryByTestId(`row-mark-written-${writtenItem.id}`)).not.toBeInTheDocument()
+  })
+
+  it('PATCHes written_down=true without opening the sheet when the trailing button is clicked', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<PracticeList items={[grammarItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`row-mark-written-${grammarItem.id}`))
+    })
+
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ written_down: true }),
+      }),
+    )
+  })
+
+  it('removes the row from the active list and shows the undo toast', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    render(<PracticeList items={[grammarItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`row-mark-written-${grammarItem.id}`))
+    })
+
+    expect(screen.queryByTestId(`practice-row-${grammarItem.id}`)).not.toBeInTheDocument()
+    const toast = screen.getByRole('alert')
+    expect(within(toast).getByText(/moved to written/i)).toBeInTheDocument()
+    expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
   })
 })
 
@@ -138,7 +185,7 @@ describe('PracticeList — review sheet', () => {
     expect(screen.queryByRole('complementary', { name: /review practice item/i })).not.toBeInTheDocument()
   })
 
-  it('opens the sheet when a row is clicked', async () => {
+  it('opens the sheet when the row body is clicked', async () => {
     render(<PracticeList items={[grammarItem]} />)
     await userEvent.click(screen.getByTestId(`practice-row-${grammarItem.id}`))
     expect(screen.getByRole('complementary', { name: /review practice item/i })).toBeInTheDocument()
@@ -212,7 +259,7 @@ describe('PracticeList — mark as written from the sheet', () => {
     })
 
     const toast = screen.getByRole('alert')
-    expect(within(toast).getByText(/moved to archive/i)).toBeInTheDocument()
+    expect(within(toast).getByText(/moved to written/i)).toBeInTheDocument()
     expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
   })
 
@@ -233,11 +280,11 @@ describe('PracticeList — mark as written from the sheet', () => {
     expect(screen.getByTestId(`practice-row-${grammarItem.id}`)).toBeInTheDocument()
   })
 
-  it('shows the move-back-to-list label in the archive view', async () => {
+  it('shows the move-back label in the Written view', async () => {
     render(<PracticeList items={[writtenItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /archive/i }))
+    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
     await userEvent.click(screen.getByTestId(`practice-row-${writtenItem.id}`))
-    expect(screen.getByRole('button', { name: /move back to list/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /move back/i })).toBeInTheDocument()
   })
 
   it('reverts the optimistic update and shows an error when the PATCH fails', async () => {
@@ -254,8 +301,36 @@ describe('PracticeList — mark as written from the sheet', () => {
   })
 })
 
-describe('PracticeList — delete from the sheet', () => {
-  it('DELETEs the item and removes it from the list', async () => {
+describe('PracticeList — delete with undo window', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('hides the row immediately and shows an undo toast (no DELETE yet)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<PracticeList items={[grammarItem]} />)
+
+    await userEvent.click(screen.getByTestId(`practice-row-${grammarItem.id}`))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-delete'))
+    })
+
+    expect(screen.queryByTestId(`practice-row-${grammarItem.id}`)).not.toBeInTheDocument()
+    const toast = screen.getByRole('alert')
+    expect(within(toast).getByText(/deleted/i)).toBeInTheDocument()
+    expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
+
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('fires DELETE and notifies onDeleted after the undo window expires', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })
     global.fetch = mockFetch
     const onDeleted = vi.fn()
@@ -266,11 +341,62 @@ describe('PracticeList — delete from the sheet', () => {
       await userEvent.click(screen.getByTestId('sheet-delete'))
     })
 
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
     expect(mockFetch).toHaveBeenCalledWith(
       `/api/practice-items/${grammarItem.id}`,
       expect.objectContaining({ method: 'DELETE' }),
     )
     expect(onDeleted).toHaveBeenCalledWith([grammarItem.id])
-    expect(screen.queryByTestId(`practice-row-${grammarItem.id}`)).not.toBeInTheDocument()
+  })
+
+  it('Undo restores the row and prevents the DELETE from firing', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    const onDeleted = vi.fn()
+    render(<PracticeList items={[grammarItem]} onDeleted={onDeleted} />)
+
+    await userEvent.click(screen.getByTestId(`practice-row-${grammarItem.id}`))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-delete'))
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /undo/i }))
+    })
+    expect(screen.getByTestId(`practice-row-${grammarItem.id}`)).toBeInTheDocument()
+
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+    expect(onDeleted).not.toHaveBeenCalled()
+  })
+
+  it('restores the row + shows an error toast when the deferred DELETE fails', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false })
+    global.fetch = mockFetch
+    render(<PracticeList items={[grammarItem]} />)
+
+    await userEvent.click(screen.getByTestId(`practice-row-${grammarItem.id}`))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-delete'))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
+    expect(screen.getByTestId(`practice-row-${grammarItem.id}`)).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn't delete/i)
   })
 })

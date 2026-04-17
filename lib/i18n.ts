@@ -197,11 +197,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice list — segmented Active / Archive view
     'practiceList.viewLabel': 'Practice items',
     'practiceList.active': 'To write down',
-    'practiceList.archive': 'Archive',
-    'practiceList.emptyActive': 'All caught up. Save corrections from a session\'s transcript to add them here.',
-    'practiceList.emptyArchive': 'Nothing here yet. Items move to the archive once you mark them as written.',
-    'practiceList.movedToArchive': 'Moved to archive',
+    'practiceList.archive': 'Written',
+    'practiceList.emptyActiveCaption': 'Saved corrections look like this.',
+    'practiceList.emptyActiveCta': 'Start a session to save more →',
+    'practiceList.emptyArchive': 'Nothing here yet. Items show up here once you mark them as written.',
+    'practiceList.markRowAria': 'Mark "{original}" as written',
+    'practiceList.movedToArchive': 'Moved to Written',
     'practiceList.movedToActive': 'Moved back to your list',
+    'practiceList.movedToTrash': 'Item deleted',
     'practiceList.undo': 'Undo',
     'practiceList.deleteError': 'Couldn\'t delete item — try again.',
     'practiceList.markWrittenError': 'Couldn\'t update — try again.',
@@ -210,9 +213,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice review sheet (docked)
     'practiceSheet.aria': 'Review practice item',
     'practiceSheet.titleActive': 'Saved correction',
-    'practiceSheet.titleArchive': 'Archived',
+    'practiceSheet.titleArchive': 'Written',
     'practiceSheet.markWritten': 'Mark as written',
-    'practiceSheet.moveToActive': 'Move back to list',
+    'practiceSheet.moveToActive': 'Move back',
     'practiceSheet.deleteAria': 'Delete this item',
 
 
@@ -437,11 +440,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice list — segmented Active / Archive view
     'practiceList.viewLabel': 'Ítems de práctica',
     'practiceList.active': 'Para anotar',
-    'practiceList.archive': 'Archivo',
-    'practiceList.emptyActive': 'Estás al día. Guardá correcciones desde la transcripción de una sesión para agregarlas acá.',
-    'practiceList.emptyArchive': 'Todavía no hay nada acá. Los ítems pasan al archivo cuando los marcás como escritos.',
-    'practiceList.movedToArchive': 'Movido al archivo',
+    'practiceList.archive': 'Escritos',
+    'practiceList.emptyActiveCaption': 'Las correcciones guardadas se ven así.',
+    'practiceList.emptyActiveCta': 'Empezá una sesión para guardar más →',
+    'practiceList.emptyArchive': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
+    'practiceList.markRowAria': 'Marcar "{original}" como escrito',
+    'practiceList.movedToArchive': 'Movido a Escritos',
     'practiceList.movedToActive': 'Vuelto a tu lista',
+    'practiceList.movedToTrash': 'Ítem eliminado',
     'practiceList.undo': 'Deshacer',
     'practiceList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
     'practiceList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
@@ -450,9 +456,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice review sheet (docked)
     'practiceSheet.aria': 'Revisar ítem de práctica',
     'practiceSheet.titleActive': 'Corrección guardada',
-    'practiceSheet.titleArchive': 'Archivado',
+    'practiceSheet.titleArchive': 'Escritos',
     'practiceSheet.markWritten': 'Marcar como escrito',
-    'practiceSheet.moveToActive': 'Volver a la lista',
+    'practiceSheet.moveToActive': 'Volver atrás',
     'practiceSheet.deleteAria': 'Eliminar este ítem',
 
 

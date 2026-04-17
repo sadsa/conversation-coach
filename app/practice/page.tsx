@@ -28,7 +28,9 @@ export default function PracticePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{t('practice.title')}</h1>
-        <p className="text-sm text-text-secondary mt-1">{t('practice.subtitle')}</p>
+        {items.length === 0 && (
+          <p className="text-sm text-text-secondary mt-1">{t('practice.subtitle')}</p>
+        )}
       </div>
       <PracticeList
         items={items}

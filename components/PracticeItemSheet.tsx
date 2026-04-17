@@ -5,6 +5,7 @@ import { useReducedMotion } from 'framer-motion'
 import { useSwipeable } from 'react-swipeable'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
+import { StrikeOriginal } from '@/components/StrikeOriginal'
 import type { PracticeItem } from '@/lib/types'
 
 interface Props {
@@ -183,16 +184,19 @@ export function PracticeItemSheet({
         <span className="w-10 h-1 rounded-full bg-border" />
       </div>
 
-      {/* Header: position, prev/next, close */}
+      {/* Header: position counter is the lead, the title sits behind it as
+          a small eyebrow label so the heading doesn't fight the body content. */}
       <header className="flex items-center gap-2 px-4 pt-1 pb-3 md:pt-5 md:pb-4 md:px-5 border-b border-border">
-        <h2 className="font-semibold text-text-primary">
-          {isArchive ? t('practiceSheet.titleArchive') : t('practiceSheet.titleActive')}
-        </h2>
-        {position && (
-          <span className="text-xs text-text-tertiary tabular-nums ml-1">
-            {t('sheet.position', { n: position.current, total: position.total })}
+        <div className="flex items-baseline gap-2 min-w-0">
+          {position && (
+            <span className="text-sm font-medium text-text-primary tabular-nums">
+              {t('sheet.position', { n: position.current, total: position.total })}
+            </span>
+          )}
+          <span className="text-[10px] text-text-tertiary uppercase tracking-[0.08em] font-semibold">
+            {isArchive ? t('practiceSheet.titleArchive') : t('practiceSheet.titleActive')}
           </span>
-        )}
+        </div>
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -230,16 +234,13 @@ export function PracticeItemSheet({
           key={item.id}
           className="space-y-5 motion-safe:animate-[fadein_180ms_ease-out_both]"
         >
-          {/* Original → Correction. Original is muted/struck-through so the
-              correction wins the visual hierarchy. */}
-          <p className="text-base md:text-lg leading-relaxed">
-            <span className="text-text-tertiary line-through decoration-text-tertiary/40 mr-2">
-              {item.original}
-            </span>
-            <span className="font-semibold text-lg md:text-xl text-correction">
-              {item.correction}
-            </span>
-          </p>
+          {/* Original → Correction. Shared primitive — same treatment as the
+              list rows, so changing one place changes both surfaces in sync. */}
+          <StrikeOriginal
+            original={item.original}
+            correction={item.correction}
+            size="sheet"
+          />
 
           <p className="text-text-secondary leading-relaxed text-base">
             {item.explanation}
@@ -307,9 +308,13 @@ export function PracticeItemSheet({
           disabled={busyAction !== null}
           aria-label={t('practiceSheet.deleteAria')}
           data-testid="sheet-delete"
-          className="w-11 h-11 rounded-xl border border-border bg-surface text-text-tertiary hover:text-status-error hover:border-status-error/50 transition-colors flex items-center justify-center disabled:opacity-50"
+          className="
+            w-11 h-11 rounded-xl border border-transparent bg-transparent
+            text-status-error/60 hover:text-status-error hover:bg-error-bg/40
+            transition-colors flex items-center justify-center disabled:opacity-50
+          "
         >
-          <Icon name="trash" className="w-5 h-5" />
+          <Icon name="trash" className="w-4 h-4" />
         </button>
       </footer>
     </aside>
