@@ -58,6 +58,10 @@
     --annotation-written-bg: oklch(94% 0.04 150);
     --annotation-written-border: oklch(45% 0.12 150);
     --annotation-written-text: oklch(30% 0.1 150);
+    /* Brand-tinted scrim for modals/overlays */
+    --color-scrim: oklch(22% 0.025 265 / 0.55);
+    /* Active annotation ring (when sheet is open on a specific mark) */
+    --annotation-active-ring: oklch(55% 0.2 285);
   }
 
   [data-theme="dark"] {
@@ -115,6 +119,10 @@
     --annotation-written-bg: oklch(25% 0.08 150);
     --annotation-written-border: oklch(60% 0.12 150);
     --annotation-written-text: oklch(82% 0.1 150);
+    /* Brand-tinted scrim for modals/overlays */
+    --color-scrim: oklch(8% 0.015 265 / 0.7);
+    /* Active annotation ring (when sheet is open on a specific mark) */
+    --annotation-active-ring: oklch(70% 0.16 285);
   }
 }
 
@@ -157,6 +165,14 @@
     text-decoration-color: var(--annotation-written-border);
     color: var(--annotation-written-text);
   }
+
+  /* Active state — applied while the AnnotationSheet is anchored to this mark.
+     Adds a soft ring so the user keeps their place in the transcript while
+     reading the correction. Works alongside any state class. */
+  .annotation-active {
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--annotation-active-ring);
+    border-radius: 4px;
+  }
 }
 
 @layer utilities {
@@ -167,5 +183,22 @@
 
   .animate-toast-in {
     animation: toast-in 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+
+  @keyframes fadein {
+    from { opacity: 0; transform: translateX(6px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* AnnotationSheet entrance — slides up on mobile, in from the right on
+     desktop. Pair these with `motion-safe:` to honour reduced-motion. */
+  @keyframes sheet-up {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes sheet-in-right {
+    from { opacity: 0; transform: translateX(100%); }
+    to   { opacity: 1; transform: translateX(0); }
   }
 }

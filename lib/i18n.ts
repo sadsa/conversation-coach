@@ -80,11 +80,36 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.retrying': 'Retrying…',
 
     // Transcript page
-    'transcript.loading': 'Loading…',
+    'transcript.loading': 'Loading transcript…',
+    'transcript.loadError': 'We couldn\'t load this session. Check your connection and try again.',
+    'transcript.retry': 'Retry',
     'transcript.grammar': 'grammar',
     'transcript.naturalness': 'naturalness',
     'transcript.min': 'min',
-    'transcript.reanalyse': 'Re-analyse',
+    'transcript.you': 'You',
+    'transcript.them': 'Them',
+    'transcript.reanalyse': 'Re-analyse session',
+    'transcript.moreActions': 'More actions',
+    'transcript.editTitle': 'Rename session',
+    'transcript.progress': '{n} of {total} reviewed',
+    'transcript.legend.amber': 'needs review',
+    'transcript.legend.violet': 'saved',
+    'transcript.legend.green': 'written down',
+    'transcript.openCorrection': 'Open correction',
+    'transcript.themRevealHint': 'Tap to read',
+
+    // Re-analyse confirmation
+    'reanalyse.title': 'Replace this session\'s corrections?',
+    'reanalyse.body': 'Re-analysing rewrites every correction for this session and removes any practice items you saved from them. Items you\'ve already written down keep their flashcards.',
+    'reanalyse.confirm': 'Replace corrections',
+    'reanalyse.cancel': 'Keep current',
+    'reanalyse.error': 'Couldn\'t start re-analysis — try again.',
+
+    // Annotation sheet (replaces the modal)
+    'sheet.close': 'Close',
+    'sheet.prev': 'Previous correction',
+    'sheet.next': 'Next correction',
+    'sheet.position': '{n} of {total}',
 
     // Identify page
     'identify.loading': 'Loading…',
@@ -103,8 +128,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.stateUnsaved': 'Not saved',
     'annotation.stateSaved': 'Saved',
     'annotation.stateWritten': 'Written ✓',
-    'type.grammar': '🔴 Grammar',
-    'type.naturalness': '🟡 Naturalness',
+    'annotation.saveError': 'Couldn\'t save — try again.',
+    'annotation.writtenError': 'Couldn\'t update — try again.',
+    'type.grammar': 'Grammar',
+    'type.naturalness': 'Naturalness',
 
     // Write it down sheet
     'writeItDown.title': 'Write it down first',
@@ -249,11 +276,36 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.retrying': 'Reintentando…',
 
     // Transcript page
-    'transcript.loading': 'Cargando…',
+    'transcript.loading': 'Cargando transcripción…',
+    'transcript.loadError': 'No pudimos cargar esta sesión. Revisá tu conexión e intentá de nuevo.',
+    'transcript.retry': 'Reintentar',
     'transcript.grammar': 'gramática',
     'transcript.naturalness': 'naturalidad',
     'transcript.min': 'min',
-    'transcript.reanalyse': 'Re-analizar',
+    'transcript.you': 'Vos',
+    'transcript.them': 'Ellos',
+    'transcript.reanalyse': 'Re-analizar sesión',
+    'transcript.moreActions': 'Más acciones',
+    'transcript.editTitle': 'Renombrar sesión',
+    'transcript.progress': '{n} de {total} revisadas',
+    'transcript.legend.amber': 'a revisar',
+    'transcript.legend.violet': 'guardadas',
+    'transcript.legend.green': 'escritas',
+    'transcript.openCorrection': 'Abrir corrección',
+    'transcript.themRevealHint': 'Tocá para leer',
+
+    // Re-analyse confirmation
+    'reanalyse.title': '¿Reemplazar las correcciones de esta sesión?',
+    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta sesión y elimina los ítems de práctica que hayas guardado desde ellas. Los ítems que ya escribiste conservan sus tarjetas.',
+    'reanalyse.confirm': 'Reemplazar correcciones',
+    'reanalyse.cancel': 'Mantener',
+    'reanalyse.error': 'No se pudo iniciar el re-análisis — intentá de nuevo.',
+
+    // Annotation sheet (replaces the modal)
+    'sheet.close': 'Cerrar',
+    'sheet.prev': 'Corrección anterior',
+    'sheet.next': 'Corrección siguiente',
+    'sheet.position': '{n} de {total}',
 
     // Identify page
     'identify.loading': 'Cargando…',
@@ -272,8 +324,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.stateUnsaved': 'No guardado',
     'annotation.stateSaved': 'Guardado',
     'annotation.stateWritten': 'Escrito ✓',
-    'type.grammar': '🔴 Gramática',
-    'type.naturalness': '🟡 Naturalidad',
+    'annotation.saveError': 'No se pudo guardar — intentá de nuevo.',
+    'annotation.writtenError': 'No se pudo actualizar — intentá de nuevo.',
+    'type.grammar': 'Gramática',
+    'type.naturalness': 'Naturalidad',
 
     // Write it down sheet
     'writeItDown.title': 'Escribilo primero',
