@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ConditionalNav } from '@/components/ConditionalNav'
+import { ScrollToTopOnNavigate } from '@/components/ScrollToTopOnNavigate'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { getAuthenticatedUser } from '@/lib/auth'
 import type { TargetLanguage } from '@/lib/types'
@@ -28,7 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const uiLanguage = inferUiLanguage(initialTargetLanguage)
 
   return (
-    <html lang={uiLanguage} suppressHydrationWarning className="overflow-x-hidden">
+    <html lang={uiLanguage} suppressHydrationWarning className="overflow-x-hidden scroll-pt-11">
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
           <ThemeProvider>
             <FontSizeProvider />
+            <ScrollToTopOnNavigate />
             {/* tabIndex={-1} so the skip-to-content link in AppHeader actually
                 moves focus here on activation. Without it, browsers scroll to
                 the anchor but the next Tab fires from <body>, defeating the
@@ -59,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <main
               id="main-content"
               tabIndex={-1}
-              className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-20 focus:outline-none"
+              className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-20 scroll-mt-11 focus:outline-none"
             >
               {children}
             </main>

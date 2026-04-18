@@ -56,7 +56,16 @@ function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date(
     const day = date.toLocaleDateString(locale, { weekday: 'short' })
     return `${day} ${time}`
   }
-  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+  // Older than a week: short date. Include the year only when it differs from
+  // the current year — otherwise "15 Mar" alone would silently mean different
+  // things in January vs December across a year boundary.
+  const sameYear = date.getFullYear() === now.getFullYear()
+  return date.toLocaleDateString(
+    locale,
+    sameYear
+      ? { day: 'numeric', month: 'short' }
+      : { day: 'numeric', month: 'short', year: 'numeric' },
+  )
 }
 
 function SwipeableSessionItem({
@@ -176,7 +185,7 @@ function SwipeableSessionItem({
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
           onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
-          className="block py-4 px-5 min-w-0"
+          className="block py-4 px-5 min-w-0 hover:bg-surface-elevated transition-colors"
         >
           <p className="text-lg font-medium truncate text-text-primary">{session.title}</p>
           {/*
@@ -184,9 +193,10 @@ function SwipeableSessionItem({
             tone for duration carries the visual hierarchy — date is the
             primary fact, duration is supporting. Status only appears when it
             adds information (processing or error); for "Ready" the bare row
-            is enough.
+            is enough. `tabular-nums` keeps digit columns aligned as the eye
+            scans down the list.
           */}
-          <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1.5 flex-wrap">
+          <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1.5 flex-wrap tabular-nums">
             {showStatus && (
               <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
                 {isProcessing && (
