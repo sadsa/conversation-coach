@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const uiLanguage = inferUiLanguage(initialTargetLanguage)
 
   return (
-    <html lang={uiLanguage} suppressHydrationWarning className="overflow-x-hidden scroll-pt-11">
+    <html lang={uiLanguage} suppressHydrationWarning className="overflow-x-hidden">
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
@@ -61,7 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <main
               id="main-content"
               tabIndex={-1}
-              className="max-w-4xl mx-auto px-6 mt-11 pt-8 pb-20 scroll-mt-11 focus:outline-none"
+              style={{ marginTop: 'var(--header-height)', scrollMarginTop: 'var(--header-height)' }}
+              className="max-w-4xl mx-auto px-6 pt-8 pb-20 focus:outline-none"
             >
               {children}
             </main>

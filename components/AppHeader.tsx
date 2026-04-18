@@ -14,15 +14,15 @@ interface AppHeaderProps {
  * Derive a header label from the current route.
  *
  * Top-level sections use their nav.* translation key. Session sub-routes
- * collapse to "Session" — the page itself owns the title rendered below
- * the header, so we don't try to duplicate it here.
+ * intentionally render no label here — the back arrow conveys context
+ * and the page renders the conversation title prominently below, so a
+ * generic "Session" string would just be redundant chrome.
  */
 function sectionKeyFor(pathname: string | null): string {
   if (!pathname) return ''
   if (pathname === '/') return 'nav.home'
   if (pathname.startsWith('/write')) return 'nav.write'
   if (pathname.startsWith('/settings')) return 'nav.settings'
-  if (pathname.startsWith('/sessions')) return 'nav.session'
   return ''
 }
 
@@ -57,7 +57,10 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
         {t('nav.skipToContent')}
       </a>
 
-      <header className="fixed top-0 left-0 right-0 z-40 h-11 bg-surface border-b border-border-subtle">
+      <header
+        style={{ height: 'var(--header-height)' }}
+        className="fixed top-0 left-0 right-0 z-40 bg-surface border-b border-border-subtle"
+      >
         <div className="h-full max-w-4xl mx-auto px-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 min-w-0">
             <button

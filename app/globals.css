@@ -130,9 +130,19 @@
   :root {
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    /* Single source of truth for the fixed app header. Used by AppHeader's
+       height, the main content's margin-top, and the scroll-padding that
+       keeps anchor / focus scrolls clear of the header overlay. */
+    --header-height: 2.75rem;
     /* Toast clears the mobile bottom-nav (h-16 = 4rem) by default.
        On md+ the bottom-nav is hidden, so the toast can sit closer to the edge. */
     --toast-bottom: 5rem;
+  }
+
+  /* Browser-driven scroll-into-view (anchor links, focus(), scrollIntoView)
+     should leave the fixed header visible above the target element. */
+  html {
+    scroll-padding-top: var(--header-height);
   }
 
   @media (min-width: 768px) {

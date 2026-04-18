@@ -70,6 +70,12 @@ export default function HomePage() {
 
   // Load sessions on mount and start polling for any in-progress ones.
   useEffect(() => {
+    // Capture the polling map *now* so cleanup runs against the same Map
+    // instance the effect populated, rather than whatever pollingRefs.current
+    // points to when the component unmounts. (The ref itself is stable, but
+    // React's lint catches the general pattern.)
+    const polling = pollingRefs.current
+
     fetch('/api/sessions')
       .then(r => r.json())
       .then((data: SessionListItem[]) => {
@@ -93,7 +99,7 @@ export default function HomePage() {
       .catch(() => { /* silently ignore */ })
 
     return () => {
-      pollingRefs.current.forEach(id => clearInterval(id))
+      polling.forEach(id => clearInterval(id))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
