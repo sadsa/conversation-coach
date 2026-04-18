@@ -2,7 +2,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Icon } from '@/components/Icon'
+import { IconButton } from '@/components/IconButton'
 
 interface Props {
   isOpen?: boolean
@@ -68,14 +68,14 @@ function ModalContent({ title, onClose, children }: Omit<Props, 'isOpen'>) {
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border">
           <div id="modal-title" className="font-semibold">{title}</div>
-          <button
+          <IconButton
             ref={closeButtonRef}
-            onClick={onClose}
+            icon="close"
+            shape="circle"
+            size="sm"
             aria-label="Close"
-            className="w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-border transition-colors"
-          >
-            <Icon name="close" className="w-4 h-4" />
-          </button>
+            onClick={onClose}
+          />
         </div>
         <div className="p-5">
           {children}

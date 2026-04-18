@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useSwipeable } from 'react-swipeable'
 import { Modal } from '@/components/Modal'
+import { Toast } from '@/components/Toast'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem } from '@/lib/types'
 
@@ -267,14 +268,7 @@ export function SessionList({ sessions, onDeleted }: Props) {
         ))}
       </ul>
 
-      {toastMessage && (
-        <div
-          role="alert"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-surface-elevated border border-border rounded-xl text-sm text-text-primary shadow-lg animate-toast-in"
-        >
-          {toastMessage}
-        </div>
-      )}
+      {toastMessage && <Toast message={toastMessage} />}
     </div>
   )
 }

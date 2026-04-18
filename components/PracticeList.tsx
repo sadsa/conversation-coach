@@ -7,6 +7,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { PracticeItemSheet } from '@/components/PracticeItemSheet'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
 import { Icon } from '@/components/Icon'
+import { Toast } from '@/components/Toast'
 
 const SNIPPET_CONTEXT = 30
 const UNDO_TIMEOUT_MS = 5000
@@ -392,28 +393,11 @@ export function PracticeList({ items, onDeleted, initialView = 'active' }: Props
       />
 
       {toast && (
-        <div
-          key={toast.key}
-          role="alert"
-          className="
-            fixed bottom-[var(--toast-bottom)] left-1/2 -translate-x-1/2 z-50
-            flex items-center gap-3 px-4 py-2.5
-            bg-surface-elevated border border-border rounded-xl
-            text-sm text-text-primary shadow-lg
-            animate-toast-in
-          "
-        >
-          <span>{toast.message}</span>
-          {toast.onUndo && (
-            <button
-              type="button"
-              onClick={() => toast.onUndo?.()}
-              className="text-accent-primary font-medium hover:underline"
-            >
-              {t('practiceList.undo')}
-            </button>
-          )}
-        </div>
+        <Toast
+          toastKey={toast.key}
+          message={toast.message}
+          action={toast.onUndo ? { label: t('practiceList.undo'), onClick: toast.onUndo } : undefined}
+        />
       )}
     </div>
   )
