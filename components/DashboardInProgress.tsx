@@ -5,9 +5,10 @@
 // brewing in the background" — without having to scroll to the recent
 // conversations list to find them.
 //
-// We deliberately keep the in-progress sessions ALSO visible in the
-// `Recent conversations` section below; this callout is a heads-up, not a
-// replacement. Hidden entirely when nothing is processing.
+// In-progress sessions live ONLY in this callout. Once they reach a
+// terminal status (`ready` or `error`) they drop into the Recent
+// Conversations list below — no row appears in both places. Hidden
+// entirely when nothing is processing.
 
 'use client'
 import Link from 'next/link'

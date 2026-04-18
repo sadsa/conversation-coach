@@ -195,11 +195,18 @@ export default function HomePage() {
 
   const isFirstTime = sessionsLoaded && sessions.length === 0
   const readyCount = sessions.filter(s => s.status === 'ready').length
-  // In-progress = anything still moving through the pipeline. Used for the
-  // top-of-dashboard heads-up callout; these sessions also remain in the
-  // recent list below so the callout is purely additive.
+  // Split sessions by lifecycle so each surface owns one place to show them:
+  //   - In-progress callout at the top → still moving through the pipeline.
+  //   - Recent conversations below     → terminal (ready or error).
+  // A freshly uploaded session lives in the callout while it processes, then
+  // pops into the recent list when it's ready (the polling loop re-fetches
+  // the full list on terminal status, so this happens automatically).
   const inProgressSessions = useMemo(
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
+    [sessions],
+  )
+  const recentSessions = useMemo(
+    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status)),
     [sessions],
   )
 
@@ -267,15 +274,17 @@ export default function HomePage() {
             In-progress callout sits ABOVE reminders so the user immediately
             sees what's brewing in the background — but only when there's
             something to show. Self-renders to nothing when the array is
-            empty, so we don't need a guard here.
+            empty, so we don't need a guard here. In-progress sessions are
+            shown ONLY here (not also in the recent list below) so the user
+            doesn't see the same row twice.
           */}
           <DashboardInProgress sessions={inProgressSessions} />
 
           <DashboardReminders summary={summary} />
 
-          {sessionsLoaded && sessions.length > 0 && (
+          {sessionsLoaded && recentSessions.length > 0 && (
             <DashboardRecentSessions
-              sessions={sessions}
+              sessions={recentSessions}
               onDeleted={handleSessionDeleted}
             />
           )}

@@ -87,12 +87,13 @@ describe('HomePage — share pickup', () => {
     const { default: HomePage } = await import('@/app/page')
     const { getAllByText } = render(<HomePage />)
 
-    // The shared `.opus` file is auto-uploaded, so the new session shows up
-    // in BOTH the in-progress callout at the top of the dashboard AND the
-    // recent conversations list — that duplication is intentional, so we
-    // assert >= 1 match rather than a unique one.
+    // The shared `.opus` file is auto-uploaded. The new session is still
+    // processing, so it appears in the in-progress callout at the top of the
+    // dashboard — and ONLY there. It pops into the recent-conversations list
+    // once it reaches a terminal status. We assert exactly one occurrence to
+    // lock in the no-duplication contract.
     await waitFor(() => {
-      expect(getAllByText('PTT-20260327.opus').length).toBeGreaterThan(0)
+      expect(getAllByText('PTT-20260327.opus')).toHaveLength(1)
     }, { timeout: 2000 })
   })
 
