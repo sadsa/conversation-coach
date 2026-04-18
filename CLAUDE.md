@@ -58,14 +58,17 @@ components/
   ThemeToggle.tsx                 # Theme switcher button
   FontSizeProvider.tsx            # User-controllable font scale
   LanguageProvider.tsx            # UI language context with live switching
-  AnnotationSheet.tsx             # Docked review panel (bottom on mobile, right on desktop) — replaces modal for transcript review
-  PracticeItemSheet.tsx           # Docked review sheet for practice items (mirrors AnnotationSheet)
+  AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps `DockedSheet`
+  PracticeItemSheet.tsx           # Docked review sheet for practice items — wraps `DockedSheet`
   Icon.tsx                        # Shared inline-SVG icon set (no icon dep)
   # Shared UI primitives — prefer these over inlining new ones:
   Button.tsx                      # `<Button>` + `buttonStyles()` for primary/secondary actions
-  IconButton.tsx                  # Square icon-only button (toolbar / dismiss / nav-arrow)
+  IconButton.tsx                  # Square / circle icon-only button (toolbar / dismiss / nav-arrow)
   Skeleton.tsx                    # `<Skeleton>` + `<SkeletonRow>` for loading.tsx boundaries
   StrikeOriginal.tsx              # Shared "wrong → right" treatment (row + sheet + empty state)
+  Toast.tsx                       # Floating bottom-anchored alert pill with optional action — uses --toast-bottom
+  DockedSheet.tsx                 # Sheet shell (bottom on mobile, right on desktop) — chrome, animation, focus, swipe, keys
+  Modal.tsx                       # Centered dialog with scrim — only use when an action is genuinely modal
   ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
@@ -105,7 +108,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
 - **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
 - **Practice items, no scheduler (yet)**: The Leitner system was removed (migration `20260415_drop_leitner_columns.sql`). FSRS columns (`fsrs_state`, `due`, `stability`, …) were added by migration `20260410` for a future SRS, but no UI/API consumes them yet. Practice items currently expose only `written_down` and `importance_score`.
-- **Annotation review uses a docked sheet, not a modal**: `components/AnnotationSheet.tsx` is the central transcript-review pattern — bottom-anchored on mobile, right-side panel on desktop, no backdrop, with prev/next nav, swipe gestures, and `activeAnnotationId` ring on the source `<mark>`. Wire new annotation interactions through it; do not reach for `Modal`.
+- **Annotation review uses a docked sheet, not a modal**: `components/AnnotationSheet.tsx` is the central transcript-review pattern — bottom-anchored on mobile, right-side panel on desktop, no backdrop, with prev/next nav, swipe gestures, and `activeAnnotationId` ring on the source `<mark>`. Wire new annotation interactions through it; do not reach for `Modal`. The shared chrome (layout, animation, gestures, focus / keyboard / outside-click) lives in `components/DockedSheet.tsx` — use it for any new sheet rather than copying the chrome.
 - **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced as a star count + expandable note in `AnnotationCard` and `PracticeList`. Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
 - **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
 - **Practice page = Active ↔ Written segmented control**: `PracticeList` exposes only two views (`active` = `!written_down`, `archive` = `written_down`). Sub-category pills, importance sort UI, and bulk-select were removed in the simplification pass — category filtering belongs on the Insights page now. `InsightsCardList` still links to `/practice?sub_category=…` but the param is currently a no-op (kept so the URL doesn't break; revisit when category filtering returns).

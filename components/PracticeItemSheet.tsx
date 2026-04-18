@@ -1,10 +1,15 @@
 // components/PracticeItemSheet.tsx
+//
+// Docked review panel for practice items. Mirrors AnnotationSheet via the
+// shared `DockedSheet` chrome. The primary action is mark-as-written /
+// move-back-to-active; delete lives as a quieter secondary action in the
+// footer.
+
 'use client'
-import { useEffect, useRef, useState } from 'react'
-import { useReducedMotion } from 'framer-motion'
-import { useSwipeable } from 'react-swipeable'
+import { useEffect, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
+import { DockedSheet } from '@/components/DockedSheet'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
 import type { PracticeItem } from '@/lib/types'
 
@@ -61,12 +66,6 @@ function ContextSnippet({ segmentText, startChar, endChar, testId }: {
   )
 }
 
-/**
- * Docked review panel for practice items. Mirrors AnnotationSheet's layout
- * (bottom on mobile, right on desktop) so the review pattern is consistent
- * across the app. The primary action is mark-as-written / move-back-to-active;
- * delete lives as a quieter secondary action.
- */
 export function PracticeItemSheet({
   item,
   position,
@@ -80,71 +79,20 @@ export function PracticeItemSheet({
   onDelete,
 }: Props) {
   const { t } = useTranslation()
-  const prefersReducedMotion = useReducedMotion()
-  const previousFocusRef = useRef<HTMLElement | null>(null)
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const insidePointerRef = useRef(false)
   const [busyAction, setBusyAction] = useState<'toggle' | 'delete' | null>(null)
   const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   const isOpen = item !== null
 
+  // Reset transient per-item state whenever the user navigates to a new item
+  // or reopens the sheet.
   useEffect(() => {
     if (!isOpen) return
     setImportanceExpanded(false)
     setBusyAction(null)
-    previousFocusRef.current = document.activeElement as HTMLElement | null
-    closeButtonRef.current?.focus()
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      } else if (e.key === 'ArrowLeft' && hasPrev) {
-        onPrev()
-      } else if (e.key === 'ArrowRight' && hasNext) {
-        onNext()
-      }
-    }
-
-    function handlePointerDown(e: MouseEvent | TouchEvent) {
-      if (insidePointerRef.current) {
-        insidePointerRef.current = false
-        return
-      }
-      const target = e.target as Element | null
-      if (target?.closest('[data-practice-item-id]')) return
-      onClose()
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('touchstart', handlePointerDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('touchstart', handlePointerDown)
-      previousFocusRef.current?.focus()
-    }
-  }, [isOpen, item?.id, onClose, onPrev, onNext, hasPrev, hasNext])
-
-  function markInsidePointer() {
-    insidePointerRef.current = true
-  }
-
-  const swipeHandlers = useSwipeable({
-    onSwipedDown: (e) => { if (e.absY > 60) onClose() },
-    onSwipedLeft: (e) => { if (e.absX > 60 && hasNext) onNext() },
-    onSwipedRight: (e) => { if (e.absX > 60 && hasPrev) onPrev() },
-    delta: 20,
-    trackMouse: false,
-  })
+  }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
-
-  const animationClass = prefersReducedMotion
-    ? 'motion-reduce:animate-none'
-    : 'motion-safe:animate-[sheet-up_240ms_cubic-bezier(0.16,1,0.3,1)_both] md:motion-safe:animate-[sheet-in-right_240ms_cubic-bezier(0.16,1,0.3,1)_both]'
 
   async function handleToggle() {
     if (!item || busyAction) return
@@ -163,30 +111,20 @@ export function PracticeItemSheet({
   const stars = importanceStars(item.importance_score)
 
   return (
-    <aside
-      role="complementary"
-      aria-label={t('practiceSheet.aria')}
-      onMouseDownCapture={markInsidePointer}
-      onTouchStartCapture={markInsidePointer}
-      className={`
-        fixed left-0 right-0 bottom-0 z-40
-        md:left-auto md:top-11 md:right-0 md:bottom-0 md:w-[400px]
-        bg-surface-elevated border-t border-border md:border-t-0 md:border-l
-        shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.18)] md:shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.12)]
-        rounded-t-2xl md:rounded-none
-        flex flex-col max-h-[75vh] md:max-h-none
-        ${animationClass}
-      `}
-      {...swipeHandlers}
-    >
-      {/* Mobile drag handle */}
-      <div className="flex justify-center pt-2 pb-1 md:hidden" aria-hidden="true">
-        <span className="w-10 h-1 rounded-full bg-border" />
-      </div>
-
-      {/* Header: position counter is the lead, the title sits behind it as
-          a small eyebrow label so the heading doesn't fight the body content. */}
-      <header className="flex items-center gap-2 px-4 pt-1 pb-3 md:pt-5 md:pb-4 md:px-5 border-b border-border">
+    <DockedSheet
+      isOpen={isOpen}
+      ariaLabel={t('practiceSheet.aria')}
+      onClose={onClose}
+      onPrev={onPrev}
+      onNext={onNext}
+      hasPrev={hasPrev}
+      hasNext={hasNext}
+      preserveOutsideSelector="[data-practice-item-id]"
+      mobileMaxHeight="75vh"
+      contentKey={item.id}
+      headerLead={
+        // Position counter is the lead, the title sits behind it as a small
+        // eyebrow label so the heading doesn't fight the body content.
         <div className="flex items-baseline gap-2 min-w-0">
           {position && (
             <span className="text-sm font-medium text-text-primary tabular-nums">
@@ -197,126 +135,91 @@ export function PracticeItemSheet({
             {isArchive ? t('practiceSheet.titleArchive') : t('practiceSheet.titleActive')}
           </span>
         </div>
-        <div className="ml-auto flex items-center gap-1">
+      }
+      footer={
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onPrev}
-            disabled={!hasPrev}
-            aria-label={t('sheet.prev')}
-            className="w-9 h-9 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            onClick={handleToggle}
+            disabled={busyAction !== null}
+            data-testid="sheet-toggle-written"
+            className={`
+              flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium
+              text-sm transition-colors disabled:opacity-50
+              ${isArchive
+                ? 'border-border bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary'
+                : 'border-widget-write-border bg-widget-write-bg text-widget-write-text hover:bg-widget-write-bg-hover'
+              }
+            `}
           >
-            <Icon name="chevron-left" className="w-5 h-5" />
+            <Icon name={isArchive ? 'rotate-ccw' : 'check'} className="w-5 h-5" />
+            {isArchive ? t('practiceSheet.moveToActive') : t('practiceSheet.markWritten')}
           </button>
           <button
             type="button"
-            onClick={onNext}
-            disabled={!hasNext}
-            aria-label={t('sheet.next')}
-            className="w-9 h-9 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            onClick={handleDelete}
+            disabled={busyAction !== null}
+            aria-label={t('practiceSheet.deleteAria')}
+            data-testid="sheet-delete"
+            className="
+              w-11 h-11 rounded-xl border border-transparent bg-transparent
+              text-status-error/60 hover:text-status-error hover:bg-error-bg/40
+              transition-colors flex items-center justify-center disabled:opacity-50
+            "
           >
-            <Icon name="chevron-right" className="w-5 h-5" />
-          </button>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label={t('sheet.close')}
-            className="w-9 h-9 ml-1 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg transition-colors"
-          >
-            <Icon name="close" className="w-5 h-5" />
+            <Icon name="trash" className="w-4 h-4" />
           </button>
         </div>
-      </header>
+      }
+    >
+      <div className="space-y-5">
+        {/* Original → Correction. Shared primitive — same treatment as the
+            list rows, so changing one place changes both surfaces in sync. */}
+        <StrikeOriginal
+          original={item.original}
+          correction={item.correction}
+          size="sheet"
+        />
 
-      {/* Body: keyed on item.id so React swaps the subtree cleanly on prev/next */}
-      <div className="flex-1 overflow-y-auto px-5 py-5">
-        <div
-          key={item.id}
-          className="space-y-5 motion-safe:animate-[fadein_180ms_ease-out_both]"
-        >
-          {/* Original → Correction. Shared primitive — same treatment as the
-              list rows, so changing one place changes both surfaces in sync. */}
-          <StrikeOriginal
-            original={item.original}
-            correction={item.correction}
-            size="sheet"
-          />
+        <p className="text-text-secondary leading-relaxed text-base">
+          {item.explanation}
+        </p>
 
-          <p className="text-text-secondary leading-relaxed text-base">
-            {item.explanation}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
+            {t(`subCat.${item.sub_category}`)}
+          </span>
+          {stars && (
+            item.importance_note ? (
+              <button
+                onClick={() => setImportanceExpanded(e => !e)}
+                className="text-pill-amber text-base leading-none rounded px-1"
+                aria-label={t('practiceList.importanceToggleAria')}
+                aria-expanded={importanceExpanded}
+              >
+                {stars}
+              </button>
+            ) : (
+              <span className="text-pill-amber text-base leading-none">{stars}</span>
+            )
+          )}
+        </div>
+
+        {importanceExpanded && item.importance_note && (
+          <p className="text-text-secondary text-sm leading-relaxed -mt-3">
+            {item.importance_note}
           </p>
+        )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
-              {t(`subCat.${item.sub_category}`)}
-            </span>
-            {stars && (
-              item.importance_note ? (
-                <button
-                  onClick={() => setImportanceExpanded(e => !e)}
-                  className="text-pill-amber text-base leading-none rounded px-1"
-                  aria-label={t('practiceList.importanceToggleAria')}
-                  aria-expanded={importanceExpanded}
-                >
-                  {stars}
-                </button>
-              ) : (
-                <span className="text-pill-amber text-base leading-none">{stars}</span>
-              )
-            )}
-          </div>
-
-          {importanceExpanded && item.importance_note && (
-            <p className="text-text-secondary text-sm leading-relaxed -mt-3">
-              {item.importance_note}
-            </p>
-          )}
-
-          {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
-            <ContextSnippet
-              segmentText={item.segment_text}
-              startChar={item.start_char}
-              endChar={item.end_char}
-              testId={`context-snippet-sheet-${item.id}`}
-            />
-          )}
-        </div>
+        {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
+          <ContextSnippet
+            segmentText={item.segment_text}
+            startChar={item.start_char}
+            endChar={item.end_char}
+            testId={`context-snippet-sheet-${item.id}`}
+          />
+        )}
       </div>
-
-      {/* Footer: primary action + secondary delete */}
-      <footer className="flex items-center gap-2 px-4 py-3 md:px-5 border-t border-border bg-surface-elevated">
-        <button
-          type="button"
-          onClick={handleToggle}
-          disabled={busyAction !== null}
-          data-testid="sheet-toggle-written"
-          className={`
-            flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium
-            text-sm transition-colors disabled:opacity-50
-            ${isArchive
-              ? 'border-border bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary'
-              : 'border-widget-write-border bg-widget-write-bg text-widget-write-text hover:bg-widget-write-bg-hover'
-            }
-          `}
-        >
-          <Icon name={isArchive ? 'rotate-ccw' : 'check'} className="w-5 h-5" />
-          {isArchive ? t('practiceSheet.moveToActive') : t('practiceSheet.markWritten')}
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={busyAction !== null}
-          aria-label={t('practiceSheet.deleteAria')}
-          data-testid="sheet-delete"
-          className="
-            w-11 h-11 rounded-xl border border-transparent bg-transparent
-            text-status-error/60 hover:text-status-error hover:bg-error-bg/40
-            transition-colors flex items-center justify-center disabled:opacity-50
-          "
-        >
-          <Icon name="trash" className="w-4 h-4" />
-        </button>
-      </footer>
-    </aside>
+    </DockedSheet>
   )
 }
