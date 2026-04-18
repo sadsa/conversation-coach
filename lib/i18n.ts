@@ -64,6 +64,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.title': 'Conversation Coach',
     'home.subtitle': 'Upload a recorded conversation to get feedback on your speech.',
     'home.uploading': 'Uploading…',
+    'home.uploadCancel': 'Cancel upload',
+    'home.uploadCancelled': 'Upload cancelled.',
     'home.uploadFailed': 'Upload failed — please try again',
     'home.pastSessions': 'Past Sessions',
 
@@ -364,6 +366,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.title': 'Entrenador de conversación',
     'home.subtitle': 'Subí una conversación grabada para recibir retroalimentación sobre tu habla.',
     'home.uploading': 'Subiendo…',
+    'home.uploadCancel': 'Cancelar subida',
+    'home.uploadCancelled': 'Subida cancelada.',
     'home.uploadFailed': 'Error al subir — por favor intentá de nuevo',
     'home.pastSessions': 'Sesiones anteriores',
 
