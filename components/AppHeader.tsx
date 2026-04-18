@@ -20,8 +20,7 @@ interface AppHeaderProps {
 function sectionKeyFor(pathname: string | null): string {
   if (!pathname) return ''
   if (pathname === '/') return 'nav.home'
-  if (pathname.startsWith('/practice')) return 'nav.practice'
-  if (pathname.startsWith('/insights')) return 'nav.insights'
+  if (pathname.startsWith('/write')) return 'nav.write'
   if (pathname.startsWith('/settings')) return 'nav.settings'
   if (pathname.startsWith('/sessions')) return 'nav.session'
   return ''

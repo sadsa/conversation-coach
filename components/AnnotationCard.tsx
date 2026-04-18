@@ -164,7 +164,7 @@ export function AnnotationCard({
             <button
               onClick={() => setImportanceExpanded(e => !e)}
               className="text-pill-amber text-base leading-none focus:outline-none rounded px-1"
-              aria-label={t('practiceList.importanceToggleAria')}
+              aria-label={t('writeList.importanceToggleAria')}
               aria-expanded={importanceExpanded}
             >
               {importanceStars(annotation.importance_score)}

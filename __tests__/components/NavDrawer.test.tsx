@@ -40,23 +40,22 @@ describe('NavDrawer', () => {
     expect(container.querySelector('#nav-drawer')).toHaveClass('translate-x-0')
   })
 
-  it('renders all four nav links', () => {
+  it('renders all three nav links (Home, Write, Settings)', () => {
     render(<NavDrawer isOpen={true} onClose={onClose} />)
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /practice/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /write/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })
 
   it('marks the current route with aria-current="page"', () => {
-    mockPathname.mockReturnValue('/practice')
+    mockPathname.mockReturnValue('/write')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /practice/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /write/i })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Home active on "/practice"', () => {
-    mockPathname.mockReturnValue('/practice')
+  it('does NOT mark Home active on "/write"', () => {
+    mockPathname.mockReturnValue('/write')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
   })
@@ -81,7 +80,7 @@ describe('NavDrawer', () => {
 
   it('calls onClose when a nav link is clicked', async () => {
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    await userEvent.click(screen.getByRole('link', { name: /practice/i }))
+    await userEvent.click(screen.getByRole('link', { name: /write/i }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 

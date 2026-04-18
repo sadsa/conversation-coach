@@ -19,8 +19,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
   en: {
     // Navigation
     'nav.home': 'Home',
-    'nav.practice': 'Practice',
-    'nav.insights': 'Insights',
+    'nav.write': 'Write',
     'nav.settings': 'Settings',
     'nav.session': 'Session',
     'nav.skipToContent': 'Skip to content',
@@ -69,6 +68,39 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.uploadFailed': 'Upload failed — please try again',
     'home.pastSessions': 'Past Sessions',
 
+    // Dashboard
+    'home.greetingMorning': 'Good morning',
+    'home.greetingAfternoon': 'Good afternoon',
+    'home.greetingEvening': 'Good evening',
+    'home.dashboardSubtitle': 'A quiet place to review what you\'ve recorded.',
+    'home.welcomeTitle': 'Welcome to Conversation Coach',
+    'home.welcomeSubtitle': 'Record a Spanish conversation, get gentle corrections, and turn the keepers into flashcards.',
+    'home.howItWorks': 'How it works',
+    'home.step1.title': 'Record a conversation',
+    'home.step1.desc': 'Capture yourself speaking — solo practice or a real chat. Anything you\'d like feedback on.',
+    'home.step2.title': 'Upload the audio',
+    'home.step2.desc': 'Drop the file in below. Your speech gets transcribed and gently annotated by a tutor.',
+    'home.step3.title': 'Review the corrections',
+    'home.step3.desc': 'Read through your transcript at your own pace. Star the corrections worth keeping.',
+    'home.step4.title': 'Write them down',
+    'home.step4.desc': 'Copy each saved phrase onto a paper flashcard. Writing helps the language stick.',
+    'home.remindersAria': 'Saved corrections',
+    'home.allCaughtUp': 'All caught up — nothing to write down right now.',
+    'home.recentSessionsTitle': 'Recent conversations',
+    'home.recentShowAll': 'Show all {n}',
+    'home.recentShowFewer': 'Show fewer',
+    'home.recentBucketToday': 'Today',
+    'home.recentBucketYesterday': 'Yesterday',
+    'home.recentBucketThisWeek': 'This week',
+    'home.recentBucketEarlier': 'Earlier',
+    'home.newSessionTitle': 'Start a new session',
+    'home.newSessionSubtitle': 'Upload a recorded conversation to get fresh feedback.',
+    'home.sessionCountOne': '1 conversation analysed so far.',
+    'home.sessionCountMany': '{n} conversations analysed so far.',
+    'home.inProgressTitle': 'Currently processing',
+    'home.inProgressCountOne': '1 in progress',
+    'home.inProgressCountMany': '{n} in progress',
+
     // Drop zone
     'dropzone.title': 'Upload conversation',
     'dropzone.formats': 'MP3, M4A, WAV, OPUS',
@@ -96,7 +128,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Delete',
     'session.deleteTitle': 'Delete session?',
-    'session.deleteWarning': 'will be permanently deleted, along with all its annotations and any practice items you\'ve saved from it. This can\'t be undone.',
+    'session.deleteWarning': 'will be permanently deleted, along with all its annotations and any saved corrections from it. This can\'t be undone.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
     'session.noSessions': 'No sessions yet — upload your first conversation above.',
@@ -142,7 +174,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Re-analyse confirmation
     'reanalyse.title': 'Replace this session\'s corrections?',
-    'reanalyse.body': 'Re-analysing rewrites every correction for this session. Practice items you\'ve saved keep their flashcards — only the corrections shown here are replaced.',
+    'reanalyse.body': 'Re-analysing rewrites every correction for this session. Saved corrections keep their flashcards — only the corrections shown here are replaced.',
     'reanalyse.confirm': 'Replace corrections',
     'reanalyse.cancel': 'Keep current',
     'reanalyse.error': 'Couldn\'t start re-analysis — try again.',
@@ -186,47 +218,38 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeItDown.confirmLabel': 'Create flashcard',
     'writeItDown.successLabel': 'Flashcard created ✓',
 
-    'home.toWriteDown': '{n} to write down',
+    'home.toWriteDown': '{n} corrections to write down',
+    'home.toWriteDownOne': '1 correction to write down',
 
-    // Practice page
-    'practice.title': 'Practice',
-    'practice.subtitle': 'Corrections you saved. Tap one to mark it once you\'ve written it on a card.',
-    'practice.loading': 'Loading…',
-    'practice.error': 'Error: {msg}',
+    // Write page (the queue of saved corrections waiting to be written down)
+    'write.title': 'Write',
+    'write.subtitle': 'Saved corrections waiting to be written down.',
+    'write.loading': 'Loading…',
+    'write.error': 'Error: {msg}',
 
-    // Practice list — segmented Active / Archive view
-    'practiceList.viewLabel': 'Practice items',
-    'practiceList.active': 'To write down',
-    'practiceList.archive': 'Written',
-    'practiceList.emptyActiveCaption': 'Saved corrections look like this.',
-    'practiceList.emptyActiveCta': 'Start a session to save more →',
-    'practiceList.emptyArchive': 'Nothing here yet. Items show up here once you mark them as written.',
-    'practiceList.markRowAria': 'Mark "{original}" as written',
-    'practiceList.movedToArchive': 'Moved to Written',
-    'practiceList.movedToActive': 'Moved back to your list',
-    'practiceList.movedToTrash': 'Item deleted',
-    'practiceList.undo': 'Undo',
-    'practiceList.deleteError': 'Couldn\'t delete item — try again.',
-    'practiceList.markWrittenError': 'Couldn\'t update — try again.',
-    'practiceList.importanceToggleAria': 'Toggle importance explanation',
+    // Write list — segmented Write / Written view
+    'writeList.viewLabel': 'Saved corrections',
+    'writeList.tabWrite': 'Write',
+    'writeList.tabWritten': 'Written',
+    'writeList.emptyWriteCaption': 'Saved corrections look like this.',
+    'writeList.emptyWriteCta': 'Start a session to save more →',
+    'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as written.',
+    'writeList.markRowAria': 'Mark "{original}" as written',
+    'writeList.movedToWritten': 'Moved to Written',
+    'writeList.movedToWrite': 'Moved back to your list',
+    'writeList.movedToTrash': 'Item deleted',
+    'writeList.undo': 'Undo',
+    'writeList.deleteError': 'Couldn\'t delete item — try again.',
+    'writeList.markWrittenError': 'Couldn\'t update — try again.',
+    'writeList.importanceToggleAria': 'Toggle importance explanation',
 
-    // Practice review sheet (docked)
-    'practiceSheet.aria': 'Review practice item',
-    'practiceSheet.titleActive': 'Saved correction',
-    'practiceSheet.titleArchive': 'Written',
-    'practiceSheet.markWritten': 'Mark as written',
-    'practiceSheet.moveToActive': 'Move back',
-    'practiceSheet.deleteAria': 'Delete this item',
-
-
-    // Insights page
-    'insights.title': 'Where you\'re struggling',
-    'insights.subtitle': 'Your recurring mistakes, ranked by frequency',
-    'insights.empty': 'Insights will appear once you\'ve recorded and analysed some conversations.',
-    'insights.noMistakes': 'No categorised mistakes yet. Re-analyse a session to generate insights.',
-    'insights.appearsIn': 'appears in {n} of {m} sessions',
-    'insights.fromConversations': 'From your conversations',
-    'insights.seeAll': 'See all examples →',
+    // Write review sheet (docked)
+    'writeSheet.aria': 'Review saved correction',
+    'writeSheet.titleWrite': 'To write',
+    'writeSheet.titleWritten': 'Written',
+    'writeSheet.markWritten': 'Mark as written',
+    'writeSheet.moveBack': 'Move back',
+    'writeSheet.deleteAria': 'Delete this item',
 
     // Settings page
     'settings.title': 'Settings',
@@ -262,8 +285,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
   es: {
     // Navigation
     'nav.home': 'Inicio',
-    'nav.practice': 'Práctica',
-    'nav.insights': 'Estadísticas',
+    'nav.write': 'Anotar',
     'nav.settings': 'Configuración',
     'nav.session': 'Sesión',
     'nav.skipToContent': 'Saltar al contenido',
@@ -312,6 +334,39 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.uploadFailed': 'Error al subir — por favor intentá de nuevo',
     'home.pastSessions': 'Sesiones anteriores',
 
+    // Dashboard
+    'home.greetingMorning': 'Buenos días',
+    'home.greetingAfternoon': 'Buenas tardes',
+    'home.greetingEvening': 'Buenas noches',
+    'home.dashboardSubtitle': 'Un lugar tranquilo para repasar lo que grabaste.',
+    'home.welcomeTitle': 'Bienvenido a Conversation Coach',
+    'home.welcomeSubtitle': 'Grabá una conversación en español, recibí correcciones suaves y convertí las útiles en flashcards.',
+    'home.howItWorks': 'Cómo funciona',
+    'home.step1.title': 'Grabá una conversación',
+    'home.step1.desc': 'Capturate hablando — solo o en una charla real. Lo que quieras que te corrijan.',
+    'home.step2.title': 'Subí el audio',
+    'home.step2.desc': 'Arrastrá el archivo abajo. Tu habla se transcribe y un tutor te deja anotaciones suaves.',
+    'home.step3.title': 'Revisá las correcciones',
+    'home.step3.desc': 'Leé tu transcripción a tu ritmo. Marcá con estrella las correcciones que valga la pena guardar.',
+    'home.step4.title': 'Anotalas a mano',
+    'home.step4.desc': 'Copiá cada frase guardada en una tarjeta de papel. Escribir ayuda a fijar el idioma.',
+    'home.remindersAria': 'Correcciones guardadas',
+    'home.allCaughtUp': 'Todo al día — nada para anotar por ahora.',
+    'home.recentSessionsTitle': 'Conversaciones recientes',
+    'home.recentShowAll': 'Mostrar las {n}',
+    'home.recentShowFewer': 'Mostrar menos',
+    'home.recentBucketToday': 'Hoy',
+    'home.recentBucketYesterday': 'Ayer',
+    'home.recentBucketThisWeek': 'Esta semana',
+    'home.recentBucketEarlier': 'Antes',
+    'home.newSessionTitle': 'Empezar una sesión nueva',
+    'home.newSessionSubtitle': 'Subí una conversación grabada para recibir nuevas correcciones.',
+    'home.sessionCountOne': '1 conversación analizada hasta ahora.',
+    'home.sessionCountMany': '{n} conversaciones analizadas hasta ahora.',
+    'home.inProgressTitle': 'Procesando ahora',
+    'home.inProgressCountOne': '1 en proceso',
+    'home.inProgressCountMany': '{n} en proceso',
+
     // Drop zone
     'dropzone.title': 'Subir conversación',
     'dropzone.formats': 'MP3, M4A, WAV, OPUS',
@@ -339,7 +394,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Eliminar',
     'session.deleteTitle': '¿Eliminar sesión?',
-    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus anotaciones y los ítems de práctica que hayas guardado. Esta acción no se puede deshacer.',
+    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus anotaciones y las correcciones guardadas de esta sesión. Esta acción no se puede deshacer.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
     'session.noSessions': 'Todavía no hay sesiones — subí tu primera conversación arriba.',
@@ -385,7 +440,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Re-analyse confirmation
     'reanalyse.title': '¿Reemplazar las correcciones de esta sesión?',
-    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta sesión. Los ítems de práctica que hayas guardado conservan sus tarjetas — solo se reemplazan las correcciones que ves acá.',
+    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta sesión. Las correcciones guardadas conservan sus tarjetas — solo se reemplazan las correcciones que ves acá.',
     'reanalyse.confirm': 'Reemplazar correcciones',
     'reanalyse.cancel': 'Mantener',
     'reanalyse.error': 'No se pudo iniciar el re-análisis — intentá de nuevo.',
@@ -429,47 +484,38 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeItDown.confirmLabel': 'Crear tarjeta',
     'writeItDown.successLabel': 'Tarjeta creada ✓',
 
-    'home.toWriteDown': '{n} para anotar',
+    'home.toWriteDown': '{n} correcciones para anotar',
+    'home.toWriteDownOne': '1 corrección para anotar',
 
-    // Practice page
-    'practice.title': 'Práctica',
-    'practice.subtitle': 'Correcciones que guardaste. Tocá una para marcarla una vez que la hayas escrito en una tarjeta.',
-    'practice.loading': 'Cargando…',
-    'practice.error': 'Error: {msg}',
+    // Write page (the queue of saved corrections waiting to be written down)
+    'write.title': 'Anotar',
+    'write.subtitle': 'Correcciones guardadas para anotar.',
+    'write.loading': 'Cargando…',
+    'write.error': 'Error: {msg}',
 
-    // Practice list — segmented Active / Archive view
-    'practiceList.viewLabel': 'Ítems de práctica',
-    'practiceList.active': 'Para anotar',
-    'practiceList.archive': 'Escritos',
-    'practiceList.emptyActiveCaption': 'Las correcciones guardadas se ven así.',
-    'practiceList.emptyActiveCta': 'Empezá una sesión para guardar más →',
-    'practiceList.emptyArchive': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
-    'practiceList.markRowAria': 'Marcar "{original}" como escrito',
-    'practiceList.movedToArchive': 'Movido a Escritos',
-    'practiceList.movedToActive': 'Vuelto a tu lista',
-    'practiceList.movedToTrash': 'Ítem eliminado',
-    'practiceList.undo': 'Deshacer',
-    'practiceList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
-    'practiceList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
-    'practiceList.importanceToggleAria': 'Alternar explicación de importancia',
+    // Write list — segmented Anotar / Escritos view
+    'writeList.viewLabel': 'Correcciones guardadas',
+    'writeList.tabWrite': 'Anotar',
+    'writeList.tabWritten': 'Escritos',
+    'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
+    'writeList.emptyWriteCta': 'Empezá una sesión para guardar más →',
+    'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
+    'writeList.markRowAria': 'Marcar "{original}" como escrito',
+    'writeList.movedToWritten': 'Movido a Escritos',
+    'writeList.movedToWrite': 'Vuelto a tu lista',
+    'writeList.movedToTrash': 'Ítem eliminado',
+    'writeList.undo': 'Deshacer',
+    'writeList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
+    'writeList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
+    'writeList.importanceToggleAria': 'Alternar explicación de importancia',
 
-    // Practice review sheet (docked)
-    'practiceSheet.aria': 'Revisar ítem de práctica',
-    'practiceSheet.titleActive': 'Corrección guardada',
-    'practiceSheet.titleArchive': 'Escritos',
-    'practiceSheet.markWritten': 'Marcar como escrito',
-    'practiceSheet.moveToActive': 'Volver atrás',
-    'practiceSheet.deleteAria': 'Eliminar este ítem',
-
-
-    // Insights page
-    'insights.title': 'Dónde tenés dificultades',
-    'insights.subtitle': 'Tus errores recurrentes, ordenados por frecuencia',
-    'insights.empty': 'Las estadísticas aparecerán cuando hayas grabado y analizado algunas conversaciones.',
-    'insights.noMistakes': 'Todavía no hay errores categorizados. Re-analizá una sesión para generar estadísticas.',
-    'insights.appearsIn': 'aparece en {n} de {m} sesiones',
-    'insights.fromConversations': 'De tus conversaciones',
-    'insights.seeAll': 'Ver todos los ejemplos →',
+    // Write review sheet (docked)
+    'writeSheet.aria': 'Revisar corrección guardada',
+    'writeSheet.titleWrite': 'Para anotar',
+    'writeSheet.titleWritten': 'Escritos',
+    'writeSheet.markWritten': 'Marcar como escrito',
+    'writeSheet.moveBack': 'Volver atrás',
+    'writeSheet.deleteAria': 'Eliminar este ítem',
 
     // Settings page
     'settings.title': 'Configuración',

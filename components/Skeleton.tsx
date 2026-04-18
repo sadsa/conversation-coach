@@ -49,7 +49,7 @@ interface SkeletonRowProps {
 
 /**
  * Card-shaped skeleton with a title bar and optional subtitle bar — matches
- * the session list / practice list / settings list loading shape.
+ * the session list / write list / settings list loading shape.
  */
 export function SkeletonRow({
   titleWidth = 'w-2/3',

@@ -25,11 +25,10 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/')
   })
 
-  it('renders all four nav tabs', () => {
+  it('renders all three nav tabs (Home, Write, Settings)', () => {
     wrap()
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /practice/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /write/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })
 
@@ -37,25 +36,25 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/')
     wrap()
     expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /practice/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /write/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Home active on "/practice"', () => {
-    mockPathname.mockReturnValue('/practice')
+  it('does NOT mark Home active on "/write"', () => {
+    mockPathname.mockReturnValue('/write')
     wrap()
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('marks Practice active on "/practice"', () => {
-    mockPathname.mockReturnValue('/practice')
+  it('marks Write active on "/write"', () => {
+    mockPathname.mockReturnValue('/write')
     wrap()
-    expect(screen.getByRole('link', { name: /practice/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /write/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Practice active on a sub-route like "/practice/something"', () => {
-    mockPathname.mockReturnValue('/practice/something')
+  it('marks Write active on a sub-route like "/write/something"', () => {
+    mockPathname.mockReturnValue('/write/something')
     wrap()
-    expect(screen.getByRole('link', { name: /practice/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /write/i })).toHaveAttribute('aria-current', 'page')
   })
 
   it('marks Settings active on "/settings"', () => {

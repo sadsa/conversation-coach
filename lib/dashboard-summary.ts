@@ -2,6 +2,7 @@
 import { createServerClient } from '@/lib/supabase-server'
 
 export interface DashboardSummary {
+  /** Number of practice items the user has not yet marked as written down. */
   writeDownCount: number
 }
 
@@ -9,14 +10,11 @@ export async function computeDashboardSummary(
   db: ReturnType<typeof createServerClient>,
   sessionIds: string[],
 ): Promise<DashboardSummary> {
-  const { data: notWritten } = await db
+  const { count } = await db
     .from('practice_items')
-    .select('id')
+    .select('id', { count: 'exact', head: true })
     .in('session_id', sessionIds)
     .eq('written_down', false)
-    .limit(1000)
 
-  const writeDownCount = notWritten?.length ?? 0
-
-  return { writeDownCount }
+  return { writeDownCount: count ?? 0 }
 }

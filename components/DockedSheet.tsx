@@ -1,7 +1,7 @@
 // components/DockedSheet.tsx
 //
 // Shared chrome for the app's two review sheets — `AnnotationSheet` (transcript
-// corrections) and `PracticeItemSheet` (practice items). Owns:
+// corrections) and `WriteSheet` (saved corrections in the Write list). Owns:
 //
 //   • Layout: bottom-anchored on mobile, right-anchored full-height on desktop.
 //   • Animation: slide-up / slide-in-right keyframes from `globals.css`,

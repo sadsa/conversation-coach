@@ -7,6 +7,7 @@ import { Modal } from '@/components/Modal'
 import { Toast } from '@/components/Toast'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem } from '@/lib/types'
+import type { UiLanguage } from '@/lib/i18n'
 
 function statusLabel(status: string, t: (key: string) => string): string {
   const map: Record<string, string> = {
@@ -33,6 +34,31 @@ function formatDuration(seconds: number): string {
   return `${m}m ${s}s`
 }
 
+// The date label sits next to the title and is the primary way the user
+// distinguishes one row from another within a bucket. Because the parent
+// (DashboardRecentSessions) groups rows under "Today / Yesterday / This week
+// / Earlier" headers, the per-row label only needs to add what the header
+// can't say:
+//   • Today / Yesterday rows → time-of-day (HH:MM)
+//   • This week rows         → weekday + time (e.g. "Tue 14:32")
+//   • Earlier rows           → short date (e.g. "15 Mar")
+function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date()): string {
+  const locale = uiLanguage === 'es' ? 'es-AR' : 'en-GB'
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfYesterday = new Date(startOfToday)
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+  const startOfWeek = new Date(startOfToday)
+  startOfWeek.setDate(startOfWeek.getDate() - 6)
+
+  const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  if (date >= startOfYesterday) return time
+  if (date >= startOfWeek) {
+    const day = date.toLocaleDateString(locale, { weekday: 'short' })
+    return `${day} ${time}`
+  }
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+}
+
 function SwipeableSessionItem({
   session,
   onDelete,
@@ -40,7 +66,7 @@ function SwipeableSessionItem({
   session: SessionListItem
   onDelete: (id: string) => Promise<boolean>
 }) {
-  const { t } = useTranslation()
+  const { t, uiLanguage } = useTranslation()
   const [translateX, setTranslateX] = useState(0)
   const [rowHeight, setRowHeight] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -101,12 +127,9 @@ function SwipeableSessionItem({
   })
 
   const isProcessing = !TERMINAL_STATUSES.has(session.status)
-  const processingSeconds =
-    session.status === 'ready' && session.processing_completed_at
-      ? Math.round(
-          (new Date(session.processing_completed_at).getTime() - new Date(session.created_at).getTime()) / 1000
-        )
-      : null
+  const isError = session.status === 'error'
+  const showStatus = isProcessing || isError
+  const dateLabel = formatRowDate(new Date(session.created_at), uiLanguage)
 
   return (
     <li
@@ -153,11 +176,18 @@ function SwipeableSessionItem({
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
           onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
-          className="flex items-center gap-4 py-4 px-5 min-w-0"
+          className="block py-4 px-5 min-w-0"
         >
-          <div className="flex-1 min-w-0">
-            <p className="text-lg font-medium truncate text-text-primary">{session.title}</p>
-            <div className="flex items-center gap-2 text-sm text-text-secondary mt-1.5 flex-wrap">
+          <p className="text-lg font-medium truncate text-text-primary">{session.title}</p>
+          {/*
+            Metadata row: no bullet separators. Whitespace + a softer (tertiary)
+            tone for duration carries the visual hierarchy — date is the
+            primary fact, duration is supporting. Status only appears when it
+            adds information (processing or error); for "Ready" the bare row
+            is enough.
+          */}
+          <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1.5 flex-wrap">
+            {showStatus && (
               <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
                 {isProcessing && (
                   <svg
@@ -173,29 +203,12 @@ function SwipeableSessionItem({
                 )}
                 {statusLabel(session.status, t)}
               </span>
-              <span>·</span>
-              <span>{new Date(session.created_at).toLocaleDateString()}</span>
-              {session.duration_seconds != null && (
-                <>
-                  <span>·</span>
-                  <span>{formatDuration(session.duration_seconds)}</span>
-                </>
-              )}
-              {processingSeconds != null && (
-                <>
-                  <span>·</span>
-                  <span className="text-status-processing">⚡ {formatDuration(processingSeconds)}</span>
-                </>
-              )}
-            </div>
+            )}
+            <span>{dateLabel}</span>
+            {session.duration_seconds != null && (
+              <span className="text-text-tertiary">{formatDuration(session.duration_seconds)}</span>
+            )}
           </div>
-          <svg
-            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-            className="w-4 h-4 text-text-tertiary flex-shrink-0" aria-hidden="true"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
         </Link>
       </div>
 

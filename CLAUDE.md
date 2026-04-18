@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → save practice items. Multi-user with Supabase Auth (email magic link) and an email allowlist.
+A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to write down. Multi-user with Supabase Auth (email magic link) and an email allowlist.
+
+**Naming**: The user-facing surface for saved corrections is **Write** (the action — writing them down on paper is what comes next). The DB table and API path are still `practice_items` / `/api/practice-items` (data noun, kept stable). When you see `practice_items` in code, think "the data backing the Write surface".
 
 ## Tech Stack
 
@@ -14,7 +16,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **AssemblyAI** SDK — transcription + speaker diarization
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
 - **`framer-motion`** — sheet entrance animations + `useReducedMotion`
-- **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `PracticeItemSheet`, `PracticeList`
+- **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`
 - **`web-push`** — VAPID Web Push for analysis-completion notifications
 - **`ts-fsrs`** in deps for upcoming SRS scheduling (DB columns added in migration `20260410`; UI not yet wired up)
 - **Vitest** + React Testing Library — unit/component tests
@@ -43,8 +45,7 @@ app/
     page.tsx                      # Screen 4: Annotated Transcript
     status/page.tsx               # Screen 2: Processing Status
     identify/page.tsx             # Screen 3: Speaker Identification
-  practice/page.tsx               # Screen 5: Practice Items
-  insights/page.tsx               # Screen 6: Insights (sub-category mistake tracking)
+  write/page.tsx                  # Screen 5: Write — saved corrections to write down
   settings/page.tsx               # Settings: language, theme, sign-out, version
   share-target/page.tsx           # PWA Web Share Target receiver
   loading.tsx                     # Global Next.js loading boundary
@@ -52,14 +53,15 @@ app/
 components/
   AppHeader.tsx                   # Top nav bar with hamburger + theme toggle
   NavDrawer.tsx                   # Slide-out nav drawer (TABS array here)
-  BottomNav.tsx                   # Mobile bottom tab bar (Home/Practice/Insights/Settings)
+  BottomNav.tsx                   # Mobile bottom tab bar (Home/Write/Settings)
   ConditionalNav.tsx              # Composes AppHeader + NavDrawer + BottomNav
   ThemeProvider.tsx               # Dark/light theme context
   ThemeToggle.tsx                 # Theme switcher button
   FontSizeProvider.tsx            # User-controllable font scale
   LanguageProvider.tsx            # UI language context with live switching
   AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps `DockedSheet`
-  PracticeItemSheet.tsx           # Docked review sheet for practice items — wraps `DockedSheet`
+  WriteSheet.tsx                  # Docked review sheet for items in the Write list — wraps `DockedSheet`
+  WriteList.tsx                   # The Write surface: queue of saved corrections (Write / Written tabs)
   Icon.tsx                        # Shared inline-SVG icon set (no icon dep)
   # Shared UI primitives — prefer these over inlining new ones:
   Button.tsx                      # `<Button>` + `buttonStyles()` for primary/secondary actions
@@ -74,7 +76,6 @@ lib/
   types.ts                        # All shared TypeScript types
   auth.ts                         # getAuthenticatedUser() — @supabase/ssr helper
   i18n.ts                         # t() translation function + TRANSLATIONS dict
-  insights.ts                     # fetchInsightsData() — uses Supabase RPC
   push.ts                         # sendPushNotification helper
   dashboard-summary.ts            # computeDashboardSummary() → { writeDownCount, ... }
   supabase-server.ts              # Supabase client for server components/routes
@@ -107,13 +108,13 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
 - **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
 - **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
-- **Practice items, no scheduler (yet)**: The Leitner system was removed (migration `20260415_drop_leitner_columns.sql`). FSRS columns (`fsrs_state`, `due`, `stability`, …) were added by migration `20260410` for a future SRS, but no UI/API consumes them yet. Practice items currently expose only `written_down` and `importance_score`.
+- **Practice items, no scheduler (yet)**: The Leitner system was removed (migration `20260415_drop_leitner_columns.sql`). FSRS columns (`fsrs_state`, `due`, `stability`, …) were added by migration `20260410` for a future SRS, but no UI/API consumes them yet. `practice_items` rows currently expose only `written_down` and `importance_score`.
 - **Annotation review uses a docked sheet, not a modal**: `components/AnnotationSheet.tsx` is the central transcript-review pattern — bottom-anchored on mobile, right-side panel on desktop, no backdrop, with prev/next nav, swipe gestures, and `activeAnnotationId` ring on the source `<mark>`. Wire new annotation interactions through it; do not reach for `Modal`. The shared chrome (layout, animation, gestures, focus / keyboard / outside-click) lives in `components/DockedSheet.tsx` — use it for any new sheet rather than copying the chrome.
-- **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced as a star count + expandable note in `AnnotationCard` and `PracticeList`. Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
-- **Insights use Supabase RPCs**: `fetchInsightsData()` in `lib/insights.ts` calls 3 RPC functions (defined in `supabase/migrations/20260322000001_insights_rpc.sql`). Add new insight queries as RPCs, not direct table queries.
-- **Practice page = Active ↔ Written segmented control**: `PracticeList` exposes only two views (`active` = `!written_down`, `archive` = `written_down`). Sub-category pills, importance sort UI, and bulk-select were removed in the simplification pass — category filtering belongs on the Insights page now. `InsightsCardList` still links to `/practice?sub_category=…` but the param is currently a no-op (kept so the URL doesn't break; revisit when category filtering returns).
-- **Practice fast-path + undoable delete**: Active rows render a trailing tap target (Gmail pattern) that flips `written_down` without opening the sheet. Delete is optimistic with a 5-second undo window — the row hides immediately, `DELETE` only fires after the timer expires, Undo cancels the network call entirely. Toast lives at `bottom-[var(--toast-bottom)]` (5rem mobile / 1.25rem desktop) defined in `globals.css`.
-- **`<StrikeOriginal>` is the canonical "wrong → right" primitive** (`components/StrikeOriginal.tsx`) — used by `PracticeList` rows, `PracticeItemSheet`, and the empty-state example. Change colour or sizing once, all three surfaces follow.
+- **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced as a star count + expandable note in `AnnotationCard` and `WriteList`. Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
+- **Write page = Write ↔ Written segmented control** (`/write`): `WriteList` exposes only two views (`write` = `!written_down`, `written` = `written_down`). Sub-category pills, importance sort UI, and bulk-select were all removed in simplification passes. The `?sub_category=…` query param is accepted on `GET /api/practice-items` but currently a no-op (kept so old bookmarks don't break; revisit when category filtering returns).
+- **Insights feature removed**: The `/insights` page, its API handler, `lib/insights.ts`, and the corresponding Supabase RPCs (`get_subcategory_error_counts`, `get_subcategory_examples`) were removed in a distill pass — the surface wasn't delivering enough value. Dropped in migration `20260418000000_drop_insights_rpcs.sql`. If recurring-mistake surfacing returns, rebuild from the raw `annotations` table rather than recreating the RPCs.
+- **Write list fast-path + undoable delete**: Rows in the Write tab render a trailing tap target (Gmail pattern) that flips `written_down` without opening the sheet. Delete is optimistic with a 5-second undo window — the row hides immediately, `DELETE` only fires after the timer expires, Undo cancels the network call entirely. Toast lives at `bottom-[var(--toast-bottom)]` (5rem mobile / 1.25rem desktop) defined in `globals.css`.
+- **`<StrikeOriginal>` is the canonical "wrong → right" primitive** (`components/StrikeOriginal.tsx`) — used by `WriteList` rows, `WriteSheet`, and the empty-state example. Change colour or sizing once, all three surfaces follow.
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
@@ -142,9 +143,9 @@ The `analyseUserTurns` function in `lib/claude.ts` accepts `targetLanguage: Targ
 - **`POST /api/practice-items` does a bare `insert(body)`** — new fields in the POST body are stored automatically; no route change needed.
 - **`GET /api/practice-items` uses an explicit `.select()` column list** (not `'*'`). Append new column names to the string; do not switch to `select('*')`.
 - **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
-- **`react-swipeable` is already installed** (used by `PracticeList.tsx`). Import `useSwipeable` directly.
+- **`react-swipeable` is already installed** (used by `WriteList.tsx`). Import `useSwipeable` directly.
 - **Navigation lives in two places**: `components/NavDrawer.tsx` (slide-out, full nav) and `components/BottomNav.tsx` (mobile bottom tabs). Both have their own `TABS` array — update both when adding/removing routes.
-- **`written_down` on `practice_items`**: boolean field; drives the Active/Written segmented control in `PracticeList`. There is no deep-link query param — the view is always client-state, defaulting to Active.
+- **`written_down` on `practice_items`**: boolean field; drives the Write/Written segmented control in `WriteList`. There is no deep-link query param — the view is always client-state, defaulting to the Write tab.
 - **`ts-fsrs` is installed but unused**: SRS columns exist on `practice_items` (`fsrs_state`, `due`, `stability`, …) from migration `20260410`. The library and columns are reserved for an upcoming scheduler — do not remove either.
 
 ## Supabase CLI

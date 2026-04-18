@@ -85,18 +85,22 @@ describe('HomePage — share pickup', () => {
     setupIDB(sharedFile)
 
     const { default: HomePage } = await import('@/app/page')
-    const { getByText } = render(<HomePage />)
+    const { getAllByText } = render(<HomePage />)
 
+    // The shared `.opus` file is auto-uploaded, so the new session shows up
+    // in BOTH the in-progress callout at the top of the dashboard AND the
+    // recent conversations list — that duplication is intentional, so we
+    // assert >= 1 match rather than a unique one.
     await waitFor(() => {
-      expect(getByText('PTT-20260327.opus')).toBeInTheDocument()
+      expect(getAllByText('PTT-20260327.opus').length).toBeGreaterThan(0)
     }, { timeout: 2000 })
   })
 
   it('does nothing if no share is pending', async () => {
     setupIDB(null)
     const { default: HomePage } = await import('@/app/page')
-    const { queryByText } = render(<HomePage />)
+    const { queryAllByText } = render(<HomePage />)
     await new Promise(r => setTimeout(r, 100))
-    expect(queryByText('PTT-20260327.opus')).toBeNull()
+    expect(queryAllByText('PTT-20260327.opus')).toHaveLength(0)
   })
 })

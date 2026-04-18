@@ -1,6 +1,6 @@
 // components/StrikeOriginal.tsx
-// Shared "wrong → right" treatment used across the practice list row, the
-// practice item sheet, and the empty-state teaching example. Centralising
+// Shared "wrong → right" treatment used across the Write list row, the
+// Write sheet, and the empty-state teaching example. Centralising
 // the strikethrough + correction colours keeps these surfaces visually in
 // lockstep when we tune the colour ramp.
 

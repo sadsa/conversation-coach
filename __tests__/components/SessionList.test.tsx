@@ -64,9 +64,14 @@ describe('SessionList', () => {
     expect(screen.queryByText(/\dm \d+s/)).not.toBeInTheDocument()
   })
 
-  it('shows status label', () => {
+  it('shows status label for non-terminal sessions', () => {
     render(<SessionList sessions={[transcribingSession]} />)
     expect(screen.getByText(/transcribing/i)).toBeInTheDocument()
+  })
+
+  it('hides the "Ready" status label on terminal-success rows (no information value)', () => {
+    render(<SessionList sessions={[readySession]} />)
+    expect(screen.queryByText(/^ready$/i)).not.toBeInTheDocument()
   })
 
   it('does not render any text inputs (no inline rename)', () => {
@@ -74,14 +79,10 @@ describe('SessionList', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
-  it('shows processing time for ready session with processing_completed_at', () => {
+  it('does not render a processing-time chunk', () => {
+    // Processing time was removed from the row; the bucketed list relies on
+    // date + duration alone to distinguish rows.
     render(<SessionList sessions={[readySession]} />)
-    // created_at: 10:00:00Z, processing_completed_at: 10:01:23Z = 83 seconds = 1m 23s
-    expect(screen.getByText(/⚡ 1m 23s/)).toBeInTheDocument()
-  })
-
-  it('omits processing time when processing_completed_at is null', () => {
-    render(<SessionList sessions={[{ ...readySession, processing_completed_at: null }]} />)
     expect(screen.queryByText(/⚡/)).not.toBeInTheDocument()
   })
 })
@@ -103,7 +104,7 @@ describe('SessionList — swipe to delete', () => {
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText(/Chat with María/)).toBeInTheDocument()
     expect(within(dialog).getByText(/annotations/i)).toBeInTheDocument()
-    expect(within(dialog).getByText(/practice items/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/saved corrections/i)).toBeInTheDocument()
   })
 
   it('closes modal without calling API on Cancel', async () => {

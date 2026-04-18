@@ -60,8 +60,8 @@ describe('ConditionalNav', () => {
     expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
   })
 
-  it('renders the header on "/practice"', () => {
-    mockPathname.mockReturnValue('/practice')
+  it('renders the header on "/write"', () => {
+    mockPathname.mockReturnValue('/write')
     wrap()
     expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
   })

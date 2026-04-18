@@ -1,7 +1,7 @@
 // components/Toast.tsx
 //
 // Floating status pill anchored to the bottom of the viewport. Used by
-// SessionList (delete error) and PracticeList (delete + undo). Positions
+// SessionList (delete error) and WriteList (delete + undo). Positions
 // itself above the mobile bottom-nav by reading `--toast-bottom` from
 // `globals.css`, so a single change to that variable nudges every toast in
 // the app — don't hard-code `bottom-20` or similar.
