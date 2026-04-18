@@ -1,6 +1,6 @@
 // __tests__/components/PipelineStatus.test.tsx
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
 import { PipelineStatus } from '@/components/PipelineStatus'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -135,5 +135,52 @@ describe('PipelineStatus - analysis retry button', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledWith('/api/sessions/s1/analyse', { method: 'POST' })
+  })
+})
+
+describe('PipelineStatus - cancel session menu', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn((input: string, init?: RequestInit) => {
+      if (input === '/api/sessions/s1/status') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ status: 'uploading', error_stage: null }),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shows three-dot actions menu in uploading state', () => {
+    render(
+      <PipelineStatus sessionId="s1" initialStatus="uploading" initialErrorStage={null} durationSeconds={null} />
+    )
+    expect(screen.getByRole('button', { name: /more actions/i })).toBeInTheDocument()
+  })
+
+  it('opens cancel action and confirms deletion', async () => {
+    const fetchMock = vi.mocked(fetch)
+    render(
+      <PipelineStatus sessionId="s1" initialStatus="uploading" initialErrorStage={null} durationSeconds={null} />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /more actions/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /cancel session/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^cancel session$/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/sessions/s1', { method: 'DELETE' })
+    })
+  })
+
+  it('hides three-dot menu in analysing state', () => {
+    render(
+      <PipelineStatus sessionId="s1" initialStatus="analysing" initialErrorStage={null} durationSeconds={null} />
+    )
+    expect(screen.queryByRole('button', { name: /more actions/i })).not.toBeInTheDocument()
   })
 })

@@ -10,7 +10,6 @@ import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 import type { DashboardSummary } from '@/lib/dashboard-summary'
-import { Button } from '@/components/Button'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
@@ -31,13 +30,9 @@ export default function HomePage() {
   const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('solo')
   const [speakersExpected, setSpeakersExpected] = useState(2)
   const [uploading, setUploading] = useState(false)
-  const [uploadSessionId, setUploadSessionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const pollingRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
-  const uploadAbortRef = useRef<AbortController | null>(null)
-  const uploadCancelRequestedRef = useRef(false)
-  const deletedUploadSessionIdRef = useRef<string | null>(null)
 
   const greetingKey = useMemo(() => pickGreetingKey(new Date()), [])
 
@@ -121,26 +116,11 @@ export default function HomePage() {
     if (mode === 'solo') setSpeakersExpected(2)
   }, [])
 
-  const deleteUploadSessionOnce = useCallback(async (sessionId: string) => {
-    if (deletedUploadSessionIdRef.current === sessionId) return
-    deletedUploadSessionIdRef.current = sessionId
-    await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
-  }, [])
-
   const doUpload = useCallback(async (file: File, mode: SpeakerMode, speakers: number) => {
     setUploading(true)
-    setUploadSessionId(null)
     setError(null)
-    uploadCancelRequestedRef.current = false
-    deletedUploadSessionIdRef.current = null
     const ext = file.name.split('.').pop() ?? 'mp3'
     const duration_seconds = await getAudioDuration(file)
-    if (uploadCancelRequestedRef.current) {
-      setUploading(false)
-      setPendingFile(null)
-      setError(t('home.uploadCancelled'))
-      return
-    }
 
     const createRes = await fetch('/api/sessions', {
       method: 'POST',
@@ -149,62 +129,16 @@ export default function HomePage() {
     })
     if (!createRes.ok) { setError('Failed to create session'); setUploading(false); return }
     const { session_id, upload_url } = await createRes.json() as { session_id: string; upload_url: string }
-    setUploadSessionId(session_id)
-    if (uploadCancelRequestedRef.current) {
-      await deleteUploadSessionOnce(session_id)
-      setUploadSessionId(null)
-      setUploading(false)
-      setPendingFile(null)
-      setError(t('home.uploadCancelled'))
-      return
-    }
-    const abortController = new AbortController()
-    uploadAbortRef.current = abortController
-    if (uploadCancelRequestedRef.current) {
-      abortController.abort()
-    }
-    if (uploadCancelRequestedRef.current) {
-      await deleteUploadSessionOnce(session_id)
-      if (uploadAbortRef.current === abortController) uploadAbortRef.current = null
-      setUploadSessionId(null)
-      setUploading(false)
-      setPendingFile(null)
-      setError(t('home.uploadCancelled'))
-      return
-    }
 
     try {
-      const uploadRes = await fetch(upload_url, {
-        method: 'PUT',
-        body: file,
-        signal: abortController.signal,
-      })
+      const uploadRes = await fetch(upload_url, { method: 'PUT', body: file })
       if (!uploadRes.ok) throw new Error('Upload failed')
     } catch {
-      const wasCancelled = abortController.signal.aborted || uploadCancelRequestedRef.current
-      if (wasCancelled) {
-        await deleteUploadSessionOnce(session_id)
-      } else {
-        await fetch(`/api/sessions/${session_id}/upload-failed`, { method: 'POST' })
-      }
-      if (uploadAbortRef.current === abortController) uploadAbortRef.current = null
-      setUploadSessionId(null)
-      setPendingFile(null)
+      await fetch(`/api/sessions/${session_id}/upload-failed`, { method: 'POST' })
       setError(t('home.uploadFailed'))
-      if (wasCancelled) setError(t('home.uploadCancelled'))
       setUploading(false)
       return
     }
-    if (uploadAbortRef.current === abortController) uploadAbortRef.current = null
-    if (uploadCancelRequestedRef.current) {
-      await deleteUploadSessionOnce(session_id)
-      setUploadSessionId(null)
-      setUploading(false)
-      setPendingFile(null)
-      setError(t('home.uploadCancelled'))
-      return
-    }
-    setUploadSessionId(null)
 
     await fetch(`/api/sessions/${session_id}/upload-complete`, {
       method: 'POST',
@@ -226,22 +160,7 @@ export default function HomePage() {
     setSessions(prev => [newSession, ...prev])
     startPolling(session_id)
     setUploading(false)
-  }, [deleteUploadSessionOnce, t])
-
-  const handleCancelUpload = useCallback(() => {
-    uploadCancelRequestedRef.current = true
-    const controller = uploadAbortRef.current
-    controller?.abort()
-    const sessionIdToDelete = uploadSessionId
-    if (sessionIdToDelete) {
-      void deleteUploadSessionOnce(sessionIdToDelete)
-    }
-    uploadAbortRef.current = null
-    setUploadSessionId(null)
-    setUploading(false)
-    setPendingFile(null)
-    setError(t('home.uploadCancelled'))
-  }, [deleteUploadSessionOnce, uploadSessionId, t])
+  }, [t])
 
   const handleFile = useCallback((file: File) => {
     if (file.name.toLowerCase().endsWith('.opus')) {
@@ -341,18 +260,7 @@ export default function HomePage() {
               {t('home.newSessionTitle')}
             </h2>
             {uploadSurface}
-            {uploading && (
-              <div className="mt-3 flex items-center gap-3">
-                <p className="text-status-processing text-sm">{t('home.uploading')}</p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCancelUpload}
-                >
-                  {t('home.uploadCancel')}
-                </Button>
-              </div>
-            )}
+            {uploading && <p className="text-status-processing text-sm">{t('home.uploading')}</p>}
             {error && <p className="text-status-error text-sm">{error}</p>}
           </section>
         </>
@@ -383,18 +291,7 @@ export default function HomePage() {
 
           <DashboardUploadStarter>
             {uploadSurface}
-            {uploading && (
-              <div className="mt-3 flex items-center gap-3">
-                <p className="text-status-processing text-sm">{t('home.uploading')}</p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCancelUpload}
-                >
-                  {t('home.uploadCancel')}
-                </Button>
-              </div>
-            )}
+            {uploading && <p className="text-status-processing text-sm mt-3">{t('home.uploading')}</p>}
             {error && <p className="text-status-error text-sm mt-3">{error}</p>}
           </DashboardUploadStarter>
         </>
