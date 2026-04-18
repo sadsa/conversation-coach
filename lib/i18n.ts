@@ -143,11 +143,46 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorTranscribing': 'Transcription failed.',
     'pipeline.errorAnalysing': 'Analysis failed.',
     'pipeline.errorGeneric': 'Something went wrong.',
-    'pipeline.retry': 'Retry',
-    'pipeline.estimatedTime': 'Estimated time: ~{n} min',
-    'pipeline.takingLong': 'Taking longer than expected.',
+    'pipeline.errorUploadingDetail':
+      "We couldn't send your recording. This is usually a connection issue — your audio is safe.",
+    'pipeline.errorTranscribingDetail':
+      "The transcription service didn't respond. Most of the time another try is all it takes.",
+    'pipeline.errorAnalysingDetail':
+      "The analysis didn't finish. Your transcript is saved — we just need another pass over it.",
+    'pipeline.errorGenericDetail':
+      'Your recording is safe. Try again in a moment, or come back later.',
+    'pipeline.retry': 'Try again',
+    'pipeline.estimatedTime': 'Usually ready in ~{n} min',
+    'pipeline.takingLong':
+      'Taking longer than expected — longer recordings can take a few minutes.',
     'pipeline.retryAnalysis': 'Retry analysis',
     'pipeline.retrying': 'Retrying…',
+    // Reassurance + meta
+    'pipeline.recordedOn': 'Recorded {date}',
+    'pipeline.audioLength': '{n} min recording',
+    'pipeline.audioLengthShort': '{n} sec recording',
+    'pipeline.leaveBreak':
+      "Feel free to close this page — we'll keep working in the background.",
+    'pipeline.leaveBreakNotify':
+      "Feel free to close this page — we'll send a notification when it's ready.",
+    // Inline notification permission prompt
+    'pipeline.notifyPromptTitle': 'Want a heads-up when it\u2019s ready?',
+    'pipeline.notifyPromptBody':
+      'We can ping you on this device so you don\u2019t have to wait here.',
+    'pipeline.notifyPromptAccept': 'Notify me',
+    'pipeline.notifyPromptDismiss': 'Not now',
+    // Active-stage hints (rotating, gentle)
+    'pipeline.hint.uploading.0': 'Sending your audio safely',
+    'pipeline.hint.transcribing.0': 'Listening to every word',
+    'pipeline.hint.transcribing.1': 'Picking up punctuation and pauses',
+    'pipeline.hint.analysing.0': 'Reading the transcript closely',
+    'pipeline.hint.analysing.1': 'Looking for grammar to refine',
+    'pipeline.hint.analysing.2': 'Noting where phrasing could feel more natural',
+    'pipeline.hint.analysing.3': 'Comparing your tense and pronoun choices',
+    // Stepper a11y
+    'pipeline.stageDone': '{label} (done)',
+    'pipeline.stageActive': '{label} (in progress)',
+    'pipeline.stagePending': '{label} (pending)',
 
     // Transcript page
     'transcript.loading': 'Loading transcript…',
@@ -408,11 +443,46 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorTranscribing': 'Error en la transcripción.',
     'pipeline.errorAnalysing': 'Error en el análisis.',
     'pipeline.errorGeneric': 'Algo salió mal.',
-    'pipeline.retry': 'Reintentar',
-    'pipeline.estimatedTime': 'Tiempo estimado: ~{n} min',
-    'pipeline.takingLong': 'Está tardando más de lo esperado.',
+    'pipeline.errorUploadingDetail':
+      'No pudimos enviar la grabación. Suele ser un problema de conexión — tu audio está a salvo.',
+    'pipeline.errorTranscribingDetail':
+      'El servicio de transcripción no respondió. Casi siempre se resuelve con otro intento.',
+    'pipeline.errorAnalysingDetail':
+      'El análisis no terminó. Tu transcripción está guardada — solo necesitamos pasarla de nuevo.',
+    'pipeline.errorGenericDetail':
+      'Tu grabación está a salvo. Probá de nuevo en un momento o volvé más tarde.',
+    'pipeline.retry': 'Probar de nuevo',
+    'pipeline.estimatedTime': 'Suele estar listo en ~{n} min',
+    'pipeline.takingLong':
+      'Está tardando más de lo esperado — las grabaciones largas pueden llevar unos minutos.',
     'pipeline.retryAnalysis': 'Reintentar análisis',
     'pipeline.retrying': 'Reintentando…',
+    // Reassurance + meta
+    'pipeline.recordedOn': 'Grabado {date}',
+    'pipeline.audioLength': 'grabación de {n} min',
+    'pipeline.audioLengthShort': 'grabación de {n} seg',
+    'pipeline.leaveBreak':
+      'Podés cerrar esta página — seguimos trabajando en segundo plano.',
+    'pipeline.leaveBreakNotify':
+      'Podés cerrar esta página — te avisamos con una notificación cuando esté listo.',
+    // Inline notification permission prompt
+    'pipeline.notifyPromptTitle': '¿Te avisamos cuando esté listo?',
+    'pipeline.notifyPromptBody':
+      'Podemos enviarte una notificación a este dispositivo para que no tengas que esperar acá.',
+    'pipeline.notifyPromptAccept': 'Avisarme',
+    'pipeline.notifyPromptDismiss': 'Ahora no',
+    // Active-stage hints (rotating, gentle)
+    'pipeline.hint.uploading.0': 'Enviando tu audio de forma segura',
+    'pipeline.hint.transcribing.0': 'Escuchando cada palabra',
+    'pipeline.hint.transcribing.1': 'Reconociendo pausas y puntuación',
+    'pipeline.hint.analysing.0': 'Leyendo la transcripción con atención',
+    'pipeline.hint.analysing.1': 'Buscando gramática para afinar',
+    'pipeline.hint.analysing.2': 'Anotando dónde el fraseo podría sentirse más natural',
+    'pipeline.hint.analysing.3': 'Comparando tus tiempos verbales y pronombres',
+    // Stepper a11y
+    'pipeline.stageDone': '{label} (terminado)',
+    'pipeline.stageActive': '{label} (en curso)',
+    'pipeline.stagePending': '{label} (pendiente)',
 
     // Transcript page
     'transcript.loading': 'Cargando transcripción…',

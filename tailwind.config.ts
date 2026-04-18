@@ -38,6 +38,8 @@ const config: Config = {
         "status-processing": "var(--color-status-processing)",
         "status-ready": "var(--color-status-ready)",
         "status-error": "var(--color-status-error)",
+        "status-rail": "var(--color-status-rail)",
+        "status-done": "var(--color-status-done)",
         "widget-cards-border": "var(--color-widget-cards-border)",
         "widget-cards-bg": "var(--color-widget-cards-bg)",
         "widget-cards-bg-hover": "var(--color-widget-cards-bg-hover)",

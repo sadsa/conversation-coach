@@ -37,6 +37,10 @@
     --color-status-processing: oklch(55% 0.2 285);
     --color-status-ready: oklch(52% 0.14 150);
     --color-status-error: oklch(55% 0.2 25);
+    /* Pipeline stepper — quieter rail and a desaturated "done" tone so the
+       active stage is the visually loudest item on the page. */
+    --color-status-rail: oklch(88% 0.01 75);
+    --color-status-done: oklch(58% 0.08 150);
     /* Home habit widget pills */
     --color-widget-cards-border: oklch(50% 0.18 285);
     --color-widget-cards-bg: oklch(94% 0.035 285);
@@ -98,6 +102,8 @@
     --color-status-processing: oklch(68% 0.16 285);
     --color-status-ready: oklch(75% 0.14 150);
     --color-status-error: oklch(72% 0.16 25);
+    --color-status-rail: oklch(36% 0.012 265);
+    --color-status-done: oklch(60% 0.08 150);
     /* Home habit widget pills */
     --color-widget-cards-border: oklch(50% 0.18 285);
     --color-widget-cards-bg: oklch(28% 0.08 285);
@@ -219,5 +225,13 @@
   @keyframes sheet-in-right {
     from { opacity: 0; transform: translateX(100%); }
     to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Pipeline stage entrance — quietly settles in on first paint. Used via
+     Tailwind arbitrary-value syntax: `motion-safe:animate-[stage-in_...]`,
+     with an inline `animation-delay` per row to create the cascade. */
+  @keyframes stage-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 }

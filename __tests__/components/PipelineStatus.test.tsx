@@ -4,7 +4,13 @@ import { render, screen, act, fireEvent } from '@testing-library/react'
 import { PipelineStatus } from '@/components/PipelineStatus'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
-vi.mock('@/hooks/usePushNotifications', () => ({ usePushNotifications: vi.fn() }))
+vi.mock('@/hooks/usePushNotifications', () => ({
+  usePushNotifications: () => ({
+    status: 'denied' as const,
+    subscribed: false,
+    requestAndSubscribe: vi.fn(async () => false),
+  }),
+}))
 
 // Prevent useEffect fetch calls from throwing unhandled rejections in jsdom,
 // which lacks a base URL and causes "Failed to parse URL" errors.
@@ -42,6 +48,34 @@ describe('PipelineStatus', () => {
     expect(screen.getByText(/90 min/i)).toBeInTheDocument()
   })
 
+  it('shows recorded date and audio length in the meta line', () => {
+    render(
+      <PipelineStatus
+        sessionId="s1"
+        initialStatus="transcribing"
+        initialErrorStage={null}
+        durationSeconds={720}
+        createdAt="2026-04-15T09:30:00Z"
+      />
+    )
+    // Audio length: 720s = 12 min
+    expect(screen.getByText(/12 min recording/i)).toBeInTheDocument()
+    // Recorded date: month name appears (locale-dependent format)
+    expect(screen.getByText(/Recorded/i)).toBeInTheDocument()
+  })
+
+  it('reassures the user that they can leave the page', () => {
+    render(
+      <PipelineStatus
+        sessionId="s1"
+        initialStatus="transcribing"
+        initialErrorStage={null}
+        durationSeconds={null}
+      />
+    )
+    expect(screen.getByText(/feel free to close this page/i)).toBeInTheDocument()
+  })
+
   it('shows error message when status is error', () => {
     render(
       <PipelineStatus
@@ -52,7 +86,9 @@ describe('PipelineStatus', () => {
       />
     )
     expect(screen.getByText(/transcription failed/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+    // Reassuring detail copy is also present
+    expect(screen.getByText(/transcription service didn't respond/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
   })
 })
 

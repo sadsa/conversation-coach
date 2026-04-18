@@ -1,6 +1,18 @@
 // components/PipelineStatus.tsx
+//
+// Status page for an in-flight upload → transcribe → identify → analyse
+// pipeline. The brief is "patient, encouraging, spacious": the user just
+// uploaded a real Spanish conversation and is anxious to see corrections,
+// so the page does emotional work as well as functional reporting.
+//
+// Visual model: a single vertical rail with stage markers, not five
+// disconnected dots. The rail's filled portion grows as stages complete,
+// communicating flow at a glance. The active stage is the loudest thing
+// on the page (full-chroma processing colour, soft pulse, elapsed timer,
+// rotating hint copy); completed stages step down in chroma so they don't
+// compete; pending stages are quiet.
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Button } from '@/components/Button'
@@ -8,18 +20,27 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
 
 const STAGES: SessionStatus[] = ['uploading', 'transcribing', 'identifying', 'analysing', 'ready']
+const VISIBLE_STAGES = STAGES.filter(s => s !== 'error') as SessionStatus[]
 
 interface Props {
   sessionId: string
   initialStatus: SessionStatus
   initialErrorStage: ErrorStage | null
   durationSeconds: number | null
+  /** ISO timestamp from `sessions.created_at`, used for the meta line. */
+  createdAt?: string | null
 }
 
-export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, durationSeconds }: Props) {
+export function PipelineStatus({
+  sessionId,
+  initialStatus,
+  initialErrorStage,
+  durationSeconds,
+  createdAt,
+}: Props) {
   const router = useRouter()
-  const { t } = useTranslation()
-  usePushNotifications()
+  const { t, uiLanguage } = useTranslation()
+  const push = usePushNotifications()
 
   const STAGE_LABELS: Record<SessionStatus, string> = {
     uploading: t('pipeline.uploading'),
@@ -30,19 +51,69 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     error: t('status.error'),
   }
 
-  const ERROR_MESSAGES: Record<string, string> = {
+  const ERROR_HEADLINES: Record<string, string> = {
     uploading: t('pipeline.errorUploading'),
     transcribing: t('pipeline.errorTranscribing'),
     analysing: t('pipeline.errorAnalysing'),
   }
+  const ERROR_DETAILS: Record<string, string> = {
+    uploading: t('pipeline.errorUploadingDetail'),
+    transcribing: t('pipeline.errorTranscribingDetail'),
+    analysing: t('pipeline.errorAnalysingDetail'),
+  }
+
+  // Per-stage rotating hints. Quiet, single-line, never lecture.
+  const STAGE_HINTS: Record<SessionStatus, string[]> = useMemo(() => ({
+    uploading: [t('pipeline.hint.uploading.0')],
+    transcribing: [
+      t('pipeline.hint.transcribing.0'),
+      t('pipeline.hint.transcribing.1'),
+    ],
+    identifying: [],
+    analysing: [
+      t('pipeline.hint.analysing.0'),
+      t('pipeline.hint.analysing.1'),
+      t('pipeline.hint.analysing.2'),
+      t('pipeline.hint.analysing.3'),
+    ],
+    ready: [],
+    error: [],
+  }), [t])
 
   const [currentStatus, setCurrentStatus] = useState(initialStatus)
   const [currentErrorStage, setCurrentErrorStage] = useState(initialErrorStage)
   const [showAnalysisRetry, setShowAnalysisRetry] = useState(false)
   const [retryingAnalysis, setRetryingAnalysis] = useState(false)
+  const [notifyDismissed, setNotifyDismissed] = useState(false)
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const analysisRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Per-stage elapsed timer. Resets whenever the active stage changes so the
+  // user can see "how long has this current step been running" rather than a
+  // single global timer that conflates slow uploads with slow analysis.
+  const [stageStartedAt, setStageStartedAt] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => { setStageStartedAt(Date.now()) }, [currentStatus])
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  // Round-down so the displayed counter feels honest (never ahead of itself).
+  const elapsedSeconds = Math.max(0, Math.floor((now - stageStartedAt) / 1000))
+
+  // Hint rotation. Restart the cycle on stage change so the first hint is
+  // always shown for the full window before rotating.
+  const [hintIndex, setHintIndex] = useState(0)
+  useEffect(() => {
+    setHintIndex(0)
+    const hints = STAGE_HINTS[currentStatus] ?? []
+    if (hints.length <= 1) return
+    const id = setInterval(() => {
+      setHintIndex(i => (i + 1) % hints.length)
+    }, 5500)
+    return () => clearInterval(id)
+  }, [currentStatus, STAGE_HINTS])
 
   const estimatedMinutes = durationSeconds
     ? Math.ceil(durationSeconds / 60 * 1.5)
@@ -54,7 +125,6 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
       if (status === 'ready') router.push(`/sessions/${sessionId}`)
     }
 
-    // Immediate check on mount
     fetch(`/api/sessions/${sessionId}/status`)
       .then(r => r.json())
       .then(data => {
@@ -107,7 +177,6 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     if (res.ok) {
       const data = await res.json()
       if (data.upload_url) {
-        // Upload failed — redirect home with message
         router.push('/?retry=upload')
       } else {
         router.push(`/sessions/${sessionId}/status`)
@@ -115,41 +184,283 @@ export function PipelineStatus({ sessionId, initialStatus, initialErrorStage, du
     }
   }
 
+  // ── Error state ─────────────────────────────────────────────────────────
   if (currentStatus === 'error') {
-    const msg = ERROR_MESSAGES[currentErrorStage ?? ''] ?? t('pipeline.errorGeneric')
+    const stageKey = currentErrorStage ?? ''
+    const headline = ERROR_HEADLINES[stageKey] ?? t('pipeline.errorGeneric')
+    const detail = ERROR_DETAILS[stageKey] ?? t('pipeline.errorGenericDetail')
     return (
-      <div className="space-y-5">
-        <p className="text-status-error">{msg}</p>
-        <Button size="md" onClick={handleRetry}>
-          {t('pipeline.retry')}
-        </Button>
+      <div className="space-y-6">
+        <Meta createdAt={createdAt} durationSeconds={durationSeconds} t={t} uiLanguage={uiLanguage} />
+        <div
+          role="alert"
+          className="rounded-2xl bg-error-container px-5 py-5 sm:px-6 sm:py-6 space-y-3"
+        >
+          <p className="text-on-error-surface font-medium">{headline}</p>
+          <p className="text-text-secondary leading-relaxed">{detail}</p>
+          <div className="pt-2">
+            <Button size="md" onClick={handleRetry}>
+              {t('pipeline.retry')}
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
 
-  const currentIndex = STAGES.indexOf(currentStatus)
+  // ── In-flight state ─────────────────────────────────────────────────────
+  const currentIndex = VISIBLE_STAGES.indexOf(currentStatus)
+  // Last visible stage is `ready` which only renders for half a beat before
+  // the redirect fires; treat it as "almost done" rather than fully complete.
+  const showNotifyPrompt =
+    push.status === 'default' && !notifyDismissed && !push.subscribed
+  const reassuranceCopy =
+    push.status === 'granted' || push.subscribed
+      ? t('pipeline.leaveBreakNotify')
+      : t('pipeline.leaveBreak')
+  const activeHints = STAGE_HINTS[currentStatus] ?? []
+  const activeHint = activeHints[hintIndex] ?? ''
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4">
-        {STAGES.filter(s => s !== 'error').map((stage, i) => (
-          <div key={stage} className={`flex items-center gap-4 ${i <= currentIndex ? 'text-text-primary' : 'text-text-tertiary'}`}>
-            <span className={`w-3 h-3 rounded-full ${i < currentIndex ? 'bg-status-ready' : i === currentIndex ? 'bg-status-processing animate-pulse' : 'bg-border'}`} />
-            <span>{STAGE_LABELS[stage]}</span>
+      <Meta createdAt={createdAt} durationSeconds={durationSeconds} t={t} uiLanguage={uiLanguage} />
+
+      {/* Inline notification opt-in. Only appears when permission is `default`,
+          contextual to the wait so it lands as helpful rather than nagging. */}
+      {showNotifyPrompt && (
+        <div className="rounded-2xl bg-surface-elevated px-5 py-4 sm:px-6 sm:py-5 motion-safe:animate-[stage-in_450ms_cubic-bezier(0.16,1,0.3,1)_both]">
+          <p className="font-medium text-text-primary">{t('pipeline.notifyPromptTitle')}</p>
+          <p className="mt-1 text-text-secondary">{t('pipeline.notifyPromptBody')}</p>
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={async () => {
+                const ok = await push.requestAndSubscribe()
+                if (!ok) setNotifyDismissed(true)
+              }}
+            >
+              {t('pipeline.notifyPromptAccept')}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setNotifyDismissed(true)}
+            >
+              {t('pipeline.notifyPromptDismiss')}
+            </Button>
           </div>
-        ))}
-      </div>
-      {estimatedMinutes && (
-        <p className="text-text-secondary">{t('pipeline.estimatedTime', { n: estimatedMinutes })}</p>
+        </div>
       )}
+
+      {/* Stepper. The rail (background line) and the filled portion (status-done)
+          live as siblings of the <li> rows so they sit behind the dots without
+          coupling each row to a border-left tell. */}
+      <ol className="relative flex flex-col gap-6">
+        <span
+          aria-hidden
+          className="absolute left-[7px] top-2 bottom-2 w-px bg-status-rail"
+        />
+        <span
+          aria-hidden
+          className="absolute left-[7px] top-2 w-px bg-status-done/80 transition-[height] duration-700 ease-out"
+          style={{ height: railFillPercent(currentIndex, VISIBLE_STAGES.length) }}
+        />
+
+        {VISIBLE_STAGES.map((stage, i) => {
+          const state =
+            i < currentIndex ? 'done' : i === currentIndex ? 'active' : 'pending'
+          const label = STAGE_LABELS[stage]
+          const ariaLabelKey =
+            state === 'done'
+              ? 'pipeline.stageDone'
+              : state === 'active'
+                ? 'pipeline.stageActive'
+                : 'pipeline.stagePending'
+          const showElapsed = state === 'active' && elapsedSeconds >= 8
+          const showHint = state === 'active' && activeHint.length > 0
+
+          return (
+            <li
+              key={stage}
+              aria-label={t(ariaLabelKey, { label })}
+              className="relative flex items-start gap-4 motion-safe:animate-[stage-in_450ms_cubic-bezier(0.16,1,0.3,1)_both]"
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              <Marker state={state} />
+              <div className="flex min-w-0 flex-col gap-1 pt-px">
+                <span
+                  className={
+                    state === 'pending'
+                      ? 'text-text-tertiary'
+                      : state === 'active'
+                        ? 'text-text-primary font-medium'
+                        : 'text-text-secondary'
+                  }
+                >
+                  {label}
+                </span>
+                {(showHint || showElapsed) && (
+                  <span className="text-text-tertiary text-sm tabular-nums motion-safe:animate-[fadein_300ms_ease-out_both]">
+                    {showHint ? activeHint : null}
+                    {showHint && showElapsed ? ' · ' : null}
+                    {showElapsed ? formatElapsed(elapsedSeconds) : null}
+                  </span>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+
+      {/* Reassurance + estimated time. Stacked tightly so they read as one
+          calm note rather than two separate UI bits. */}
+      <div className="space-y-1 text-text-secondary">
+        <p>{reassuranceCopy}</p>
+        {estimatedMinutes !== null && (
+          <p className="text-text-tertiary text-sm">
+            {t('pipeline.estimatedTime', { n: estimatedMinutes })}
+          </p>
+        )}
+      </div>
+
+      {/* Long-wait fallback. Appears after 60s on `analysing`. Demoted to a
+          secondary button so it doesn't read as "your only option". */}
       {(showAnalysisRetry || retryingAnalysis) && (
-        <div className="space-y-3">
+        <div className="rounded-2xl border border-border-subtle px-5 py-4 sm:px-6 sm:py-5 space-y-3 motion-safe:animate-[stage-in_450ms_cubic-bezier(0.16,1,0.3,1)_both]">
           <p className="text-text-secondary">{t('pipeline.takingLong')}</p>
-          <Button size="md" onClick={handleRetryAnalysis} disabled={retryingAnalysis}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleRetryAnalysis}
+            disabled={retryingAnalysis}
+          >
             {retryingAnalysis ? t('pipeline.retrying') : t('pipeline.retryAnalysis')}
           </Button>
         </div>
       )}
     </div>
   )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Stage marker. Three visual states. Kept as a small component so the JSX in
+// the stepper stays scannable.
+// ────────────────────────────────────────────────────────────────────────────
+function Marker({ state }: { state: 'done' | 'active' | 'pending' }) {
+  if (state === 'done') {
+    return (
+      <span
+        aria-hidden
+        className="relative z-10 mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-status-done text-bg"
+      >
+        <svg viewBox="0 0 10 10" className="h-2 w-2" fill="none">
+          <path
+            d="M2 5.2 L4.2 7.4 L8 3.2"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    )
+  }
+  if (state === 'active') {
+    return (
+      <span
+        aria-hidden
+        className="relative z-10 mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
+      >
+        {/* Soft outer pulse — opacity-only so it doesn't push layout. */}
+        <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-status-processing opacity-40" />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-status-processing" />
+      </span>
+    )
+  }
+  return (
+    <span
+      aria-hidden
+      className="relative z-10 mt-1 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
+    >
+      <span className="inline-flex h-2 w-2 rounded-full border border-status-rail bg-bg" />
+    </span>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Meta line. Dot-separated facts that orient the user without filling the
+// page (recorded date, audio length). Both parts degrade gracefully if the
+// underlying data isn't available.
+// ────────────────────────────────────────────────────────────────────────────
+function Meta({
+  createdAt,
+  durationSeconds,
+  t,
+  uiLanguage,
+}: {
+  createdAt: string | null | undefined
+  durationSeconds: number | null
+  t: (key: string, replacements?: Record<string, string | number>) => string
+  uiLanguage: 'en' | 'es'
+}) {
+  const parts: string[] = []
+  if (createdAt) {
+    const formatted = formatRecordedDate(createdAt, uiLanguage)
+    if (formatted) parts.push(t('pipeline.recordedOn', { date: formatted }))
+  }
+  if (durationSeconds && durationSeconds > 0) {
+    if (durationSeconds >= 60) {
+      parts.push(t('pipeline.audioLength', { n: Math.round(durationSeconds / 60) }))
+    } else {
+      parts.push(t('pipeline.audioLengthShort', { n: Math.round(durationSeconds) }))
+    }
+  }
+  if (parts.length === 0) return null
+  return (
+    <p className="text-text-tertiary text-sm">{parts.join(' · ')}</p>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the % of the rail that should be filled. Each completed stage
+ * fills one segment between consecutive dots; the active stage doesn't fill
+ * its own segment (the visual signal for "in progress" is the pulse, not
+ * a half-filled bar).
+ */
+function railFillPercent(currentIndex: number, total: number): string {
+  if (currentIndex <= 0) return '0%'
+  if (currentIndex >= total) return '100%'
+  // Convert from "completed dot count" to a percentage of the rail length.
+  const segments = total - 1
+  const completed = Math.min(currentIndex, segments)
+  return `${(completed / segments) * 100}%`
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function formatRecordedDate(iso: string, uiLanguage: 'en' | 'es'): string | null {
+  try {
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return null
+    const locale = uiLanguage === 'es' ? 'es-AR' : 'en-NZ'
+    // Today / yesterday-aware? Keep it simple for now: month + day, and only
+    // include the year when it's not the current year.
+    const now = new Date()
+    const sameYear = date.getFullYear() === now.getFullYear()
+    return new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      day: 'numeric',
+      year: sameYear ? undefined : 'numeric',
+    }).format(date)
+  } catch {
+    return null
+  }
 }
