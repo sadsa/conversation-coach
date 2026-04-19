@@ -1,4 +1,26 @@
 // components/SessionList.tsx
+//
+// Inbox row with two opposing swipe gestures:
+//   • Swipe LEFT  → confirm-then-delete (destructive, gated by modal)
+//   • Swipe RIGHT → toggle read/unread (reversible, no confirm)
+//
+// Both gestures live on the same row using `react-swipeable`. The translateX
+// during a drag has its sign sniff which side's background to reveal: negative
+// = red delete background on the right; positive = neutral toggle background
+// on the left. Past the 80px threshold the gesture commits on release; below
+// it we snap back.
+//
+// Read state is signalled by *weight + tone only* — no dot, no border stripe
+// (banned per impeccable rules). Read rows recede to `font-normal` +
+// `text-text-secondary`; unread rows hold the assertive default
+// `font-semibold` + `text-text-primary`. The Unread filter pill above does
+// the heavy lifting when the user wants to scope the view.
+//
+// When the parent passes `removeOnRead` (i.e. we're inside the Unread filter),
+// marking a row as read causes it to slide-out + collapse first, then the
+// parent's filter re-runs and removes it from the array. This avoids the row
+// blinking out of existence.
+
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
@@ -27,6 +49,10 @@ const STATUS_COLOUR: Record<string, string> = {
 }
 
 const TERMINAL_STATUSES = new Set(['ready', 'error'])
+
+// Threshold past which a release commits the swipe. Matches the delete
+// threshold so users learn one rule for both gestures.
+const SWIPE_COMMIT_PX = 80
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -71,11 +97,17 @@ function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date(
 function SwipeableSessionItem({
   session,
   onDelete,
+  onToggleRead,
+  removeOnRead,
 }: {
   session: SessionListItem
   onDelete: (id: string) => Promise<boolean>
+  onToggleRead: (id: string, makeRead: boolean) => Promise<boolean>
+  removeOnRead: boolean
 }) {
   const { t, uiLanguage } = useTranslation()
+  // translateX is signed: negative = dragging left (delete reveal), positive
+  // = dragging right (toggle reveal). Zero = at rest.
   const [translateX, setTranslateX] = useState(0)
   const [rowHeight, setRowHeight] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -117,21 +149,87 @@ function SwipeableSessionItem({
     // On success: parent already called onDeleted inside onDelete
   }
 
+  // Toggling read/unread is non-destructive — no confirmation. When the row
+  // would leave the current filter (Unread → marked read), we animate it out
+  // using the same two-phase pattern as delete so it doesn't blink.
+  async function triggerToggleRead() {
+    if (isAnimating || !rowRef.current) return
+    const willRemove = removeOnRead && isUnread // marking unread row as read inside Unread filter
+
+    if (!willRemove) {
+      // In-place toggle: fire and forget. The optimistic update happens at
+      // the page level via onToggleRead so the row's bold/normal flips
+      // immediately on next render.
+      const ok = await onToggleRead(session.id, isUnread)
+      if (!ok && mountedRef.current) {
+        // Parent already rolled back its optimistic update; nothing to do
+        // here — the toast surface lives at the SessionList level.
+      }
+      return
+    }
+
+    setIsAnimating(true)
+
+    // Phase 1: slide off-screen RIGHT (positive direction), fire API
+    setTranslateX(window.innerWidth)
+    const togglePromise = onToggleRead(session.id, true)
+
+    await new Promise(r => setTimeout(r, 220))
+    if (!mountedRef.current) return
+
+    setRowHeight(0)
+
+    const [, result] = await Promise.allSettled([
+      new Promise(r => setTimeout(r, 220)),
+      togglePromise,
+    ])
+    if (!mountedRef.current) return
+
+    const succeeded = result.status === 'fulfilled' && result.value === true
+    if (!succeeded) {
+      setRowHeight(null)
+      setTranslateX(0)
+      setIsAnimating(false)
+    }
+  }
+
   const handlers = useSwipeable({
     delta: 10,
     onSwiping: (e) => {
-      if (e.dir === 'Left') setTranslateX(-e.absX)
-      else setTranslateX(0)
+      // Only allow horizontal drag; vertical scrolls fall through naturally.
+      if (e.dir === 'Left') {
+        setTranslateX(-e.absX)
+      } else if (e.dir === 'Right' && session.status === 'ready') {
+        // Right-swipe gesture is only meaningful for ready sessions — there's
+        // no read state to toggle on rows still in the pipeline.
+        setTranslateX(e.absX)
+      } else {
+        setTranslateX(0)
+      }
     },
     onSwipedLeft: (e) => {
-      if (e.absX > 80) {
+      if (e.absX > SWIPE_COMMIT_PX) {
         setTranslateX(0)
         setConfirmPending(true)
       } else {
         setTranslateX(0)
       }
     },
-    onSwipedRight: () => setTranslateX(0),
+    onSwipedRight: (e) => {
+      if (session.status !== 'ready') {
+        setTranslateX(0)
+        return
+      }
+      if (e.absX > SWIPE_COMMIT_PX) {
+        // Snap back to 0 first so the in-place toggle doesn't fight with
+        // the drag offset; the slide-out animation (when removeOnRead is
+        // true) will set its own translateX.
+        setTranslateX(0)
+        triggerToggleRead()
+      } else {
+        setTranslateX(0)
+      }
+    },
     trackMouse: false,
   })
 
@@ -139,6 +237,14 @@ function SwipeableSessionItem({
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
   const dateLabel = formatRowDate(new Date(session.created_at), uiLanguage)
+  // Unread is meaningful only for ready conversations — in-progress rows
+  // already carry a spinner + status, and errors get a red status. Showing
+  // any unread treatment on those would just add noise.
+  const isUnread = session.status === 'ready' && session.last_viewed_at == null
+
+  // Right-swipe action label flips with current state — same gesture, opposite
+  // verb. When the row isn't toggleable (still processing) we skip the label.
+  const toggleLabel = !isUnread ? t('session.markUnread') : t('session.markRead')
 
   return (
     <li
@@ -151,10 +257,22 @@ function SwipeableSessionItem({
       }
     >
       <div className="overflow-hidden min-h-0 min-w-0">
-      {/* Swipe-to-delete background */}
+      {/* Swipe-LEFT background (delete) — pinned right, revealed as the row
+          slides out leftward. Red is reserved for the destructive direction. */}
       <div className="absolute inset-0 bg-status-error flex items-center justify-end pr-5">
         <span className="text-white font-medium">{t('session.delete')}</span>
       </div>
+
+      {/* Swipe-RIGHT background (toggle read/unread) — pinned left, revealed
+          as the row slides rightward. Cool/neutral surface keeps it visually
+          distinct from the destructive red. We only render this layer for
+          ready sessions; for in-progress rows the right-swipe gesture is a
+          no-op and there's nothing to reveal. */}
+      {session.status === 'ready' && (
+        <div className="absolute inset-0 bg-accent-chip flex items-center justify-start pl-5 pointer-events-none">
+          <span className="text-on-accent-chip font-medium">{toggleLabel}</span>
+        </div>
+      )}
 
       {/* Session card */}
       <div
@@ -182,12 +300,47 @@ function SwipeableSessionItem({
           // @ts-ignore — inert is a valid HTML attribute not yet in React's types
           inert=""
         />
+        {/* Hidden test seam for triggering the read/unread toggle. The visible
+            affordance is the swipe gesture; this gives unit tests a stable
+            handle since simulating touch swipes in JSDOM is brittle. */}
+        {session.status === 'ready' && (
+          <button
+            data-testid={`toggle-read-${session.id}`}
+            className="sr-only"
+            onClick={e => { e.stopPropagation(); triggerToggleRead() }}
+            tabIndex={-1}
+            aria-hidden="true"
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore — inert is a valid HTML attribute not yet in React's types
+            inert=""
+          />
+        )}
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
           onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
           className="block py-4 px-5 min-w-0 hover:bg-surface-elevated transition-colors"
         >
-          <p className="text-lg font-medium truncate text-text-primary">{session.title}</p>
+          {/*
+            Title row. Read state lives on weight + tone alone — no dot, no
+            border stripe (banned per impeccable rules). Read rows recede to
+            `font-normal` + secondary tone; unread rows hold the assertive
+            default. Two compatible signals, both achromatic. The Unread
+            filter pill above already grades between them at the section level.
+          */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <p
+              className={`text-lg truncate ${
+                isUnread
+                  ? 'font-semibold text-text-primary'
+                  : 'font-normal text-text-secondary'
+              }`}
+            >
+              {session.title}
+              {isUnread && (
+                <span className="sr-only"> — {t('home.recentSessionUnreadAria')}</span>
+              )}
+            </p>
+          </div>
           {/*
             Metadata row: no bullet separators. Whitespace + a softer (tertiary)
             tone for duration carries the visual hierarchy — date is the
@@ -253,9 +406,23 @@ function SwipeableSessionItem({
 interface Props {
   sessions: SessionListItem[]
   onDeleted?: (id: string) => void
+  /**
+   * Optimistic toggle hook. Called by the row when a swipe-right commits.
+   * The handler should flip the row's `last_viewed_at` (null ↔ timestamp)
+   * locally before awaiting the network so the visual state changes
+   * immediately, and roll back if the API call fails.
+   */
+  onToggleRead?: (id: string, makeRead: boolean) => void
+  /**
+   * Set when the parent is filtering by Unread. Tells the row to play a
+   * slide-out + collapse animation when toggled to read, instead of
+   * mutating in place — otherwise the row would just blink out of view as
+   * the parent's filter re-runs.
+   */
+  removeOnRead?: boolean
 }
 
-export function SessionList({ sessions, onDeleted }: Props) {
+export function SessionList({ sessions, onDeleted, onToggleRead, removeOnRead = false }: Props) {
   const { t } = useTranslation()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
@@ -275,6 +442,25 @@ export function SessionList({ sessions, onDeleted }: Props) {
     return true
   }
 
+  async function toggleReadSession(id: string, makeRead: boolean): Promise<boolean> {
+    // Optimistic flip is owned by the parent (so the visual change is
+    // immediate even when the row stays in place). We notify first, await
+    // the network, and ask the parent to roll back on failure via a second
+    // call with the inverse value.
+    onToggleRead?.(id, makeRead)
+    const res = await fetch(`/api/sessions/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ read: makeRead }),
+    })
+    if (!res.ok) {
+      onToggleRead?.(id, !makeRead)
+      setToastMessage(t('session.toggleReadError'))
+      return false
+    }
+    return true
+  }
+
   if (sessions.length === 0) {
     return <p className="text-text-tertiary py-4">{t('session.noSessions')}</p>
   }
@@ -287,6 +473,8 @@ export function SessionList({ sessions, onDeleted }: Props) {
             key={s.id}
             session={s}
             onDelete={deleteSession}
+            onToggleRead={toggleReadSession}
+            removeOnRead={removeOnRead}
           />
         ))}
       </ul>

@@ -61,17 +61,32 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
-  const { title } = body as { title?: string }
+  const body = await req.json() as { title?: string; read?: boolean }
 
-  if (!title?.trim()) {
-    return NextResponse.json({ error: 'title must not be empty' }, { status: 400 })
+  // Build the update dict from whichever fields the caller supplied. Title and
+  // read state are independent — title goes through the existing whitespace
+  // guard; read toggles `last_viewed_at` (timestamp = read, null = unread).
+  const update: Record<string, unknown> = {}
+
+  if (body.title !== undefined) {
+    if (!body.title.trim()) {
+      return NextResponse.json({ error: 'title must not be empty' }, { status: 400 })
+    }
+    update.title = body.title.trim()
+  }
+
+  if (body.read !== undefined) {
+    update.last_viewed_at = body.read ? new Date().toISOString() : null
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
   }
 
   const db = createServerClient()
   const { error } = await db
     .from('sessions')
-    .update({ title: title.trim() })
+    .update(update)
     .eq('id', params.id)
     .eq('user_id', user.id)
 

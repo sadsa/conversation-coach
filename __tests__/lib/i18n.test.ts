@@ -33,14 +33,14 @@ describe('t()', () => {
 })
 
 describe('annotation action i18n keys', () => {
-  it('annotation.starAria exists in en', () => {
-    expect(t('annotation.starAria', 'en')).not.toBe('annotation.starAria')
+  it('annotation.helpfulAria exists in en', () => {
+    expect(t('annotation.helpfulAria', 'en')).not.toBe('annotation.helpfulAria')
   })
-  it('annotation.starAria exists in es', () => {
-    expect(t('annotation.starAria', 'es')).not.toBe('annotation.starAria')
+  it('annotation.helpfulAria exists in es', () => {
+    expect(t('annotation.helpfulAria', 'es')).not.toBe('annotation.helpfulAria')
   })
-  it('annotation.stateUnsaved exists in en', () => {
-    expect(t('annotation.stateUnsaved', 'en')).not.toBe('annotation.stateUnsaved')
+  it('annotation.stateNeutral exists in en', () => {
+    expect(t('annotation.stateNeutral', 'en')).not.toBe('annotation.stateNeutral')
   })
   it('writeList.tabWrite reads "Write" in en (matches the page name)', () => {
     expect(t('writeList.tabWrite', 'en')).toBe('Write')

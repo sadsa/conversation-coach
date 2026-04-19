@@ -98,6 +98,13 @@ export interface Annotation {
   flashcard_note: string | null
   importance_score: number | null
   importance_note: string | null
+  /**
+   * User feedback signal — true when the user has flagged this correction as
+   * unhelpful so we can use it to refine the analysis prompt over time. The
+   * UI dims the card and mutes its inline highlight; the data is the point.
+   */
+  is_unhelpful: boolean
+  unhelpful_at: string | null
 }
 
 export interface PracticeItem {
@@ -133,6 +140,11 @@ export interface SessionListItem {
   duration_seconds: number | null
   created_at: string
   processing_completed_at: string | null
+  /**
+   * Inbox signal. NULL → unread (never opened). Timestamp → user has viewed
+   * the transcript at least once, or explicitly marked it read again.
+   */
+  last_viewed_at: string | null
 }
 
 export interface SessionDetail {

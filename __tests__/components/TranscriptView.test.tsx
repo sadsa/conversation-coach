@@ -17,17 +17,20 @@ const annotations: Annotation[] = [
   { id: 'ann-1', session_id: 's1', segment_id: 'seg-1', type: 'grammar',
     original: 'Yo fui', start_char: 0, end_char: 6, correction: 'Fui', explanation: 'Drop pronoun.',
     sub_category: 'other', flashcard_front: null, flashcard_back: null, flashcard_note: null,
-    importance_score: null, importance_note: null },
+    importance_score: null, importance_note: null,
+    is_unhelpful: false, unhelpful_at: null },
 ]
 
 const defaultProps = {
   sessionId: 's1',
   addedAnnotations: new Map<string, string>(),
   writtenAnnotations: new Set<string>(),
+  unhelpfulAnnotations: new Set<string>(),
   onAnnotationAdded: vi.fn(),
   onAnnotationRemoved: vi.fn(),
   onAnnotationWritten: vi.fn(),
   onAnnotationUnwritten: vi.fn(),
+  onAnnotationUnhelpfulChanged: vi.fn(),
 }
 
 describe('TranscriptView', () => {
@@ -76,13 +79,8 @@ describe('TranscriptView', () => {
         segments={segments}
         annotations={annotations}
         userSpeakerLabels={['A']}
-        sessionId="s1"
+        {...defaultProps}
         addedAnnotations={new Map([['ann-1', 'pi-1']])}
-        writtenAnnotations={new Set<string>()}
-        onAnnotationAdded={vi.fn()}
-        onAnnotationRemoved={vi.fn()}
-        onAnnotationWritten={vi.fn()}
-        onAnnotationUnwritten={vi.fn()}
       />
     )
     expect(screen.getByText('Yo fui')).toHaveClass('annotation-saved')

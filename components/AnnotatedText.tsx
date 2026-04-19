@@ -8,6 +8,7 @@ interface Props {
   onAnnotationClick: (annotation: Annotation) => void
   savedAnnotationIds?: Set<string>
   writtenAnnotationIds?: Set<string>
+  unhelpfulAnnotationIds?: Set<string>
   /** Annotation id currently anchored to the open AnnotationSheet, if any. */
   activeAnnotationId?: string | null
   /** Accessible label for the mark button (defaults to "Open correction"). */
@@ -82,6 +83,7 @@ export function AnnotatedText({
   onAnnotationClick,
   savedAnnotationIds = new Set(),
   writtenAnnotationIds = new Set(),
+  unhelpfulAnnotationIds = new Set(),
   activeAnnotationId = null,
   openLabel = 'Open correction',
   stateLabels = DEFAULT_STATE_LABELS,
@@ -94,6 +96,7 @@ export function AnnotatedText({
         const slice = text.slice(span.start, span.end)
         if (span.annotation) {
           const ann = span.annotation
+          const isUnhelpful = unhelpfulAnnotationIds.has(ann.id)
           const stateClass = annotationClass(ann.id, savedAnnotationIds, writtenAnnotationIds)
           const isActive = ann.id === activeAnnotationId
           const stateText = writtenAnnotationIds.has(ann.id)
@@ -101,15 +104,28 @@ export function AnnotatedText({
             : savedAnnotationIds.has(ann.id)
               ? stateLabels.saved
               : stateLabels.unreviewed
+          // Unhelpful marks are still tappable (so the user can undo via the
+          // sheet) but lose their state colour entirely — they read as plain
+          // body text with a faint dotted underline so they don't compete
+          // with active corrections during a scan. `bg-transparent` is load-
+          // bearing: <mark> ships with a user-agent default of solid yellow
+          // and we'd otherwise inherit it (worse: brighter than every other
+          // state). We also skip annotation-active here so the dismissed
+          // mark doesn't pulse with a ring while the sheet is still open
+          // for it.
+          const visualClass = isUnhelpful
+            ? 'bg-transparent underline decoration-dotted decoration-1 underline-offset-2 text-text-tertiary cursor-pointer rounded-sm px-1 transition-shadow focus-visible:outline-none'
+            : `underline decoration-2 underline-offset-2 cursor-pointer rounded-sm px-1 transition-shadow focus-visible:outline-none ${stateClass} ${isActive ? 'annotation-active' : ''}`
           return (
             <mark
               key={i}
               data-annotation-id={ann.id}
+              data-unhelpful={isUnhelpful || undefined}
               role="button"
               tabIndex={0}
               aria-label={`${openLabel}: "${slice}", ${stateText}`}
               aria-pressed={isActive}
-              className={`underline decoration-2 underline-offset-2 cursor-pointer rounded-sm px-1 transition-shadow focus-visible:outline-none ${stateClass} ${isActive ? 'annotation-active' : ''}`}
+              className={visualClass}
               onClick={() => onAnnotationClick(ann)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -119,7 +135,9 @@ export function AnnotatedText({
               }}
             >
               {slice}
-              <StateGlyph id={ann.id} saved={savedAnnotationIds} written={writtenAnnotationIds} />
+              {!isUnhelpful && (
+                <StateGlyph id={ann.id} saved={savedAnnotationIds} written={writtenAnnotationIds} />
+              )}
             </mark>
           )
         }

@@ -7,13 +7,22 @@ import { DashboardReminders } from '@/components/DashboardReminders'
 import { DashboardUploadStarter } from '@/components/DashboardUploadStarter'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
+import { Toast } from '@/components/Toast'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 import type { DashboardSummary } from '@/lib/dashboard-summary'
+import {
+  consumePendingAutoReadToast,
+  type AutoReadStash,
+} from '@/lib/auto-read-toast'
 
 const SPEAKER_MODE_KEY = 'speakerMode'
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
 const POLL_INTERVAL_MS = 3000
+
+// How long the Undo toast stays on screen after auto-read. Long enough to
+// notice + react, short enough not to nag on the next visit.
+const UNDO_TOAST_MS = 6000
 
 function pickGreetingKey(date: Date): string {
   const hour = date.getHours()
@@ -156,6 +165,7 @@ export default function HomePage() {
       duration_seconds,
       created_at: new Date().toISOString(),
       processing_completed_at: null,
+      last_viewed_at: null,
     }
     setSessions(prev => [newSession, ...prev])
     startPolling(session_id)
@@ -193,8 +203,64 @@ export default function HomePage() {
     setSessions(prev => prev.filter(s => s.id !== id))
   }
 
+  // Optimistic read-toggle. Flips `last_viewed_at` between null and a fresh
+  // ISO string. The SessionList layer handles rollback by re-calling this
+  // with the inverse value if the API request fails.
+  const handleToggleRead = useCallback((id: string, makeRead: boolean) => {
+    setSessions(prev =>
+      prev.map(s =>
+        s.id === id
+          ? { ...s, last_viewed_at: makeRead ? new Date().toISOString() : null }
+          : s,
+      ),
+    )
+  }, [])
+
+  // Undo-toast for transcript page auto-read. We read from sessionStorage
+  // once on mount; if a recent (<60s) auto-read happened, surface a toast
+  // with an Undo affordance. Fires-and-forgets the PATCH on undo so the
+  // user gets immediate feedback.
+  const [autoReadToast, setAutoReadToast] = useState<AutoReadStash | null>(null)
+  const [undoError, setUndoError] = useState<string | null>(null)
+  const autoReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const stash = consumePendingAutoReadToast()
+    if (!stash) return
+    setAutoReadToast(stash)
+    autoReadTimerRef.current = setTimeout(() => setAutoReadToast(null), UNDO_TOAST_MS)
+    return () => {
+      if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!undoError) return
+    const timer = setTimeout(() => setUndoError(null), 3000)
+    return () => clearTimeout(timer)
+  }, [undoError])
+
+  const handleUndoAutoRead = useCallback(async (id: string) => {
+    setAutoReadToast(null)
+    if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
+    handleToggleRead(id, false)
+    try {
+      const res = await fetch(`/api/sessions/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ read: false }),
+      })
+      if (!res.ok) {
+        handleToggleRead(id, true)
+        setUndoError(t('session.undoError'))
+      }
+    } catch {
+      handleToggleRead(id, true)
+      setUndoError(t('session.undoError'))
+    }
+  }, [handleToggleRead, t])
+
   const isFirstTime = sessionsLoaded && sessions.length === 0
-  const readyCount = sessions.filter(s => s.status === 'ready').length
   // Split sessions by lifecycle so each surface owns one place to show them:
   //   - In-progress callout at the top → still moving through the pipeline.
   //   - Recent conversations below     → terminal (ready or error).
@@ -237,12 +303,10 @@ export default function HomePage() {
         <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
           {t(greetingKey)}
         </h1>
+        {/* One quiet line — never a vanity counter. The inbox below is the
+            actual answer to "what should I do next?" */}
         <p className="text-text-secondary leading-relaxed">
-          {readyCount > 0
-            ? (readyCount === 1
-                ? t('home.sessionCountOne')
-                : t('home.sessionCountMany', { n: readyCount }))
-            : t('home.dashboardSubtitle')}
+          {t('home.dashboardSubtitle')}
         </p>
       </header>
 
@@ -286,6 +350,7 @@ export default function HomePage() {
             <DashboardRecentSessions
               sessions={recentSessions}
               onDeleted={handleSessionDeleted}
+              onToggleRead={handleToggleRead}
             />
           )}
 
@@ -296,6 +361,22 @@ export default function HomePage() {
           </DashboardUploadStarter>
         </>
       )}
+
+      {/* Auto-read undo toast — sits at the page level so it survives section
+          re-renders. The toast key changes with the session id so consecutive
+          auto-reads (e.g. opening two sessions back-to-back) re-trigger the
+          entrance animation rather than silently swapping content. */}
+      {autoReadToast && (
+        <Toast
+          toastKey={autoReadToast.id}
+          message={t('session.autoReadToast', { title: autoReadToast.title })}
+          action={{
+            label: t('session.undo'),
+            onClick: () => handleUndoAutoRead(autoReadToast.id),
+          }}
+        />
+      )}
+      {undoError && <Toast message={undoError} />}
     </div>
   )
 }

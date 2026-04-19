@@ -13,16 +13,19 @@ interface Props {
   sessionId: string
   addedAnnotations: Map<string, string>
   writtenAnnotations: Set<string>
+  unhelpfulAnnotations: Set<string>
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
   onAnnotationWritten: (annotationId: string) => void
   onAnnotationUnwritten: (annotationId: string) => void
+  onAnnotationUnhelpfulChanged: (annotationId: string, isUnhelpful: boolean) => void
 }
 
 export function TranscriptView({
   segments, annotations, userSpeakerLabels, sessionId,
-  addedAnnotations, writtenAnnotations,
+  addedAnnotations, writtenAnnotations, unhelpfulAnnotations,
   onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
+  onAnnotationUnhelpfulChanged,
 }: Props) {
   const { t } = useTranslation()
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null)
@@ -143,6 +146,7 @@ export function TranscriptView({
                       onAnnotationClick={handleClick}
                       savedAnnotationIds={savedAnnotationIds}
                       writtenAnnotationIds={writtenAnnotations}
+                      unhelpfulAnnotationIds={unhelpfulAnnotations}
                       activeAnnotationId={activeAnnotationId}
                       openLabel={t('transcript.openCorrection')}
                       stateLabels={{
@@ -162,7 +166,11 @@ export function TranscriptView({
       </div>
 
       <AnnotationSheet
-        annotation={activeAnnotation}
+        annotation={
+          activeAnnotation
+            ? { ...activeAnnotation, is_unhelpful: unhelpfulAnnotations.has(activeAnnotation.id) }
+            : null
+        }
         position={activeAnnotation ? { current: activeIndex + 1, total: orderedAnnotations.length } : null}
         hasPrev={activeIndex > 0}
         hasNext={activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1}
@@ -176,6 +184,7 @@ export function TranscriptView({
         onAnnotationRemoved={onAnnotationRemoved}
         onAnnotationWritten={onAnnotationWritten}
         onAnnotationUnwritten={onAnnotationUnwritten}
+        onAnnotationUnhelpfulChanged={onAnnotationUnhelpfulChanged}
       />
     </div>
   )

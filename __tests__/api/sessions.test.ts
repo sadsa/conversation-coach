@@ -18,6 +18,7 @@ import { getAuthenticatedUser } from '@/lib/auth'
 import { GET, POST } from '@/app/api/sessions/route'
 import { GET as getDetail, PATCH, DELETE } from '@/app/api/sessions/[id]/route'
 import { GET as getStatus } from '@/app/api/sessions/[id]/status/route'
+import { POST as postView } from '@/app/api/sessions/[id]/view/route'
 
 const mockSelect = vi.fn()
 const mockInsert = vi.fn()
@@ -281,6 +282,144 @@ describe('PATCH /api/sessions/:id', () => {
     })
     const res = await PATCH(req, { params: { id: 's1' } })
     expect(res.status).toBe(400)
+  })
+
+  it('clears last_viewed_at when read=false (mark as unread)', async () => {
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+    vi.mocked(createServerClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+    } as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ read: false }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: { id: 's1' } })
+    expect(res.status).toBe(200)
+    expect(updateMock).toHaveBeenCalledWith({ last_viewed_at: null })
+  })
+
+  it('sets last_viewed_at to a timestamp when read=true', async () => {
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+    vi.mocked(createServerClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+    } as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ read: true }),
+      headers: { 'content-type': 'application/json' },
+    })
+    await PATCH(req, { params: { id: 's1' } })
+    const arg = updateMock.mock.calls[0][0]
+    expect(typeof arg.last_viewed_at).toBe('string')
+    // Sanity: the value parses as a date.
+    expect(Number.isNaN(Date.parse(arg.last_viewed_at))).toBe(false)
+  })
+
+  it('returns 400 when no recognised field is supplied', async () => {
+    vi.mocked(createServerClient).mockReturnValue({} as unknown as ReturnType<typeof createServerClient>)
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ unrelated: 'value' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: { id: 's1' } })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('POST /api/sessions/:id/view', () => {
+  it('stamps last_viewed_at when the session was unread', async () => {
+    const updateEqInner = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({ eq: updateEqInner }),
+    })
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 's1', last_viewed_at: null },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+        update: updateMock,
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await postView(req, { params: { id: 's1' } })
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.alreadyViewed).toBe(false)
+    expect(updateMock).toHaveBeenCalled()
+  })
+
+  it('is a no-op when the session was already read', async () => {
+    const updateMock = vi.fn()
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 's1', last_viewed_at: '2026-04-18T10:00:00Z' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+        update: updateMock,
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await postView(req, { params: { id: 's1' } })
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.alreadyViewed).toBe(true)
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 for unknown session', async () => {
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: { message: 'no rows' } }),
+            }),
+          }),
+        }),
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await postView(req, { params: { id: 'unknown' } })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 401 when unauthenticated', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null as unknown as { id: string; email: string })
+    const req = new NextRequest('http://localhost', { method: 'POST' })
+    const res = await postView(req, { params: { id: 's1' } })
+    expect(res.status).toBe(401)
   })
 })
 

@@ -22,6 +22,8 @@ const annotation: Annotation = {
   flashcard_note: null,
   importance_score: null,
   importance_note: null,
+  is_unhelpful: false,
+  unhelpful_at: null,
 }
 
 describe('AnnotatedText', () => {
@@ -91,6 +93,43 @@ describe('AnnotatedText', () => {
     const mark = screen.getByText('Yo fui')
     expect(mark).toHaveClass('annotation-written')
     expect(mark).not.toHaveClass('annotation-saved')
+  })
+
+  it('mutes the highlight when annotation is in unhelpfulAnnotationIds', () => {
+    render(
+      <AnnotatedText
+        text={text}
+        annotations={[annotation]}
+        onAnnotationClick={() => {}}
+        // Even though it's "saved", the unhelpful flag wins visually so the
+        // user's "this isn't useful" decision is respected during scanning.
+        savedAnnotationIds={new Set(['ann-1'])}
+        unhelpfulAnnotationIds={new Set(['ann-1'])}
+      />,
+    )
+    const mark = screen.getByText('Yo fui')
+    expect(mark).toHaveAttribute('data-unhelpful', 'true')
+    expect(mark).not.toHaveClass('annotation-saved')
+    // The state glyph (★/✓) should not render alongside an unhelpful mark.
+    expect(mark.querySelector('span[aria-hidden="true"]')).toBeNull()
+  })
+
+  it('explicitly clears the user-agent <mark> background for unhelpful (regression)', () => {
+    // <mark> ships with a default solid-yellow background. If we forget the
+    // bg-transparent override, an unhelpful mark renders louder than every
+    // other state — exactly the opposite of "muted". Lock that in.
+    render(
+      <AnnotatedText
+        text={text}
+        annotations={[annotation]}
+        onAnnotationClick={() => {}}
+        unhelpfulAnnotationIds={new Set(['ann-1'])}
+      />,
+    )
+    const mark = screen.getByText('Yo fui')
+    expect(mark).toHaveClass('bg-transparent')
+    expect(mark).not.toHaveClass('annotation-active')
+    expect(mark).not.toHaveClass('annotation-unreviewed')
   })
 
   it('still calls onAnnotationClick on a saved annotation', async () => {

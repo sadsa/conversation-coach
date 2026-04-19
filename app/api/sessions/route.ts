@@ -11,7 +11,7 @@ export async function GET() {
   const db = createServerClient()
   const { data, error } = await db
     .from('sessions')
-    .select('id, title, status, duration_seconds, created_at, processing_completed_at')
+    .select('id, title, status, duration_seconds, created_at, processing_completed_at, last_viewed_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 

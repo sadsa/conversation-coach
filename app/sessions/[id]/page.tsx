@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { InlineEdit } from '@/components/InlineEdit'
 import { Modal } from '@/components/Modal'
+import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
 import { IconButton } from '@/components/IconButton'
 import { useTranslation } from '@/components/LanguageProvider'
+import { stashAutoRead } from '@/lib/auto-read-toast'
 import type { SessionDetail } from '@/lib/types'
 
 type LoadState =
@@ -22,10 +24,12 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   const [title, setTitle] = useState('')
   const [addedAnnotations, setAddedAnnotations] = useState<Map<string, string>>(new Map())
   const [writtenAnnotations, setWrittenAnnotations] = useState<Set<string>>(new Set())
+  const [unhelpfulAnnotations, setUnhelpfulAnnotations] = useState<Set<string>>(new Set())
   const [confirmReanalyse, setConfirmReanalyse] = useState(false)
   const [reanalyseError, setReanalyseError] = useState<string | null>(null)
   const [reanalysing, setReanalysing] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const loadSession = useCallback(() => {
@@ -40,11 +44,46 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         setTitle(d.session.title)
         setAddedAnnotations(new Map(Object.entries(d.addedAnnotations)))
         setWrittenAnnotations(new Set(d.writtenAnnotations))
+        setUnhelpfulAnnotations(
+          new Set(d.annotations.filter(a => a.is_unhelpful).map(a => a.id))
+        )
       })
       .catch(() => setState({ kind: 'error', message: t('transcript.loadError') }))
   }, [params.id, t])
 
   useEffect(() => { loadSession() }, [loadSession])
+
+  // Auto-mark this session as read on first visit. Idempotent on the server —
+  // once `last_viewed_at` is populated, the endpoint is a no-op (it returns
+  // `alreadyViewed: true`). When the call genuinely flipped the row from
+  // unread to read for the first time, we stash a "Marked as read · Undo"
+  // payload for the home page to surface on the next return — so a stray tap
+  // is recoverable in one tap. We only stash AFTER the session detail has
+  // loaded so the toast can include the conversation title.
+  //
+  // Gated by a ref so React Strict Mode's double-invoked effects in dev
+  // don't double-fire the POST (and the second call's `alreadyViewed: true`
+  // would suppress the stash incorrectly).
+  const autoReadFiredRef = useRef(false)
+  useEffect(() => {
+    if (state.kind !== 'ready' || autoReadFiredRef.current) return
+    autoReadFiredRef.current = true
+    const title = state.detail.session.title
+    fetch(`/api/sessions/${params.id}/view`, { method: 'POST' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { ok?: boolean; alreadyViewed?: boolean } | null) => {
+        if (data && data.alreadyViewed === false) {
+          stashAutoRead(params.id, title)
+        }
+      })
+      .catch(() => { /* non-critical — inbox just won't update on this device */ })
+  }, [state, params.id])
+
+  useEffect(() => {
+    if (!toastMessage) return
+    const timer = setTimeout(() => setToastMessage(null), 3000)
+    return () => clearTimeout(timer)
+  }, [toastMessage])
 
   // Close the overflow menu when clicking outside or pressing Escape.
   useEffect(() => {
@@ -87,6 +126,29 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
     setWrittenAnnotations(prev => { const next = new Set(prev); next.delete(annotationId); return next })
   }
 
+  function handleAnnotationUnhelpfulChanged(annotationId: string, isUnhelpful: boolean) {
+    setUnhelpfulAnnotations(prev => {
+      const next = new Set(prev)
+      if (isUnhelpful) next.add(annotationId)
+      else next.delete(annotationId)
+      return next
+    })
+  }
+
+  async function handleMarkUnread() {
+    setMenuOpen(false)
+    const res = await fetch(`/api/sessions/${params.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ read: false }),
+    })
+    if (res.ok) {
+      setToastMessage(t('transcript.markedUnreadToast'))
+    } else {
+      setToastMessage(t('transcript.markUnreadError'))
+    }
+  }
+
   async function handleReanalyse() {
     setReanalyseError(null)
     setReanalysing(true)
@@ -118,8 +180,15 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
   const { session, segments, annotations } = state.detail
   const counts = { grammar: 0, naturalness: 0 }
   annotations.forEach(a => counts[a.type as keyof typeof counts]++)
-  const reviewedCount = addedAnnotations.size
+  // Reviewed = saved OR dismissed. We split the count so the user can see
+  // the shape of their decisions (not just "you've touched 7 of 11"). Saved
+  // and dismissed are mutually exclusive on the card, so summing them is
+  // safe — no double-counting.
+  const savedCount = addedAnnotations.size
+  const dismissedCount = unhelpfulAnnotations.size
+  const reviewedCount = savedCount + dismissedCount
   const totalCount = annotations.length
+  const remainingCount = Math.max(0, totalCount - reviewedCount)
 
   const durationLabel = session.duration_seconds
     ? `${Math.floor(session.duration_seconds / 60)} ${t('transcript.min')}`
@@ -159,6 +228,15 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   role="menuitem"
+                  onClick={handleMarkUnread}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-text-primary hover:bg-bg transition-colors"
+                >
+                  <Icon name="rotate-ccw" className="w-4 h-4 text-text-tertiary" />
+                  {t('transcript.markUnread')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => { setMenuOpen(false); setConfirmReanalyse(true); setReanalyseError(null) }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-text-primary hover:bg-bg transition-colors"
                 >
@@ -184,12 +262,20 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
           )}
         </p>
 
-        {/* Progress strip — tells the user how far they've gotten. Calm,
-            informational, no gamification. */}
+        {/* Progress strip — broken into saved / dismissed / to-go so the
+            user sees the *shape* of their review, not just an opaque counter.
+            When everything's reviewed we collapse to a single calm line so
+            the strip doesn't keep nagging at zero remaining. */}
         {totalCount > 0 && (
           <div className="space-y-1.5" aria-live="polite">
             <p className="text-xs text-text-tertiary tabular-nums">
-              {t('transcript.progress', { n: reviewedCount, total: totalCount })}
+              {remainingCount === 0
+                ? t('transcript.progressAllReviewed', { total: totalCount })
+                : t('transcript.progress', {
+                    saved: savedCount,
+                    dismissed: dismissedCount,
+                    remaining: remainingCount,
+                  })}
             </p>
             <div
               className="h-1 rounded-full bg-border-subtle overflow-hidden"
@@ -197,6 +283,7 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
               aria-valuenow={reviewedCount}
               aria-valuemin={0}
               aria-valuemax={totalCount}
+              aria-valuetext={t('transcript.progressAria', { n: reviewedCount, total: totalCount })}
             >
               <div
                 className="h-full bg-accent-primary transition-[width] duration-300 ease-out"
@@ -214,10 +301,12 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
         sessionId={params.id}
         addedAnnotations={addedAnnotations}
         writtenAnnotations={writtenAnnotations}
+        unhelpfulAnnotations={unhelpfulAnnotations}
         onAnnotationAdded={handleAnnotationAdded}
         onAnnotationRemoved={handleAnnotationRemoved}
         onAnnotationWritten={handleAnnotationWritten}
         onAnnotationUnwritten={handleAnnotationUnwritten}
+        onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
       />
 
       {/* Re-analyse confirmation. Two-step gate on a destructive action that
@@ -258,6 +347,8 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
           )}
         </div>
       </Modal>
+
+      {toastMessage && <Toast message={toastMessage} />}
     </div>
   )
 }

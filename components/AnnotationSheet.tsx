@@ -34,6 +34,7 @@ interface Props {
   onAnnotationRemoved: (annotationId: string) => void
   onAnnotationWritten: (annotationId: string) => void
   onAnnotationUnwritten: (annotationId: string) => void
+  onAnnotationUnhelpfulChanged?: (annotationId: string, isUnhelpful: boolean) => void
 }
 
 const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
