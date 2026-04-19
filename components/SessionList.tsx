@@ -2,7 +2,7 @@
 //
 // Inbox row with two opposing swipe gestures:
 //   • Swipe LEFT  → confirm-then-delete (destructive, gated by modal)
-//   • Swipe RIGHT → toggle read/unread (reversible, no confirm)
+//   • Swipe RIGHT → toggle read/unread in place (reversible, no confirm)
 //
 // Both gestures live on the same row using `react-swipeable`. The translateX
 // during a drag has its sign sniff which side's background to reveal: negative
@@ -13,13 +13,10 @@
 // Read state is signalled by *weight + tone only* — no dot, no border stripe
 // (banned per impeccable rules). Read rows recede to `font-normal` +
 // `text-text-secondary`; unread rows hold the assertive default
-// `font-semibold` + `text-text-primary`. The Unread filter pill above does
-// the heavy lifting when the user wants to scope the view.
-//
-// When the parent passes `removeOnRead` (i.e. we're inside the Unread filter),
-// marking a row as read causes it to slide-out + collapse first, then the
-// parent's filter re-runs and removes it from the array. This avoids the row
-// blinking out of existence.
+// `font-semibold` + `text-text-primary`. There's no Unread/All filter on top
+// of the list — the weight/tone difference is enough at-a-glance signal, and
+// removing the filter means a read-toggle never causes the row to leave the
+// visible array mid-animation.
 
 'use client'
 import { useState, useRef, useEffect } from 'react'
@@ -124,12 +121,10 @@ function SwipeableSessionItem({
   session,
   onDelete,
   onToggleRead,
-  removeOnRead,
 }: {
   session: SessionListItem
   onDelete: (id: string) => Promise<boolean>
   onToggleRead: (id: string, makeRead: boolean) => Promise<boolean>
-  removeOnRead: boolean
 }) {
   const { t, uiLanguage } = useTranslation()
   // translateX is signed: negative = dragging left (delete reveal), positive
@@ -182,54 +177,13 @@ function SwipeableSessionItem({
     // On success: parent already called onDeleted inside onDelete
   }
 
-  // Toggling read/unread is non-destructive — no confirmation. When the row
-  // would leave the current filter (Unread → marked read), we animate it out
-  // using the same two-phase pattern as delete so it doesn't blink.
+  // Toggling read/unread is non-destructive and stays in-place — the row's
+  // bold/normal weight flip is the only visible change. Optimistic update
+  // happens at the page level via onToggleRead; we just hand off the
+  // request and let the toast surface (in SessionList) handle errors.
   async function triggerToggleRead() {
     if (isAnimating || !rowRef.current) return
-    const willRemove = removeOnRead && isUnread // marking unread row as read inside Unread filter
-
-    if (!willRemove) {
-      // In-place toggle: fire and forget. The optimistic update happens at
-      // the page level via onToggleRead so the row's bold/normal flips
-      // immediately on next render.
-      const ok = await onToggleRead(session.id, isUnread)
-      if (!ok && mountedRef.current) {
-        // Parent already rolled back its optimistic update; nothing to do
-        // here — the toast surface lives at the SessionList level.
-      }
-      return
-    }
-
-    setIsAnimating(true)
-
-    // Same overlapping slide + collapse choreography as triggerDelete; only
-    // the direction differs. Sliding RIGHT for "marked read and leaving the
-    // Unread filter" feels symmetrical to swiping LEFT for "deleted".
-    setTranslateX(window.innerWidth)
-    const togglePromise = onToggleRead(session.id, true)
-
-    await new Promise(r => setTimeout(r, COLLAPSE_OVERLAP_MS))
-    if (!mountedRef.current) return
-
-    setRowHeight(0)
-
-    const remainingMs = Math.max(
-      SLIDE_DURATION_MS - COLLAPSE_OVERLAP_MS,
-      COLLAPSE_DURATION_MS,
-    )
-    const [, result] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, remainingMs)),
-      togglePromise,
-    ])
-    if (!mountedRef.current) return
-
-    const succeeded = result.status === 'fulfilled' && result.value === true
-    if (!succeeded) {
-      setRowHeight(null)
-      setTranslateX(0)
-      setIsAnimating(false)
-    }
+    await onToggleRead(session.id, isUnread)
   }
 
   const handlers = useSwipeable({
@@ -261,8 +215,7 @@ function SwipeableSessionItem({
       }
       if (e.absX > SWIPE_COMMIT_PX) {
         // Snap back to 0 first so the in-place toggle doesn't fight with
-        // the drag offset; the slide-out animation (when removeOnRead is
-        // true) will set its own translateX.
+        // the drag offset.
         setTranslateX(0)
         triggerToggleRead()
       } else {
@@ -464,16 +417,9 @@ interface Props {
    * immediately, and roll back if the API call fails.
    */
   onToggleRead?: (id: string, makeRead: boolean) => void
-  /**
-   * Set when the parent is filtering by Unread. Tells the row to play a
-   * slide-out + collapse animation when toggled to read, instead of
-   * mutating in place — otherwise the row would just blink out of view as
-   * the parent's filter re-runs.
-   */
-  removeOnRead?: boolean
 }
 
-export function SessionList({ sessions, onDeleted, onToggleRead, removeOnRead = false }: Props) {
+export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
   const { t } = useTranslation()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
@@ -537,7 +483,6 @@ export function SessionList({ sessions, onDeleted, onToggleRead, removeOnRead = 
             session={s}
             onDelete={deleteSession}
             onToggleRead={toggleReadSession}
-            removeOnRead={removeOnRead}
           />
         ))}
       </ul>

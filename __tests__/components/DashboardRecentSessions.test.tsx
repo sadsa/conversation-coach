@@ -3,6 +3,10 @@
 // Verifies the bucket-grouping layer that sits above SessionList. SessionList
 // itself is mocked here so the test stays focused on bucketing logic — date
 // formatting and row rendering are covered by SessionList.test.tsx.
+//
+// The Unread/All filter that used to live above the list was removed as
+// part of /distill: read state is now carried entirely by font weight + tone
+// on each row, so we only test grouping + show-more here.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
@@ -32,31 +36,12 @@ vi.mock('@/components/LanguageProvider', () => ({
         'home.recentBucketThisWeek': 'This week',
         'home.recentBucketEarlier': 'Earlier',
         'home.recentShowFewer': 'Show fewer',
-        'home.recentFilterUnread': 'Unread',
-        'home.recentFilterAll': 'All',
-        'home.recentFilterAria': 'Filter recent conversations',
-        'home.recentAllCaughtUpTitle': 'All caught up',
-        'home.recentAllCaughtUpBody': 'You\'ve reviewed every recent session.',
-        'home.recentAllCaughtUpShowAll': 'Show all',
       }
       if (key === 'home.recentShowAll') return `Show all ${vars?.n}`
-      if (key === 'home.recentUnreadCount') return `${vars?.n}`
       return map[key] ?? key
     },
   }),
 }))
-
-// Stub localStorage so filter persistence is deterministic across tests.
-const localStorageStub = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: (k: string) => store[k] ?? null,
-    setItem: (k: string, v: string) => { store[k] = v },
-    removeItem: (k: string) => { delete store[k] },
-    clear: () => { store = {} },
-  }
-})()
-vi.stubGlobal('localStorage', localStorageStub)
 
 // Pin "now" so the bucketing math is deterministic regardless of when the
 // test runs. We construct dates from local components (not UTC strings) so
@@ -73,8 +58,6 @@ function makeSession(
   id: string,
   createdAt: string,
   title = id,
-  // Default to "already viewed" so existing tests behave like before the
-  // inbox feature: filter defaults to All, every row is visible.
   lastViewedAt: string | null = '2026-04-18T00:00:00Z',
 ): SessionListItem {
   return {
@@ -90,7 +73,6 @@ function makeSession(
 
 afterEach(() => {
   vi.useRealTimers()
-  localStorageStub.clear()
 })
 
 describe('DashboardRecentSessions — bucket grouping', () => {
@@ -117,7 +99,6 @@ describe('DashboardRecentSessions — bucket grouping', () => {
     vi.useFakeTimers()
     vi.setSystemTime(NOW)
 
-    // Only today + earlier — yesterday and this-week buckets must not render.
     const sessions: SessionListItem[] = [
       makeSession('today-1',   localISO(2026, 4, 18, 10)),
       makeSession('earlier-1', localISO(2026, 3, 1, 10)),
@@ -129,6 +110,23 @@ describe('DashboardRecentSessions — bucket grouping', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Earlier' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 3, name: 'Yesterday' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 3, name: 'This week' })).not.toBeInTheDocument()
+  })
+
+  it('hides the bucket header when only one bucket is populated', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(NOW)
+
+    // All in "today" — a lone "TODAY" stripe would just be visual noise.
+    const sessions: SessionListItem[] = [
+      makeSession('today-1', localISO(2026, 4, 18, 10)),
+      makeSession('today-2', localISO(2026, 4, 18, 9)),
+    ]
+
+    render(<DashboardRecentSessions sessions={sessions} />)
+
+    expect(screen.queryByRole('heading', { level: 3 })).not.toBeInTheDocument()
+    expect(screen.getByTestId('row-today-1')).toBeInTheDocument()
+    expect(screen.getByTestId('row-today-2')).toBeInTheDocument()
   })
 
   it('places each session in the correct bucket', () => {
@@ -154,28 +152,11 @@ describe('DashboardRecentSessions — bucket grouping', () => {
     expect(within(lists[2]).getByTestId('row-thisweek-1')).toBeInTheDocument()
   })
 
-  it('defaults to All filter and shows every session when nothing is unread', () => {
+  it('shows every session — there is no Unread/All filter', () => {
     vi.useFakeTimers()
     vi.setSystemTime(NOW)
 
-    // makeSession defaults last_viewed_at to a non-null timestamp, so all
-    // four rows are "read" → unreadCount === 0 → filter defaults to "all".
-    const sessions: SessionListItem[] = [
-      makeSession('today-1',     localISO(2026, 4, 18, 10)),
-      makeSession('yesterday-1', localISO(2026, 4, 17, 10)),
-    ]
-
-    render(<DashboardRecentSessions sessions={sessions} />)
-
-    expect(screen.getByRole('tab', { name: /All/, selected: true })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /Unread/, selected: false })).toBeInTheDocument()
-    expect(screen.getByTestId('row-today-1')).toBeInTheDocument()
-  })
-
-  it('defaults to Unread filter when there is unread mail', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(NOW)
-
+    // Mix of read and unread — both must render.
     const sessions: SessionListItem[] = [
       makeSession('unread-1', localISO(2026, 4, 18, 10), 'unread-1', null),
       makeSession('read-1',   localISO(2026, 4, 17, 10)),
@@ -183,32 +164,11 @@ describe('DashboardRecentSessions — bucket grouping', () => {
 
     render(<DashboardRecentSessions sessions={sessions} />)
 
-    expect(screen.getByRole('tab', { name: /Unread/, selected: true })).toBeInTheDocument()
-    // Unread filter is active → only unread row is rendered.
     expect(screen.getByTestId('row-unread-1')).toBeInTheDocument()
-    expect(screen.queryByTestId('row-read-1')).not.toBeInTheDocument()
-  })
-
-  it('shows the All-caught-up empty state when Unread filter has no rows', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(NOW)
-
-    // Force the Unread filter even though everything is already read, by
-    // pre-populating the persisted choice.
-    localStorageStub.setItem('recentSessionsFilter', 'unread')
-
-    const sessions: SessionListItem[] = [
-      makeSession('today-1', localISO(2026, 4, 18, 10)),
-    ]
-
-    render(<DashboardRecentSessions sessions={sessions} />)
-
-    expect(screen.getByTestId('recent-sessions-all-caught-up')).toBeInTheDocument()
-    // The empty state offers a one-tap escape to All.
-    vi.useRealTimers()
-    await userEvent.click(screen.getByRole('button', { name: /Show all/i }))
-    expect(screen.queryByTestId('recent-sessions-all-caught-up')).not.toBeInTheDocument()
-    expect(screen.getByTestId('row-today-1')).toBeInTheDocument()
+    expect(screen.getByTestId('row-read-1')).toBeInTheDocument()
+    // No filter pills should be present.
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
   })
 
   it('caps the visible window to 5 by default and exposes a Show-all toggle', async () => {
