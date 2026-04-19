@@ -257,18 +257,21 @@ function SwipeableSessionItem({
       }
     >
       <div className="overflow-hidden min-h-0 min-w-0">
-      {/* Swipe-LEFT background (delete) — pinned right, revealed as the row
-          slides out leftward. Red is reserved for the destructive direction. */}
-      <div className="absolute inset-0 bg-status-error flex items-center justify-end pr-5">
-        <span className="text-white font-medium">{t('session.delete')}</span>
-      </div>
-
-      {/* Swipe-RIGHT background (toggle read/unread) — pinned left, revealed
-          as the row slides rightward. Cool/neutral surface keeps it visually
-          distinct from the destructive red. We only render this layer for
-          ready sessions; for in-progress rows the right-swipe gesture is a
-          no-op and there's nothing to reveal. */}
-      {session.status === 'ready' && (
+      {/* Swipe reveals — only one is mounted at a time based on drag direction
+          (or active commit animation). Both layers are `absolute inset-0`, so
+          if we mounted them simultaneously the second one in the DOM would
+          paint over the first and the user would see the wrong colour for
+          half the gestures. Sign of `translateX` is the source of truth:
+            • negative → row sliding left → reveal delete (red, pinned right)
+            • positive → row sliding right → reveal toggle (chip, pinned left)
+          We only render the toggle layer for ready sessions; for in-progress
+          rows the right-swipe gesture is a no-op and there's nothing to show. */}
+      {translateX < 0 && (
+        <div className="absolute inset-0 bg-status-error flex items-center justify-end pr-5 pointer-events-none">
+          <span className="text-white font-medium">{t('session.delete')}</span>
+        </div>
+      )}
+      {translateX > 0 && session.status === 'ready' && (
         <div className="absolute inset-0 bg-accent-chip flex items-center justify-start pl-5 pointer-events-none">
           <span className="text-on-accent-chip font-medium">{toggleLabel}</span>
         </div>
@@ -467,7 +470,19 @@ export function SessionList({ sessions, onDeleted, onToggleRead, removeOnRead = 
 
   return (
     <div>
-      <ul className="divide-y divide-border-subtle">
+      {/*
+        Mobile bleed: the page's <main> wrapper sits at `px-6`, but on a
+        phone the rows want to feel like an inbox — backgrounds, dividers,
+        and swipe reveals running edge-to-edge so the gesture surface is
+        the full width of the screen and the row's red/chip reveal isn't
+        framed by an awkward 24px gutter. We negate the parent padding
+        with `-mx-6` and snap back at `sm:` where the viewport is wide
+        enough that an inset list reads as composed rather than cramped.
+        Row interior padding (`px-5` on each row link) keeps the title
+        text 20px from the screen edge — an intentional, readable inset
+        per the spacious / readable-first principle in .impeccable.md.
+      */}
+      <ul className="-mx-6 sm:mx-0 divide-y divide-border-subtle">
         {sessions.map(s => (
           <SwipeableSessionItem
             key={s.id}

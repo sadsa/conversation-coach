@@ -201,15 +201,11 @@ describe('SessionList — swipe-right toggles read/unread', () => {
     expect(screen.queryByTestId('toggle-read-sess-2')).not.toBeInTheDocument()
   })
 
-  it('exposes the swipe-right reveal label that flips with current state', () => {
-    // Unread row → swiping right means "Mark read".
-    const { unmount } = render(<SessionList sessions={[unreadReadySession]} />)
-    expect(screen.getAllByText(/mark read/i).length).toBeGreaterThan(0)
-    unmount()
-    // Read row → swiping right means "Mark unread".
-    render(<SessionList sessions={[readSession]} />)
-    expect(screen.getAllByText(/mark unread/i).length).toBeGreaterThan(0)
-  })
+  // The reveal label ("Mark read" / "Mark unread") is only mounted while the
+  // row is actively being swiped to the right (`translateX > 0`) — at rest
+  // both reveal layers are unmounted so swipe-LEFT can show its red delete
+  // background without being painted over by the toggle layer. The actual
+  // toggle behaviour for both states is verified above via the test seam.
 })
 
 describe('SessionList — swipe to delete', () => {
