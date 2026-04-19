@@ -22,6 +22,8 @@ interface Props {
 export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
+  const busy = !!disabled
+  const label = busy ? t('home.uploading') : t('home.uploadFabLabel')
 
   function validate(file: File): string | null {
     const ext = '.' + file.name.split('.').pop()?.toLowerCase()
@@ -32,7 +34,7 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
   }
 
   function pick() {
-    if (disabled) return
+    if (busy) return
     inputRef.current?.click()
   }
 
@@ -57,27 +59,35 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
           onFile(f)
         }}
       />
-      {/* Mobile: fixed FAB above bottom nav */}
+      {/* Mobile: extended FAB above bottom nav — labelled so the action is unambiguous.
+          min-w prevents the pill from jiggling between "Upload audio" and "Uploading…". */}
       <div className="md:hidden fixed right-4 z-40" style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
         <button
           type="button"
           onClick={pick}
-          disabled={disabled}
-          aria-label={t('home.uploadFabAria')}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary text-white shadow-lg transition-transform hover:bg-accent-primary-hover active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+          disabled={busy}
+          aria-busy={busy}
+          aria-live="polite"
+          className="flex h-14 min-w-[10.5rem] items-center justify-center gap-2 rounded-full bg-accent-primary pl-4 pr-5 text-white shadow-lg transition-transform hover:bg-accent-primary-hover active:scale-95 disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
-          <Icon name="plus" className="w-7 h-7" aria-hidden />
+          {busy
+            ? <Icon name="spinner" className="w-5 h-5" aria-hidden />
+            : <Icon name="plus" className="w-6 h-6" aria-hidden />}
+          <span className="text-base font-medium">{label}</span>
         </button>
       </div>
       {/* Desktop: inline control in the page header */}
       <button
         type="button"
         onClick={pick}
-        disabled={disabled}
-        className="hidden md:inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-colors hover:border-accent-primary hover:text-accent-primary disabled:opacity-50"
+        disabled={busy}
+        aria-busy={busy}
+        className="hidden md:inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-colors hover:border-accent-primary hover:text-accent-primary disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
       >
-        <Icon name="plus" className="w-4 h-4" aria-hidden />
-        {t('home.uploadFabLabel')}
+        {busy
+          ? <Icon name="spinner" className="w-4 h-4" aria-hidden />
+          : <Icon name="plus" className="w-4 h-4" aria-hidden />}
+        {label}
       </button>
     </>
   )

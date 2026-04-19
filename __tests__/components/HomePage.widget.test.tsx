@@ -13,13 +13,12 @@ vi.mock('@/components/LanguageProvider', () => ({
       if (key === 'home.toWriteDownOne') return '1 correction to write down'
       if (key === 'home.allCaughtUp') return 'All caught up — nothing to write down right now.'
       if (key === 'home.remindersAria') return 'Saved corrections'
-      if (key === 'home.greetingEmoji') return '🎧'
       if (key === 'home.greetingMorning') return 'Good morning'
       if (key === 'home.greetingAfternoon') return 'Good afternoon'
       if (key === 'home.greetingEvening') return 'Good evening'
       if (key === 'home.dashboardSubtitle') return 'Subtitle'
-      if (key === 'home.uploadFabAria') return 'Upload a new conversation'
-      if (key === 'home.uploadFabLabel') return 'Upload'
+      if (key === 'home.uploadFabAria') return 'Upload audio'
+      if (key === 'home.uploadFabLabel') return 'Upload audio'
       return key
     },
   }),

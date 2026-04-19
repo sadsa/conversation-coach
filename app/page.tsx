@@ -173,18 +173,12 @@ export default function HomePage() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-12 pb-24 md:pb-0">
+    <div className="max-w-2xl mx-auto space-y-12 pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-0">
       <header className="space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2 flex-1">
-            <h1
-              className="home-greeting-title text-2xl md:text-3xl font-semibold text-text-primary tracking-tight"
-            >
-              <span className="home-greeting-emoji inline-block select-none" aria-hidden="true">
-                {t('home.greetingEmoji')}
-              </span>
-              {' '}
-              <span>{t(greetingKey)}</span>
+            <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
+              {t(greetingKey)}
             </h1>
             <p className="text-text-secondary leading-relaxed">
               {t('home.dashboardSubtitle')}
@@ -201,11 +195,8 @@ export default function HomePage() {
       {isFirstTime ? (
         <>
           <DashboardOnboarding />
-          {(uploading || error) && (
-            <div className="text-sm space-y-1" aria-live="polite">
-              {uploading && <p className="text-status-processing">{t('home.uploading')}</p>}
-              {error && <p className="text-status-error">{error}</p>}
-            </div>
+          {error && (
+            <p className="text-sm text-status-error" aria-live="polite">{error}</p>
           )}
         </>
       ) : (
@@ -222,11 +213,8 @@ export default function HomePage() {
             />
           )}
 
-          {(uploading || error) && (
-            <div className="text-sm space-y-1" aria-live="polite">
-              {uploading && <p className="text-status-processing">{t('home.uploading')}</p>}
-              {error && <p className="text-status-error">{error}</p>}
-            </div>
+          {error && (
+            <p className="text-sm text-status-error" aria-live="polite">{error}</p>
           )}
         </>
       )}

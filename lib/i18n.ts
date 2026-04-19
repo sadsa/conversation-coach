@@ -68,12 +68,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.pastSessions': 'Past Sessions',
 
     // Dashboard
-    'home.greetingEmoji': '🎧',
     'home.greetingMorning': 'Good morning',
     'home.greetingAfternoon': 'Good afternoon',
     'home.greetingEvening': 'Good evening',
-    'home.uploadFabAria': 'Upload a new conversation',
-    'home.uploadFabLabel': 'Upload',
+    'home.uploadFabAria': 'Upload audio',
+    'home.uploadFabLabel': 'Upload audio',
     'home.dashboardSubtitle': 'A quiet place to review what you\'ve recorded.',
     'home.welcomeTitle': 'Welcome to Conversation Coach',
     'home.welcomeSubtitle': 'Record a Spanish conversation, get gentle corrections, and turn the keepers into flashcards.',
@@ -387,12 +386,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.pastSessions': 'Sesiones anteriores',
 
     // Dashboard
-    'home.greetingEmoji': '🎧',
     'home.greetingMorning': 'Buenos días',
     'home.greetingAfternoon': 'Buenas tardes',
     'home.greetingEvening': 'Buenas noches',
-    'home.uploadFabAria': 'Subir una conversación nueva',
-    'home.uploadFabLabel': 'Subir',
+    'home.uploadFabAria': 'Subir audio',
+    'home.uploadFabLabel': 'Subir audio',
     'home.dashboardSubtitle': 'Un lugar tranquilo para repasar lo que grabaste.',
     'home.welcomeTitle': 'Bienvenido a Conversation Coach',
     'home.welcomeSubtitle': 'Grabá una conversación en español, recibí correcciones suaves y convertí las útiles en flashcards.',
