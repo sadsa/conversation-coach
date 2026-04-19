@@ -54,6 +54,32 @@ const TERMINAL_STATUSES = new Set(['ready', 'error'])
 // threshold so users learn one rule for both gestures.
 const SWIPE_COMMIT_PX = 80
 
+// Commit-animation choreography. The previous version slid the row off in
+// 220ms, then snapped to collapsing the now-empty space in another 220ms
+// — felt like two separate events ("row left → wait → list rearranged").
+//
+// New version reads as one continuous gesture by overlapping the two phases:
+//
+//   t=0     row starts sliding out + fading
+//   t=160   collapse starts (neighbour begins rising while row is still leaving)
+//   t=240   opacity has reached 0 — row is visually gone
+//   t=360   slide is fully complete
+//   t=520   collapse is fully complete, list at rest
+//
+// Total perceived motion: ~520ms. Sits in the upper layout-change band per
+// the impeccable timing scale, which matches the "patient, spacious" brand
+// (Gmail's swipe-archive runs at a similar tempo). The snap-back from a
+// cancelled drag stays at 220ms — a cancel should feel immediate; only the
+// commit wants to feel deliberate.
+const SLIDE_DURATION_MS = 360
+const FADE_DURATION_MS = 240
+const COLLAPSE_OVERLAP_MS = 160
+const COLLAPSE_DURATION_MS = 360
+const CANCEL_DURATION_MS = 220
+// ease-out-quart per impeccable motion rules — natural deceleration, no
+// bounce/elastic.
+const EASING = 'cubic-bezier(0.25, 1, 0.5, 1)'
+
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
@@ -123,18 +149,25 @@ function SwipeableSessionItem({
     if (isAnimating || !rowRef.current) return
     setIsAnimating(true)
 
-    // Phase 1: slide item off-screen left (220ms), fire API call in parallel
+    // Slide + fade start now; collapse starts mid-slide so the list rearranges
+    // as part of one continuous motion (see SLIDE/COLLAPSE_OVERLAP comments).
     setTranslateX(-window.innerWidth)
     const deletePromise = onDelete(session.id)
 
-    await new Promise(r => setTimeout(r, 220))
+    await new Promise(r => setTimeout(r, COLLAPSE_OVERLAP_MS))
     if (!mountedRef.current) return
 
-    // Phase 2: collapse row via grid-template-rows (no layout thrash)
     setRowHeight(0)
 
+    // Wait for whichever finishes last — the late half of the slide or the
+    // full collapse — before resolving so a failed delete can roll the row
+    // back from a stable resting state.
+    const remainingMs = Math.max(
+      SLIDE_DURATION_MS - COLLAPSE_OVERLAP_MS,
+      COLLAPSE_DURATION_MS,
+    )
     const [, deleteResult] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, 220)),
+      new Promise(r => setTimeout(r, remainingMs)),
       deletePromise,
     ])
     if (!mountedRef.current) return
@@ -170,17 +203,23 @@ function SwipeableSessionItem({
 
     setIsAnimating(true)
 
-    // Phase 1: slide off-screen RIGHT (positive direction), fire API
+    // Same overlapping slide + collapse choreography as triggerDelete; only
+    // the direction differs. Sliding RIGHT for "marked read and leaving the
+    // Unread filter" feels symmetrical to swiping LEFT for "deleted".
     setTranslateX(window.innerWidth)
     const togglePromise = onToggleRead(session.id, true)
 
-    await new Promise(r => setTimeout(r, 220))
+    await new Promise(r => setTimeout(r, COLLAPSE_OVERLAP_MS))
     if (!mountedRef.current) return
 
     setRowHeight(0)
 
+    const remainingMs = Math.max(
+      SLIDE_DURATION_MS - COLLAPSE_OVERLAP_MS,
+      COLLAPSE_DURATION_MS,
+    )
     const [, result] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, 220)),
+      new Promise(r => setTimeout(r, remainingMs)),
       togglePromise,
     ])
     if (!mountedRef.current) return
@@ -252,7 +291,10 @@ function SwipeableSessionItem({
       className="relative overflow-hidden grid"
       style={
         rowHeight !== null
-          ? { gridTemplateRows: rowHeight === 0 ? '0fr' : '1fr', transition: 'grid-template-rows 0.22s cubic-bezier(0.25, 1, 0.5, 1)' }
+          ? {
+              gridTemplateRows: rowHeight === 0 ? '0fr' : '1fr',
+              transition: `grid-template-rows ${COLLAPSE_DURATION_MS}ms ${EASING}`,
+            }
           : { gridTemplateRows: '1fr' }
       }
     >
@@ -282,10 +324,16 @@ function SwipeableSessionItem({
         {...handlers}
         style={{
           transform: `translateX(${translateX}px)`,
+          // Opacity fades only on commit — disguises the moment the row
+          // crosses the screen edge, so by the time the neighbour rises into
+          // its slot the departing row has visually dissolved. No fade
+          // during interactive drag (would mask the cancel affordance) and
+          // no fade on snap-back (the card belongs back at full strength).
+          opacity: isAnimating ? 0 : 1,
           transition: isAnimating
-            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
+            ? `transform ${SLIDE_DURATION_MS}ms ${EASING}, opacity ${FADE_DURATION_MS}ms ${EASING}`
             : translateX === 0
-            ? 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)'
+            ? `transform ${CANCEL_DURATION_MS}ms ${EASING}`
             : 'none',
           userSelect: 'none',
           touchAction: 'pan-y',
