@@ -1,28 +1,16 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { DropZone } from '@/components/DropZone'
-import { PendingUploadCard, type SpeakerMode } from '@/components/PendingUploadCard'
+import { HomeUploadFab } from '@/components/HomeUploadFab'
 import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 import { DashboardReminders } from '@/components/DashboardReminders'
-import { DashboardUploadStarter } from '@/components/DashboardUploadStarter'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
-import { Toast } from '@/components/Toast'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 import type { DashboardSummary } from '@/lib/dashboard-summary'
-import {
-  consumePendingAutoReadToast,
-  type AutoReadStash,
-} from '@/lib/auto-read-toast'
 
-const SPEAKER_MODE_KEY = 'speakerMode'
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
 const POLL_INTERVAL_MS = 3000
-
-// How long the Undo toast stays on screen after auto-read. Long enough to
-// notice + react, short enough not to nag on the next visit.
-const UNDO_TOAST_MS = 6000
 
 function pickGreetingKey(date: Date): string {
   const hour = date.getHours()
@@ -35,9 +23,6 @@ export default function HomePage() {
   const { t } = useTranslation()
   const [sessions, setSessions] = useState<SessionListItem[]>([])
   const [sessionsLoaded, setSessionsLoaded] = useState(false)
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
-  const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('solo')
-  const [speakersExpected, setSpeakersExpected] = useState(2)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
@@ -56,9 +41,6 @@ export default function HomePage() {
         if (TERMINAL_STATUSES.has(status)) {
           clearInterval(pollingRefs.current.get(sessionId))
           pollingRefs.current.delete(sessionId)
-          // Re-fetch full list to pick up the updated title / processing time
-          // and the dashboard summary so the reminders pill catches any new
-          // practice items the pipeline saved at the end of analysis.
           const listRes = await fetch('/api/sessions')
           if (listRes.ok) setSessions(await listRes.json())
           fetch('/api/dashboard-summary')
@@ -77,12 +59,7 @@ export default function HomePage() {
     pollingRefs.current.set(sessionId, intervalId)
   }
 
-  // Load sessions on mount and start polling for any in-progress ones.
   useEffect(() => {
-    // Capture the polling map *now* so cleanup runs against the same Map
-    // instance the effect populated, rather than whatever pollingRefs.current
-    // points to when the component unmounts. (The ref itself is stable, but
-    // React's lint catches the general pattern.)
     const polling = pollingRefs.current
 
     fetch('/api/sessions')
@@ -96,8 +73,6 @@ export default function HomePage() {
       })
       .catch(() => setSessionsLoaded(true))
 
-    // Dashboard summary — non-critical, silently skipped on failure so the
-    // page still loads even if the summary endpoint is down.
     fetch('/api/dashboard-summary')
       .then(r => r.ok ? r.json() : null)
       .then((data: DashboardSummary | null) => {
@@ -113,19 +88,7 @@ export default function HomePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Restore last-used speaker mode from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(SPEAKER_MODE_KEY)
-    if (saved === 'solo' || saved === 'conversation') setSpeakerMode(saved)
-  }, [])
-
-  const handleModeChange = useCallback((mode: SpeakerMode) => {
-    setSpeakerMode(mode)
-    localStorage.setItem(SPEAKER_MODE_KEY, mode)
-    if (mode === 'solo') setSpeakersExpected(2)
-  }, [])
-
-  const doUpload = useCallback(async (file: File, mode: SpeakerMode, speakers: number) => {
+  const doUpload = useCallback(async (file: File) => {
     setUploading(true)
     setError(null)
     const ext = file.name.split('.').pop() ?? 'mp3'
@@ -152,10 +115,7 @@ export default function HomePage() {
     await fetch(`/api/sessions/${session_id}/upload-complete`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        duration_seconds,
-        speakers_expected: mode === 'solo' ? 1 : speakers,
-      }),
+      body: JSON.stringify({ duration_seconds }),
     })
 
     const newSession: SessionListItem = {
@@ -173,20 +133,9 @@ export default function HomePage() {
   }, [t])
 
   const handleFile = useCallback((file: File) => {
-    if (file.name.toLowerCase().endsWith('.opus')) {
-      doUpload(file, 'solo', 2)
-    } else {
-      setPendingFile(file)
-    }
+    void doUpload(file)
   }, [doUpload])
 
-  const handleConfirmUpload = useCallback(async () => {
-    if (!pendingFile) return
-    setPendingFile(null)
-    await doUpload(pendingFile, speakerMode, speakersExpected)
-  }, [pendingFile, speakerMode, speakersExpected, doUpload])
-
-  // Check for a file shared via the PWA share target (preserved behaviour).
   useEffect(() => {
     if (typeof indexedDB === 'undefined') return
     readPendingShare().then(file => {
@@ -203,9 +152,6 @@ export default function HomePage() {
     setSessions(prev => prev.filter(s => s.id !== id))
   }
 
-  // Optimistic read-toggle. Flips `last_viewed_at` between null and a fresh
-  // ISO string. The SessionList layer handles rollback by re-calling this
-  // with the inverse value if the API request fails.
   const handleToggleRead = useCallback((id: string, makeRead: boolean) => {
     setSessions(prev =>
       prev.map(s =>
@@ -216,57 +162,7 @@ export default function HomePage() {
     )
   }, [])
 
-  // Undo-toast for transcript page auto-read. We read from sessionStorage
-  // once on mount; if a recent (<60s) auto-read happened, surface a toast
-  // with an Undo affordance. Fires-and-forgets the PATCH on undo so the
-  // user gets immediate feedback.
-  const [autoReadToast, setAutoReadToast] = useState<AutoReadStash | null>(null)
-  const [undoError, setUndoError] = useState<string | null>(null)
-  const autoReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    const stash = consumePendingAutoReadToast()
-    if (!stash) return
-    setAutoReadToast(stash)
-    autoReadTimerRef.current = setTimeout(() => setAutoReadToast(null), UNDO_TOAST_MS)
-    return () => {
-      if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!undoError) return
-    const timer = setTimeout(() => setUndoError(null), 3000)
-    return () => clearTimeout(timer)
-  }, [undoError])
-
-  const handleUndoAutoRead = useCallback(async (id: string) => {
-    setAutoReadToast(null)
-    if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
-    handleToggleRead(id, false)
-    try {
-      const res = await fetch(`/api/sessions/${id}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ read: false }),
-      })
-      if (!res.ok) {
-        handleToggleRead(id, true)
-        setUndoError(t('session.undoError'))
-      }
-    } catch {
-      handleToggleRead(id, true)
-      setUndoError(t('session.undoError'))
-    }
-  }, [handleToggleRead, t])
-
   const isFirstTime = sessionsLoaded && sessions.length === 0
-  // Split sessions by lifecycle so each surface owns one place to show them:
-  //   - In-progress callout at the top → still moving through the pipeline.
-  //   - Recent conversations below     → terminal (ready or error).
-  // A freshly uploaded session lives in the callout while it processes, then
-  // pops into the recent list when it's ready (the polling loop re-fetches
-  // the full list on terminal status, so this happens automatically).
   const inProgressSessions = useMemo(
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
     [sessions],
@@ -276,72 +172,44 @@ export default function HomePage() {
     [sessions],
   )
 
-  // Pending upload card preempts the dropzone slot whether we're in the
-  // first-time or returning-user view.
-  const uploadSurface = pendingFile ? (
-    <PendingUploadCard
-      file={pendingFile}
-      speakerMode={speakerMode}
-      speakersExpected={speakersExpected}
-      onModeChange={handleModeChange}
-      onSpeakersChange={setSpeakersExpected}
-      onConfirm={handleConfirmUpload}
-      onDismiss={() => setPendingFile(null)}
-    />
-  ) : (
-    <DropZone onFile={handleFile} />
-  )
-
   return (
-    <div className="max-w-2xl mx-auto space-y-12">
-      {/*
-        Greeting block — modest, single line of warm copy + a softer
-        secondary line. We avoid a hero metric / streak / "level" widget
-        here; per `.impeccable.md` the tone is patient, not gamified.
-      */}
+    <div className="max-w-2xl mx-auto space-y-12 pb-24 md:pb-0">
       <header className="space-y-2">
-        <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
-          {t(greetingKey)}
-        </h1>
-        {/* One quiet line — never a vanity counter. The inbox below is the
-            actual answer to "what should I do next?" */}
-        <p className="text-text-secondary leading-relaxed">
-          {t('home.dashboardSubtitle')}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-2 flex-1">
+            <h1
+              className="home-greeting-title text-2xl md:text-3xl font-semibold text-text-primary tracking-tight"
+            >
+              <span className="home-greeting-emoji inline-block select-none" aria-hidden="true">
+                {t('home.greetingEmoji')}
+              </span>
+              {' '}
+              <span>{t(greetingKey)}</span>
+            </h1>
+            <p className="text-text-secondary leading-relaxed">
+              {t('home.dashboardSubtitle')}
+            </p>
+          </div>
+          <HomeUploadFab
+            onFile={handleFile}
+            onPickInvalid={msg => setError(msg)}
+            disabled={uploading}
+          />
+        </div>
       </header>
 
       {isFirstTime ? (
-        // First-time experience: onboarding steps + prominent upload.
-        // The empty state IS the onboarding so it self-resets after the
-        // first successful upload — no localStorage flag to drift.
         <>
           <DashboardOnboarding />
-          <section aria-labelledby="first-upload-heading" className="space-y-3">
-            <h2
-              id="first-upload-heading"
-              className="text-sm font-medium text-text-secondary uppercase tracking-wider"
-            >
-              {t('home.newSessionTitle')}
-            </h2>
-            {uploadSurface}
-            {uploading && <p className="text-status-processing text-sm">{t('home.uploading')}</p>}
-            {error && <p className="text-status-error text-sm">{error}</p>}
-          </section>
+          {(uploading || error) && (
+            <div className="text-sm space-y-1" aria-live="polite">
+              {uploading && <p className="text-status-processing">{t('home.uploading')}</p>}
+              {error && <p className="text-status-error">{error}</p>}
+            </div>
+          )}
         </>
       ) : (
-        // Returning view: review surfaces first, upload demoted to the
-        // bottom. The reminders pill renders even while data is loading
-        // (with the legacy "—" placeholder) so existing test contracts
-        // and screen-readers keep their anchor.
         <>
-          {/*
-            In-progress callout sits ABOVE reminders so the user immediately
-            sees what's brewing in the background — but only when there's
-            something to show. Self-renders to nothing when the array is
-            empty, so we don't need a guard here. In-progress sessions are
-            shown ONLY here (not also in the recent list below) so the user
-            doesn't see the same row twice.
-          */}
           <DashboardInProgress sessions={inProgressSessions} />
 
           <DashboardReminders summary={summary} />
@@ -354,29 +222,14 @@ export default function HomePage() {
             />
           )}
 
-          <DashboardUploadStarter>
-            {uploadSurface}
-            {uploading && <p className="text-status-processing text-sm mt-3">{t('home.uploading')}</p>}
-            {error && <p className="text-status-error text-sm mt-3">{error}</p>}
-          </DashboardUploadStarter>
+          {(uploading || error) && (
+            <div className="text-sm space-y-1" aria-live="polite">
+              {uploading && <p className="text-status-processing">{t('home.uploading')}</p>}
+              {error && <p className="text-status-error">{error}</p>}
+            </div>
+          )}
         </>
       )}
-
-      {/* Auto-read undo toast — sits at the page level so it survives section
-          re-renders. The toast key changes with the session id so consecutive
-          auto-reads (e.g. opening two sessions back-to-back) re-trigger the
-          entrance animation rather than silently swapping content. */}
-      {autoReadToast && (
-        <Toast
-          toastKey={autoReadToast.id}
-          message={t('session.autoReadToast', { title: autoReadToast.title })}
-          action={{
-            label: t('session.undo'),
-            onClick: () => handleUndoAutoRead(autoReadToast.id),
-          }}
-        />
-      )}
-      {undoError && <Toast message={undoError} />}
     </div>
   )
 }

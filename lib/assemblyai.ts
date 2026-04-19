@@ -31,8 +31,9 @@ function getWebhookBaseUrl(): string {
 /** Header AssemblyAI sends with webhook requests when webhook_auth_header_* is set. */
 export const WEBHOOK_AUTH_HEADER_NAME = 'X-Webhook-Secret'
 
-/** Submit an audio file URL for transcription with speaker diarization. */
-export async function createJob(audioUrl: string, speakersExpected = 2): Promise<string> {
+/** Submit an audio file URL for transcription with speaker diarization.
+ *  Omit `speakersExpected` so AssemblyAI infers speaker count from the audio. */
+export async function createJob(audioUrl: string, speakersExpected?: number): Promise<string> {
   const client = getClient()
   const bypassToken = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
   const bypassParam = bypassToken ? `?x-vercel-protection-bypass=${bypassToken}` : ''
@@ -45,7 +46,7 @@ export async function createJob(audioUrl: string, speakersExpected = 2): Promise
     webhook_auth_header_value: webhookSecret,
     speech_models: ['universal-3-pro', 'universal-2'],
     speaker_labels: true,
-    speakers_expected: speakersExpected,
+    ...(speakersExpected != null ? { speakers_expected: speakersExpected } : {}),
     language_code: 'es',
   })
   return transcript.id

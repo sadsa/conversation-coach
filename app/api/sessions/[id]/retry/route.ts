@@ -48,7 +48,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'No audio to retry' }, { status: 400 })
     }
     const audioUrl = publicUrl(session.audio_r2_key)
-    const jobId = await createJob(audioUrl, 2)
+    const jobId = await createJob(audioUrl)
 
     await db.from('sessions').update({
       status: 'transcribing',

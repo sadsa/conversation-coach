@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { data: session, error } = await db
     .from('sessions')
-    .select('id, user_id, speakers_expected')
+    .select('id, user_id')
     .eq('assemblyai_job_id', jobId)
     .single()
 
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   log.info('Speaker count determined', { sessionId: session.id, speakerCount: parsed.speakerCount })
 
-  if (parsed.speakerCount === 1 || session.speakers_expected === 1) {
+  if (parsed.speakerCount === 1) {
     const { error: updateError } = await db.from('sessions').update({
       status: 'analysing',
       detected_speaker_count: 1,

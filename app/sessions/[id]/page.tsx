@@ -9,7 +9,6 @@ import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
 import { IconButton } from '@/components/IconButton'
 import { useTranslation } from '@/components/LanguageProvider'
-import { stashAutoRead } from '@/lib/auto-read-toast'
 import type { SessionDetail } from '@/lib/types'
 
 type LoadState =
@@ -53,30 +52,12 @@ export default function TranscriptPage({ params }: { params: { id: string } }) {
 
   useEffect(() => { loadSession() }, [loadSession])
 
-  // Auto-mark this session as read on first visit. Idempotent on the server —
-  // once `last_viewed_at` is populated, the endpoint is a no-op (it returns
-  // `alreadyViewed: true`). When the call genuinely flipped the row from
-  // unread to read for the first time, we stash a "Marked as read · Undo"
-  // payload for the home page to surface on the next return — so a stray tap
-  // is recoverable in one tap. We only stash AFTER the session detail has
-  // loaded so the toast can include the conversation title.
-  //
-  // Gated by a ref so React Strict Mode's double-invoked effects in dev
-  // don't double-fire the POST (and the second call's `alreadyViewed: true`
-  // would suppress the stash incorrectly).
+  // Auto-mark this session as read on first visit. Idempotent on the server.
   const autoReadFiredRef = useRef(false)
   useEffect(() => {
     if (state.kind !== 'ready' || autoReadFiredRef.current) return
     autoReadFiredRef.current = true
-    const title = state.detail.session.title
-    fetch(`/api/sessions/${params.id}/view`, { method: 'POST' })
-      .then(r => r.ok ? r.json() : null)
-      .then((data: { ok?: boolean; alreadyViewed?: boolean } | null) => {
-        if (data && data.alreadyViewed === false) {
-          stashAutoRead(params.id, title)
-        }
-      })
-      .catch(() => { /* non-critical — inbox just won't update on this device */ })
+    fetch(`/api/sessions/${params.id}/view`, { method: 'POST' }).catch(() => { /* non-critical */ })
   }, [state, params.id])
 
   useEffect(() => {

@@ -69,10 +69,10 @@ describe('POST /api/sessions/:id/upload-complete', () => {
     })
     const res = await POST(req, { params: { id: 'session-1' } })
     expect(res.status).toBe(200)
-    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3', 2)
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3')
   })
 
-  it('passes speakers_expected to createJob when provided', async () => {
+  it('ignores legacy speakers_expected in the body (AssemblyAI infers count)', async () => {
     vi.mocked(createServerClient).mockReturnValue(
       makeMockDb({ audio_r2_key: 'audio/uuid.mp3' }) as unknown as ReturnType<typeof createServerClient>
     )
@@ -85,7 +85,7 @@ describe('POST /api/sessions/:id/upload-complete', () => {
     })
     const res = await POST(req, { params: { id: 'session-1' } })
     expect(res.status).toBe(200)
-    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3', 3)
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio/uuid.mp3')
   })
 })
 
@@ -217,6 +217,6 @@ describe('POST /api/sessions/:id/retry', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.status).toBe('transcribing')
-    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio.mp3', 2)
+    expect(vi.mocked(createJob)).toHaveBeenCalledWith('https://r2.example/audio.mp3')
   })
 })

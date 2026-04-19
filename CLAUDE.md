@@ -94,7 +94,7 @@ __tests__/                        # Vitest tests mirroring src structure
 The audio pipeline flows through these statuses: `uploading → transcribing → identifying → analysing → ready` (or `error` at any stage).
 
 1. Client uploads audio directly to R2 via presigned URL, then calls `POST /api/sessions/:id/upload-complete`
-2. Server triggers AssemblyAI job (`speakers_expected: 2`); webhook at `/api/webhooks/assemblyai` fires when done
+2. Server triggers AssemblyAI job (speaker count inferred by the model); webhook at `/api/webhooks/assemblyai` fires when done
 3. If 2 speakers detected: status → `identifying` (paused, waiting for speaker label)
 4. If 1 speaker detected: `user_speaker_labels` set to `["A"]`, goes straight to `analysing`
 5. Speaker label submitted via `POST /api/sessions/:id/speaker` → triggers Claude analysis

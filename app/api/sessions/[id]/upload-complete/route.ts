@@ -10,9 +10,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { duration_seconds, speakers_expected } = await req.json() as {
+  const { duration_seconds } = await req.json() as {
     duration_seconds?: number
-    speakers_expected?: number
   }
   const db = createServerClient()
 
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   let jobId: string
   try {
-    jobId = await createJob(audioUrl, speakers_expected ?? 2)
+    jobId = await createJob(audioUrl)
   } catch (err) {
     log.error('AssemblyAI job creation failed', { sessionId: params.id, err })
     await db.from('sessions').update({
@@ -47,7 +46,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'transcribing',
     assemblyai_job_id: jobId,
     ...(duration_seconds != null ? { duration_seconds } : {}),
-    ...(speakers_expected != null ? { speakers_expected } : {}),
   }).eq('id', params.id).eq('user_id', user.id)
 
   return NextResponse.json({ ok: true })

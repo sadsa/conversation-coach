@@ -68,9 +68,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.pastSessions': 'Past Sessions',
 
     // Dashboard
+    'home.greetingEmoji': '🎧',
     'home.greetingMorning': 'Good morning',
     'home.greetingAfternoon': 'Good afternoon',
     'home.greetingEvening': 'Good evening',
+    'home.uploadFabAria': 'Upload a new conversation',
+    'home.uploadFabLabel': 'Upload',
     'home.dashboardSubtitle': 'A quiet place to review what you\'ve recorded.',
     'home.welcomeTitle': 'Welcome to Conversation Coach',
     'home.welcomeSubtitle': 'Record a Spanish conversation, get gentle corrections, and turn the keepers into flashcards.',
@@ -78,7 +81,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.step1.title': 'Record a conversation',
     'home.step1.desc': 'Capture yourself speaking — solo practice or a real chat. Anything you\'d like feedback on.',
     'home.step2.title': 'Upload the audio',
-    'home.step2.desc': 'Drop the file in below. Your speech gets transcribed and gently annotated by a tutor.',
+    'home.step2.desc': 'Use the round + button (mobile) or Upload (desktop). Your speech gets transcribed and gently annotated by a tutor.',
     'home.step3.title': 'Review the corrections',
     'home.step3.desc': 'Read through your transcript at your own pace. Star the corrections worth keeping.',
     'home.step4.title': 'Write them down',
@@ -129,7 +132,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.deleteWarning': 'will be permanently deleted, along with all its annotations and any saved corrections from it. This can\'t be undone.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
-    'session.noSessions': 'No sessions yet — upload your first conversation above.',
+    'session.noSessions': 'No sessions yet — tap Upload to add your first conversation.',
     'session.deleteError': 'Couldn\'t delete session — try again.',
     // Swipe-right toggle on a session row in the recent inbox.
     'session.markUnread': 'Mark unread',
@@ -137,11 +140,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.markUnreadAria': 'Mark "{title}" as unread',
     'session.markReadAria': 'Mark "{title}" as read',
     'session.toggleReadError': 'Couldn\'t update — try again.',
-    // Undo toast on the home page after a transcript visit auto-read a row.
-    'session.autoReadToast': 'Marked "{title}" as read.',
-    'session.undo': 'Undo',
-    'session.undoError': 'Couldn\'t undo — try again.',
-
     // Pipeline status
     'pipeline.uploading': 'Uploading',
     'pipeline.transcribing': 'Transcribing',
@@ -389,9 +387,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.pastSessions': 'Sesiones anteriores',
 
     // Dashboard
+    'home.greetingEmoji': '🎧',
     'home.greetingMorning': 'Buenos días',
     'home.greetingAfternoon': 'Buenas tardes',
     'home.greetingEvening': 'Buenas noches',
+    'home.uploadFabAria': 'Subir una conversación nueva',
+    'home.uploadFabLabel': 'Subir',
     'home.dashboardSubtitle': 'Un lugar tranquilo para repasar lo que grabaste.',
     'home.welcomeTitle': 'Bienvenido a Conversation Coach',
     'home.welcomeSubtitle': 'Grabá una conversación en español, recibí correcciones suaves y convertí las útiles en flashcards.',
@@ -399,7 +400,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.step1.title': 'Grabá una conversación',
     'home.step1.desc': 'Capturate hablando — solo o en una charla real. Lo que quieras que te corrijan.',
     'home.step2.title': 'Subí el audio',
-    'home.step2.desc': 'Arrastrá el archivo abajo. Tu habla se transcribe y un tutor te deja anotaciones suaves.',
+    'home.step2.desc': 'Usá el botón redondo + (celular) o Subir (escritorio). Tu habla se transcribe y un tutor te deja anotaciones suaves.',
     'home.step3.title': 'Revisá las correcciones',
     'home.step3.desc': 'Leé tu transcripción a tu ritmo. Marcá con estrella las correcciones que valga la pena guardar.',
     'home.step4.title': 'Anotalas a mano',
@@ -450,7 +451,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus anotaciones y las correcciones guardadas de esta sesión. Esta acción no se puede deshacer.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
-    'session.noSessions': 'Todavía no hay sesiones — subí tu primera conversación arriba.',
+    'session.noSessions': 'Todavía no hay sesiones — tocá Subir para agregar tu primera conversación.',
     'session.deleteError': 'No se pudo eliminar la sesión — intentá de nuevo.',
     // Toggle leído/sin leer al deslizar a la derecha sobre una fila.
     'session.markUnread': 'Sin leer',
@@ -459,10 +460,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.markReadAria': 'Marcar "{title}" como leída',
     'session.toggleReadError': 'No se pudo actualizar — intentá de nuevo.',
     // Toast de deshacer en el inicio cuando una visita marcó una fila como leída.
-    'session.autoReadToast': '"{title}" marcada como leída.',
-    'session.undo': 'Deshacer',
-    'session.undoError': 'No se pudo deshacer — intentá de nuevo.',
-
     // Pipeline status
     'pipeline.uploading': 'Subiendo',
     'pipeline.transcribing': 'Transcribiendo',
