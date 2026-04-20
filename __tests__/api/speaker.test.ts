@@ -53,8 +53,8 @@ beforeEach(() => {
   vi.mocked(getAuthenticatedUser).mockResolvedValue({
     id: 'user-123',
     email: 'test@example.com',
-    user_metadata: { target_language: 'es-AR' },
-  } as any)
+    targetLanguage: 'es-AR',
+  })
 })
 
 describe('POST /api/sessions/:id/speaker', () => {

@@ -21,7 +21,8 @@ beforeEach(() => {
   vi.mocked(getAuthenticatedUser).mockResolvedValue({
     id: 'user-123',
     email: 'test@example.com',
-  } as unknown as { id: string; email: string })
+    targetLanguage: null,
+  })
 })
 
 function ownedDb(updateMock: ReturnType<typeof vi.fn>) {
@@ -59,7 +60,7 @@ function ownedDb(updateMock: ReturnType<typeof vi.fn>) {
 
 describe('PATCH /api/annotations/:id', () => {
   it('returns 401 when unauthenticated', async () => {
-    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null as unknown as { id: string; email: string })
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null)
     const req = new NextRequest('http://localhost', {
       method: 'PATCH',
       body: JSON.stringify({ is_unhelpful: true }),

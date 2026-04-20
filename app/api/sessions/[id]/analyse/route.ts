@@ -42,7 +42,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     error_stage: null,
   }).eq('id', params.id).eq('user_id', user.id)
 
-  const targetLanguage = (user.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+  const targetLanguage = (user.targetLanguage as TargetLanguage | null) ?? 'es-AR'
   log.info('Re-analysis triggered', { sessionId: params.id, targetLanguage })
 
   waitUntil(runClaudeAnalysis(params.id, targetLanguage).catch(err =>

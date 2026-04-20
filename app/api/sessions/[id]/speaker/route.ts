@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'analysing',
   }).eq('id', params.id).eq('user_id', user.id)
 
-  const targetLanguage = (user.user_metadata?.target_language as TargetLanguage) ?? 'es-AR'
+  const targetLanguage = (user.targetLanguage as TargetLanguage | null) ?? 'es-AR'
   log.info('Analysis triggered after speaker identification', { sessionId: params.id, speaker_labels, targetLanguage })
 
   waitUntil(runClaudeAnalysis(params.id, targetLanguage).catch(err =>

@@ -4,6 +4,7 @@ import { FontSizeProvider } from '@/components/FontSizeProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ConditionalNav } from '@/components/ConditionalNav'
 import { ScrollToTopOnNavigate } from '@/components/ScrollToTopOnNavigate'
+import { NavProgress } from '@/components/NavProgress'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { getAuthenticatedUser } from '@/lib/auth'
 import type { TargetLanguage } from '@/lib/types'
@@ -23,7 +24,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getAuthenticatedUser()
-  const rawLang = user?.user_metadata?.target_language as string | undefined
+  const rawLang = user?.targetLanguage ?? undefined
   const initialTargetLanguage: TargetLanguage =
     rawLang && rawLang in TARGET_LANGUAGES ? (rawLang as TargetLanguage) : 'es-AR'
   const uiLanguage = inferUiLanguage(initialTargetLanguage)
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ThemeProvider>
             <FontSizeProvider />
             <ScrollToTopOnNavigate />
+            <NavProgress />
             {/* tabIndex={-1} so the skip-to-content link in AppHeader actually
                 moves focus here on activation. Without it, browsers scroll to
                 the anchor but the next Tab fires from <body>, defeating the

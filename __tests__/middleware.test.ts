@@ -49,6 +49,32 @@ describe('middleware', () => {
     expect(res.status).toBe(200)
   })
 
+  it('forwards the verified user identity to downstream handlers via request headers', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: 'user-abc',
+          email: 'allowed@example.com',
+          user_metadata: { target_language: 'es-AR' },
+        },
+      },
+    })
+    const res = await middleware(makeRequest('/'))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('x-middleware-request-x-cc-user-id')).toBe('user-abc')
+    expect(res.headers.get('x-middleware-request-x-cc-user-email')).toBe('allowed@example.com')
+    expect(res.headers.get('x-middleware-request-x-cc-user-target-language')).toBe('es-AR')
+  })
+
+  it('strips any client-supplied auth headers so they cannot be spoofed', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: 'real-user', email: 'allowed@example.com' } } })
+    const req = new NextRequest(new URL('http://localhost/'), {
+      headers: { 'x-cc-user-id': 'attacker' },
+    })
+    const res = await middleware(req)
+    expect(res.headers.get('x-middleware-request-x-cc-user-id')).toBe('real-user')
+  })
+
   it('passes /login through without calling getUser', async () => {
     const res = await middleware(makeRequest('/login'))
     expect(res.status).toBe(200)

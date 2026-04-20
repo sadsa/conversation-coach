@@ -416,7 +416,7 @@ describe('POST /api/sessions/:id/view', () => {
   })
 
   it('returns 401 when unauthenticated', async () => {
-    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null as unknown as { id: string; email: string })
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null)
     const req = new NextRequest('http://localhost', { method: 'POST' })
     const res = await postView(req, { params: { id: 's1' } })
     expect(res.status).toBe(401)

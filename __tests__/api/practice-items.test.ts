@@ -14,143 +14,112 @@ beforeEach(() => {
   vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
 })
 
+// Single-query practice-items loader: one PostgREST request joins the
+// parent session (for ownership scoping + title) and the parent annotation
+// (for char offsets + segment text). The mock shape mirrors that — chain
+// is `.from('practice_items').select(...).eq('sessions.user_id', ...).order(...)`
+// and the returned rows carry nested `sessions` and `annotations` objects.
+function makePracticeItemsDb(orderResult: { data: unknown; error: unknown }) {
+  const orderMock = vi.fn().mockResolvedValue(orderResult)
+  const eqMock = vi.fn().mockReturnValue({ order: orderMock })
+  const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+  const fromMock = vi.fn().mockReturnValue({ select: selectMock })
+  return {
+    db: { from: fromMock } as unknown as ReturnType<typeof createServerClient>,
+    orderMock,
+    eqMock,
+    fromMock,
+  }
+}
+
 describe('GET /api/practice-items', () => {
-  it('returns all items when no filters', async () => {
-    const mockDb = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'sessions') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                data: [{ id: 'session-1', title: 'Cafe with María' }],
-                error: null,
-              }),
-            }),
-          }
-        }
-        // practice_items
-        return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [{ id: 'item-1', session_id: 'session-1', type: 'grammar', original: 'Yo fui', reviewed: false, written_down: false }],
-                error: null,
-              }),
-            }),
-          }),
-        }
-      }),
-    }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-
-    const { GET } = await import('@/app/api/practice-items/route')
-    const req = new NextRequest('http://localhost/api/practice-items')
-    const res = await GET(req)
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body).toHaveLength(1)
-    // Session title is enriched from the parent session row so the
-    // WriteSheet header can render the "From <session>" eyebrow link.
-    expect(body[0].session_title).toBe('Cafe with María')
-  })
-
-  it('enriches items with segment_text, start_char, end_char via secondary lookup', async () => {
-    vi.resetModules()
-    vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
-    vi.mock('@/lib/auth', () => ({ getAuthenticatedUser: vi.fn() }))
-    const { createServerClient } = await import('@/lib/supabase-server')
-    const { getAuthenticatedUser } = await import('@/lib/auth')
-    vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
-
-    const mockDb = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'sessions') return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1', title: 'Cafe with María' }], error: null }),
-          }),
-        }
-        if (table === 'practice_items') return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [{ id: 'item-1', session_id: 'session-1', annotation_id: 'ann-1', written_down: false }],
-                error: null,
-              }),
-            }),
-          }),
-        }
-        if (table === 'annotations') return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockResolvedValue({
-              data: [{ id: 'ann-1', segment_id: 'seg-1', start_char: 5, end_char: 11 }],
-              error: null,
-            }),
-          }),
-        }
-        if (table === 'transcript_segments') return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockResolvedValue({
-              data: [{ id: 'seg-1', text: 'Hola mundo amigo mío.' }],
-              error: null,
-            }),
-          }),
-        }
-        return { select: vi.fn() }
-      }),
-    }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-
-    const { GET } = await import('@/app/api/practice-items/route')
-    const req = new NextRequest('http://localhost/api/practice-items')
-    const res = await GET(req)
-    const body = await res.json()
-    expect(res.status).toBe(200)
-    expect(body[0].segment_text).toBe('Hola mundo amigo mío.')
-    expect(body[0].start_char).toBe(5)
-    expect(body[0].end_char).toBe(11)
-    expect(body[0].session_title).toBe('Cafe with María')
-  })
-
-  it('sorts by importance_score descending when ?sort=importance', async () => {
-    vi.resetModules()
-    vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
-    vi.mock('@/lib/auth', () => ({ getAuthenticatedUser: vi.fn() }))
-    const { createServerClient } = await import('@/lib/supabase-server')
-    const { getAuthenticatedUser } = await import('@/lib/auth')
-    vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
-
-    const orderMock = vi.fn().mockResolvedValue({
+  it('returns enriched items with session_title, segment_text, start_char, end_char from a single nested query', async () => {
+    const { db, fromMock, eqMock } = makePracticeItemsDb({
       data: [
-        { id: 'item-high', importance_score: 3 },
-        { id: 'item-low', importance_score: 1 },
+        {
+          id: 'item-1',
+          session_id: 'session-1',
+          annotation_id: 'ann-1',
+          type: 'grammar',
+          original: 'Yo fui',
+          written_down: false,
+          sessions: { user_id: 'user-123', title: 'Cafe with María' },
+          annotations: {
+            start_char: 5,
+            end_char: 11,
+            transcript_segments: { text: 'Hola mundo amigo mío.' },
+          },
+        },
       ],
       error: null,
     })
-    const mockDb = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'sessions') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1' }], error: null }),
-            }),
-          }
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
-              order: orderMock,
-            }),
-          }),
-        }
-      }),
-    }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(createServerClient).mockReturnValue(db)
+
+    const { GET } = await import('@/app/api/practice-items/route')
+    const req = new NextRequest('http://localhost/api/practice-items')
+    const res = await GET(req)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+
+    // The query is scoped to the user via the joined parent table —
+    // attempts to leak another user's items would fail this assertion.
+    expect(fromMock).toHaveBeenCalledWith('practice_items')
+    expect(eqMock).toHaveBeenCalledWith('sessions.user_id', 'user-123')
+
+    expect(body).toHaveLength(1)
+    expect(body[0].session_title).toBe('Cafe with María')
+    expect(body[0].segment_text).toBe('Hola mundo amigo mío.')
+    expect(body[0].start_char).toBe(5)
+    expect(body[0].end_char).toBe(11)
+    // Internal join shape isn't part of the public response contract.
+    expect(body[0].sessions).toBeUndefined()
+    expect(body[0].annotations).toBeUndefined()
+  })
+
+  it('returns items with null enrichment fields when the annotation row is missing', async () => {
+    const { db } = makePracticeItemsDb({
+      data: [
+        {
+          id: 'item-legacy',
+          session_id: 'session-1',
+          annotation_id: null,
+          sessions: { user_id: 'user-123', title: 'Older session' },
+          annotations: null,
+        },
+      ],
+      error: null,
+    })
+    vi.mocked(createServerClient).mockReturnValue(db)
+
+    const { GET } = await import('@/app/api/practice-items/route')
+    const req = new NextRequest('http://localhost/api/practice-items')
+    const res = await GET(req)
+    const body = await res.json()
+    expect(body[0].session_title).toBe('Older session')
+    expect(body[0].segment_text).toBeNull()
+    expect(body[0].start_char).toBeNull()
+    expect(body[0].end_char).toBeNull()
+  })
+
+  it('sorts by importance_score descending when ?sort=importance', async () => {
+    const { db, orderMock } = makePracticeItemsDb({ data: [], error: null })
+    vi.mocked(createServerClient).mockReturnValue(db)
 
     const { GET } = await import('@/app/api/practice-items/route')
     const req = new NextRequest('http://localhost/api/practice-items?sort=importance')
     const res = await GET(req)
     expect(res.status).toBe(200)
     expect(orderMock).toHaveBeenCalledWith('importance_score', { ascending: false, nullsFirst: false })
+  })
+
+  it('sorts by created_at descending by default', async () => {
+    const { db, orderMock } = makePracticeItemsDb({ data: [], error: null })
+    vi.mocked(createServerClient).mockReturnValue(db)
+
+    const { GET } = await import('@/app/api/practice-items/route')
+    const req = new NextRequest('http://localhost/api/practice-items')
+    await GET(req)
+    expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false })
   })
 })
 

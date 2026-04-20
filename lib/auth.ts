@@ -1,15 +1,60 @@
 // lib/auth.ts
+import { headers, cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import type { User } from '@supabase/supabase-js'
+import { cache } from 'react'
+import {
+  USER_ID_HEADER,
+  USER_EMAIL_HEADER,
+  USER_TARGET_LANGUAGE_HEADER,
+} from '@/middleware'
 
 /**
- * Returns the authenticated Supabase user from the current request's session
- * cookie, or null if no valid session exists. Uses the anon key so the session
- * JWT is validated against Supabase Auth (not bypassed like the service role key).
- * The try/catch in setAll is intentional — cookies are read-only in Server Components.
+ * Lean shape of an authenticated user. We don't return the full Supabase
+ * `User` because the only fields callers actually use are id, email, and
+ * the target_language metadata field — and those are all forwarded by
+ * middleware via request headers, so we never need a network round-trip
+ * to populate them.
  */
-export async function getAuthenticatedUser(): Promise<User | null> {
+export interface AuthenticatedUser {
+  id: string
+  email: string | null
+  targetLanguage: string | null
+}
+
+/**
+ * Returns the authenticated user for the current request.
+ *
+ * Fast path (the only path you'll see in normal browser-driven traffic):
+ * read the user identity that middleware already verified and forwarded
+ * via request headers. Zero network calls.
+ *
+ * Slow path (defensive — fires only if middleware didn't run, e.g. a
+ * route that was somehow added to the public-prefix list but still calls
+ * this function): validate the session cookie via Supabase Auth.
+ *
+ * Wrapped in React `cache()` so multiple calls within a single request
+ * (layout + page + nested components) share one result.
+ */
+export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | null> => {
+  const headerList = headers()
+  const id = headerList.get(USER_ID_HEADER)
+  if (id) {
+    return {
+      id,
+      email: headerList.get(USER_EMAIL_HEADER),
+      targetLanguage: headerList.get(USER_TARGET_LANGUAGE_HEADER),
+    }
+  }
+  return verifyFromCookie()
+})
+
+/**
+ * Cookie-based fallback. Only used when middleware headers are absent —
+ * e.g. unit tests, or routes that were carved out of the middleware
+ * matcher but still need auth. The try/catch in setAll is intentional:
+ * cookies are read-only inside Server Components.
+ */
+async function verifyFromCookie(): Promise<AuthenticatedUser | null> {
   const cookieStore = cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,5 +75,10 @@ export async function getAuthenticatedUser(): Promise<User | null> {
     }
   )
   const { data: { user } } = await supabase.auth.getUser()
-  return user
+  if (!user) return null
+  return {
+    id: user.id,
+    email: user.email ?? null,
+    targetLanguage: (user.user_metadata?.target_language as string | undefined) ?? null,
+  }
 }

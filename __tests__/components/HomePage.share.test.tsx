@@ -74,18 +74,24 @@ function setupIDB(file: File | null) {
   Object.defineProperty(global, 'indexedDB', { value: mockIDB, writable: true })
 }
 
-describe('HomePage — share pickup', () => {
+// The share-pickup behaviour now lives in <HomeClient> — the page-level
+// Server Component just hands it the initial sessions list. We render
+// the client directly with an empty list so the only thing that can put
+// a session card on screen is the IndexedDB share pickup -> upload path.
+describe('HomeClient — share pickup', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.resetModules() // force fresh module import per test — avoids useEffect running with stale IDB mock
+    vi.resetModules()
   })
 
   it('shows the pending upload card when a share is pending', async () => {
     const sharedFile = new File(['audio'], 'PTT-20260327.opus', { type: 'audio/ogg' })
     setupIDB(sharedFile)
 
-    const { default: HomePage } = await import('@/app/page')
-    const { getAllByText } = render(<HomePage />)
+    const { HomeClient } = await import('@/components/HomeClient')
+    const { getAllByText } = render(
+      <HomeClient initialSessions={[]} initialSummary={null} />
+    )
 
     // The shared `.opus` file is auto-uploaded. The new session is still
     // processing, so it appears in the in-progress callout at the top of the
@@ -99,8 +105,10 @@ describe('HomePage — share pickup', () => {
 
   it('does nothing if no share is pending', async () => {
     setupIDB(null)
-    const { default: HomePage } = await import('@/app/page')
-    const { queryAllByText } = render(<HomePage />)
+    const { HomeClient } = await import('@/components/HomeClient')
+    const { queryAllByText } = render(
+      <HomeClient initialSessions={[]} initialSummary={null} />
+    )
     await new Promise(r => setTimeout(r, 100))
     expect(queryAllByText('PTT-20260327.opus')).toHaveLength(0)
   })
