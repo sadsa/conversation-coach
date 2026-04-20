@@ -248,9 +248,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Speaker card
     'speaker.label': 'Speaker {label}',
 
-    // Annotation card — primary save action
+    // Annotation card — primary save action. The saved-state label spells
+    // out the destination so the button itself is the receipt; we used to
+    // pair it with a separate "Added to your Write list" hint paragraph
+    // underneath, which was redundant.
     'annotation.savePrimary': 'Save to my Write list',
-    'annotation.savedPrimary': 'Saved · on your Write list',
+    'annotation.savedPrimary': 'Added to write list',
     'annotation.savePrimaryAria': 'Save this correction to your Write list',
     'annotation.savedPrimaryAria': 'Remove this correction from your Write list',
     // Quiet secondary "this correction wasn't useful" affordance
@@ -258,9 +261,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.notUsefulRestore': 'Restore this correction',
     'annotation.notUsefulAria': 'Mark as not useful and hide from the transcript',
     'annotation.notUsefulRestoreAria': 'Restore this correction',
-    // Inline hints — written like a teacher would: outcome-focused, warm
-    'annotation.savedHint': 'Added to your Write list — nice catch.',
-    'annotation.savedHintLink': 'View list',
+    // Hidden-state caption — kept so the visual fade isn't the only signal.
     'annotation.unhelpfulHint': 'Hidden from your transcript.',
     // Errors are surfaced with an inline Retry rather than auto-dismissing
     'annotation.saveError': "Couldn't save that — let's try again.",
@@ -609,9 +610,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Speaker card
     'speaker.label': 'Hablante {label}',
 
-    // Annotation card — primary save action
+    // Annotation card — primary save action. La etiqueta del estado
+    // "guardada" ya menciona el destino, así que el botón funciona como
+    // confirmación por sí solo y eliminamos el cartel separado que decía
+    // "Agregada a tu lista".
     'annotation.savePrimary': 'Guardar en mi lista',
-    'annotation.savedPrimary': 'Guardada · en tu lista',
+    'annotation.savedPrimary': 'Agregada a tu lista',
     'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Anotar',
     'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Anotar',
     // Quiet secondary "this correction wasn't useful" affordance
@@ -619,9 +623,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.notUsefulRestore': 'Restaurar esta corrección',
     'annotation.notUsefulAria': 'Marcar como poco útil y ocultarla de la transcripción',
     'annotation.notUsefulRestoreAria': 'Restaurar esta corrección',
-    // Inline hints — written like a teacher would: outcome-focused, warm
-    'annotation.savedHint': 'Agregada a tu lista — buena observación.',
-    'annotation.savedHintLink': 'Ver lista',
+    // Subtítulo del estado oculto — sin él, lo único que indica el cambio
+    // es la opacidad, lo que se confunde con "cargando".
     'annotation.unhelpfulHint': 'Oculta de tu transcripción.',
     // Errors are surfaced with an inline Retry rather than auto-dismissing
     'annotation.saveError': 'No se pudo guardar — probemos de nuevo.',

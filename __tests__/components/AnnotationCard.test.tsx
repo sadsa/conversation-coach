@@ -33,30 +33,34 @@ const defaultProps = {
 beforeEach(() => { vi.resetAllMocks() })
 
 describe('AnnotationCard — content', () => {
-  it('renders original, correction, explanation and sub-category', () => {
+  it('renders original, correction and explanation', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
     expect(screen.getByText('Yo fui')).toBeInTheDocument()
     expect(screen.getByText('Fui')).toBeInTheDocument()
     expect(screen.getByText('Drop the subject pronoun.')).toBeInTheDocument()
-    expect(screen.getByText('Subjunctive')).toBeInTheDocument()
+  })
+
+  it('does not render a sub-category pill (distilled — the user does not act on it)', () => {
+    render(<AnnotationCard annotation={annotation} {...defaultProps} />)
+    expect(screen.queryByText('Subjunctive')).not.toBeInTheDocument()
   })
 })
 
-describe('AnnotationCard — outcome hint', () => {
-  it('shows no outcome hint in the neutral state', () => {
+describe('AnnotationCard — saved + hidden state cues', () => {
+  it('renders no extra hint paragraph in the neutral state', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
-    expect(screen.queryByText(/added to your write list/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/added to write list/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/hidden from your transcript/i)).not.toBeInTheDocument()
   })
 
-  it('shows the saved hint with a link to /write once practiceItemId is set', () => {
+  it('moves the saved confirmation into the primary button itself', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} practiceItemId="pi-1" />)
-    expect(screen.getByText(/added to your write list/i)).toBeInTheDocument()
-    const link = screen.getByRole('link', { name: /view list/i })
-    expect(link).toHaveAttribute('href', '/write')
+    expect(screen.getByRole('button', { name: /remove this correction from your write list/i })).toHaveTextContent(/added to write list/i)
+    // No secondary "View list" link / hint paragraph anymore — the button is the receipt.
+    expect(screen.queryByRole('link', { name: /view list/i })).not.toBeInTheDocument()
   })
 
-  it('shows the hidden hint when is_unhelpful is true', () => {
+  it('keeps the hidden caption when is_unhelpful is true (the fade alone reads as loading)', () => {
     render(<AnnotationCard annotation={{ ...annotation, is_unhelpful: true }} {...defaultProps} />)
     expect(screen.getByText(/hidden from your transcript/i)).toBeInTheDocument()
   })

@@ -6,29 +6,33 @@
 //   1. A primary "Save to my Write list" button (shared `<Button>`) — the
 //      one action the user is here for. Verb-first, full-width on mobile,
 //      gets initial focus when the sheet opens (`data-initial-focus`), and
-//      flips to a "Saved · on your Write list" affirmation after a save.
+//      flips to an "Added to write list" confirmation after a save. The
+//      saved-state label carries the destination itself so we don't need a
+//      separate hint paragraph below — the button IS the receipt.
 //   2. A quiet text "Not useful — hide it" affordance underneath. Same
 //      idempotent toggle the old 👎 carried, but visually demoted so it can
 //      never compete with Save for attention.
 //
-// Inline outcome hint sits between the primary button and any error region:
-//   • Saved → "Added to your Write list — nice catch." with a `View list`
-//     link straight to /write.
-//   • Hidden → "Hidden from your transcript." reinforcing the visual fade.
-//   • Neutral → no hint (one less line of UI noise).
+// The hidden-state caption ("Hidden from your transcript.") stays — without
+// it the only signal is the opacity fade on the whole card, which on its own
+// reads as "loading" more than "dismissed".
+//
+// Type and sub-category indicators (the coloured grammar/naturalness dot in
+// the sheet header and the sub-category pill that used to sit above the
+// importance pill) were both removed. The user reads through the same sheet
+// for both kinds of correction and never acted on either signal.
 //
 // Errors no longer auto-dismiss. They surface a Retry button that re-runs
 // the failed action, and (when applicable) an offline note so the user
 // understands why retrying is unlikely to help right now.
 //
-// Importance is now a single soft pill ("Worth remembering" or, at score
-// 3, "High priority") rather than three ASCII stars. Score === 1 is
+// Importance is rendered as a single soft pill ("Worth remembering" or, at
+// score 3, "High priority") rather than three ASCII stars. Score === 1 is
 // hidden entirely — by definition a 1-of-3 importance signal isn't earning
 // its visual weight on every card.
 
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { buttonStyles } from '@/components/Button'
@@ -254,18 +258,12 @@ export function AnnotationCard({
         {annotation.explanation}
       </p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
-          {t(`subCat.${annotation.sub_category}`)}
-        </span>
-
-        <ImportancePill
-          score={annotation.importance_score}
-          note={annotation.importance_note}
-          expanded={importanceExpanded}
-          onToggle={() => setImportanceExpanded(e => !e)}
-        />
-      </div>
+      <ImportancePill
+        score={annotation.importance_score}
+        note={annotation.importance_note}
+        expanded={importanceExpanded}
+        onToggle={() => setImportanceExpanded(e => !e)}
+      />
 
       {importanceExpanded && annotation.importance_note && (
         <p className="text-text-secondary text-sm leading-relaxed -mt-3">
@@ -275,21 +273,12 @@ export function AnnotationCard({
 
       {/* Action region — primary verb above, quiet secondary below. The
           primary carries `data-initial-focus` so DockedSheet's open lifecycle
-          puts the cursor on the action the user is here for, not on Close. */}
+          puts the cursor on the action the user is here for, not on Close.
+          The post-save outcome hint that used to sit here was distilled
+          into the button's own saved-state copy ("Added to write list").
+          The hidden-state caption stays — without it the only feedback is
+          the card-wide opacity fade, which reads as "loading" by itself. */}
       <div className="pt-4 border-t border-border space-y-3">
-        {/* Outcome hint — only present in saved or hidden states. Neutral
-            shows nothing so we don't add noise to every card. */}
-        {practiceItemId && !isUnhelpful && (
-          <p className="text-sm text-text-secondary leading-snug">
-            {t('annotation.savedHint')}{' '}
-            <Link
-              href="/write"
-              className="font-medium text-[color:var(--annotation-saved-text)] underline underline-offset-2 hover:no-underline"
-            >
-              {t('annotation.savedHintLink')} →
-            </Link>
-          </p>
-        )}
         {isUnhelpful && (
           <p className="text-sm text-text-tertiary leading-snug">
             {t('annotation.unhelpfulHint')}

@@ -37,19 +37,19 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.savePrimary', 'en')).toBe('Save to my Write list')
     expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista')
   })
-  it('annotation.savedPrimary reads as a confirmation in both langs', () => {
-    expect(t('annotation.savedPrimary', 'en')).toMatch(/saved/i)
-    expect(t('annotation.savedPrimary', 'es')).toMatch(/guardada/i)
+  it('annotation.savedPrimary names the destination so the button itself is the receipt', () => {
+    expect(t('annotation.savedPrimary', 'en')).toMatch(/added to write list/i)
+    expect(t('annotation.savedPrimary', 'es')).toMatch(/agregada/i)
   })
   it('annotation.notUseful is the quiet secondary action label', () => {
     expect(t('annotation.notUseful', 'en')).not.toBe('annotation.notUseful')
     expect(t('annotation.notUseful', 'es')).not.toBe('annotation.notUseful')
   })
-  it('annotation.savedHint + savedHintLink exist for the inline outcome cue', () => {
-    expect(t('annotation.savedHint', 'en')).not.toBe('annotation.savedHint')
-    expect(t('annotation.savedHintLink', 'en')).not.toBe('annotation.savedHintLink')
-    expect(t('annotation.savedHint', 'es')).not.toBe('annotation.savedHint')
-    expect(t('annotation.savedHintLink', 'es')).not.toBe('annotation.savedHintLink')
+  it('annotation.savedHint + savedHintLink are retired (folded into the saved-state button label)', () => {
+    expect(t('annotation.savedHint', 'en')).toBe('annotation.savedHint')
+    expect(t('annotation.savedHintLink', 'en')).toBe('annotation.savedHintLink')
+    expect(t('annotation.savedHint', 'es')).toBe('annotation.savedHint')
+    expect(t('annotation.savedHintLink', 'es')).toBe('annotation.savedHintLink')
   })
   it('annotation.unhelpfulHint reinforces the hidden state', () => {
     expect(t('annotation.unhelpfulHint', 'en')).toMatch(/hidden/i)

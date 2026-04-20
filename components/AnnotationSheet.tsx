@@ -7,6 +7,12 @@
 // hint lives in the shared `<NavHint>` component so the sister `WriteSheet`
 // surface inherits the same onboarding cue and dismiss flag.
 //
+// The header used to surface the correction's type (grammar vs naturalness)
+// and a coloured dot, but the user reads through the same sheet for both
+// kinds of correction and never acted on the distinction — so the dot and
+// the type heading were distilled out. Position (`3 of 12`) stays because
+// it's pure navigation context.
+//
 // `preserveOutsideSelector="[data-annotation-id]"` keeps the sheet open when
 // the user taps a different annotation mark in the transcript — TranscriptView
 // swaps the active id and the sheet's `contentKey` change replays the body
@@ -17,7 +23,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { AnnotationCard } from '@/components/AnnotationCard'
 import { DockedSheet } from '@/components/DockedSheet'
 import { NavHint } from '@/components/NavHint'
-import type { Annotation, AnnotationType } from '@/lib/types'
+import type { Annotation } from '@/lib/types'
 
 interface Props {
   annotation: Annotation | null
@@ -38,11 +44,6 @@ interface Props {
   onAnnotationWritten: (annotationId: string) => void
   onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged?: (annotationId: string, isUnhelpful: boolean) => void
-}
-
-const TYPE_DOT_CLASS: Record<AnnotationType, string> = {
-  grammar: 'bg-status-error',
-  naturalness: 'bg-pill-amber',
 }
 
 export function AnnotationSheet({
@@ -72,20 +73,11 @@ export function AnnotationSheet({
       preserveOutsideSelector="[data-annotation-id]"
       contentKey={annotation.id}
       headerLead={
-        <>
-          <span
-            aria-hidden="true"
-            className={`w-2 h-2 rounded-full shrink-0 ${TYPE_DOT_CLASS[annotation.type]}`}
-          />
-          <h2 className="font-semibold text-text-primary truncate">
-            {t(`type.${annotation.type}`)}
-          </h2>
-          {position && (
-            <span className="text-xs text-text-tertiary tabular-nums">
-              {t('sheet.position', { n: position.current, total: position.total })}
-            </span>
-          )}
-        </>
+        position && (
+          <span className="text-xs text-text-tertiary tabular-nums">
+            {t('sheet.position', { n: position.current, total: position.total })}
+          </span>
+        )
       }
     >
       <NavHint />
