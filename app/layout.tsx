@@ -20,6 +20,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#f8f6f2',
+  // iOS PWA in standalone mode overlays the status bar and home indicator
+  // on top of our content. `viewport-fit: cover` is what unlocks
+  // `env(safe-area-inset-*)` returning the real inset values — without it,
+  // the FAB/BottomNav padding-bottom and header padding-top all evaluate
+  // to 0 and the chrome ends up sitting under the system bars.
+  viewportFit: 'cover',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -63,7 +69,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <main
               id="main-content"
               tabIndex={-1}
-              style={{ marginTop: 'var(--header-height)', scrollMarginTop: 'var(--header-height)' }}
+              // Push content below both the visual header chrome AND the iOS
+              // status-bar safe area, since the fixed AppHeader now extends
+              // its own background up under the status bar.
+              style={{
+                marginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
+                scrollMarginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
+              }}
               className="max-w-4xl mx-auto px-6 pt-8 pb-20 focus:outline-none"
             >
               {children}

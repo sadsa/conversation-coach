@@ -140,20 +140,23 @@
        height, the main content's margin-top, and the scroll-padding that
        keeps anchor / focus scrolls clear of the header overlay. */
     --header-height: 2.75rem;
-    /* Toast clears the mobile bottom-nav (h-16 = 4rem) by default.
-       On md+ the bottom-nav is hidden, so the toast can sit closer to the edge. */
-    --toast-bottom: 5rem;
+    /* Toast clears the mobile bottom-nav (h-16 = 4rem) plus the iOS home
+       indicator safe-area on standalone PWAs. On md+ the bottom-nav is
+       hidden, so the toast can sit closer to the edge (still respecting
+       the safe area on iPad / landscape iPhone). */
+    --toast-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 
   /* Browser-driven scroll-into-view (anchor links, focus(), scrollIntoView)
-     should leave the fixed header visible above the target element. */
+     should leave the fixed header (and iOS status bar safe-area) visible
+     above the target element. */
   html {
-    scroll-padding-top: var(--header-height);
+    scroll-padding-top: calc(var(--header-height) + env(safe-area-inset-top));
   }
 
   @media (min-width: 768px) {
     :root {
-      --toast-bottom: 1.25rem;
+      --toast-bottom: calc(1.25rem + env(safe-area-inset-bottom));
     }
   }
 
