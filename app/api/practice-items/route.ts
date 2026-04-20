@@ -18,11 +18,16 @@ export async function GET(req: NextRequest) {
 
   const { data: userSessions } = await db
     .from('sessions')
-    .select('id')
+    .select('id, title')
     .eq('user_id', user.id)
 
-  const sessionIds = (userSessions ?? []).map((s: { id: string }) => s.id)
+  type UserSession = { id: string; title: string | null }
+  const userSessionRows = (userSessions ?? []) as UserSession[]
+  const sessionIds = userSessionRows.map(s => s.id)
   if (sessionIds.length === 0) return NextResponse.json([])
+  // Title lookup table — used to surface the session name in the WriteSheet
+  // header so the user can jump back to the originating transcript.
+  const sessionTitleMap = new Map(userSessionRows.map(s => [s.id, s.title]))
 
   const url = new URL(req.url)
   const sortParam = url.searchParams.get('sort')
@@ -69,17 +74,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const enriched = rows.map((item) => {
+  type RowWithSession = ItemRow & { session_id: string }
+  const enriched = (rows as RowWithSession[]).map((item) => {
+    const session_title = sessionTitleMap.get(item.session_id) ?? null
     if (!item.annotation_id) {
-      return { ...item, segment_text: null, start_char: null, end_char: null }
+      return { ...item, segment_text: null, start_char: null, end_char: null, session_title }
     }
     const ann = annotationMap.get(item.annotation_id)
-    if (!ann) return { ...item, segment_text: null, start_char: null, end_char: null }
+    if (!ann) return { ...item, segment_text: null, start_char: null, end_char: null, session_title }
     return {
       ...item,
       segment_text: segmentTextMap.get(ann.segment_id) ?? null,
       start_char: ann.start_char,
       end_char: ann.end_char,
+      session_title,
     }
   })
 

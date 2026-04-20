@@ -1,33 +1,39 @@
 // components/AnnotationCard.tsx
 //
-// One annotation rendered in the docked AnnotationSheet. The card carries
-// exactly two user actions:
-//   1. 👍 Helpful — saves this correction as a practice item; it then shows
-//      up on the /write page (Write tab) for paper review, replacing the
-//      old "save with star" button.
-//   2. 👎 Unhelpful — flags the correction for prompt iteration. The data is
-//      the point, not a behaviour change for the user.
+// One annotation rendered in the docked AnnotationSheet. After the design
+// rework the card carries a deliberate hierarchy:
 //
-// Helpful and unhelpful are mutually exclusive: tapping the opposite signal
-// undoes the previous one (and removes the practice item if it existed).
-// "Mark as written down" is no longer on this card — once a correction is
-// saved it lives on /write, where the Write/Written segmented control is
-// the right place to flip its written_down state.
+//   1. A primary "Save to my Write list" button (shared `<Button>`) — the
+//      one action the user is here for. Verb-first, full-width on mobile,
+//      gets initial focus when the sheet opens (`data-initial-focus`), and
+//      flips to a "Saved · on your Write list" affirmation after a save.
+//   2. A quiet text "Not useful — hide it" affordance underneath. Same
+//      idempotent toggle the old 👎 carried, but visually demoted so it can
+//      never compete with Save for attention.
 //
-// Footer state hint mirrors which signal is active so the user always knows
-// where this card stands without having to inspect the icons.
+// Inline outcome hint sits between the primary button and any error region:
+//   • Saved → "Added to your Write list — nice catch." with a `View list`
+//     link straight to /write.
+//   • Hidden → "Hidden from your transcript." reinforcing the visual fade.
+//   • Neutral → no hint (one less line of UI noise).
+//
+// Errors no longer auto-dismiss. They surface a Retry button that re-runs
+// the failed action, and (when applicable) an offline note so the user
+// understands why retrying is unlikely to help right now.
+//
+// Importance is now a single soft pill ("Worth remembering" or, at score
+// 3, "High priority") rather than three ASCII stars. Score === 1 is
+// hidden entirely — by definition a 1-of-3 importance signal isn't earning
+// its visual weight on every card.
+
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
+import { buttonStyles } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-
-function importanceStars(score: number | null): string | null {
-  if (score === 3) return '★★★'
-  if (score === 2) return '★★☆'
-  if (score === 1) return '★☆☆'
-  return null
-}
+import { ImportancePill } from '@/components/ImportancePill'
 
 interface Props {
   annotation: Annotation
@@ -59,23 +65,43 @@ export function AnnotationCard({
   const [busy, setBusy] = useState<'helpful' | 'unhelpful' | null>(null)
   const [importanceExpanded, setImportanceExpanded] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  /** Which action failed last — drives the Retry button so it knows which
+   *  handler to re-run without the user having to find the original control. */
+  const [lastFailedAction, setLastFailedAction] = useState<'helpful' | 'unhelpful' | null>(null)
+  /** Becomes true for ~600ms after a successful save so the primary button
+   *  can play the saved-pulse keyframe — a small reflexive "yes, that
+   *  happened" without needing a toast. */
+  const [justSaved, setJustSaved] = useState(false)
+  const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setPracticeItemId(initialPracticeItemId)
     setIsUnhelpful(annotation.is_unhelpful)
     setImportanceExpanded(false)
     setErrorMessage(null)
+    setLastFailedAction(null)
+    setJustSaved(false)
+    if (justSavedTimer.current) {
+      clearTimeout(justSavedTimer.current)
+      justSavedTimer.current = null
+    }
   }, [annotation.id, annotation.is_unhelpful, initialPracticeItemId])
 
   useEffect(() => {
-    if (!errorMessage) return
-    const timer = setTimeout(() => setErrorMessage(null), 3500)
-    return () => clearTimeout(timer)
-  }, [errorMessage])
+    return () => {
+      if (justSavedTimer.current) clearTimeout(justSavedTimer.current)
+    }
+  }, [])
+
+  function triggerSavedPulse() {
+    setJustSaved(true)
+    if (justSavedTimer.current) clearTimeout(justSavedTimer.current)
+    justSavedTimer.current = setTimeout(() => setJustSaved(false), 650)
+  }
 
   // Both handlers are idempotent toggles. They also enforce mutual exclusion:
-  // marking helpful clears unhelpful (and vice versa) so the card can never
-  // claim "Saved" and "Marked unhelpful" at the same time.
+  // saving clears unhelpful (and vice versa) so the card can never claim
+  // "Saved" and "Hidden" at the same time.
 
   async function setUnhelpful(value: boolean): Promise<boolean> {
     setIsUnhelpful(value)
@@ -116,6 +142,7 @@ export function AnnotationCard({
     const { id } = await res.json() as { id: string }
     setPracticeItemId(id)
     onAnnotationAdded(annotation.id, id)
+    triggerSavedPulse()
     return true
   }
 
@@ -127,27 +154,36 @@ export function AnnotationCard({
     return true
   }
 
+  function recordFailure(action: 'helpful' | 'unhelpful', message: string) {
+    setErrorMessage(message)
+    setLastFailedAction(action)
+  }
+
+  function clearError() {
+    setErrorMessage(null)
+    setLastFailedAction(null)
+  }
+
   async function handleHelpful() {
     if (busy) return
-    setErrorMessage(null)
+    clearError()
     setBusy('helpful')
     try {
       if (practiceItemId) {
-        // Already saved — tap toggles off.
         const ok = await deletePracticeItem(practiceItemId)
-        if (!ok) setErrorMessage(t('annotation.saveError'))
+        if (!ok) recordFailure('helpful', t('annotation.saveError'))
       } else {
         // Save. Clear unhelpful first so the two signals stay mutually
         // exclusive (a save is a vote of confidence; the dismissal is gone).
         if (isUnhelpful) {
           const ok = await setUnhelpful(false)
           if (!ok) {
-            setErrorMessage(t('annotation.unhelpfulError'))
+            recordFailure('helpful', t('annotation.unhelpfulError'))
             return
           }
         }
         const saved = await savePracticeItem()
-        if (!saved) setErrorMessage(t('annotation.saveError'))
+        if (!saved) recordFailure('helpful', t('annotation.saveError'))
       }
     } finally {
       setBusy(null)
@@ -156,43 +192,48 @@ export function AnnotationCard({
 
   async function handleUnhelpful() {
     if (busy) return
-    setErrorMessage(null)
+    clearError()
     setBusy('unhelpful')
     try {
       if (isUnhelpful) {
         const ok = await setUnhelpful(false)
-        if (!ok) setErrorMessage(t('annotation.unhelpfulError'))
+        if (!ok) recordFailure('unhelpful', t('annotation.unhelpfulError'))
       } else {
         // Marking unhelpful — drop any saved practice item first so the user
         // doesn't end up reviewing a card they just dismissed.
         if (practiceItemId) {
           const ok = await deletePracticeItem(practiceItemId)
           if (!ok) {
-            setErrorMessage(t('annotation.saveError'))
+            recordFailure('unhelpful', t('annotation.saveError'))
             return
           }
         }
         const ok = await setUnhelpful(true)
-        if (!ok) setErrorMessage(t('annotation.unhelpfulError'))
+        if (!ok) recordFailure('unhelpful', t('annotation.unhelpfulError'))
       }
     } finally {
       setBusy(null)
     }
   }
 
-  const stateHint = isUnhelpful
-    ? t('annotation.stateUnhelpful')
-    : practiceItemId
-    ? t('annotation.stateSaved')
-    : t('annotation.stateNeutral')
+  function handleRetry() {
+    if (lastFailedAction === 'helpful') void handleHelpful()
+    else if (lastFailedAction === 'unhelpful') void handleUnhelpful()
+  }
 
-  const helpfulAriaLabel = practiceItemId
-    ? t('annotation.helpfulUndoAria')
-    : t('annotation.helpfulAria')
+  const primaryLabel = practiceItemId ? t('annotation.savedPrimary') : t('annotation.savePrimary')
+  const primaryAria = practiceItemId ? t('annotation.savedPrimaryAria') : t('annotation.savePrimaryAria')
+  const secondaryLabel = isUnhelpful ? t('annotation.notUsefulRestore') : t('annotation.notUseful')
+  const secondaryAria = isUnhelpful ? t('annotation.notUsefulRestoreAria') : t('annotation.notUsefulAria')
 
-  const unhelpfulAriaLabel = isUnhelpful
-    ? t('annotation.unmarkUnhelpfulAria')
-    : t('annotation.markUnhelpfulAria')
+  // Best-effort offline detection. We only consult `navigator` when an error
+  // is on screen — it's a hint, not load-bearing logic, so SSR gets the safe
+  // default of "we don't know" (treated as online).
+  const isOffline =
+    errorMessage !== null &&
+    typeof navigator !== 'undefined' &&
+    'onLine' in navigator &&
+    !navigator.onLine
 
   return (
     <div
@@ -218,22 +259,12 @@ export function AnnotationCard({
           {t(`subCat.${annotation.sub_category}`)}
         </span>
 
-        {importanceStars(annotation.importance_score) && (
-          annotation.importance_note ? (
-            <button
-              onClick={() => setImportanceExpanded(e => !e)}
-              className="text-pill-amber text-base leading-none focus:outline-none rounded px-1"
-              aria-label={t('writeList.importanceToggleAria')}
-              aria-expanded={importanceExpanded}
-            >
-              {importanceStars(annotation.importance_score)}
-            </button>
-          ) : (
-            <span className="text-pill-amber text-base leading-none">
-              {importanceStars(annotation.importance_score)}
-            </span>
-          )
-        )}
+        <ImportancePill
+          score={annotation.importance_score}
+          note={annotation.importance_note}
+          expanded={importanceExpanded}
+          onToggle={() => setImportanceExpanded(e => !e)}
+        />
       </div>
 
       {importanceExpanded && annotation.importance_note && (
@@ -242,46 +273,86 @@ export function AnnotationCard({
         </p>
       )}
 
-      {/* Action row — always two buttons. State hint on the left tells the
-          user where this card sits; the buttons themselves carry the
-          interaction. Both are 44px-tall so they're comfortable on mobile. */}
-      <div className="flex items-center gap-3 pt-4 border-t border-border">
-        <span className="text-sm text-text-tertiary mr-auto">{stateHint}</span>
+      {/* Action region — primary verb above, quiet secondary below. The
+          primary carries `data-initial-focus` so DockedSheet's open lifecycle
+          puts the cursor on the action the user is here for, not on Close. */}
+      <div className="pt-4 border-t border-border space-y-3">
+        {/* Outcome hint — only present in saved or hidden states. Neutral
+            shows nothing so we don't add noise to every card. */}
+        {practiceItemId && !isUnhelpful && (
+          <p className="text-sm text-text-secondary leading-snug">
+            {t('annotation.savedHint')}{' '}
+            <Link
+              href="/write"
+              className="font-medium text-[color:var(--annotation-saved-text)] underline underline-offset-2 hover:no-underline"
+            >
+              {t('annotation.savedHintLink')} →
+            </Link>
+          </p>
+        )}
+        {isUnhelpful && (
+          <p className="text-sm text-text-tertiary leading-snug">
+            {t('annotation.unhelpfulHint')}
+          </p>
+        )}
 
         <button
-          onClick={handleUnhelpful}
-          disabled={busy !== null}
-          aria-label={unhelpfulAriaLabel}
-          aria-pressed={isUnhelpful}
-          title={unhelpfulAriaLabel}
-          className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 ${
-            isUnhelpful
-              ? 'border-text-secondary bg-surface-elevated text-text-secondary'
-              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary hover:text-text-secondary'
-          }`}
-        >
-          <Icon name="thumbs-down" className="w-5 h-5" />
-        </button>
-
-        <button
+          type="button"
+          data-initial-focus
           onClick={handleHelpful}
           disabled={busy !== null}
-          aria-label={helpfulAriaLabel}
+          aria-label={primaryAria}
           aria-pressed={!!practiceItemId}
-          title={helpfulAriaLabel}
-          className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 ${
-            practiceItemId
-              ? 'border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)]'
-              : 'border-border bg-surface text-text-tertiary hover:border-text-secondary hover:text-text-secondary'
-          }`}
+          className={buttonStyles({
+            variant: practiceItemId ? 'secondary' : 'primary',
+            size: 'md',
+            fullWidth: true,
+            className: [
+              practiceItemId
+                ? 'border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)] hover:bg-[var(--annotation-saved-bg)]'
+                : '',
+              justSaved ? 'motion-safe:animate-[saved-pulse_650ms_ease-out_both]' : '',
+            ].filter(Boolean).join(' '),
+          })}
         >
-          <Icon name="thumbs-up" className="w-5 h-5" />
+          {practiceItemId && (
+            <Icon name="check" className="w-4 h-4 mr-2" />
+          )}
+          {primaryLabel}
         </button>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleUnhelpful}
+            disabled={busy !== null}
+            aria-label={secondaryAria}
+            aria-pressed={isUnhelpful}
+            className="text-sm text-text-tertiary hover:text-text-secondary underline underline-offset-2 hover:no-underline disabled:opacity-50 px-1 py-0.5 rounded"
+          >
+            {secondaryLabel}
+          </button>
+        </div>
       </div>
 
       <div role="status" aria-live="polite" className="min-h-[1rem]">
         {errorMessage && (
-          <p className="text-status-error text-sm">{errorMessage}</p>
+          <div className="rounded-lg border border-status-error/30 bg-error-container px-3 py-2 space-y-1.5">
+            <p className="text-status-error text-sm leading-snug">{errorMessage}</p>
+            {isOffline && (
+              <p className="text-text-tertiary text-xs leading-snug">{t('annotation.offlineNote')}</p>
+            )}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleRetry}
+                disabled={busy !== null}
+                className="text-status-error text-sm font-medium hover:underline disabled:opacity-50 px-1 py-0.5 rounded"
+              >
+                {t('annotation.retry')}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

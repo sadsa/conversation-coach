@@ -1,8 +1,10 @@
 // __tests__/components/AnnotationCard.test.tsx
 //
-// Covers the new 👍/👎-only action row. The card has exactly two buttons,
-// they're mutually exclusive, and "Mark as written down" no longer lives
-// here — it's the /write page's concern (Write ↔ Written segmented view).
+// Covers the redesigned action region: a primary verb-driven Save button
+// (full-width, gets initial focus via `data-initial-focus`) plus a quiet
+// "Not useful — hide it" affordance underneath. Outcome hints are inline
+// teacher-voice strings; errors no longer auto-dismiss but expose Retry.
+// Mutual exclusion between the two actions is preserved exactly as before.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -40,20 +42,23 @@ describe('AnnotationCard — content', () => {
   })
 })
 
-describe('AnnotationCard — state hint', () => {
-  it('shows "No feedback yet" in the neutral state', () => {
+describe('AnnotationCard — outcome hint', () => {
+  it('shows no outcome hint in the neutral state', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
-    expect(screen.getByText('No feedback yet')).toBeInTheDocument()
+    expect(screen.queryByText(/added to your write list/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/hidden from your transcript/i)).not.toBeInTheDocument()
   })
 
-  it('shows "Saved as helpful" once practiceItemId is set', () => {
+  it('shows the saved hint with a link to /write once practiceItemId is set', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} practiceItemId="pi-1" />)
-    expect(screen.getByText('Saved as helpful')).toBeInTheDocument()
+    expect(screen.getByText(/added to your write list/i)).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: /view list/i })
+    expect(link).toHaveAttribute('href', '/write')
   })
 
-  it('shows "Marked unhelpful" when is_unhelpful is true', () => {
+  it('shows the hidden hint when is_unhelpful is true', () => {
     render(<AnnotationCard annotation={{ ...annotation, is_unhelpful: true }} {...defaultProps} />)
-    expect(screen.getByText('Marked unhelpful')).toBeInTheDocument()
+    expect(screen.getByText(/hidden from your transcript/i)).toBeInTheDocument()
   })
 })
 
@@ -64,23 +69,29 @@ describe('AnnotationCard — written-down UI is gone', () => {
   })
 })
 
-describe('AnnotationCard — helpful (👍)', () => {
-  it('POSTs a practice item and notifies parent when 👍 is tapped neutral', async () => {
+describe('AnnotationCard — primary save action', () => {
+  it('marks the primary button with data-initial-focus so the sheet can focus it on open', () => {
+    render(<AnnotationCard annotation={annotation} {...defaultProps} />)
+    const primary = screen.getByRole('button', { name: /save this correction to your write list/i })
+    expect(primary).toHaveAttribute('data-initial-focus')
+  })
+
+  it('POSTs a practice item and notifies parent when Save is tapped neutral', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ id: 'pi-1' }),
     } as Response)
     const onAnnotationAdded = vi.fn()
     render(<AnnotationCard annotation={annotation} {...defaultProps} onAnnotationAdded={onAnnotationAdded} />)
-    await userEvent.click(screen.getByRole('button', { name: /helpful — save this correction/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
     expect(onAnnotationAdded).toHaveBeenCalledWith('ann-1', 'pi-1')
   })
 
-  it('DELETEs the practice item and notifies parent when 👍 is tapped already-saved', async () => {
+  it('DELETEs the practice item and notifies parent when Save is tapped already-saved', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
     const onAnnotationRemoved = vi.fn()
     render(<AnnotationCard annotation={annotation} {...defaultProps} practiceItemId="pi-1" onAnnotationRemoved={onAnnotationRemoved} />)
-    await userEvent.click(screen.getByRole('button', { name: /undo helpful/i }))
+    await userEvent.click(screen.getByRole('button', { name: /remove this correction from your write list/i }))
     expect(global.fetch).toHaveBeenCalledWith('/api/practice-items/pi-1', { method: 'DELETE' })
     expect(onAnnotationRemoved).toHaveBeenCalledWith('ann-1')
   })
@@ -92,14 +103,14 @@ describe('AnnotationCard — helpful (👍)', () => {
       return { ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response
     })
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
-    await userEvent.click(screen.getByRole('button', { name: /helpful — save this correction/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
     expect(capturedBody.annotation_id).toBe('ann-1')
     expect(capturedBody.sub_category).toBe('subjunctive')
     expect(capturedBody.original).toBe('Yo fui')
     expect(capturedBody.correction).toBe('Fui')
   })
 
-  it('clears unhelpful first when 👍 is tapped on an already-dismissed card', async () => {
+  it('clears unhelpful first when Save is tapped on an already-dismissed card', async () => {
     // First call: PATCH is_unhelpful=false. Second: POST practice-items.
     const fetchSpy = vi.spyOn(global, 'fetch')
       .mockResolvedValueOnce({ ok: true } as Response)
@@ -117,7 +128,7 @@ describe('AnnotationCard — helpful (👍)', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /helpful — save this correction/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
 
     expect(fetchSpy).toHaveBeenNthCalledWith(1, '/api/annotations/ann-1', expect.objectContaining({
       method: 'PATCH',
@@ -131,7 +142,7 @@ describe('AnnotationCard — helpful (👍)', () => {
   })
 })
 
-describe('AnnotationCard — unhelpful (👎)', () => {
+describe('AnnotationCard — quiet "Not useful" action', () => {
   it('PATCHes is_unhelpful=true and updates aria-pressed without collapsing the row', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
     const onAnnotationUnhelpfulChanged = vi.fn()
@@ -144,16 +155,16 @@ describe('AnnotationCard — unhelpful (👎)', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /not helpful — mark/i }))
+    await userEvent.click(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i }))
 
     expect(global.fetch).toHaveBeenCalledWith('/api/annotations/ann-1', expect.objectContaining({
       method: 'PATCH',
       body: JSON.stringify({ is_unhelpful: true }),
     }))
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', true)
-    // 👍 still present, 👎 now in the "undo" mode.
-    expect(screen.getByRole('button', { name: /helpful — save/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /undo not helpful/i })).toHaveAttribute('aria-pressed', 'true')
+    // Save button still present, secondary now in the "restore" mode.
+    expect(screen.getByRole('button', { name: /save this correction to your write list/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /restore this correction/i })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('renders pre-marked unhelpful annotations in the muted state on first render', () => {
@@ -163,11 +174,11 @@ describe('AnnotationCard — unhelpful (👎)', () => {
         {...defaultProps}
       />,
     )
-    const undo = screen.getByRole('button', { name: /undo not helpful/i })
-    expect(undo).toHaveAttribute('aria-pressed', 'true')
+    const restore = screen.getByRole('button', { name: /restore this correction/i })
+    expect(restore).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('Undo flips state back and PATCHes is_unhelpful=false', async () => {
+  it('Restore flips state back and PATCHes is_unhelpful=false', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
     const onAnnotationUnhelpfulChanged = vi.fn()
     render(
@@ -178,17 +189,17 @@ describe('AnnotationCard — unhelpful (👎)', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /undo not helpful/i }))
+    await userEvent.click(screen.getByRole('button', { name: /restore this correction/i }))
 
     expect(global.fetch).toHaveBeenCalledWith('/api/annotations/ann-1', expect.objectContaining({
       method: 'PATCH',
       body: JSON.stringify({ is_unhelpful: false }),
     }))
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', false)
-    expect(screen.getByRole('button', { name: /not helpful — mark/i })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('reverts optimistic state and shows an error when PATCH fails', async () => {
+  it('reverts optimistic state and shows an error with Retry when PATCH fails', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false } as Response)
     const onAnnotationUnhelpfulChanged = vi.fn()
     render(
@@ -199,12 +210,13 @@ describe('AnnotationCard — unhelpful (👎)', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /not helpful — mark/i }))
+    await userEvent.click(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i }))
 
     expect(onAnnotationUnhelpfulChanged).toHaveBeenNthCalledWith(1, 'ann-1', true)
     expect(onAnnotationUnhelpfulChanged).toHaveBeenNthCalledWith(2, 'ann-1', false)
-    expect(screen.getByRole('button', { name: /not helpful — mark/i })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('status').textContent).toMatch(/.+/)
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
   })
 
   it('drops the saved practice item before marking unhelpful (mutual exclusion)', async () => {
@@ -225,7 +237,7 @@ describe('AnnotationCard — unhelpful (👎)', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /not helpful — mark/i }))
+    await userEvent.click(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i }))
 
     expect(fetchSpy).toHaveBeenNthCalledWith(1, '/api/practice-items/pi-1', { method: 'DELETE' })
     expect(fetchSpy).toHaveBeenNthCalledWith(2, '/api/annotations/ann-1', expect.objectContaining({
@@ -234,5 +246,53 @@ describe('AnnotationCard — unhelpful (👎)', () => {
     }))
     expect(onAnnotationRemoved).toHaveBeenCalledWith('ann-1')
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', true)
+  })
+})
+
+describe('AnnotationCard — Retry on error', () => {
+  it('re-runs the failed save when Retry is tapped', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({ ok: false } as Response) // first attempt fails
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response)
+
+    const onAnnotationAdded = vi.fn()
+    render(<AnnotationCard annotation={annotation} {...defaultProps} onAnnotationAdded={onAnnotationAdded} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(onAnnotationAdded).toHaveBeenCalledWith('ann-1', 'pi-1')
+  })
+})
+
+describe('AnnotationCard — importance pill', () => {
+  it('renders nothing for score 1', () => {
+    render(<AnnotationCard annotation={{ ...annotation, importance_score: 1 }} {...defaultProps} />)
+    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
+  })
+
+  it('renders the standard pill for score 2', () => {
+    render(<AnnotationCard annotation={{ ...annotation, importance_score: 2 }} {...defaultProps} />)
+    expect(screen.getByText(/worth remembering/i)).toBeInTheDocument()
+  })
+
+  it('renders the high-priority pill for score 3', () => {
+    render(<AnnotationCard annotation={{ ...annotation, importance_score: 3 }} {...defaultProps} />)
+    expect(screen.getByText(/high priority/i)).toBeInTheDocument()
+  })
+
+  it('expands the importance note when the pill is tapped', async () => {
+    render(
+      <AnnotationCard
+        annotation={{ ...annotation, importance_score: 3, importance_note: 'Common voseo confusion.' }}
+        {...defaultProps}
+      />,
+    )
+    expect(screen.queryByText('Common voseo confusion.')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /show why this correction matters/i }))
+    expect(screen.getByText('Common voseo confusion.')).toBeInTheDocument()
   })
 })

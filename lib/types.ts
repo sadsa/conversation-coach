@@ -129,6 +129,10 @@ export interface PracticeItem {
   segment_text: string | null
   start_char: number | null
   end_char: number | null
+  // Enriched by API from the parent session row. Surfaces in the WriteSheet
+  // header as a "From <session>" eyebrow link back to the source transcript.
+  // Null only if the session was deleted underneath the practice item (rare).
+  session_title: string | null
 }
 
 

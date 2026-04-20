@@ -8,6 +8,12 @@
 //
 // `toastKey` is forwarded to `key` so changing the key re-mounts the element
 // and replays the entrance animation when consecutive toasts share a parent.
+//
+// One trailing action slot — the primary `action` (e.g. Undo, the safety
+// net the user is most likely to want). We deliberately don't surface a
+// second positive next-step here; success states should be silent so the
+// toast stays a "something needs your attention" affordance, not a
+// celebration.
 
 interface Action {
   label: string

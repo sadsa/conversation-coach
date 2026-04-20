@@ -33,14 +33,48 @@ describe('t()', () => {
 })
 
 describe('annotation action i18n keys', () => {
-  it('annotation.helpfulAria exists in en', () => {
-    expect(t('annotation.helpfulAria', 'en')).not.toBe('annotation.helpfulAria')
+  it('annotation.savePrimary exists in both langs', () => {
+    expect(t('annotation.savePrimary', 'en')).toBe('Save to my Write list')
+    expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista')
   })
-  it('annotation.helpfulAria exists in es', () => {
-    expect(t('annotation.helpfulAria', 'es')).not.toBe('annotation.helpfulAria')
+  it('annotation.savedPrimary reads as a confirmation in both langs', () => {
+    expect(t('annotation.savedPrimary', 'en')).toMatch(/saved/i)
+    expect(t('annotation.savedPrimary', 'es')).toMatch(/guardada/i)
   })
-  it('annotation.stateNeutral exists in en', () => {
-    expect(t('annotation.stateNeutral', 'en')).not.toBe('annotation.stateNeutral')
+  it('annotation.notUseful is the quiet secondary action label', () => {
+    expect(t('annotation.notUseful', 'en')).not.toBe('annotation.notUseful')
+    expect(t('annotation.notUseful', 'es')).not.toBe('annotation.notUseful')
+  })
+  it('annotation.savedHint + savedHintLink exist for the inline outcome cue', () => {
+    expect(t('annotation.savedHint', 'en')).not.toBe('annotation.savedHint')
+    expect(t('annotation.savedHintLink', 'en')).not.toBe('annotation.savedHintLink')
+    expect(t('annotation.savedHint', 'es')).not.toBe('annotation.savedHint')
+    expect(t('annotation.savedHintLink', 'es')).not.toBe('annotation.savedHintLink')
+  })
+  it('annotation.unhelpfulHint reinforces the hidden state', () => {
+    expect(t('annotation.unhelpfulHint', 'en')).toMatch(/hidden/i)
+    expect(t('annotation.unhelpfulHint', 'es')).toMatch(/oculta/i)
+  })
+  it('annotation.retry + offlineNote exist for inline error recovery', () => {
+    expect(t('annotation.retry', 'en')).toBe('Retry')
+    expect(t('annotation.retry', 'es')).toBe('Reintentar')
+    expect(t('annotation.offlineNote', 'en')).not.toBe('annotation.offlineNote')
+    expect(t('annotation.offlineNote', 'es')).not.toBe('annotation.offlineNote')
+  })
+  it('annotation.importantPill replaces the ASCII star cluster', () => {
+    expect(t('annotation.importantPill', 'en')).not.toBe('annotation.importantPill')
+    expect(t('annotation.importantPillHigh', 'en')).not.toBe('annotation.importantPillHigh')
+    expect(t('annotation.importantPill', 'es')).not.toBe('annotation.importantPill')
+  })
+  it('sheet.navHintFirst exists for the first-open onboarding cue', () => {
+    expect(t('sheet.navHintFirst', 'en')).not.toBe('sheet.navHintFirst')
+    expect(t('sheet.navHintFirst', 'es')).not.toBe('sheet.navHintFirst')
+  })
+  it('retired annotation keys fall back to the key (helpfulAria, stateNeutral, etc.)', () => {
+    expect(t('annotation.helpfulAria', 'en')).toBe('annotation.helpfulAria')
+    expect(t('annotation.stateNeutral', 'en')).toBe('annotation.stateNeutral')
+    expect(t('annotation.stateSaved', 'en')).toBe('annotation.stateSaved')
+    expect(t('annotation.stateUnhelpful', 'en')).toBe('annotation.stateUnhelpful')
   })
   it('writeList.tabWrite reads "Write" in en (matches the page name)', () => {
     expect(t('writeList.tabWrite', 'en')).toBe('Write')
@@ -53,6 +87,33 @@ describe('annotation action i18n keys', () => {
   })
   it('writeSheet.markWritten exists in en', () => {
     expect(t('writeSheet.markWritten', 'en')).not.toBe('writeSheet.markWritten')
+  })
+  it('writeSheet primary action busy + aria keys exist for both directions', () => {
+    expect(t('writeSheet.markWrittenBusy', 'en')).not.toBe('writeSheet.markWrittenBusy')
+    expect(t('writeSheet.markWrittenAria', 'en')).not.toBe('writeSheet.markWrittenAria')
+    expect(t('writeSheet.moveBackBusy', 'en')).not.toBe('writeSheet.moveBackBusy')
+    expect(t('writeSheet.moveBackAria', 'en')).not.toBe('writeSheet.moveBackAria')
+    expect(t('writeSheet.markWrittenBusy', 'es')).not.toBe('writeSheet.markWrittenBusy')
+    expect(t('writeSheet.moveBackBusy', 'es')).not.toBe('writeSheet.moveBackBusy')
+  })
+  it('writeSheet.moveBack now spells out the destination', () => {
+    expect(t('writeSheet.moveBack', 'en')).toMatch(/write list/i)
+    expect(t('writeSheet.moveBack', 'es')).toMatch(/anotar/i)
+  })
+  it('writeSheet overflow + delete copy exists in both langs', () => {
+    expect(t('writeSheet.moreActionsAria', 'en')).not.toBe('writeSheet.moreActionsAria')
+    expect(t('writeSheet.deleteLabel', 'en')).not.toBe('writeSheet.deleteLabel')
+    // The visible "you can undo for 5 seconds" helper line was distilled
+    // out (the toast is the immediate confirmation). The reassurance now
+    // lives only in the aria-label so screen-reader users still hear it.
+    expect(t('writeSheet.deleteAria', 'en')).toMatch(/undo/i)
+    expect(t('writeSheet.deleteAria', 'es')).toMatch(/deshacer/i)
+  })
+  it('writeSheet status caption keys exist in both langs', () => {
+    expect(t('writeSheet.statusToWrite', 'en')).not.toBe('writeSheet.statusToWrite')
+    expect(t('writeSheet.statusWritten', 'en')).not.toBe('writeSheet.statusWritten')
+    expect(t('writeSheet.statusToWrite', 'es')).not.toBe('writeSheet.statusToWrite')
+    expect(t('writeSheet.statusWritten', 'es')).not.toBe('writeSheet.statusWritten')
   })
   it('writeList.markRowAria substitutes {original} in en', () => {
     expect(t('writeList.markRowAria', 'en', { original: 'Yo fui' })).toContain('Yo fui')

@@ -22,7 +22,7 @@ describe('GET /api/practice-items', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
-                data: [{ id: 'session-1' }],
+                data: [{ id: 'session-1', title: 'Cafe with María' }],
                 error: null,
               }),
             }),
@@ -33,7 +33,7 @@ describe('GET /api/practice-items', () => {
           select: vi.fn().mockReturnValue({
             in: vi.fn().mockReturnValue({
               order: vi.fn().mockResolvedValue({
-                data: [{ id: 'item-1', type: 'grammar', original: 'Yo fui', reviewed: false, written_down: false }],
+                data: [{ id: 'item-1', session_id: 'session-1', type: 'grammar', original: 'Yo fui', reviewed: false, written_down: false }],
                 error: null,
               }),
             }),
@@ -49,6 +49,9 @@ describe('GET /api/practice-items', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toHaveLength(1)
+    // Session title is enriched from the parent session row so the
+    // WriteSheet header can render the "From <session>" eyebrow link.
+    expect(body[0].session_title).toBe('Cafe with María')
   })
 
   it('enriches items with segment_text, start_char, end_char via secondary lookup', async () => {
@@ -63,14 +66,14 @@ describe('GET /api/practice-items', () => {
       from: vi.fn().mockImplementation((table: string) => {
         if (table === 'sessions') return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1' }], error: null }),
+            eq: vi.fn().mockResolvedValue({ data: [{ id: 'session-1', title: 'Cafe with María' }], error: null }),
           }),
         }
         if (table === 'practice_items') return {
           select: vi.fn().mockReturnValue({
             in: vi.fn().mockReturnValue({
               order: vi.fn().mockResolvedValue({
-                data: [{ id: 'item-1', annotation_id: 'ann-1', written_down: false }],
+                data: [{ id: 'item-1', session_id: 'session-1', annotation_id: 'ann-1', written_down: false }],
                 error: null,
               }),
             }),
@@ -105,6 +108,7 @@ describe('GET /api/practice-items', () => {
     expect(body[0].segment_text).toBe('Hola mundo amigo mío.')
     expect(body[0].start_char).toBe(5)
     expect(body[0].end_char).toBe(11)
+    expect(body[0].session_title).toBe('Cafe with María')
   })
 
   it('sorts by importance_score descending when ?sort=importance', async () => {

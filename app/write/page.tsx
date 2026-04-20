@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { WriteList } from '@/components/WriteList'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Skeleton, SkeletonRow } from '@/components/Skeleton'
 import type { PracticeItem } from '@/lib/types'
 
 export default function WritePage() {
@@ -21,7 +22,29 @@ export default function WritePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p className="text-text-tertiary text-sm">{t('write.loading')}</p>
+  // Replace the old "Loading…" text line with a skeleton that mirrors the
+  // page's actual shape (title + view-toggle row + a few rows). Keeps the
+  // surface from collapsing into a tiny grey label during the fetch and
+  // gives the user a sense of how the page will land.
+  if (loading) {
+    return (
+      <div
+        className="space-y-6 animate-pulse"
+        aria-busy="true"
+        aria-label={t('write.loading')}
+      >
+        <Skeleton tone="elevated" className="h-7 w-24" radius="md" />
+        <div className="flex justify-end">
+          <Skeleton tone="elevated" className="h-5 w-28" radius="full" />
+        </div>
+        <div className="space-y-2">
+          <SkeletonRow titleWidth="w-5/6" subtitleWidth={null} />
+          <SkeletonRow titleWidth="w-3/4" subtitleWidth={null} />
+          <SkeletonRow titleWidth="w-2/3" subtitleWidth={null} />
+        </div>
+      </div>
+    )
+  }
   if (error) return <p className="text-status-error text-sm">{t('write.error', { msg: error })}</p>
 
   return (

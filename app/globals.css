@@ -235,4 +235,13 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* Saved confirmation pulse — fires once when an annotation is saved to the
+     Write list. Subtle scale + ring so the user gets a reflexive "yes, that
+     happened" without us shouting. Pair with `motion-safe:` to honour
+     prefers-reduced-motion. */
+  @keyframes saved-pulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.025); }
+    100% { transform: scale(1); }
+  }
 }

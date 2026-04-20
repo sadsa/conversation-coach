@@ -20,6 +20,7 @@ const grammarItem: PracticeItem = {
   segment_text: 'Ayer Yo fui al mercado con ella.',
   start_char: 5,
   end_char: 11,
+  session_title: 'Cafe with María',
 }
 
 const subjectiveItem: PracticeItem = {
@@ -31,6 +32,7 @@ const subjectiveItem: PracticeItem = {
   flashcard_front: null, flashcard_back: null, flashcard_note: null,
   importance_score: null, importance_note: null,
   segment_text: null, start_char: null, end_char: null,
+  session_title: 'Cafe with María',
 }
 
 const writtenItem: PracticeItem = {
@@ -45,13 +47,13 @@ const writtenItem: PracticeItem = {
 }
 
 describe('WriteList — rows', () => {
-  it('renders the correction prominently', () => {
+  it('renders the correction in context (sentence + struck wrong + inline rewrite)', () => {
     render(<WriteList items={[grammarItem]} />)
     const row = screen.getByTestId(`write-row-${grammarItem.id}`)
+    // Wrong fragment + correction now both live inside the same sentence
+    // block; they should each appear exactly once in the row.
+    expect(within(row).getByText('Yo fui')).toBeInTheDocument()
     expect(within(row).getByText('Fui')).toBeInTheDocument()
-    // 'Yo fui' appears both in the row header and inside the context snippet,
-    // so scope to the row's <p> with the strikethrough span.
-    expect(within(row).getAllByText('Yo fui').length).toBeGreaterThan(0)
   })
 
   it('does not render the explanation in the row (only in the sheet)', () => {
@@ -59,44 +61,65 @@ describe('WriteList — rows', () => {
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
-  it('renders a context snippet when segment_text is present', () => {
+  it('renders the combined correction-in-context block when segment_text is present', () => {
     render(<WriteList items={[grammarItem]} />)
-    expect(screen.getByTestId(`context-snippet-${grammarItem.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`correction-in-context-${grammarItem.id}`)).toBeInTheDocument()
   })
 
-  it('omits the snippet when segment_text is null', () => {
+  it('falls back to the bare strike pair when segment_text is null', () => {
     render(<WriteList items={[subjectiveItem]} />)
-    expect(screen.queryByTestId(`context-snippet-${subjectiveItem.id}`)).not.toBeInTheDocument()
+    expect(screen.queryByTestId(`correction-in-context-${subjectiveItem.id}`)).not.toBeInTheDocument()
+    // Fallback still surfaces both halves of the correction so the user
+    // sees the fix even without surrounding context.
+    const row = screen.getByTestId(`write-row-${subjectiveItem.id}`)
+    expect(within(row).getByText('vengas')).toBeInTheDocument()
+    expect(within(row).getByText('venís')).toBeInTheDocument()
   })
 })
 
-describe('WriteList — segmented Write/Written control', () => {
-  it('defaults to the Active view and hides written items', () => {
+describe('WriteList — view toggle (asymmetric Write surface + Written archive link)', () => {
+  it('defaults to the Write view and hides written items', () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
     expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
     expect(screen.queryByTestId(`write-row-${writtenItem.id}`)).not.toBeInTheDocument()
   })
 
-  it('shows both Write and Written tabs with counts', () => {
-    render(<WriteList items={[grammarItem, subjectiveItem, writtenItem]} />)
-    // Match the Write tab on its leading label so it doesn't also match "Written".
-    const writeTab = screen.getByRole('tab', { name: /^write\b/i })
-    const writtenTab = screen.getByRole('tab', { name: /written/i })
-    expect(within(writeTab).getByText('2')).toBeInTheDocument()
-    expect(within(writtenTab).getByText('1')).toBeInTheDocument()
+  it('does not render an aria tablist (Write is the surface, not a peer tab)', () => {
+    render(<WriteList items={[grammarItem, writtenItem]} />)
+    // The old segmented control was role="tablist" with two role="tab"
+    // children. The distill pass removes that equality.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
   })
 
-  it('switches to the Written view on click and shows only written items', async () => {
+  it('renders a quiet "{n} written →" link in the Write view when an archive exists', () => {
+    render(<WriteList items={[grammarItem, subjectiveItem, writtenItem]} />)
+    const link = screen.getByTestId('view-toggle-to-written')
+    expect(link).toHaveTextContent(/written/i)
+    expect(within(link).getByText('1')).toBeInTheDocument()
+  })
+
+  it('does NOT render the archive link when nothing has been written yet', () => {
+    render(<WriteList items={[grammarItem, subjectiveItem]} />)
+    expect(screen.queryByTestId('view-toggle-to-written')).not.toBeInTheDocument()
+  })
+
+  it('switches to the Written view via the archive link and shows only written items', async () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
+    await userEvent.click(screen.getByTestId('view-toggle-to-written'))
     expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
     expect(screen.getByTestId(`write-row-${writtenItem.id}`)).toBeInTheDocument()
   })
 
-  it('marks the active tab with aria-selected', () => {
-    render(<WriteList items={[grammarItem]} />)
-    expect(screen.getByRole('tab', { name: /^write\b/i })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('tab', { name: /written/i })).toHaveAttribute('aria-selected', 'false')
+  it('shows a "Back to Write" link in the Written view that returns to the queue', async () => {
+    render(<WriteList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getByTestId('view-toggle-to-written'))
+    const back = screen.getByTestId('view-toggle-to-write')
+    expect(back).toHaveTextContent(/back to write/i)
+
+    await userEvent.click(back)
+    expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
+    expect(screen.queryByTestId(`write-row-${writtenItem.id}`)).not.toBeInTheDocument()
   })
 
   it('does not render legacy filter pills (sub-category, importance, written)', () => {
@@ -115,10 +138,26 @@ describe('WriteList — empty states', () => {
     expect(screen.getByRole('link', { name: /start a session/i })).toBeInTheDocument()
   })
 
-  it('shows the Written empty copy when nothing has been marked yet', async () => {
-    render(<WriteList items={[grammarItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
-    expect(screen.getByText(/once you mark them as written/i)).toBeInTheDocument()
+  it('shows the Written empty copy when nothing has been marked yet', () => {
+    // The archive link is suppressed when writtenCount is 0 (the surface
+    // simply hides the destination), so the empty Written view is reached
+    // via the initialView escape hatch — same surface the user would land
+    // on if they came from a deep link.
+    render(<WriteList items={[grammarItem]} initialView="written" />)
+    expect(screen.getByText(/items you've written down land here/i)).toBeInTheDocument()
+    // CTA points back to the Write queue (with its count) so the user
+    // never gets stranded in an empty archive.
+    expect(screen.getByRole('button', { name: /back to write \(1\)/i })).toBeInTheDocument()
+  })
+
+  it('shows the no-queue Written empty state when both views are empty', () => {
+    render(<WriteList items={[]} initialView="written" />)
+    expect(screen.getByText(/nothing in your write queue either/i)).toBeInTheDocument()
+    // The empty-state itself does not offer a "back to write" CTA when
+    // the other side is also empty — the ViewToggle still provides
+    // navigation, but the empty card stays purely informational.
+    const emptyCard = screen.getByText(/items you've written down/i).closest('div')!
+    expect(within(emptyCard).queryByRole('button')).not.toBeInTheDocument()
   })
 })
 
@@ -128,9 +167,8 @@ describe('WriteList — fast-path mark-written from the row', () => {
     expect(screen.getByTestId(`row-mark-written-${grammarItem.id}`)).toBeInTheDocument()
   })
 
-  it('does not render the trailing button on Written-view rows', async () => {
-    render(<WriteList items={[writtenItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
+  it('does not render the trailing button on Written-view rows', () => {
+    render(<WriteList items={[writtenItem]} initialView="written" />)
     expect(screen.queryByTestId(`row-mark-written-${writtenItem.id}`)).not.toBeInTheDocument()
   })
 
@@ -153,7 +191,7 @@ describe('WriteList — fast-path mark-written from the row', () => {
     )
   })
 
-  it('removes the row from the active list and shows the undo toast', async () => {
+  it('removes the row from the active list and stays silent on success', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
     render(<WriteList items={[grammarItem]} />)
 
@@ -161,10 +199,10 @@ describe('WriteList — fast-path mark-written from the row', () => {
       await userEvent.click(screen.getByTestId(`row-mark-written-${grammarItem.id}`))
     })
 
+    // Row leaving the current tab is the confirmation. We deliberately don't
+    // fire a success toast for mark-written — it was just noise.
     expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
-    const toast = screen.getByRole('alert')
-    expect(within(toast).getByText(/moved to written/i)).toBeInTheDocument()
-    expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
 
@@ -198,10 +236,10 @@ describe('WriteList — review sheet', () => {
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
   })
 
-  it('renders a sheet-scoped context snippet', async () => {
+  it('renders the sheet-scoped correction-in-context block', async () => {
     render(<WriteList items={[grammarItem]} />)
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    expect(screen.getByTestId(`context-snippet-sheet-${grammarItem.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`correction-in-context-sheet-${grammarItem.id}`)).toBeInTheDocument()
   })
 
   it('closes when Escape is pressed', async () => {
@@ -238,7 +276,7 @@ describe('WriteList — mark as written from the sheet', () => {
     )
   })
 
-  it('removes the item from the active view after a successful mark', async () => {
+  it('removes the item from the active view after a successful mark and stays silent', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
     render(<WriteList items={[grammarItem]} />)
 
@@ -248,44 +286,14 @@ describe('WriteList — mark as written from the sheet', () => {
     })
 
     expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
-  })
-
-  it('shows an undo toast after marking as written', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true })
-    render(<WriteList items={[grammarItem]} />)
-
-    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    await act(async () => {
-      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
-    })
-
-    const toast = screen.getByRole('alert')
-    expect(within(toast).getByText(/moved to written/i)).toBeInTheDocument()
-    expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
-  })
-
-  it('Undo restores the item back to the active list', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true })
-    render(<WriteList items={[grammarItem]} />)
-
-    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    await act(async () => {
-      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
-    })
-    expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
-
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: /undo/i }))
-    })
-
-    expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
+    // Success toast removed — the row leaving the tab is enough confirmation.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('shows the move-back label in the Written view', async () => {
-    render(<WriteList items={[writtenItem]} />)
-    await userEvent.click(screen.getByRole('tab', { name: /written/i }))
+    render(<WriteList items={[writtenItem]} initialView="written" />)
     await userEvent.click(screen.getByTestId(`write-row-${writtenItem.id}`))
-    expect(screen.getByRole('button', { name: /move back/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /move.+correction back/i })).toBeInTheDocument()
   })
 
   it('reverts the optimistic update and shows an error when the PATCH fails', async () => {
@@ -310,19 +318,29 @@ describe('WriteList — delete with undo window', () => {
     vi.useRealTimers()
   })
 
+  // Helper — open the sheet, then walk through the overflow menu to reach
+  // Delete. Mirrors the user's actual two-tap path now that Delete lives
+  // behind a `…` overflow rather than a side-by-side icon.
+  async function openSheetAndDelete(itemId: string) {
+    await userEvent.click(screen.getByTestId(`write-row-${itemId}`))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-delete'))
+    })
+  }
+
   it('hides the row immediately and shows an undo toast (no DELETE yet)', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })
     global.fetch = mockFetch
     render(<WriteList items={[grammarItem]} />)
 
-    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    await act(async () => {
-      await userEvent.click(screen.getByTestId('sheet-delete'))
-    })
+    await openSheetAndDelete(grammarItem.id)
 
     expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
     const toast = screen.getByRole('alert')
-    expect(within(toast).getByText(/deleted/i)).toBeInTheDocument()
+    expect(within(toast).getByText(/removed/i)).toBeInTheDocument()
     expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
 
     expect(mockFetch).not.toHaveBeenCalledWith(
@@ -337,10 +355,7 @@ describe('WriteList — delete with undo window', () => {
     const onDeleted = vi.fn()
     render(<WriteList items={[grammarItem]} onDeleted={onDeleted} />)
 
-    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    await act(async () => {
-      await userEvent.click(screen.getByTestId('sheet-delete'))
-    })
+    await openSheetAndDelete(grammarItem.id)
 
     await act(async () => {
       vi.advanceTimersByTime(5500)
@@ -360,10 +375,7 @@ describe('WriteList — delete with undo window', () => {
     const onDeleted = vi.fn()
     render(<WriteList items={[grammarItem]} onDeleted={onDeleted} />)
 
-    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    await act(async () => {
-      await userEvent.click(screen.getByTestId('sheet-delete'))
-    })
+    await openSheetAndDelete(grammarItem.id)
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /undo/i }))
@@ -387,10 +399,7 @@ describe('WriteList — delete with undo window', () => {
     global.fetch = mockFetch
     render(<WriteList items={[grammarItem]} />)
 
-    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    await act(async () => {
-      await userEvent.click(screen.getByTestId('sheet-delete'))
-    })
+    await openSheetAndDelete(grammarItem.id)
 
     await act(async () => {
       vi.advanceTimersByTime(5500)
@@ -399,5 +408,33 @@ describe('WriteList — delete with undo window', () => {
 
     expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(/couldn't delete/i)
+  })
+})
+
+describe('WriteList — auto-advance from the sheet', () => {
+  it('advances to the next item after Mark as written when one exists', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    render(<WriteList items={[grammarItem, subjectiveItem]} />)
+
+    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    })
+
+    // Sheet stays open on the next item rather than closing — Gmail-style.
+    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.getByText('Use indicative for asserted facts.')).toBeInTheDocument()
+  })
+
+  it('closes the sheet after marking the LAST item as written', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    render(<WriteList items={[grammarItem]} />)
+
+    await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    })
+
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
   })
 })

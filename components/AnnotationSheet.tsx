@@ -3,7 +3,9 @@
 // Docked review panel that replaces the centered modal for annotation review.
 // All sheet chrome (layout, animation, gestures, focus / keyboard / outside-
 // click handling) lives in `DockedSheet`. This file focuses on the annotation-
-// specific header and the `AnnotationCard` body.
+// specific header and the `AnnotationCard` body. The first-open navigation
+// hint lives in the shared `<NavHint>` component so the sister `WriteSheet`
+// surface inherits the same onboarding cue and dismiss flag.
 //
 // `preserveOutsideSelector="[data-annotation-id]"` keeps the sheet open when
 // the user taps a different annotation mark in the transcript — TranscriptView
@@ -14,6 +16,7 @@
 import { useTranslation } from '@/components/LanguageProvider'
 import { AnnotationCard } from '@/components/AnnotationCard'
 import { DockedSheet } from '@/components/DockedSheet'
+import { NavHint } from '@/components/NavHint'
 import type { Annotation, AnnotationType } from '@/lib/types'
 
 interface Props {
@@ -74,17 +77,18 @@ export function AnnotationSheet({
             aria-hidden="true"
             className={`w-2 h-2 rounded-full shrink-0 ${TYPE_DOT_CLASS[annotation.type]}`}
           />
-          <h2 className="font-semibold text-text-primary">
+          <h2 className="font-semibold text-text-primary truncate">
             {t(`type.${annotation.type}`)}
           </h2>
           {position && (
-            <span className="text-xs text-text-tertiary tabular-nums ml-1">
+            <span className="text-xs text-text-tertiary tabular-nums">
               {t('sheet.position', { n: position.current, total: position.total })}
             </span>
           )}
         </>
       }
     >
+      <NavHint />
       <AnnotationCard annotation={annotation} {...cardProps} />
     </DockedSheet>
   )

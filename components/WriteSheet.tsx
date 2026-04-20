@@ -1,16 +1,36 @@
 // components/WriteSheet.tsx
 //
-// Docked review panel for items in the Write surface. Mirrors AnnotationSheet
-// via the shared `DockedSheet` chrome. The primary action is mark-as-written /
-// move-back-to-write; delete lives as a quieter secondary action in the
-// footer.
+// Docked review panel for items in the Write surface. After the design
+// alignment pass this sheet is the structural twin of `AnnotationSheet`:
+//
+//   • Header: small status dot + h2 title + position pill (mirrors the
+//     transcript sheet — title is the lead, position is the eyebrow).
+//   • Body: shared `<NavHint>` chip on first open, then the correction,
+//     explanation, sub-category chip, importance pill, and source-sentence
+//     context snippet (the sheet's surface-specific bit).
+//   • Footer: full-width primary `<button>` styled via `buttonStyles()` for
+//     pixel-parity with AnnotationCard, plus a quiet "more actions" overflow
+//     menu carrying the destructive Delete (kept undoable for 5 seconds via
+//     the parent's toast).
+//
+// Auto-advance: a successful Mark / Move-back drives the parent to open the
+// next sibling in the current list (Gmail's archive-and-next pattern). Once
+// the user reaches the last item the sheet closes naturally. The parent owns
+// that flow; the sheet just calls `onToggleWritten` and trusts the resulting
+// `item` prop change.
 
 'use client'
-import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
 import { DockedSheet } from '@/components/DockedSheet'
+import { IconButton } from '@/components/IconButton'
+import { NavHint } from '@/components/NavHint'
+import { ImportancePill } from '@/components/ImportancePill'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
+import { CorrectionInContext } from '@/components/CorrectionInContext'
+import { buttonStyles } from '@/components/Button'
 import type { PracticeItem } from '@/lib/types'
 
 interface Props {
@@ -26,43 +46,163 @@ interface Props {
   onNext: () => void
   /** Toggles `written_down` on the item. Returns true on success. */
   onToggleWritten: (item: PracticeItem) => Promise<boolean>
-  /** Permanently deletes the item. Returns true on success. */
+  /** Permanently deletes the item (undoable via the parent's toast). */
   onDelete: (item: PracticeItem) => Promise<boolean>
 }
 
-const SNIPPET_CONTEXT = 30
-
-function importanceStars(score: number | null): string | null {
-  if (score === 3) return '★★★'
-  if (score === 2) return '★★☆'
-  if (score === 1) return '★☆☆'
-  return null
+interface OverflowMenuProps {
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  onDelete: () => void
+  busy: boolean
 }
 
-function ContextSnippet({ segmentText, startChar, endChar, testId }: {
-  segmentText: string
-  startChar: number
-  endChar: number
-  testId: string
-}) {
-  const snippetStart = Math.max(0, startChar - SNIPPET_CONTEXT)
-  const snippetEnd = Math.min(segmentText.length, endChar + SNIPPET_CONTEXT)
-  const prefix = segmentText.slice(snippetStart, startChar)
-  const error = segmentText.slice(startChar, endChar)
-  const suffix = segmentText.slice(endChar, snippetEnd)
+/**
+ * Tiny popover anchored to the overflow trigger. Single item today
+ * (Delete) but the structure is ready for additional row actions
+ * without crowding the footer.
+ */
+function OverflowMenu({ isOpen, onOpenChange, onDelete, busy }: OverflowMenuProps) {
+  const { t } = useTranslation()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const firstItemRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    firstItemRef.current?.focus()
+
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onOpenChange(false)
+      }
+    }
+    function handlePointer(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null
+      if (containerRef.current && target && !containerRef.current.contains(target)) {
+        onOpenChange(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKey)
+    document.addEventListener('mousedown', handlePointer)
+    document.addEventListener('touchstart', handlePointer)
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.removeEventListener('mousedown', handlePointer)
+      document.removeEventListener('touchstart', handlePointer)
+    }
+  }, [isOpen, onOpenChange])
+
   return (
-    <p
-      data-testid={testId}
-      className="text-sm italic text-text-tertiary bg-surface-elevated rounded-lg px-3 py-2 leading-relaxed"
-    >
-      {snippetStart > 0 && '…'}
-      {prefix}
-      <span className="not-italic bg-[var(--annotation-unreviewed-bg)] text-[var(--annotation-unreviewed-text)] rounded-sm px-0.5">
-        {error}
-      </span>
-      {suffix}
-      {snippetEnd < segmentText.length && '…'}
-    </p>
+    <div ref={containerRef} className="relative shrink-0">
+      <IconButton
+        icon="more"
+        aria-label={t('writeSheet.moreActionsAria')}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={() => onOpenChange(!isOpen)}
+        disabled={busy}
+        size="lg"
+        data-testid="sheet-overflow"
+      />
+      {isOpen && (
+        <div
+          role="menu"
+          aria-label={t('writeSheet.moreActionsAria')}
+          // Anchored above the trigger so it doesn't collide with the
+          // bottom-anchored sheet edge on mobile. `motion-safe:` for
+          // reduced-motion respect.
+          className="
+            absolute bottom-full right-0 mb-2 z-10
+            min-w-[200px] py-1
+            bg-surface-elevated border border-border rounded-lg
+            shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]
+            motion-safe:animate-[fadein_140ms_ease-out_both]
+          "
+        >
+          {/* Single-line item. The "you can undo for 5 seconds" reassurance
+              used to live as a visible secondary line, but the user sees the
+              undo toast immediately after tapping — visible helper text was
+              just describing the next state. We keep the reassurance in the
+              aria-label so screen readers still get it. */}
+          <button
+            ref={firstItemRef}
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onOpenChange(false)
+              onDelete()
+            }}
+            disabled={busy}
+            data-testid="sheet-delete"
+            aria-label={t('writeSheet.deleteAria')}
+            className="
+              w-full flex items-center gap-3 px-3 py-2 text-left
+              text-status-error hover:bg-error-bg/40 disabled:opacity-50
+              transition-colors rounded-md text-sm font-medium
+            "
+          >
+            <Icon name="trash" className="w-4 h-4 shrink-0" />
+            {t('writeSheet.deleteLabel')}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface SheetHeaderLeadProps {
+  item: PracticeItem
+  isWritten: boolean
+  position: { current: number; total: number } | null
+  t: (key: string, replacements?: Record<string, string | number>) => string
+}
+
+/**
+ * Header eyebrow for the WriteSheet. Two elements, no decoration:
+ *
+ *   • Title — bare session name, linked back to the transcript. No
+ *     "From" prefix, no surrounding quotes; the link semantics and the
+ *     `/sessions/...` href carry the meaning. Falls back to the static
+ *     "To write" / "Written" caption when the source session is gone.
+ *   • Position pill — nav feedback, animates on prev/next.
+ *
+ * The to-write/written state is intentionally NOT signalled here. It's
+ * already said three times: the surface the user came from (Write list
+ * vs Written archive), the primary footer action ("Mark as written" vs
+ * "Move back to Write list"), and the muted styling on Written rows.
+ * A fourth, color-only dot was decoration without signal.
+ */
+function SheetHeaderLead({ item, isWritten, position, t }: SheetHeaderLeadProps) {
+  const hasSession = item.session_title !== null && item.session_title.trim() !== ''
+
+  return (
+    <>
+      {hasSession ? (
+        <h2 className="font-semibold text-text-primary truncate min-w-0">
+          <Link
+            href={`/sessions/${item.session_id}`}
+            className="hover:underline focus-visible:underline"
+            data-testid="sheet-source-link"
+          >
+            {item.session_title}
+          </Link>
+        </h2>
+      ) : (
+        <h2 className="font-semibold text-text-primary truncate">
+          {isWritten ? t('writeSheet.statusWritten') : t('writeSheet.statusToWrite')}
+        </h2>
+      )}
+      {position && (
+        <span
+          key={position.current}
+          className="text-xs text-text-tertiary tabular-nums motion-safe:animate-[fadein_180ms_ease-out_both]"
+        >
+          {t('sheet.position', { n: position.current, total: position.total })}
+        </span>
+      )}
+    </>
   )
 }
 
@@ -81,15 +221,18 @@ export function WriteSheet({
   const { t } = useTranslation()
   const [busyAction, setBusyAction] = useState<'toggle' | 'delete' | null>(null)
   const [importanceExpanded, setImportanceExpanded] = useState(false)
+  const [overflowOpen, setOverflowOpen] = useState(false)
 
   const isOpen = item !== null
 
   // Reset transient per-item state whenever the user navigates to a new item
-  // or reopens the sheet.
+  // or reopens the sheet. The overflow menu in particular must NEVER survive
+  // an item swap — it would dangle over an unrelated card.
   useEffect(() => {
     if (!isOpen) return
     setImportanceExpanded(false)
     setBusyAction(null)
+    setOverflowOpen(false)
   }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
@@ -98,6 +241,9 @@ export function WriteSheet({
     if (!item || busyAction) return
     setBusyAction('toggle')
     await onToggleWritten(item)
+    // Parent re-renders us with either the next item (auto-advance) or
+    // null (sheet closes). Either way our local `item.id` change resets
+    // busyAction via the effect above.
     setBusyAction(null)
   }
 
@@ -108,7 +254,36 @@ export function WriteSheet({
     setBusyAction(null)
   }
 
-  const stars = importanceStars(item.importance_score)
+  const primaryLabelKey = isWritten ? 'writeSheet.moveBack' : 'writeSheet.markWritten'
+  const primaryBusyKey = isWritten ? 'writeSheet.moveBackBusy' : 'writeSheet.markWrittenBusy'
+  const primaryAriaKey = isWritten ? 'writeSheet.moveBackAria' : 'writeSheet.markWrittenAria'
+  const isToggling = busyAction === 'toggle'
+  const primaryLabel = isToggling ? t(primaryBusyKey) : t(primaryLabelKey)
+  // The button uses our shared Button primitive for pixel parity with
+  // AnnotationCard. In the Written view we want the action to feel
+  // reversible (neutral border) rather than green/active — secondary
+  // variant covers that without an extra style override.
+  //
+  // For the "Mark as written" path we tint green via the widget-write tokens
+  // (same colour the Write tab pill uses) so the destination state is
+  // visually anticipated. Arbitrary CSS-variable values are used here on
+  // purpose — they outrank the secondary variant's `bg-surface`/etc.
+  // utilities in JIT order, mirroring the same trick AnnotationCard uses
+  // for its saved state.
+  const primaryClassName = buttonStyles({
+    variant: 'secondary',
+    size: 'md',
+    fullWidth: true,
+    className: isWritten
+      ? ''
+      : `
+          border-[color:var(--color-widget-write-border)]
+          bg-[color:var(--color-widget-write-bg)]
+          text-[color:var(--color-widget-write-text)]
+          hover:bg-[color:var(--color-widget-write-bg-hover)]
+          hover:text-[color:var(--color-widget-write-text)]
+        `,
+  })
 
   return (
     <DockedSheet
@@ -123,101 +298,106 @@ export function WriteSheet({
       mobileMaxHeight="75vh"
       contentKey={item.id}
       headerLead={
-        // Position counter is the lead, the title sits behind it as a small
-        // eyebrow label so the heading doesn't fight the body content.
-        <div className="flex items-baseline gap-2 min-w-0">
-          {position && (
-            <span className="text-sm font-medium text-text-primary tabular-nums">
-              {t('sheet.position', { n: position.current, total: position.total })}
-            </span>
-          )}
-          <span className="text-[10px] text-text-tertiary uppercase tracking-[0.08em] font-semibold">
-            {isWritten ? t('writeSheet.titleWritten') : t('writeSheet.titleWrite')}
-          </span>
-        </div>
+        <SheetHeaderLead
+          item={item}
+          isWritten={isWritten}
+          position={position}
+          t={t}
+        />
       }
       footer={
         <div className="flex items-center gap-2">
           <button
             type="button"
+            data-initial-focus
+            data-testid="sheet-toggle-written"
             onClick={handleToggle}
             disabled={busyAction !== null}
-            data-testid="sheet-toggle-written"
-            className={`
-              flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium
-              text-sm transition-colors disabled:opacity-50
-              ${isWritten
-                ? 'border-border bg-surface text-text-secondary hover:text-text-primary hover:border-text-secondary'
-                : 'border-widget-write-border bg-widget-write-bg text-widget-write-text hover:bg-widget-write-bg-hover'
-              }
-            `}
+            aria-label={t(primaryAriaKey)}
+            aria-pressed={isWritten}
+            className={primaryClassName}
           >
-            <Icon name={isWritten ? 'rotate-ccw' : 'check'} className="w-5 h-5" />
-            {isWritten ? t('writeSheet.moveBack') : t('writeSheet.markWritten')}
+            <Icon
+              name={isWritten ? 'rotate-ccw' : 'check'}
+              className="w-4 h-4 mr-2"
+            />
+            {primaryLabel}
           </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={busyAction !== null}
-            aria-label={t('writeSheet.deleteAria')}
-            data-testid="sheet-delete"
-            className="
-              w-11 h-11 rounded-xl border border-transparent bg-transparent
-              text-status-error/60 hover:text-status-error hover:bg-error-bg/40
-              transition-colors flex items-center justify-center disabled:opacity-50
-            "
-          >
-            <Icon name="trash" className="w-4 h-4" />
-          </button>
+          <OverflowMenu
+            isOpen={overflowOpen}
+            onOpenChange={setOverflowOpen}
+            onDelete={handleDelete}
+            busy={busyAction !== null}
+          />
         </div>
       }
     >
-      <div className="space-y-5">
-        {/* Original → Correction. Shared primitive — same treatment as the
-            list rows, so changing one place changes both surfaces in sync. */}
-        <StrikeOriginal
-          original={item.original}
-          correction={item.correction}
-          size="sheet"
-        />
+      <NavHint />
+      <div className="space-y-6">
+        {/* Hero: the source sentence with the correction inserted inline.
+            We wrap it in a blockquote-style left rule so it reads as "the
+            line being discussed" — without that framing the sentence and
+            the explanation paragraph below blur into one block of muted
+            prose with a bright correction word floating in the middle. The
+            frame stays surface-specific (sheet only, not list rows) so the
+            list stays compact. */}
+        <div
+          // `[&>p]:text-text-primary` brightens the sentence body inside
+          // the quoted scope so the framed block reads as the focal point;
+          // outside this scope the explanation in text-text-secondary then
+          // naturally steps down to commentary. Targeting the inner <p>
+          // (rather than threading another prop through CorrectionInContext)
+          // keeps the component oblivious to its container's framing.
+          className="border-l-2 border-border pl-4 py-0.5 [&>p]:text-text-primary"
+        >
+          {item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
+            <CorrectionInContext
+              segmentText={item.segment_text}
+              startChar={item.start_char}
+              endChar={item.end_char}
+              original={item.original}
+              correction={item.correction}
+              size="sheet"
+              testId={`correction-in-context-sheet-${item.id}`}
+            />
+          ) : (
+            <StrikeOriginal
+              original={item.original}
+              correction={item.correction}
+              size="sheet"
+            />
+          )}
+        </div>
 
         <p className="text-text-secondary leading-relaxed text-base">
           {item.explanation}
         </p>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="border border-accent-chip-border text-on-accent-chip bg-accent-chip rounded-full px-3 py-1 text-sm">
+        {/* Metadata row. Sub-category is intentionally a quiet eyebrow
+            label (uppercase, tertiary text) — it's classification context,
+            not an action. The importance pill is the only chip-tier
+            element here so it owns the call-out and the user's eye lands
+            on the meaningful signal. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span
+            data-testid="sheet-sub-category"
+            className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary"
+          >
             {t(`subCat.${item.sub_category}`)}
           </span>
-          {stars && (
-            item.importance_note ? (
-              <button
-                onClick={() => setImportanceExpanded(e => !e)}
-                className="text-pill-amber text-base leading-none rounded px-1"
-                aria-label={t('writeList.importanceToggleAria')}
-                aria-expanded={importanceExpanded}
-              >
-                {stars}
-              </button>
-            ) : (
-              <span className="text-pill-amber text-base leading-none">{stars}</span>
-            )
-          )}
+          <ImportancePill
+            score={item.importance_score}
+            note={item.importance_note}
+            expanded={importanceExpanded}
+            onToggle={() => setImportanceExpanded(e => !e)}
+            toggleAriaKey="writeList.importanceToggleAria"
+          />
         </div>
 
         {importanceExpanded && item.importance_note && (
           <p className="text-text-secondary text-sm leading-relaxed -mt-3">
             {item.importance_note}
           </p>
-        )}
-
-        {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
-          <ContextSnippet
-            segmentText={item.segment_text}
-            startChar={item.start_char}
-            endChar={item.end_char}
-            testId={`context-snippet-sheet-${item.id}`}
-          />
         )}
       </div>
     </DockedSheet>

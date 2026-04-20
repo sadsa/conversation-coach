@@ -236,6 +236,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'sheet.prev': 'Previous correction',
     'sheet.next': 'Next correction',
     'sheet.position': '{n} of {total}',
+    'sheet.navHintFirst': 'Tip — use ← → or swipe between corrections.',
+    'sheet.navHintDismiss': 'Got it',
 
     // Identify page
     'identify.loading': 'Loading…',
@@ -246,16 +248,29 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Speaker card
     'speaker.label': 'Speaker {label}',
 
-    // Annotation card
-    'annotation.helpfulAria': 'Helpful — save this correction',
-    'annotation.helpfulUndoAria': 'Undo helpful — remove from saved',
-    'annotation.markUnhelpfulAria': 'Not helpful — mark this correction as unhelpful',
-    'annotation.unmarkUnhelpfulAria': 'Undo not helpful — restore this correction',
-    'annotation.stateNeutral': 'No feedback yet',
-    'annotation.stateSaved': 'Saved as helpful',
-    'annotation.stateUnhelpful': 'Marked unhelpful',
-    'annotation.saveError': 'Couldn\'t save — try again.',
-    'annotation.unhelpfulError': 'Couldn\'t save your feedback — try again.',
+    // Annotation card — primary save action
+    'annotation.savePrimary': 'Save to my Write list',
+    'annotation.savedPrimary': 'Saved · on your Write list',
+    'annotation.savePrimaryAria': 'Save this correction to your Write list',
+    'annotation.savedPrimaryAria': 'Remove this correction from your Write list',
+    // Quiet secondary "this correction wasn't useful" affordance
+    'annotation.notUseful': 'Not useful — hide it',
+    'annotation.notUsefulRestore': 'Restore this correction',
+    'annotation.notUsefulAria': 'Mark as not useful and hide from the transcript',
+    'annotation.notUsefulRestoreAria': 'Restore this correction',
+    // Inline hints — written like a teacher would: outcome-focused, warm
+    'annotation.savedHint': 'Added to your Write list — nice catch.',
+    'annotation.savedHintLink': 'View list',
+    'annotation.unhelpfulHint': 'Hidden from your transcript.',
+    // Errors are surfaced with an inline Retry rather than auto-dismissing
+    'annotation.saveError': "Couldn't save that — let's try again.",
+    'annotation.unhelpfulError': "Couldn't save your feedback — let's try again.",
+    'annotation.retry': 'Retry',
+    'annotation.offlineNote': "You're offline right now — try again once you're back.",
+    // Importance pill (replaces the ASCII star cluster)
+    'annotation.importantPill': 'Worth remembering',
+    'annotation.importantPillHigh': 'High priority',
+    'annotation.importantPillAria': 'Show why this correction matters',
     'type.grammar': 'Grammar',
     'type.naturalness': 'Naturalness',
 
@@ -279,17 +294,26 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.loading': 'Loading…',
     'write.error': 'Error: {msg}',
 
-    // Write list — segmented Write / Written view
+    // Write list — view toggle (asymmetric: Write is the primary surface,
+    // Written is a quiet archive link rather than a peer tab).
     'writeList.viewLabel': 'Saved corrections',
     'writeList.tabWrite': 'Write',
     'writeList.tabWritten': 'Written',
+    'writeList.archiveHeading': 'Written',
+    'writeList.archiveLink': 'written',
+    'writeList.backToWrite': 'Back to Write',
+    'writeList.markDoneShort': 'Done',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Start a session to save more →',
     'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as written.',
+    'writeList.emptyWrittenCaption': 'Items you\'ve written down land here, faded so they don\'t crowd the queue.',
+    'writeList.emptyWrittenCta': '← Back to Write ({count})',
+    'writeList.emptyWrittenNoQueue': 'Nothing in your Write queue either — start a session to save your first correction.',
     'writeList.markRowAria': 'Mark "{original}" as written',
-    'writeList.movedToWritten': 'Moved to Written',
-    'writeList.movedToWrite': 'Moved back to your list',
-    'writeList.movedToTrash': 'Item deleted',
+    // Toasts only fire on the destructive / error paths now: success
+    // states (mark-written, move-back) are silent because the row leaving
+    // the current tab is more confirmation than the user needs.
+    'writeList.movedToTrash': 'Removed. You can grab it back.',
     'writeList.undo': 'Undo',
     'writeList.deleteError': 'Couldn\'t delete item — try again.',
     'writeList.markWrittenError': 'Couldn\'t update — try again.',
@@ -299,9 +323,27 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.aria': 'Review saved correction',
     'writeSheet.titleWrite': 'To write',
     'writeSheet.titleWritten': 'Written',
+    // Primary action — verb-first, with destination spelled out so the user
+    // knows where the item is going. Busy variant keeps focus while the
+    // network is in flight.
     'writeSheet.markWritten': 'Mark as written',
-    'writeSheet.moveBack': 'Move back',
-    'writeSheet.deleteAria': 'Delete this item',
+    'writeSheet.markWrittenBusy': 'Marking…',
+    'writeSheet.markWrittenAria': 'Mark this correction as written down on paper',
+    'writeSheet.moveBack': 'Move back to Write list',
+    'writeSheet.moveBackBusy': 'Moving back…',
+    'writeSheet.moveBackAria': 'Move this correction back to the Write list',
+    // Overflow menu — Delete is undoable for 5 seconds via the toast, so the
+    // copy is reassuring rather than threatening.
+    'writeSheet.moreActionsAria': 'More actions',
+    'writeSheet.deleteLabel': 'Delete',
+    'writeSheet.deleteAria': 'Delete this item (you can undo for 5 seconds)',
+    // Header eyebrow — when the source session is known, the title slot
+    // renders the bare session name as a link back to the transcript so
+    // the user can re-anchor in the conversation it came from. The status
+    // dot carries the to-write / written semantic, so the status text is
+    // fallback-only (legacy items / deleted sessions).
+    'writeSheet.statusToWrite': 'To write',
+    'writeSheet.statusWritten': 'Written',
 
     // Settings page
     'settings.title': 'Settings',
@@ -555,6 +597,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'sheet.prev': 'Corrección anterior',
     'sheet.next': 'Corrección siguiente',
     'sheet.position': '{n} de {total}',
+    'sheet.navHintFirst': 'Tip — usá ← → o deslizá para moverte entre correcciones.',
+    'sheet.navHintDismiss': 'Entendido',
 
     // Identify page
     'identify.loading': 'Cargando…',
@@ -565,16 +609,29 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Speaker card
     'speaker.label': 'Hablante {label}',
 
-    // Annotation card
-    'annotation.helpfulAria': 'Útil — guardar esta corrección',
-    'annotation.helpfulUndoAria': 'Deshacer útil — quitar de guardados',
-    'annotation.markUnhelpfulAria': 'Poco útil — marcar esta corrección',
-    'annotation.unmarkUnhelpfulAria': 'Deshacer poco útil — restaurar esta corrección',
-    'annotation.stateNeutral': 'Sin marcar',
-    'annotation.stateSaved': 'Guardada como útil',
-    'annotation.stateUnhelpful': 'Marcada como poco útil',
-    'annotation.saveError': 'No se pudo guardar — intentá de nuevo.',
-    'annotation.unhelpfulError': 'No se pudo guardar tu feedback — intentá de nuevo.',
+    // Annotation card — primary save action
+    'annotation.savePrimary': 'Guardar en mi lista',
+    'annotation.savedPrimary': 'Guardada · en tu lista',
+    'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Anotar',
+    'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Anotar',
+    // Quiet secondary "this correction wasn't useful" affordance
+    'annotation.notUseful': 'Poco útil — ocultarla',
+    'annotation.notUsefulRestore': 'Restaurar esta corrección',
+    'annotation.notUsefulAria': 'Marcar como poco útil y ocultarla de la transcripción',
+    'annotation.notUsefulRestoreAria': 'Restaurar esta corrección',
+    // Inline hints — written like a teacher would: outcome-focused, warm
+    'annotation.savedHint': 'Agregada a tu lista — buena observación.',
+    'annotation.savedHintLink': 'Ver lista',
+    'annotation.unhelpfulHint': 'Oculta de tu transcripción.',
+    // Errors are surfaced with an inline Retry rather than auto-dismissing
+    'annotation.saveError': 'No se pudo guardar — probemos de nuevo.',
+    'annotation.unhelpfulError': 'No se pudo guardar tu feedback — probemos de nuevo.',
+    'annotation.retry': 'Reintentar',
+    'annotation.offlineNote': 'Estás sin conexión — probá de nuevo cuando vuelvas.',
+    // Importance pill (replaces the ASCII star cluster)
+    'annotation.importantPill': 'Vale la pena recordarla',
+    'annotation.importantPillHigh': 'Alta prioridad',
+    'annotation.importantPillAria': 'Ver por qué esta corrección importa',
     'type.grammar': 'Gramática',
     'type.naturalness': 'Naturalidad',
 
@@ -598,17 +655,26 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.loading': 'Cargando…',
     'write.error': 'Error: {msg}',
 
-    // Write list — segmented Anotar / Escritos view
+    // Write list — alternancia de vistas (Anotar es la superficie principal,
+    // Escritos vive como link discreto al archivo, no como pestaña par).
     'writeList.viewLabel': 'Correcciones guardadas',
     'writeList.tabWrite': 'Anotar',
     'writeList.tabWritten': 'Escritos',
+    'writeList.archiveHeading': 'Escritos',
+    'writeList.archiveLink': 'escritos',
+    'writeList.backToWrite': 'Volver a Anotar',
+    'writeList.markDoneShort': 'Listo',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Empezá una sesión para guardar más →',
     'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
+    'writeList.emptyWrittenCaption': 'Lo que ya anotaste cae acá, atenuado para que no llene la cola.',
+    'writeList.emptyWrittenCta': '← Volver a Anotar ({count})',
+    'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Anotar — empezá una sesión para guardar tu primera corrección.',
     'writeList.markRowAria': 'Marcar "{original}" como escrito',
-    'writeList.movedToWritten': 'Movido a Escritos',
-    'writeList.movedToWrite': 'Vuelto a tu lista',
-    'writeList.movedToTrash': 'Ítem eliminado',
+    // Toasts only fire on the destructive / error paths now: success
+    // states (mark-written, move-back) are silent because the row leaving
+    // the current tab is more confirmation than the user needs.
+    'writeList.movedToTrash': 'Eliminada. Podés recuperarla.',
     'writeList.undo': 'Deshacer',
     'writeList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
     'writeList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
@@ -618,9 +684,24 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.aria': 'Revisar corrección guardada',
     'writeSheet.titleWrite': 'Para anotar',
     'writeSheet.titleWritten': 'Escritos',
+    // Acción principal — verbo primero, con destino explícito. La variante
+    // "ocupada" mantiene el foco mientras la red responde.
     'writeSheet.markWritten': 'Marcar como escrito',
-    'writeSheet.moveBack': 'Volver atrás',
-    'writeSheet.deleteAria': 'Eliminar este ítem',
+    'writeSheet.markWrittenBusy': 'Marcando…',
+    'writeSheet.markWrittenAria': 'Marcar esta corrección como escrita en papel',
+    'writeSheet.moveBack': 'Volver a la lista de Anotar',
+    'writeSheet.moveBackBusy': 'Volviendo…',
+    'writeSheet.moveBackAria': 'Devolver esta corrección a la lista de Anotar',
+    // Menú de acciones secundarias — Eliminar se puede deshacer 5 segundos
+    'writeSheet.moreActionsAria': 'Más acciones',
+    'writeSheet.deleteLabel': 'Eliminar',
+    'writeSheet.deleteAria': 'Eliminar este ítem (podés deshacer 5 segundos)',
+    // Eyebrow del header — cuando conocemos la sesión origen, el slot del
+    // título muestra el nombre de la sesión como link al transcripto. El
+    // punto de estado sigue cargando la semántica anotar/escrito; el
+    // texto es fallback para ítems sin sesión vinculada.
+    'writeSheet.statusToWrite': 'Para anotar',
+    'writeSheet.statusWritten': 'Escrita',
 
     // Settings page
     'settings.title': 'Configuración',

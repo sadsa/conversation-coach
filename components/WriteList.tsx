@@ -12,36 +12,11 @@ import type { PracticeItem } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { WriteSheet } from '@/components/WriteSheet'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
+import { CorrectionInContext } from '@/components/CorrectionInContext'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 
-const SNIPPET_CONTEXT = 30
 const UNDO_TIMEOUT_MS = 5000
-
-function ContextSnippet({ segmentText, startChar, endChar, testId }: {
-  segmentText: string
-  startChar: number
-  endChar: number
-  testId: string
-}) {
-  const snippetStart = Math.max(0, startChar - SNIPPET_CONTEXT)
-  const snippetEnd = Math.min(segmentText.length, endChar + SNIPPET_CONTEXT)
-  const prefix = segmentText.slice(snippetStart, startChar)
-  const error = segmentText.slice(startChar, endChar)
-  const suffix = segmentText.slice(endChar, snippetEnd)
-  return (
-    <p
-      data-testid={testId}
-      className="text-sm italic text-text-tertiary leading-relaxed"
-    >
-      {snippetStart > 0 && '…'}
-      {prefix}
-      <span className="not-italic text-text-secondary">{error}</span>
-      {suffix}
-      {snippetEnd < segmentText.length && '…'}
-    </p>
-  )
-}
 
 type View = 'write' | 'written'
 
@@ -71,35 +46,54 @@ function WriteRow({ item, isWritten, onOpen, onMarkWritten }: RowProps) {
           onClick={onOpen}
           data-write-item-id={item.id}
           data-testid={`write-row-${item.id}`}
-          className="flex-1 min-w-0 text-left flex flex-col gap-1.5 px-4 py-3.5 rounded-l-xl"
+          className="flex-1 min-w-0 text-left px-4 py-3 rounded-l-xl"
         >
-          <StrikeOriginal
-            original={item.original}
-            correction={item.correction}
-            muted={isWritten}
-          />
-          {item.segment_text !== null && item.start_char !== null && item.end_char !== null && (
-            <ContextSnippet
+          {/* Single-block "correction in context" — sentence with the wrong
+              fragment struck through and the rewrite inserted right after.
+              Falls back to the bare wrong → right pair for items without
+              segment data so older entries still render meaningfully. */}
+          {item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
+            <CorrectionInContext
               segmentText={item.segment_text}
               startChar={item.start_char}
               endChar={item.end_char}
-              testId={`context-snippet-${item.id}`}
+              original={item.original}
+              correction={item.correction}
+              muted={isWritten}
+              testId={`correction-in-context-${item.id}`}
+            />
+          ) : (
+            <StrikeOriginal
+              original={item.original}
+              correction={item.correction}
+              muted={isWritten}
             />
           )}
         </button>
         {onMarkWritten && (
+          // Trailing fast-path action. Visually separated from the row body
+          // by a faint left rule so touch users can see it's a distinct tap
+          // target (icon-only buttons against an unbordered cell read as
+          // empty space without the divider). On md+ a "Done" micro-label
+          // teaches the affordance without adding mobile clutter.
           <button
             type="button"
             onClick={onMarkWritten}
             aria-label={t('writeList.markRowAria', { original: item.original })}
             data-testid={`row-mark-written-${item.id}`}
             className="
-              self-stretch w-12 flex items-center justify-center rounded-r-xl
-              text-text-tertiary hover:text-widget-write-text hover:bg-widget-write-bg/40
+              self-stretch flex items-center justify-center gap-1.5
+              px-3 md:px-4 rounded-r-xl
+              border-l border-border-subtle
+              text-text-secondary hover:text-widget-write-text
+              hover:bg-widget-write-bg/50 hover:border-widget-write-border/40
               transition-colors
             "
           >
             <Icon name="check" className="w-5 h-5" />
+            <span className="hidden md:inline text-xs font-medium">
+              {t('writeList.markDoneShort')}
+            </span>
           </button>
         )}
       </div>
@@ -107,50 +101,82 @@ function WriteRow({ item, isWritten, onOpen, onMarkWritten }: RowProps) {
   )
 }
 
-interface SegmentedProps {
+interface ViewToggleProps {
   view: View
   writeCount: number
   writtenCount: number
   onChange: (next: View) => void
 }
 
-function Segmented({ view, writeCount, writtenCount, onChange }: SegmentedProps) {
+/**
+ * Asymmetric view header. The Write list is the primary surface so it
+ * never gets a "tab"; the page H1 already names it. The Written archive
+ * lives behind a quiet right-aligned link that flips to it (with a
+ * matching back-link the other way). This kills the tab-equality of the
+ * old segmented control — fewer pixels of chrome on the surface the user
+ * cares about most, and the archive becomes a small reward count rather
+ * than a peer destination.
+ */
+function ViewToggle({ view, writeCount, writtenCount, onChange }: ViewToggleProps) {
   const { t } = useTranslation()
-  function segClass(active: boolean) {
-    return `
-      px-4 py-1.5 rounded-full text-sm transition-colors
-      ${active
-        ? 'bg-accent-chip text-on-accent-chip'
-        : 'text-text-secondary hover:text-text-primary'
-      }
-    `
-  }
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={t('writeList.viewLabel')}
-      className="inline-flex rounded-full border border-border bg-surface p-0.5"
+      data-testid="view-toggle"
+      className="flex items-center justify-between gap-3 min-h-[28px]"
     >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={view === 'write'}
-        onClick={() => onChange('write')}
-        className={segClass(view === 'write')}
-      >
-        {t('writeList.tabWrite')}{' '}
-        <span className="tabular-nums opacity-70">{writeCount}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={view === 'written'}
-        onClick={() => onChange('written')}
-        className={segClass(view === 'written')}
-      >
-        {t('writeList.tabWritten')}{' '}
-        <span className="tabular-nums opacity-70">{writtenCount}</span>
-      </button>
+      {view === 'write' ? (
+        // Write view: leading slot is empty (page H1 already says "Write");
+        // the count lives next to the nav target so it reads as one unit.
+        <span aria-hidden="true" />
+      ) : (
+        <span className="flex items-center gap-2 text-sm text-text-secondary">
+          <span
+            aria-hidden="true"
+            className="w-2 h-2 rounded-full bg-widget-write-text"
+          />
+          <span className="font-medium text-text-primary">
+            {t('writeList.archiveHeading')}
+          </span>
+          <span className="text-text-tertiary tabular-nums">{writtenCount}</span>
+        </span>
+      )}
+
+      {view === 'write' ? (
+        writtenCount > 0 && (
+          <button
+            type="button"
+            data-testid="view-toggle-to-written"
+            onClick={() => onChange('written')}
+            className="
+              text-sm text-text-tertiary hover:text-text-primary
+              transition-colors inline-flex items-center gap-1
+              focus-visible:underline
+            "
+          >
+            <span className="tabular-nums">{writtenCount}</span>
+            {' '}
+            {t('writeList.archiveLink')}
+            <span aria-hidden="true">→</span>
+          </button>
+        )
+      ) : (
+        <button
+          type="button"
+          data-testid="view-toggle-to-write"
+          onClick={() => onChange('write')}
+          className="
+            text-sm text-text-tertiary hover:text-text-primary
+            transition-colors inline-flex items-center gap-1
+            focus-visible:underline
+          "
+        >
+          <span aria-hidden="true">←</span>
+          {t('writeList.backToWrite')}
+          <span className="tabular-nums text-text-tertiary">{writeCount}</span>
+        </button>
+      )}
     </div>
   )
 }
@@ -193,6 +219,48 @@ function EmptyWrite() {
           {t('writeList.emptyWriteCta')}
         </Link>
       </p>
+    </div>
+  )
+}
+
+interface EmptyWrittenProps {
+  writeCount: number
+  onBack: () => void
+}
+
+/**
+ * Parity with EmptyWrite — instead of a single grey line, the empty
+ * archive shows a small "what lives here" block plus a way back. The
+ * caption mirrors EmptyWrite's "this is what these look like" rhythm.
+ */
+function EmptyWritten({ writeCount, onBack }: EmptyWrittenProps) {
+  const { t } = useTranslation()
+  return (
+    <div className="py-6 space-y-5 max-w-prose">
+      <div
+        className="rounded-xl border border-border-subtle bg-surface/60 px-4 py-3.5 opacity-70"
+        aria-hidden="true"
+      >
+        <StrikeOriginal original="Yo fui" correction="Fui" muted />
+        <p className="text-sm italic text-text-tertiary leading-relaxed mt-1.5">
+          {t('writeList.emptyWrittenCaption')}
+        </p>
+      </div>
+      {writeCount > 0 ? (
+        <p className="text-text-secondary text-sm leading-relaxed">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-accent-primary font-medium hover:underline"
+          >
+            {t('writeList.emptyWrittenCta', { count: writeCount })}
+          </button>
+        </p>
+      ) : (
+        <p className="text-text-secondary text-sm leading-relaxed">
+          {t('writeList.emptyWrittenNoQueue')}
+        </p>
+      )}
     </div>
   )
 }
@@ -252,14 +320,42 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
     return res.ok
   }
 
+  /**
+   * For sheet-driven actions we want Gmail's "archive-and-next" behavior:
+   * after the user marks the open item, the sheet doesn't slam shut — it
+   * replaces its body with the next item in the *current* list. If they're
+   * already at the last item, the sheet closes naturally (nothing to advance
+   * to). Row-driven actions (where the sheet was never open) keep their
+   * stay-on-the-list behavior.
+   *
+   * `currentVisible` MUST be captured BEFORE the optimistic state mutation,
+   * because the post-mutation list will have already removed `item` and the
+   * "next" computation would then point at the wrong row.
+   */
+  function nextOpenIdAfter(itemId: string): string | null {
+    if (openId === null) return null
+    const idx = visible.findIndex(i => i.id === itemId)
+    if (idx < 0 || idx + 1 >= visible.length) return null
+    return visible[idx + 1].id
+  }
+
+  /**
+   * Mark-written / move-back is intentionally silent on success — the row
+   * disappears from the current tab and (for sheet-driven calls) the sheet
+   * auto-advances to the next item, which is more confirmation than the
+   * user needs. Only error paths surface a toast: the action looked like it
+   * worked optimistically, so the user has to know we rolled it back.
+   */
   async function handleToggleWritten(item: PracticeItem): Promise<boolean> {
     const previous = item.written_down
     const next = !previous
+    const wasOpen = openId === item.id
+    const advanceToId = nextOpenIdAfter(item.id)
 
     setAllItems(prev =>
       prev.map(i => (i.id === item.id ? { ...i, written_down: next } : i))
     )
-    setOpenId(null)
+    setOpenId(wasOpen ? advanceToId : null)
 
     const ok = await patchWritten(item.id, next)
     if (!ok) {
@@ -269,23 +365,6 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
       showToast(t('writeList.markWrittenError'))
       return false
     }
-
-    const message = next
-      ? t('writeList.movedToWritten')
-      : t('writeList.movedToWrite')
-
-    showToast(message, async () => {
-      const reverted = await patchWritten(item.id, previous)
-      if (reverted) {
-        setAllItems(prev =>
-          prev.map(i => (i.id === item.id ? { ...i, written_down: previous } : i))
-        )
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-        setToast(null)
-      } else {
-        showToast(t('writeList.markWrittenError'))
-      }
-    })
 
     return true
   }
@@ -302,9 +381,11 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
    */
   async function handleDelete(item: PracticeItem): Promise<boolean> {
     const snapshot = item
+    const wasOpen = openId === item.id
+    const advanceToId = nextOpenIdAfter(item.id)
 
     setAllItems(prev => prev.filter(i => i.id !== item.id))
-    setOpenId(null)
+    setOpenId(wasOpen ? advanceToId : null)
 
     let cancelled = false
     let pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null
@@ -347,7 +428,7 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
 
   return (
     <div className="space-y-5">
-      <Segmented
+      <ViewToggle
         view={view}
         writeCount={writeCount}
         writtenCount={writtenCount}
@@ -361,9 +442,7 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
         view === 'write' ? (
           <EmptyWrite />
         ) : (
-          <p className="text-text-tertiary text-sm py-8 leading-relaxed max-w-prose">
-            {t('writeList.emptyWritten')}
-          </p>
+          <EmptyWritten writeCount={writeCount} onBack={() => setView('write')} />
         )
       ) : (
         <ul className="space-y-2">
