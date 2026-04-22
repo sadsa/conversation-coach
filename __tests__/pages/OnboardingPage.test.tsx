@@ -13,11 +13,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
 }))
-vi.mock('@/lib/supabase-browser', () => ({
-  getSupabaseBrowserClient: () => ({
-    auth: { updateUser: vi.fn().mockResolvedValue({ error: null }) },
-  }),
-}))
 vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
     t: (key: string) => key,

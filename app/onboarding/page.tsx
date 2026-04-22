@@ -12,6 +12,9 @@ const LANGUAGE_OPTIONS: { value: TargetLanguage; name: string; variant: string; 
 ]
 
 // ─── Step illustrations ────────────────────────────────────────────────────────
+// These are decorative mockups of the app UI, shown at a fixed language to
+// represent the real interface. Strings here are aria-hidden and intentionally
+// not in i18n — they depict the app surface, not translated content.
 
 function Step1Illustration() {
   const items = [
@@ -153,7 +156,8 @@ function OnboardingContent() {
 
   const stepParam = searchParams.get('step')
   const revisit = searchParams.get('revisit') === 'true'
-  const step = stepParam ? Math.max(0, parseInt(stepParam, 10)) : 0
+  const parsed = stepParam ? parseInt(stepParam, 10) : 0
+  const step = isNaN(parsed) ? 0 : Math.max(0, parsed)
 
   function handleLanguageConfirm() {
     if (!selected) return
