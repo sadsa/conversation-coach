@@ -1,6 +1,7 @@
 // app/settings/page.tsx
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { TARGET_LANGUAGES, type TargetLanguage } from '@/lib/types'
@@ -97,6 +98,18 @@ export default function SettingsPage() {
         >
           {t('settings.signOut')}
         </button>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+          {t('settings.help')}
+        </h2>
+        <Link
+          href="/onboarding?step=1&revisit=true"
+          className="block w-full px-4 py-2 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors text-sm text-left text-text-primary"
+        >
+          {t('settings.howToUpload')}
+        </Link>
       </div>
 
       <div className="space-y-3">
