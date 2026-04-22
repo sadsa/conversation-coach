@@ -11,6 +11,7 @@
 // encouraging, never performative.
 
 'use client'
+import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 
 interface Step {
@@ -69,6 +70,13 @@ export function DashboardOnboarding() {
           </li>
         ))}
       </ol>
+
+      <Link
+        href="/onboarding?step=1&revisit=true"
+        className="inline-block text-sm text-text-tertiary hover:text-accent-primary transition-colors"
+      >
+        {t('onboarding.revisitLink')}
+      </Link>
     </section>
   )
 }
