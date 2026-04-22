@@ -25,6 +25,7 @@ export function OnboardingStep({
   return (
     <div className="space-y-8">
       <div className="space-y-4 text-center">
+        {/* Brand name — same in all locales, not translated */}
         <p className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">
           Conversation Coach
         </p>
