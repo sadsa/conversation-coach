@@ -360,6 +360,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.signOut': 'Sign out',
     'settings.app': 'App',
     'settings.version': 'Version',
+    // Onboarding tutorial
+    'onboarding.step1.heading': "Here's how it works",
+    'onboarding.step1.body': 'Record a conversation in Spanish, upload it here, and get gentle corrections on your speech. Save the ones worth remembering and write them down.',
+    'onboarding.step2.heading': 'Upload a recording',
+    'onboarding.step2.body': 'After a conversation, tap Upload audio to pick the file from your phone. It gets transcribed automatically — no extra steps.',
+    'onboarding.step3.heading': 'Or share from WhatsApp',
+    'onboarding.step3.body': 'Got a voice note in WhatsApp? Hold it, tap Share, then choose Conversation Coach. The audio uploads instantly.',
+    'onboarding.cta.next': 'Next →',
+    'onboarding.cta.letsGo': "Let's go →",
+    'onboarding.cta.done': 'Done',
+    'onboarding.revisitLink': 'Revisit tutorial →',
+    'settings.help': 'Help',
+    'settings.howToUpload': 'How to upload audio',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -720,6 +733,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.signOut': 'Cerrar sesión',
     'settings.app': 'App',
     'settings.version': 'Versión',
+    // Onboarding tutorial
+    'onboarding.step1.heading': 'Así funciona',
+    'onboarding.step1.body': 'Grabá una conversación en español, subila acá y recibí correcciones suaves sobre tu habla. Guardá las que valgan la pena y anotalas.',
+    'onboarding.step2.heading': 'Subí una grabación',
+    'onboarding.step2.body': 'Después de una conversación, tocá Subir audio para elegir el archivo desde tu celular. Se transcribe automáticamente — sin pasos extra.',
+    'onboarding.step3.heading': 'O compartí desde WhatsApp',
+    'onboarding.step3.body': '¿Tenés una nota de voz en WhatsApp? Mantenéla presionada, tocá Compartir y elegí Conversation Coach. El audio se sube al instante.',
+    'onboarding.cta.next': 'Siguiente →',
+    'onboarding.cta.letsGo': '¡Vamos →',
+    'onboarding.cta.done': 'Listo',
+    'onboarding.revisitLink': 'Ver tutorial otra vez →',
+    'settings.help': 'Ayuda',
+    'settings.howToUpload': 'Cómo subir audio',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

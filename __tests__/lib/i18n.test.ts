@@ -145,3 +145,42 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.addToPractice', 'en')).toBe('annotation.addToPractice')
   })
 })
+
+describe('onboarding tutorial i18n keys', () => {
+  it('onboarding.step1.heading exists in both langs', () => {
+    expect(t('onboarding.step1.heading', 'en')).not.toBe('onboarding.step1.heading')
+    expect(t('onboarding.step1.heading', 'es')).not.toBe('onboarding.step1.heading')
+  })
+  it('onboarding.step2.heading exists in both langs', () => {
+    expect(t('onboarding.step2.heading', 'en')).not.toBe('onboarding.step2.heading')
+    expect(t('onboarding.step2.heading', 'es')).not.toBe('onboarding.step2.heading')
+  })
+  it('onboarding.step3.heading exists in both langs', () => {
+    expect(t('onboarding.step3.heading', 'en')).not.toBe('onboarding.step3.heading')
+    expect(t('onboarding.step3.heading', 'es')).not.toBe('onboarding.step3.heading')
+  })
+  it('onboarding.cta.next exists in both langs', () => {
+    expect(t('onboarding.cta.next', 'en')).not.toBe('onboarding.cta.next')
+    expect(t('onboarding.cta.next', 'es')).not.toBe('onboarding.cta.next')
+  })
+  it('onboarding.cta.letsGo exists in both langs', () => {
+    expect(t('onboarding.cta.letsGo', 'en')).not.toBe('onboarding.cta.letsGo')
+    expect(t('onboarding.cta.letsGo', 'es')).not.toBe('onboarding.cta.letsGo')
+  })
+  it('onboarding.cta.done exists in both langs', () => {
+    expect(t('onboarding.cta.done', 'en')).not.toBe('onboarding.cta.done')
+    expect(t('onboarding.cta.done', 'es')).not.toBe('onboarding.cta.done')
+  })
+  it('onboarding.revisitLink exists in both langs', () => {
+    expect(t('onboarding.revisitLink', 'en')).not.toBe('onboarding.revisitLink')
+    expect(t('onboarding.revisitLink', 'es')).not.toBe('onboarding.revisitLink')
+  })
+  it('settings.help exists in both langs', () => {
+    expect(t('settings.help', 'en')).not.toBe('settings.help')
+    expect(t('settings.help', 'es')).not.toBe('settings.help')
+  })
+  it('settings.howToUpload exists in both langs', () => {
+    expect(t('settings.howToUpload', 'en')).not.toBe('settings.howToUpload')
+    expect(t('settings.howToUpload', 'es')).not.toBe('settings.howToUpload')
+  })
+})
