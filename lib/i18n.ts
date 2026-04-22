@@ -741,7 +741,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.step3.heading': 'O compartí desde WhatsApp',
     'onboarding.step3.body': '¿Tenés una nota de voz en WhatsApp? Mantenéla presionada, tocá Compartir y elegí Conversation Coach. El audio se sube al instante.',
     'onboarding.cta.next': 'Siguiente →',
-    'onboarding.cta.letsGo': '¡Vamos →',
+    'onboarding.cta.letsGo': '¡Vamos! →',
     'onboarding.cta.done': 'Listo',
     'onboarding.revisitLink': 'Ver tutorial otra vez →',
     'settings.help': 'Ayuda',
