@@ -145,3 +145,75 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.addToPractice', 'en')).toBe('annotation.addToPractice')
   })
 })
+
+describe('onboarding tutorial i18n keys', () => {
+  it('language-select keys exist in both langs', () => {
+    for (const key of [
+      'onboarding.languageSelect.heading',
+      'onboarding.languageSelect.body',
+      'onboarding.languageSelect.cta',
+      'onboarding.languageSelect.spanish',
+      'onboarding.languageSelect.spanishVariant',
+      'onboarding.languageSelect.english',
+      'onboarding.languageSelect.englishVariant',
+      'onboarding.languageSelect.targetLanguageAria',
+    ]) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+  it('semantic upload + share step keys exist in both langs', () => {
+    for (const key of [
+      'onboarding.upload.heading',
+      'onboarding.upload.body',
+      'onboarding.share.heading',
+      'onboarding.share.body',
+    ]) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+  it('illustration label keys exist in both langs (so learners see their own language inside the mockup)', () => {
+    for (const key of [
+      'onboarding.illus.uploadButton',
+      'onboarding.illus.shareTitle',
+      'onboarding.illus.appMessages',
+      'onboarding.illus.appMail',
+      'onboarding.illus.appCoach',
+      'onboarding.illus.appFiles',
+      'onboarding.illus.shareContact',
+      'onboarding.illus.pickerTitle',
+    ]) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+  it('legacy indexed keys are retired (fall back to key)', () => {
+    expect(t('onboarding.step1.heading', 'en')).toBe('onboarding.step1.heading')
+    expect(t('onboarding.step2.heading', 'en')).toBe('onboarding.step2.heading')
+    expect(t('onboarding.step3.heading', 'en')).toBe('onboarding.step3.heading')
+  })
+  it('CTA + chrome keys exist in both langs', () => {
+    for (const key of [
+      'onboarding.cta.next',
+      'onboarding.cta.letsGo',
+      'onboarding.cta.done',
+      'onboarding.skip',
+      'onboarding.close',
+      'onboarding.revisitLink',
+    ]) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+  it('onboarding.stepOfTotal substitutes {n} and {total} in both langs', () => {
+    expect(t('onboarding.stepOfTotal', 'en', { n: 1, total: 2 })).toBe('Step 1 of 2')
+    expect(t('onboarding.stepOfTotal', 'es', { n: 1, total: 2 })).toBe('Paso 1 de 2')
+  })
+  it('settings help keys exist in both langs', () => {
+    for (const key of ['settings.help', 'settings.howToUpload', 'settings.howToShare']) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+})

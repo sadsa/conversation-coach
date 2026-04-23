@@ -11,7 +11,9 @@
 // encouraging, never performative.
 
 'use client'
+import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Icon } from '@/components/Icon'
 
 interface Step {
   titleKey: string
@@ -69,6 +71,16 @@ export function DashboardOnboarding() {
           </li>
         ))}
       </ol>
+
+      <div className="pt-2 border-t border-border-subtle">
+        <Link
+          href="/onboarding?step=1&revisit=true"
+          className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-accent-primary transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          {t('onboarding.revisitLink').replace(/\s*→\s*$/, '')}
+          <Icon name="chevron-right" className="w-4 h-4" />
+        </Link>
+      </div>
     </section>
   )
 }

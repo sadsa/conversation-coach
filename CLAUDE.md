@@ -39,7 +39,7 @@ app/
   page.tsx                        # RSC: loads sessions + summary, hands to <HomeClient>
   login/page.tsx                  # Magic-link login (public)
   access-denied/page.tsx          # Shown when email not in allowlist (public)
-  onboarding/page.tsx             # First-login target language selection
+  onboarding/page.tsx             # First-login wizard: language select (step 0) → tutorial steps (?step=1, 2)
   auth/callback/route.ts          # OAuth code exchange (public)
   sessions/[id]/
     page.tsx                      # RSC: loads SessionDetail, hands to <TranscriptClient>
@@ -58,6 +58,10 @@ components/
   BottomNav.tsx                   # Mobile bottom tab bar (Home/Write/Settings)
   ConditionalNav.tsx              # Composes AppHeader + NavDrawer + BottomNav
   NavProgress.tsx                 # Top-of-page hairline progress bar during RSC nav (no nprogress dep)
+  OnboardingStep.tsx              # Shared wizard chrome (back / wordmark+dots / skip-or-close + CTA row)
+  UploadIllustration.tsx          # Animated phone-frame mock for tutorial step 1 — shares oa-* keyframes
+  WhatsAppShareIllustration.tsx   # Animated phone-frame mock for tutorial step 2 — shares oa-* keyframes
+  Wordmark.tsx                    # CONVERSATION COACH wordmark — used by login, onboarding, settings
   ThemeProvider.tsx               # Dark/light theme context
   ThemeToggle.tsx                 # Theme switcher button
   FontSizeProvider.tsx            # User-controllable font scale
@@ -131,6 +135,8 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Write page = Write ↔ Written** (`/write`): `WriteList` defaults to the Write surface (`!written_down`); the Written archive is a quiet text link beside it (no segmented control). Rows expose a trailing fast-path tap to flip `written_down` without opening the sheet. Sub-category pills, importance sort UI, and bulk-select were all removed in simplification passes. The `?sub_category=…` query param is accepted on `GET /api/practice-items` but currently a no-op (kept so old bookmarks don't break; revisit when category filtering returns).
 - **`<CorrectionInContext>` is the canonical correction treatment** (`components/CorrectionInContext.tsx`) — sentence with the wrong fragment struck through and the rewrite inserted inline, used by `WriteList` rows and `WriteSheet`. Falls back to `<StrikeOriginal>` when there's no segment data (still used for the empty-state teaching example). For naturalness annotations (no rewrite) it tints the wrong fragment instead of striking it.
 - **`<NavHint>` cue inside DockedSheet bodies**: One-shot first-open chip teaching the chevron/swipe nav. Single shared localStorage key (`cc:sheet-nav-hint:v1`) across both annotation and write sheets — learning the model once on either surface dismisses both.
+- **Onboarding wizard is URL-driven** (`app/onboarding/page.tsx`): `?step=0` is the language picker (one-time gate), `?step=1, 2` are the tutorial steps rendered via `<OnboardingStep>` chrome. `&revisit=true` swaps the chrome's "Skip" for "Close" and routes exits back to Settings instead of `/`. Settings → Help links straight to `?step=1&revisit=true` and `?step=2&revisit=true` so users can re-learn either step in isolation. Add new tutorial steps to the `STEP_CONFIG` map and bump `TOTAL_TUTORIAL_STEPS` — the wizard chrome handles dots, back/forward, and CTA labelling automatically.
+- **Tutorial illustrations share the `oa-*` keyframe vocabulary** (`app/globals.css`): `oa-touch` (press-and-hold finger pad) → `oa-sheet` (bottom sheet rise) → `oa-backdrop` (dim) → `oa-pulse` (accent ring on the destination). All four use `animation-fill-mode: both` so the rest state IS the destination — reduced-motion users (whose duration is clamped to 0.01ms globally) snap straight to a complete teaching frame instead of nothing. New illustrations should reuse these classes rather than inventing parallel ones; only the surrounding mock content (header, body, sheet contents) should differ between steps.
 - **Insights feature removed**: The `/insights` page, its API handler, `lib/insights.ts`, and the corresponding Supabase RPCs (`get_subcategory_error_counts`, `get_subcategory_examples`) were removed in a distill pass — the surface wasn't delivering enough value. Dropped in migration `20260418000000_drop_insights_rpcs.sql`. If recurring-mistake surfacing returns, rebuild from the raw `annotations` table rather than recreating the RPCs.
 - **Write list fast-path + undoable delete**: Rows in the Write tab render a trailing tap target (Gmail pattern) that flips `written_down` without opening the sheet. Delete is optimistic with a 5-second undo window — the row hides immediately, `DELETE` only fires after the timer expires, Undo cancels the network call entirely. Toast lives at `bottom-[var(--toast-bottom)]` (5rem mobile / 1.25rem desktop) defined in `globals.css`. Redundant per-row success toasts were silenced — the visual state change is the receipt.
 - **Home upload affordance is a labelled FAB**: `components/HomeUploadFab.tsx` renders a Gmail-style extended pill on mobile ("Upload audio" / "Subir audio") above the bottom nav (`bottom: calc(4.5rem + env(safe-area-inset-bottom))`), and an inline outlined button on desktop. Busy state shows `<Icon name="spinner">` + "Uploading…" inside the FAB itself — do not add a duplicate inline status string elsewhere. The home container reserves `pb-[calc(9rem+env(safe-area-inset-bottom))]` on mobile so the FAB never overlaps the last row.
@@ -163,7 +169,7 @@ The `analyseUserTurns` function in `lib/claude.ts` accepts `targetLanguage: Targ
 - **`GET /api/practice-items` and the RSC `/write` page both call `loadPracticeItems()`** in `lib/loaders.ts` — one nested PostgREST select that joins `practice_items → sessions` (for title) and `practice_items → annotations → transcript_segments` (for context text). User-scoping happens via `.eq('sessions.user_id', userId)` on the join. Add new columns to the `select` string in `loadPracticeItems`, not in the API route.
 - **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
 - **`react-swipeable` is already installed** (used by `WriteList.tsx`). Import `useSwipeable` directly.
-- **Navigation lives in two places**: `components/NavDrawer.tsx` (slide-out, full nav) and `components/BottomNav.tsx` (mobile bottom tabs). Both pull from the shared `NAV_TABS` in `components/nav-tabs.ts`.
+- **Navigation lives in two places**: `components/NavDrawer.tsx` (slide-out, full nav) and `components/BottomNav.tsx` (mobile bottom tabs). Both pull from the shared `NAV_TABS` in `components/nav-tabs.tsx`.
 - **`written_down` on `practice_items`**: boolean field; the Write surface (`!written_down`) is the default view in `WriteList`, with the "Written" archive surfaced as a quiet sibling link rather than a tab. View state is client-only — no deep-link query param.
 - **`ts-fsrs` is installed but unused**: SRS columns exist on `practice_items` (`fsrs_state`, `due`, `stability`, …) from migration `20260410`. The library and columns are reserved for an upcoming scheduler — do not remove either.
 
