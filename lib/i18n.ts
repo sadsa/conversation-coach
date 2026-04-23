@@ -47,10 +47,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
       "We couldn't send to that address. Double-check it and try again.",
     'auth.error.generic': "We couldn't send the link — please try again.",
 
-    // Auth — callback (iOS sign-in guidance)
-    'auth.signedIn': "You're signed in",
-    'auth.openAppHint': 'Return to your home screen and open Coach to get started.',
-
     // Access denied
     'accessDenied.title': 'Access required',
     'accessDenied.subtitle':
@@ -448,10 +444,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'auth.error.invalidEmail':
       'No pudimos enviar a esa dirección. Revisala e intentá de nuevo.',
     'auth.error.generic': 'No pudimos enviar el enlace — por favor intentá de nuevo.',
-
-    // Auth — callback (iOS sign-in guidance)
-    'auth.signedIn': 'Sesión iniciada',
-    'auth.openAppHint': 'Volvé a tu pantalla de inicio y abrí Coach para comenzar.',
 
     // Access denied
     'accessDenied.title': 'Acceso requerido',
