@@ -8,10 +8,7 @@
 import { useRef } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
-
-const ACCEPTED_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'audio/opus']
-const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.opus']
-const MAX_BYTES = 500 * 1024 * 1024
+import { validateAudioFile } from '@/lib/audio-upload'
 
 interface Props {
   onFile: (file: File) => void
@@ -24,14 +21,6 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const busy = !!disabled
   const label = busy ? t('home.uploading') : t('home.uploadFabLabel')
-
-  function validate(file: File): string | null {
-    const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-    const validType = ACCEPTED_TYPES.includes(file.type) || ACCEPTED_EXTENSIONS.includes(ext)
-    if (!validType) return t('dropzone.errorFormat')
-    if (file.size > MAX_BYTES) return t('dropzone.errorSize')
-    return null
-  }
 
   function pick() {
     if (busy) return
@@ -51,7 +40,7 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
           const f = e.target.files?.[0]
           e.target.value = ''
           if (!f) return
-          const err = validate(f)
+          const err = validateAudioFile(f, t)
           if (err) {
             onPickInvalid?.(err)
             return

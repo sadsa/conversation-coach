@@ -208,6 +208,10 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   }, [])
 
   const isFirstTime = sessions.length === 0
+  // First-run users haven't recorded anything yet, so the default
+  // "quiet place to review what you've recorded" subtitle would be
+  // a small lie. Swap to a welcoming variant that fits the empty state.
+  const subtitleKey = isFirstTime ? 'home.firstRunSubtitle' : 'home.dashboardSubtitle'
   const inProgressSessions = useMemo(
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
     [sessions],
@@ -226,7 +230,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
               {t(greetingKey)}
             </h1>
             <p className="text-text-secondary leading-relaxed">
-              {t('home.dashboardSubtitle')}
+              {t(subtitleKey)}
             </p>
           </div>
           <HomeUploadFab
@@ -239,7 +243,11 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
 
       {isFirstTime ? (
         <>
-          <DashboardOnboarding />
+          <DashboardOnboarding
+            onUpload={handleFile}
+            onPickInvalid={msg => setError(msg)}
+            uploadDisabled={uploading}
+          />
           {error && (
             <p className="text-sm text-status-error" aria-live="polite">{error}</p>
           )}
