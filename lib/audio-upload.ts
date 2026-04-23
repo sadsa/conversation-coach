@@ -17,7 +17,7 @@ export const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.opus'] as const
 
 export const MAX_BYTES = 500 * 1024 * 1024
 
-export type Translator = (key: string, vars?: Record<string, unknown>) => string
+export type Translator = (key: string, replacements?: Record<string, string | number>) => string
 
 export function validateAudioFile(file: File, t: Translator): string | null {
   const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '')
