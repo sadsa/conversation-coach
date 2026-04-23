@@ -1,4 +1,4 @@
-import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'
+import { createServerClient, type SetAllCookies } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     // from next/headers here causes the cookies to be set on an internal
     // response object, not on the NextResponse we return — so the session is
     // lost and the user is redirected to /login again.
-    const pendingCookies: Parameters<CookieMethodsServer['setAll']>[0] = []
+    const pendingCookies: Parameters<SetAllCookies>[0] = []
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
