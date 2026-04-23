@@ -150,24 +150,33 @@ function OnboardingContent() {
   // ── Step 0: language select ──────────────────────────────────────────────────
   if (step === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-6">
-        <div className="w-full max-w-sm space-y-8">
-          <Wordmark className="text-center" />
+      // Full-viewport shell — see the comment block above the tutorial-step
+      // shell below for why we own the viewport with `fixed inset-0` instead
+      // of relying on the layout's `<main>` chrome.
+      <OnboardingShell>
+        <div className="mx-auto flex h-full w-full max-w-sm flex-col gap-8">
+          <Wordmark className="text-center flex-shrink-0" />
 
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-              {t('onboarding.languageSelect.heading')}
-            </h1>
-            <p className="text-sm text-text-secondary">
-              {t('onboarding.languageSelect.body')}
-            </p>
-          </div>
+          {/* Middle band absorbs vertical slack on tall viewports (content
+              centres) and lets the radio list shrink rather than push the
+              CTA off-screen on short ones. `min-h-0` is the well-known
+              flex-column escape hatch that lets children shrink below their
+              intrinsic content size. */}
+          <div className="flex flex-1 flex-col justify-center gap-6 min-h-0">
+            <div className="space-y-2 text-center">
+              <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+                {t('onboarding.languageSelect.heading')}
+              </h1>
+              <p className="text-sm text-text-secondary">
+                {t('onboarding.languageSelect.body')}
+              </p>
+            </div>
 
-          <div
-            className="space-y-3"
-            role="radiogroup"
-            aria-label={t('onboarding.languageSelect.targetLanguageAria')}
-          >
+            <div
+              className="space-y-3"
+              role="radiogroup"
+              aria-label={t('onboarding.languageSelect.targetLanguageAria')}
+            >
             {LANGUAGE_OPTIONS.map((opt, idx) => {
               const isSelected = selected === opt.value
               // Roving tabindex: only the selected (or first if none) is in tab order.
@@ -206,18 +215,19 @@ function OnboardingContent() {
                 </button>
               )
             })}
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleLanguageConfirm}
             disabled={selected === null}
-            className="w-full py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="w-full flex-shrink-0 py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {t('onboarding.languageSelect.cta')}
           </button>
         </div>
-      </div>
+      </OnboardingShell>
     )
   }
 
@@ -240,8 +250,8 @@ function OnboardingContent() {
   const exitKey = revisit ? 'onboarding.close' : 'onboarding.skip'
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-6">
-      <div className="w-full max-w-sm">
+    <OnboardingShell>
+      <div className="mx-auto h-full w-full max-w-sm">
         <OnboardingStep
           step={tutorialStep}
           totalSteps={TOTAL_TUTORIAL_STEPS}
@@ -260,6 +270,40 @@ function OnboardingContent() {
           })}
         />
       </div>
+    </OnboardingShell>
+  )
+}
+
+// Full-viewport shell shared by both onboarding branches.
+//
+// Why `position: fixed inset-0` instead of just `min-h-[100dvh]`?
+//   • The root layout's `<main>` element wraps every route in `pt-8 pb-20`
+//     plus a `marginTop` of `var(--header-height) + safe-area-inset-top`,
+//     which together steal ~180px of vertical space. ConditionalNav already
+//     hides the AppHeader on `/onboarding`, but the `<main>` chrome stays —
+//     so without escaping the layout flow, the wizard always overflows on
+//     phones.
+//   • `100vh` is famously broken on mobile Safari (it equals the viewport
+//     height with the URL bar collapsed, so content scrolls when the URL
+//     bar is visible). `position: fixed inset-0` is anchored to the layout
+//     viewport, which IS the visible rect — same robustness as `100dvh`
+//     without needing to special-case browsers that lack `dvh` support.
+//   • Safe-area padding via `env(safe-area-inset-*)` slots the wizard
+//     between the iOS status bar and home indicator on PWA installs;
+//     `viewport-fit: cover` is already set globally, so these resolve to
+//     real values.
+function OnboardingShell({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="fixed inset-0 z-10 flex flex-col overflow-hidden bg-bg"
+      style={{
+        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1.5rem, env(safe-area-inset-right))',
+      }}
+    >
+      {children}
     </div>
   )
 }

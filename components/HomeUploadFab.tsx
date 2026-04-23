@@ -14,9 +14,20 @@ interface Props {
   onFile: (file: File) => void
   onPickInvalid?: (message: string) => void
   disabled?: boolean
+  /**
+   * When true, the mobile FAB lifts above the first-run coachmark backdrop
+   * and grows a soft white halo, so it reads as the lit-up subject of the
+   * spotlight. The coachmark itself is rendered separately by HomeClient as
+   * a sibling overlay; this prop just makes sure the FAB pierces through it
+   * instead of being dimmed along with the rest of the page. Always tap
+   * target — never disables interaction. Has no effect on the desktop
+   * inline button (the desktop FAB lives in the header where a coachmark
+   * would be heavyweight).
+   */
+  highlight?: boolean
 }
 
-export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
+export function HomeUploadFab({ onFile, onPickInvalid, disabled, highlight }: Props) {
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
   const busy = !!disabled
@@ -49,15 +60,22 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
         }}
       />
       {/* Mobile: extended FAB above bottom nav — labelled so the action is unambiguous.
-          min-w prevents the pill from jiggling between "Upload audio" and "Uploading…". */}
-      <div className="md:hidden fixed right-4 z-40" style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
+          min-w prevents the pill from jiggling between "Upload audio" and "Uploading…".
+          z-index swaps from the resting z-40 to z-50 when the coachmark is
+          visible, so the FAB pierces through the dim backdrop (UploadCoachmark,
+          rendered at z-30) and reads as the spotlight subject. */}
+      <div
+        data-testid="upload-fab-mobile-wrapper"
+        className={`md:hidden fixed right-4 ${highlight ? 'z-50' : 'z-40'}`}
+        style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
+      >
         <button
           type="button"
           onClick={pick}
           disabled={busy}
           aria-busy={busy}
           aria-live="polite"
-          className="flex h-14 min-w-[10.5rem] items-center justify-center gap-2 rounded-full bg-accent-primary pl-4 pr-5 text-white shadow-lg transition-transform hover:bg-accent-primary-hover active:scale-95 disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className={`flex h-14 min-w-[10.5rem] items-center justify-center gap-2 rounded-full bg-accent-primary pl-4 pr-5 text-white shadow-lg transition-[box-shadow,transform] hover:bg-accent-primary-hover active:scale-95 disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${highlight ? 'ring-4 ring-white/30 shadow-2xl' : ''}`}
         >
           {busy
             ? <Icon name="spinner" className="w-5 h-5" aria-hidden />

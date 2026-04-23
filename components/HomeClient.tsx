@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { HomeUploadFab } from '@/components/HomeUploadFab'
+import { UploadCoachmark } from '@/components/UploadCoachmark'
 import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 import { DashboardReminders } from '@/components/DashboardReminders'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
@@ -18,6 +19,12 @@ const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
 const POLL_BASE_MS = 3000
 const POLL_BACKOFF = 1.5
 const POLL_MAX_MS = 30_000
+
+// Versioned localStorage key so a future coachmark redesign can re-trigger
+// for users who've already seen v1 by bumping this string. Set on dismiss
+// or on first successful upload — once the user has demonstrably "got it",
+// we never show the spotlight again.
+const COACHMARK_SEEN_KEY = 'coachmark.uploadFab.seen.v1'
 
 function pickGreetingKey(date: Date): string {
   const hour = date.getHours()
@@ -37,6 +44,11 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<DashboardSummary | null>(initialSummary)
+  // Coachmark visibility starts false on the server (no localStorage there)
+  // and on first client paint — the useEffect below promotes it to true if
+  // the user is in the empty state and hasn't dismissed it before. Doing
+  // this in an effect avoids a hydration mismatch flash.
+  const [coachmarkVisible, setCoachmarkVisible] = useState(false)
   // One pending timeout per polled session, plus per-session attempt
   // count for exponential backoff. Refs so the polling loop can read its
   // own latest state without re-binding on every render.
@@ -137,6 +149,42 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [sessions, startPolling, stopAllPolling])
 
+  // Coachmark visibility — derived from `sessions` so we can't read it here
+  // (sessions is stateful and reads further down rely on it). We re-derive
+  // `isFirstTime` locally so this block stays self-contained and the hook
+  // order is independent of the rest of the component.
+  const coachmarkEligible = sessions.length === 0
+  // Promote the coachmark on the client only — reading localStorage during
+  // render would break SSR, and showing it before hydration would risk a
+  // visible flash for returning users who've already dismissed it.
+  // The effect re-runs when eligibility flips so the coachmark hides the
+  // moment the first session lands (whether via the upload path below or
+  // a polling refresh from another tab).
+  useEffect(() => {
+    if (!coachmarkEligible) {
+      setCoachmarkVisible(false)
+      return
+    }
+    if (typeof window === 'undefined') return
+    try {
+      if (window.localStorage.getItem(COACHMARK_SEEN_KEY)) return
+    } catch {
+      // localStorage can throw in private modes or with quota issues —
+      // err on the side of showing the hint rather than swallowing it.
+    }
+    setCoachmarkVisible(true)
+  }, [coachmarkEligible])
+
+  const dismissCoachmark = useCallback(() => {
+    setCoachmarkVisible(false)
+    try {
+      window.localStorage.setItem(COACHMARK_SEEN_KEY, '1')
+    } catch {
+      // Same fallback as above — if we can't persist, the worst case is
+      // the hint reappears next visit. Not catastrophic.
+    }
+  }, [])
+
   const doUpload = useCallback(async (file: File) => {
     setUploading(true)
     setError(null)
@@ -182,8 +230,14 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   }, [t, startPolling])
 
   const handleFile = useCallback((file: File) => {
+    // Tapping the FAB to upload is the strongest possible "I understood
+    // the hint" signal, so we retire the coachmark here too — not just on
+    // explicit dismiss. Belt-and-braces with the isFirstTime effect above:
+    // even if the upload fails and they never get a session, the spotlight
+    // doesn't re-fire on next visit because the flag is now set.
+    dismissCoachmark()
     void doUpload(file)
-  }, [doUpload])
+  }, [doUpload, dismissCoachmark])
 
   useEffect(() => {
     if (typeof indexedDB === 'undefined') return
@@ -212,6 +266,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   // "quiet place to review what you've recorded" subtitle would be
   // a small lie. Swap to a welcoming variant that fits the empty state.
   const subtitleKey = isFirstTime ? 'home.firstRunSubtitle' : 'home.dashboardSubtitle'
+
   const inProgressSessions = useMemo(
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
     [sessions],
@@ -223,6 +278,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-12 pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-0">
+      {coachmarkVisible && <UploadCoachmark onDismiss={dismissCoachmark} />}
       <header className="space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2 flex-1">
@@ -237,17 +293,18 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
             onFile={handleFile}
             onPickInvalid={msg => setError(msg)}
             disabled={uploading}
+            // While the coachmark is visible the mobile FAB lifts above
+            // its dim backdrop and grows a soft halo so it reads as the
+            // spotlight subject. Resting (no coachmark) it returns to the
+            // ordinary z-40 floating control.
+            highlight={coachmarkVisible}
           />
         </div>
       </header>
 
       {isFirstTime ? (
         <>
-          <DashboardOnboarding
-            onUpload={handleFile}
-            onPickInvalid={msg => setError(msg)}
-            uploadDisabled={uploading}
-          />
+          <DashboardOnboarding />
           {error && (
             <p className="text-sm text-status-error" aria-live="polite">{error}</p>
           )}

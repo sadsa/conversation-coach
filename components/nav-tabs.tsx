@@ -15,22 +15,27 @@ export interface NavTab {
 export const NAV_TABS: NavTab[] = [
   {
     href: '/',
-    labelKey: 'nav.home',
+    labelKey: 'nav.recordings',
     exact: true,
+    // Microphone glyph — names what the tab holds (audio recordings of
+    // conversations) rather than the destination metaphor of a house. Same
+    // stroke language as the other nav icons.
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
         className="w-5 h-5 flex-shrink-0" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
+        <rect x="9" y="2" width="6" height="11" rx="3" />
+        <path d="M5 10v2a7 7 0 0 0 14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
       </svg>
     ),
     iconLg: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
         className="w-6 h-6" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
+        <rect x="9" y="2" width="6" height="11" rx="3" />
+        <path d="M5 10v2a7 7 0 0 0 14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
       </svg>
     ),
   },

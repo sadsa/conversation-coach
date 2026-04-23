@@ -1,8 +1,8 @@
 // lib/audio-upload.ts
 //
-// Shared file-picker constants + validation for audio uploads. Lives here
-// so both the always-on `HomeUploadFab` and the first-run "Upload audio"
-// CTA inside `DashboardOnboarding` enforce the same rules without drift.
+// Shared file-picker constants + validation for audio uploads. Used by the
+// always-on `HomeUploadFab` (and any future picker) so validation rules
+// don't drift across entry points.
 
 export const ACCEPTED_TYPES = [
   'audio/mpeg',

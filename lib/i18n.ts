@@ -18,7 +18,7 @@ export function t(key: string, lang: UiLanguage, replacements?: Replacements): s
 const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
   en: {
     // Navigation
-    'nav.home': 'Home',
+    'nav.recordings': 'Recordings',
     'nav.write': 'Write',
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
@@ -74,10 +74,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.uploadFabAria': 'Upload audio',
     'home.uploadFabLabel': 'Upload audio',
     'home.dashboardSubtitle': 'A quiet place to review what you\'ve recorded.',
-    'home.firstRunSubtitle': 'Nothing here yet. Take a quick tour, or upload your first conversation when you\'re ready.',
-    'home.welcomeTitle': 'Welcome to Conversation Coach',
-    'home.welcomeSubtitle': 'A two-minute tour shows you the whole flow — recording, uploading, and turning corrections into flashcards. Or jump straight in.',
-    'home.startTutorial': 'Start tutorial',
+    'home.firstRunSubtitle': 'Tap Upload audio to add your first recording.',
+    'home.coachmarkCaption': 'Tap here to upload your first recording.',
+    'home.coachmarkDismiss': 'Dismiss tip',
+    'home.revisitTutorial': 'Revisit the tutorial',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to write down right now.',
     'home.recentSessionsTitle': 'Recent conversations',
@@ -355,8 +355,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.version': 'Version',
     // Onboarding — language select (step 0)
     'onboarding.languageSelect.heading': 'What are you learning?',
-    'onboarding.languageSelect.body':
-      'Pick the language you want to practise. You can change this later in Settings.',
+    'onboarding.languageSelect.body': 'Change anytime in Settings.',
     'onboarding.languageSelect.targetLanguageAria': 'Target language',
     'onboarding.languageSelect.spanish': 'Spanish',
     'onboarding.languageSelect.spanishVariant': 'Rioplatense · Argentine',
@@ -366,10 +365,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Onboarding — tutorial steps (semantic keys; URL ?step=1 → upload, ?step=2 → share)
     'onboarding.upload.heading': 'Upload a recording',
     'onboarding.upload.body':
-      'After a conversation, tap Upload audio to pick the file from your phone. It gets transcribed automatically — no extra steps.',
+      'Tap Upload audio and pick a file. It transcribes automatically.',
     'onboarding.share.heading': 'Share straight from WhatsApp',
     'onboarding.share.body':
-      'Got a voice note in WhatsApp? Hold it, tap Share, then choose Conversation Coach. The audio uploads instantly.',
+      'Hold a WhatsApp voice note, tap Share, choose Conversation Coach.',
     // Onboarding — illustration labels (decorative mockups, but learners deserve their own language)
     'onboarding.illus.uploadButton': 'Upload audio',
     'onboarding.illus.shareTitle': 'Share voice note via…',
@@ -409,7 +408,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
   es: {
     // Navigation
-    'nav.home': 'Inicio',
+    'nav.recordings': 'Grabaciones',
     'nav.write': 'Anotar',
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
@@ -465,10 +464,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.uploadFabAria': 'Subir audio',
     'home.uploadFabLabel': 'Subir audio',
     'home.dashboardSubtitle': 'Un lugar tranquilo para repasar lo que grabaste.',
-    'home.firstRunSubtitle': 'Acá no hay nada todavía. Hacé un recorrido rápido, o subí tu primera conversación cuando estés listo.',
-    'home.welcomeTitle': 'Bienvenido a Conversation Coach',
-    'home.welcomeSubtitle': 'Un recorrido de dos minutos te muestra el flujo completo — grabar, subir y convertir las correcciones en flashcards. O empezá directamente.',
-    'home.startTutorial': 'Empezar tutorial',
+    'home.firstRunSubtitle': 'Tocá Subir audio para agregar tu primera grabación.',
+    'home.coachmarkCaption': 'Tocá acá para subir tu primera grabación.',
+    'home.coachmarkDismiss': 'Cerrar consejo',
+    'home.revisitTutorial': 'Ver el tutorial otra vez',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — nada para anotar por ahora.',
     'home.recentSessionsTitle': 'Conversaciones recientes',
@@ -745,8 +744,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.version': 'Versión',
     // Onboarding — selección de idioma (paso 0)
     'onboarding.languageSelect.heading': '¿Qué estás aprendiendo?',
-    'onboarding.languageSelect.body':
-      'Elegí el idioma que querés practicar. Lo podés cambiar después en Configuración.',
+    'onboarding.languageSelect.body': 'Lo podés cambiar en Configuración.',
     'onboarding.languageSelect.targetLanguageAria': 'Idioma objetivo',
     'onboarding.languageSelect.spanish': 'Español',
     'onboarding.languageSelect.spanishVariant': 'Rioplatense · Argentino',
@@ -756,10 +754,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Onboarding — pasos del tutorial
     'onboarding.upload.heading': 'Subí una grabación',
     'onboarding.upload.body':
-      'Después de una conversación, tocá Subir audio para elegir el archivo desde tu celular. Se transcribe automáticamente — sin pasos extra.',
+      'Tocá Subir audio y elegí un archivo. Se transcribe automáticamente.',
     'onboarding.share.heading': 'Compartí desde WhatsApp',
     'onboarding.share.body':
-      '¿Tenés una nota de voz en WhatsApp? Mantenéla presionada, tocá Compartir y elegí Conversation Coach. El audio se sube al instante.',
+      'Mantené presionada una nota de voz de WhatsApp, tocá Compartir y elegí Conversation Coach.',
     // Onboarding — etiquetas de las ilustraciones
     'onboarding.illus.uploadButton': 'Subir audio',
     'onboarding.illus.shareTitle': 'Compartir nota de voz vía…',

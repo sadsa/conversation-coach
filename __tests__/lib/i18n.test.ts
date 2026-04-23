@@ -12,10 +12,10 @@ describe('inferUiLanguage', () => {
 
 describe('t()', () => {
   it('returns English string for en', () => {
-    expect(t('nav.home', 'en')).toBe('Home')
+    expect(t('nav.recordings', 'en')).toBe('Recordings')
   })
   it('returns Spanish string for es', () => {
-    expect(t('nav.home', 'es')).toBe('Inicio')
+    expect(t('nav.recordings', 'es')).toBe('Grabaciones')
   })
   it('returns the key itself when not found', () => {
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')

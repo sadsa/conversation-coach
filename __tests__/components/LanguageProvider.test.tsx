@@ -16,7 +16,7 @@ function TestConsumer() {
   const { t, targetLanguage, setTargetLanguage } = useTranslation()
   return (
     <div>
-      <span data-testid="home-label">{t('nav.home')}</span>
+      <span data-testid="nav-label">{t('nav.recordings')}</span>
       <span data-testid="target">{targetLanguage}</span>
       <button onClick={() => setTargetLanguage('en-NZ')}>Switch to en-NZ</button>
     </div>
@@ -30,7 +30,7 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('home-label')).toHaveTextContent('Home')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Recordings')
     expect(screen.getByTestId('target')).toHaveTextContent('es-AR')
   })
 
@@ -40,7 +40,7 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('home-label')).toHaveTextContent('Inicio')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Grabaciones')
   })
 
   it('updates translations when setTargetLanguage is called', async () => {
@@ -49,9 +49,9 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('home-label')).toHaveTextContent('Home')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Recordings')
     await userEvent.click(screen.getByText('Switch to en-NZ'))
-    expect(screen.getByTestId('home-label')).toHaveTextContent('Inicio')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Grabaciones')
     expect(screen.getByTestId('target')).toHaveTextContent('en-NZ')
   })
 
@@ -61,7 +61,7 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('home-label')).toHaveTextContent('Home')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Recordings')
   })
 })
 
@@ -69,9 +69,9 @@ describe('useTranslation outside provider', () => {
   it('returns English strings with fallback context', () => {
     function Bare() {
       const { t } = useTranslation()
-      return <span data-testid="val">{t('nav.home')}</span>
+      return <span data-testid="val">{t('nav.recordings')}</span>
     }
     render(<Bare />)
-    expect(screen.getByTestId('val')).toHaveTextContent('Home')
+    expect(screen.getByTestId('val')).toHaveTextContent('Recordings')
   })
 })

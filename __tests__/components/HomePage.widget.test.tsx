@@ -26,6 +26,10 @@ vi.mock('@/components/LanguageProvider', () => ({
       if (key === 'home.dashboardSubtitle') return 'Subtitle'
       if (key === 'home.uploadFabAria') return 'Upload audio'
       if (key === 'home.uploadFabLabel') return 'Upload audio'
+      if (key === 'home.firstRunSubtitle') return 'Tap Upload audio to add your first recording.'
+      if (key === 'home.coachmarkCaption') return 'Tap here to upload your first recording.'
+      if (key === 'home.coachmarkDismiss') return 'Dismiss tip'
+      if (key === 'home.revisitTutorial') return 'Revisit the tutorial'
       return key
     },
   }),
@@ -119,5 +123,71 @@ describe('HomeClient — reminders widget', () => {
     )
     expect(screen.getByText(/all caught up/i)).toBeInTheDocument()
     expect(screen.queryByTestId('widget-write-down')).not.toBeInTheDocument()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload coachmark — first-run spotlight on the mobile FAB.
+// Empty-state only, persists "seen" via localStorage so we don't nag.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('HomeClient — upload coachmark', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('shows the spotlight overlay for first-time users (no sessions, never seen)', async () => {
+    render(<HomeClient initialSessions={[]} initialSummary={{ writeDownCount: 0 }} />)
+    expect(await screen.findByTestId('upload-coachmark')).toBeInTheDocument()
+    expect(screen.getByText(/tap here to upload your first recording/i)).toBeInTheDocument()
+  })
+
+  it('lifts the mobile FAB above the backdrop while the coachmark is up', async () => {
+    render(<HomeClient initialSessions={[]} initialSummary={{ writeDownCount: 0 }} />)
+    await screen.findByTestId('upload-coachmark')
+    const fabWrapper = screen.getByTestId('upload-fab-mobile-wrapper')
+    expect(fabWrapper.className).toMatch(/\bz-50\b/)
+    expect(fabWrapper.className).not.toMatch(/\bz-40\b/)
+  })
+
+  it('does not show the coachmark for returning users with at least one session', () => {
+    render(<HomeClient initialSessions={[mockSession]} initialSummary={{ writeDownCount: 0 }} />)
+    expect(screen.queryByTestId('upload-coachmark')).not.toBeInTheDocument()
+    const fabWrapper = screen.getByTestId('upload-fab-mobile-wrapper')
+    expect(fabWrapper.className).toMatch(/\bz-40\b/)
+  })
+
+  it('does not show the coachmark when localStorage already records it as seen', () => {
+    localStorage.setItem('coachmark.uploadFab.seen.v1', '1')
+    render(<HomeClient initialSessions={[]} initialSummary={{ writeDownCount: 0 }} />)
+    expect(screen.queryByTestId('upload-coachmark')).not.toBeInTheDocument()
+  })
+
+  it('dismisses on backdrop tap and persists the "seen" flag', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<HomeClient initialSessions={[]} initialSummary={{ writeDownCount: 0 }} />)
+    const backdrop = await screen.findByTestId('upload-coachmark-backdrop')
+    await user.click(backdrop)
+    expect(screen.queryByTestId('upload-coachmark')).not.toBeInTheDocument()
+    expect(localStorage.getItem('coachmark.uploadFab.seen.v1')).toBe('1')
+  })
+
+  it('dismisses on Escape key', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<HomeClient initialSessions={[]} initialSummary={{ writeDownCount: 0 }} />)
+    await screen.findByTestId('upload-coachmark')
+    await user.keyboard('{Escape}')
+    expect(screen.queryByTestId('upload-coachmark')).not.toBeInTheDocument()
+    expect(localStorage.getItem('coachmark.uploadFab.seen.v1')).toBe('1')
+  })
+
+  it('dismisses on the X button', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    render(<HomeClient initialSessions={[]} initialSummary={{ writeDownCount: 0 }} />)
+    await screen.findByTestId('upload-coachmark-dismiss')
+    await user.click(screen.getByTestId('upload-coachmark-dismiss'))
+    expect(screen.queryByTestId('upload-coachmark')).not.toBeInTheDocument()
   })
 })

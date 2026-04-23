@@ -3,9 +3,21 @@
 // Shared shell for tutorial steps in the onboarding wizard.
 // Pure display — no internal state. All content + navigation injected via props.
 //
-// Visual contract: a centred column with three distinct chrome rows above the
-// content (back link / wordmark+dots / illustration) and the CTA + skip-or-close
-// row below it. The progress dots animate via transform-only (impeccable motion
+// Visual contract: a flex column that fills the available height of its
+// parent (the OnboardingShell in app/onboarding/page.tsx owns the viewport).
+// Three vertical regions:
+//   1. Top chrome (Back / Wordmark + dots / Exit) — flex-shrink-0
+//   2. Middle (illustration + heading + body) — flex-1, content centred
+//      vertically so it floats nicely on tall screens and presses up
+//      against the chrome on short ones without overflow
+//   3. CTA — flex-shrink-0, pinned to the bottom
+//
+// Critical bit: the middle region uses `min-h-0` so it can actually shrink
+// below its intrinsic content size. Without it, the illustration would
+// push the CTA off-screen on small viewports — the bug this layout was
+// rewritten to fix.
+//
+// The progress dots still animate via transform-only (impeccable motion
 // rule), so layout never thrashes.
 
 import type { ReactNode } from 'react'
@@ -43,10 +55,10 @@ export function OnboardingStep({
   stepOfTotalLabel,
 }: OnboardingStepProps) {
   return (
-    <div className="space-y-8">
+    <div className="flex h-full flex-col gap-6">
       {/* Top chrome row: Back ← Wordmark → Exit. Three-column grid keeps the
           wordmark/dots column visually centred even when one side is empty. */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 flex-shrink-0">
         <div className="flex justify-start">
           {onBack && (
             <button
@@ -99,19 +111,27 @@ export function OnboardingStep({
         </div>
       </div>
 
-      <div className="rounded-2xl bg-surface min-h-44 sm:min-h-52 flex items-center justify-center overflow-hidden py-6 sm:py-10">
-        {illustration}
-      </div>
+      {/* Middle band: absorbs vertical slack on tall viewports (the
+          illustration + copy float toward centre) and lets the illustration
+          card hug its content tightly on short ones. The illustrations
+          themselves are fixed-size visual assets (264×184), so the card no
+          longer needs a min-height — it sizes to the asset plus a small
+          inset, freeing ~80px of vertical space we used to waste. */}
+      <div className="flex flex-1 flex-col justify-center gap-6 min-h-0">
+        <div className="rounded-2xl bg-surface flex items-center justify-center overflow-hidden p-4 sm:p-6">
+          {illustration}
+        </div>
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">{heading}</h1>
-        <p className="text-sm text-text-secondary leading-relaxed">{body}</p>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">{heading}</h1>
+          <p className="text-sm text-text-secondary leading-relaxed">{body}</p>
+        </div>
       </div>
 
       <button
         type="button"
         onClick={onNext}
-        className="w-full py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="w-full flex-shrink-0 py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {ctaLabel}
       </button>

@@ -40,9 +40,9 @@ describe('NavDrawer', () => {
     expect(container.querySelector('#nav-drawer')).toHaveClass('translate-x-0')
   })
 
-  it('renders all three nav links (Home, Write, Settings)', () => {
+  it('renders all three nav links (Recordings, Write, Settings)', () => {
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /recordings/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /write/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })
@@ -51,19 +51,19 @@ describe('NavDrawer', () => {
     mockPathname.mockReturnValue('/write')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
     expect(screen.getByRole('link', { name: /write/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /recordings/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Home active on "/write"', () => {
+  it('does NOT mark Recordings active on "/write"', () => {
     mockPathname.mockReturnValue('/write')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /recordings/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('marks Home active on exact "/"', () => {
+  it('marks Recordings active on exact "/"', () => {
     mockPathname.mockReturnValue('/')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /recordings/i })).toHaveAttribute('aria-current', 'page')
   })
 
   it('calls onClose when the close button is clicked', async () => {
