@@ -82,10 +82,16 @@ describe('SettingsPage — Help section', () => {
     expect(screen.getByText('Help')).toBeInTheDocument()
   })
 
-  it('renders a "How to upload audio" link pointing to the tutorial', () => {
+  it('renders a "How to upload audio" link pointing to the upload tutorial step', () => {
     render(<SettingsPage />)
     const link = screen.getByRole('link', { name: /how to upload audio/i })
     expect(link).toHaveAttribute('href', '/onboarding?step=1&revisit=true')
+  })
+
+  it('renders a "Share from WhatsApp" link deep-linking to the share tutorial step', () => {
+    render(<SettingsPage />)
+    const link = screen.getByRole('link', { name: /share from whatsapp/i })
+    expect(link).toHaveAttribute('href', '/onboarding?step=2&revisit=true')
   })
 })
 

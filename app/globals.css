@@ -247,4 +247,51 @@
     40%  { transform: scale(1.025); }
     100% { transform: scale(1); }
   }
+
+  /* Onboarding illustrations — shared "tap → sheet → pulse" choreography
+     ───────────────────────────────────────────────────────────────────────
+     A 4s teaching sequence that plays ONCE on mount: the user sees a finger
+     press on a target, a bottom sheet rises with a dim backdrop, then a soft
+     accent ring pulses on the destination element inside the sheet. Both the
+     WhatsApp-share illustration (step 2) and the Upload illustration (step 1)
+     use this same vocabulary — only the surrounding mock differs.
+
+     Each animation uses `animation-fill-mode: both` so the element follows
+     its 0% keyframe before play and HOLDS its 100% keyframe after — meaning
+     reduced-motion users (whose duration the global rule above clamps to
+     0.01ms) snap straight to the resting "sheet up, target highlighted" view,
+     which still teaches the destination state.
+     Timing key (4s cycle): 20%≈0.8s, 35%≈1.4s, 55%≈2.2s, 62%≈2.5s, 87%≈3.5s */
+
+  @keyframes oa-touch {
+    /* Press-and-hold finger pad: grows in, holds, fades out as the sheet rises */
+    0%, 20%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.4); }
+    25%       { opacity: 0.45; transform: translate(-50%, -50%) scale(0.95); }
+    35%       { opacity: 0.45; transform: translate(-50%, -50%) scale(1); }
+    42%, 100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.1); }
+  }
+
+  @keyframes oa-sheet {
+    /* Slides up from below the phone frame after the press completes */
+    0%, 35%   { transform: translateY(100%); }
+    55%, 100% { transform: translateY(0); }
+  }
+
+  @keyframes oa-backdrop {
+    /* Dims the underlying app behind the rising sheet, in sync with the slide */
+    0%, 35%   { opacity: 0; }
+    55%, 100% { opacity: 0.22; }
+  }
+
+  @keyframes oa-pulse {
+    /* Once-off accent ring radiating from the destination element */
+    0%, 62%    { opacity: 0;   transform: scale(1); }
+    68%        { opacity: 0.6; transform: scale(1); }
+    87%, 100%  { opacity: 0;   transform: scale(1.55); }
+  }
+
+  .oa-touch    { animation: oa-touch    4s var(--ease-out-quart) both; }
+  .oa-backdrop { animation: oa-backdrop 4s var(--ease-out-quart) both; }
+  .oa-sheet    { animation: oa-sheet    4s var(--ease-out-expo)  both; }
+  .oa-pulse    { animation: oa-pulse    4s var(--ease-out-quart) both; }
 }

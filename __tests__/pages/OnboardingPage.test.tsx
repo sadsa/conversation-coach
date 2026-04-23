@@ -6,7 +6,6 @@ import OnboardingPage from '@/app/onboarding/page'
 const mockPush = vi.fn()
 const mockSetTargetLanguage = vi.fn()
 
-// searchParams is mutable per-test via mockSearchParams.get
 const mockSearchParams = { get: vi.fn((_key: string) => null) }
 
 vi.mock('next/navigation', () => ({
@@ -15,7 +14,16 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, replacements?: Record<string, string | number>) => {
+      if (!replacements) return key
+      return (
+        key +
+        ':' +
+        Object.entries(replacements)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(',')
+      )
+    },
     setTargetLanguage: mockSetTargetLanguage,
   }),
 }))
@@ -29,49 +37,72 @@ beforeEach(() => {
 // ─── Step 0: language selection ───────────────────────────────────────────────
 
 describe('OnboardingPage — step 0 (language select)', () => {
-  it('renders the heading', () => {
+  it('renders the heading via i18n key (no hardcoded English)', () => {
     render(<OnboardingPage />)
-    expect(screen.getByText('What are you learning?')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.languageSelect.heading')).toBeInTheDocument()
   })
 
-  it('renders both language options', () => {
+  it('renders both language options via i18n keys', () => {
     render(<OnboardingPage />)
-    expect(screen.getByText('Spanish')).toBeInTheDocument()
-    expect(screen.getByText('English')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.languageSelect.spanish')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.languageSelect.english')).toBeInTheDocument()
   })
 
-  it('Get started button is disabled until a language is selected', () => {
+  it('CTA reads from onboarding.languageSelect.cta and is disabled until a language is chosen', () => {
     render(<OnboardingPage />)
-    expect(screen.getByRole('button', { name: /get started/i })).toBeDisabled()
+    const cta = screen.getByRole('button', { name: 'onboarding.languageSelect.cta' })
+    expect(cta).toBeDisabled()
   })
 
-  it('enables Get started after selecting a language', async () => {
+  it('enables the CTA after selecting a language', async () => {
     render(<OnboardingPage />)
-    await userEvent.click(screen.getByText('Spanish'))
-    expect(screen.getByRole('button', { name: /get started/i })).not.toBeDisabled()
+    await userEvent.click(screen.getByText('onboarding.languageSelect.spanish'))
+    expect(screen.getByRole('button', { name: 'onboarding.languageSelect.cta' })).not.toBeDisabled()
   })
 
   it('calls setTargetLanguage and redirects to step=1 after confirming', async () => {
     render(<OnboardingPage />)
-    await userEvent.click(screen.getByText('English'))
-    await userEvent.click(screen.getByRole('button', { name: /get started/i }))
+    await userEvent.click(screen.getByText('onboarding.languageSelect.english'))
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.languageSelect.cta' }))
     expect(mockSetTargetLanguage).toHaveBeenCalledWith('en-NZ')
     expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1')
   })
-})
 
-// ─── Steps 1–3: tutorial ──────────────────────────────────────────────────────
-
-describe('OnboardingPage — step 1 (welcome)', () => {
-  beforeEach(() => {
-    mockSearchParams.get.mockImplementation((key: string) =>
-      key === 'step' ? '1' : null
-    )
+  it('language radios use roving tabindex (only one in tab order)', () => {
+    render(<OnboardingPage />)
+    const radios = screen.getAllByRole('radio')
+    const tabStops = radios.filter(r => r.getAttribute('tabindex') === '0')
+    expect(tabStops).toHaveLength(1)
   })
 
-  it('renders the step 1 heading key', () => {
+  it('Arrow Down on a language radio moves selection AND focus to the next radio', async () => {
     render(<OnboardingPage />)
-    expect(screen.getByText('onboarding.step1.heading')).toBeInTheDocument()
+    const radios = screen.getAllByRole('radio')
+    radios[0].focus()
+    await userEvent.keyboard('{ArrowDown}')
+    expect(radios[1]).toHaveFocus()
+    expect(radios[1]).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('Arrow Up wraps from first radio back to last', async () => {
+    render(<OnboardingPage />)
+    const radios = screen.getAllByRole('radio')
+    radios[0].focus()
+    await userEvent.keyboard('{ArrowUp}')
+    expect(radios[radios.length - 1]).toHaveFocus()
+  })
+})
+
+// ─── Tutorial step 1 (Upload) — was the old "step 2" ─────────────────────────
+
+describe('OnboardingPage — tutorial step 1 (Upload)', () => {
+  beforeEach(() => {
+    mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '1' : null))
+  })
+
+  it('renders the upload heading from the semantic key', () => {
+    render(<OnboardingPage />)
+    expect(screen.getByText('onboarding.upload.heading')).toBeInTheDocument()
   })
 
   it('renders the Next CTA', () => {
@@ -84,40 +115,33 @@ describe('OnboardingPage — step 1 (welcome)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.next' }))
     expect(mockPush).toHaveBeenCalledWith('/onboarding?step=2')
   })
-})
 
-describe('OnboardingPage — step 2 (upload)', () => {
-  beforeEach(() => {
-    mockSearchParams.get.mockImplementation((key: string) =>
-      key === 'step' ? '2' : null
-    )
+  it('first tutorial step does NOT render a back button', () => {
+    render(<OnboardingPage />)
+    expect(screen.queryByRole('button', { name: /nav\.back/i })).not.toBeInTheDocument()
   })
 
-  it('renders the step 2 heading key', () => {
+  it('first-run renders a Skip exit (not Close) and Skip routes to /', async () => {
     render(<OnboardingPage />)
-    expect(screen.getByText('onboarding.step2.heading')).toBeInTheDocument()
-  })
-
-  it('Next pushes to step=3', async () => {
-    render(<OnboardingPage />)
-    await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.next' }))
-    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=3')
+    const skip = screen.getByRole('button', { name: 'onboarding.skip' })
+    await userEvent.click(skip)
+    expect(mockPush).toHaveBeenCalledWith('/')
   })
 })
 
-describe('OnboardingPage — step 3 (share), first run', () => {
+// ─── Tutorial step 2 (Share) — was the old "step 3" ─────────────────────────
+
+describe('OnboardingPage — tutorial step 2 (Share), first run', () => {
   beforeEach(() => {
-    mockSearchParams.get.mockImplementation((key: string) =>
-      key === 'step' ? '3' : null
-    )
+    mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '2' : null))
   })
 
-  it('renders the step 3 heading key', () => {
+  it('renders the share heading from the semantic key', () => {
     render(<OnboardingPage />)
-    expect(screen.getByText('onboarding.step3.heading')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.share.heading')).toBeInTheDocument()
   })
 
-  it('renders the letsGo CTA (not done)', () => {
+  it('renders the letsGo CTA on the last step (not done)', () => {
     render(<OnboardingPage />)
     expect(screen.getByRole('button', { name: 'onboarding.cta.letsGo' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'onboarding.cta.done' })).not.toBeInTheDocument()
@@ -128,12 +152,19 @@ describe('OnboardingPage — step 3 (share), first run', () => {
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.letsGo' }))
     expect(mockPush).toHaveBeenCalledWith('/')
   })
+
+  it('renders a Back button that returns to step=1', async () => {
+    render(<OnboardingPage />)
+    const back = screen.getByRole('button', { name: /nav\.back/i })
+    await userEvent.click(back)
+    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1')
+  })
 })
 
-describe('OnboardingPage — step 3 (share), revisit', () => {
+describe('OnboardingPage — tutorial step 2 (Share), revisit', () => {
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => {
-      if (key === 'step') return '3'
+      if (key === 'step') return '2'
       if (key === 'revisit') return 'true'
       return null
     })
@@ -150,9 +181,22 @@ describe('OnboardingPage — step 3 (share), revisit', () => {
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.done' }))
     expect(mockPush).toHaveBeenCalledWith('/settings')
   })
+
+  it('Back from step 2 in revisit mode preserves revisit=true', async () => {
+    render(<OnboardingPage />)
+    await userEvent.click(screen.getByRole('button', { name: /nav\.back/i }))
+    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1&revisit=true')
+  })
+
+  it('renders a Close exit (not Skip) and Close routes to /settings', async () => {
+    render(<OnboardingPage />)
+    const close = screen.getByRole('button', { name: 'onboarding.close' })
+    await userEvent.click(close)
+    expect(mockPush).toHaveBeenCalledWith('/settings')
+  })
 })
 
-describe('OnboardingPage — step 1, revisit', () => {
+describe('OnboardingPage — tutorial step 1, revisit', () => {
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => {
       if (key === 'step') return '1'
@@ -165,5 +209,19 @@ describe('OnboardingPage — step 1, revisit', () => {
     render(<OnboardingPage />)
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.next' }))
     expect(mockPush).toHaveBeenCalledWith('/onboarding?step=2&revisit=true')
+  })
+
+  it('shows Close (revisit exit), not Skip', () => {
+    render(<OnboardingPage />)
+    expect(screen.getByRole('button', { name: 'onboarding.close' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'onboarding.skip' })).not.toBeInTheDocument()
+  })
+})
+
+describe('OnboardingPage — out-of-range step values are clamped', () => {
+  it('?step=99 is clamped to the last tutorial step (Share)', () => {
+    mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '99' : null))
+    render(<OnboardingPage />)
+    expect(screen.getByText('onboarding.share.heading')).toBeInTheDocument()
   })
 })

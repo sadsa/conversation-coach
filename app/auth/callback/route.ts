@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -7,26 +6,32 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
 
   if (code) {
-    const cookieStore = cookies()
+    // Collect cookies emitted by exchangeCodeForSession so we can apply them
+    // to whichever redirect response we ultimately return. Using cookies()
+    // from next/headers here causes the cookies to be set on an internal
+    // response object, not on the NextResponse we return — so the session is
+    // lost and the user is redirected to /login again.
+    const pendingCookies: Parameters<CookieMethodsServer['setAll']>[0] = []
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
+          getAll() { return request.cookies.getAll() },
+          setAll(cookiesToSet) { pendingCookies.push(...cookiesToSet) },
         },
       }
     )
+
     const { data } = await supabase.auth.exchangeCodeForSession(code)
     const targetLanguage = data.user?.user_metadata?.target_language
-    if (!targetLanguage) {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
-    }
+    const redirectTo = targetLanguage ? '/' : '/onboarding'
+    const response = NextResponse.redirect(new URL(redirectTo, request.url))
+    pendingCookies.forEach(({ name, value, options }) =>
+      response.cookies.set(name, value, options)
+    )
+    return response
   }
 
   return NextResponse.redirect(new URL('/', request.url))

@@ -360,19 +360,43 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.signOut': 'Sign out',
     'settings.app': 'App',
     'settings.version': 'Version',
-    // Onboarding tutorial
-    'onboarding.step1.heading': "Here's how it works",
-    'onboarding.step1.body': 'Record a conversation in Spanish, upload it here, and get gentle corrections on your speech. Save the ones worth remembering and write them down.',
-    'onboarding.step2.heading': 'Upload a recording',
-    'onboarding.step2.body': 'After a conversation, tap Upload audio to pick the file from your phone. It gets transcribed automatically — no extra steps.',
-    'onboarding.step3.heading': 'Or share from WhatsApp',
-    'onboarding.step3.body': 'Got a voice note in WhatsApp? Hold it, tap Share, then choose Conversation Coach. The audio uploads instantly.',
+    // Onboarding — language select (step 0)
+    'onboarding.languageSelect.heading': 'What are you learning?',
+    'onboarding.languageSelect.body':
+      'Pick the language you want to practise. You can change this later in Settings.',
+    'onboarding.languageSelect.targetLanguageAria': 'Target language',
+    'onboarding.languageSelect.spanish': 'Spanish',
+    'onboarding.languageSelect.spanishVariant': 'Rioplatense · Argentine',
+    'onboarding.languageSelect.english': 'English',
+    'onboarding.languageSelect.englishVariant': 'New Zealand English',
+    'onboarding.languageSelect.cta': 'Get started →',
+    // Onboarding — tutorial steps (semantic keys; URL ?step=1 → upload, ?step=2 → share)
+    'onboarding.upload.heading': 'Upload a recording',
+    'onboarding.upload.body':
+      'After a conversation, tap Upload audio to pick the file from your phone. It gets transcribed automatically — no extra steps.',
+    'onboarding.share.heading': 'Share straight from WhatsApp',
+    'onboarding.share.body':
+      'Got a voice note in WhatsApp? Hold it, tap Share, then choose Conversation Coach. The audio uploads instantly.',
+    // Onboarding — illustration labels (decorative mockups, but learners deserve their own language)
+    'onboarding.illus.uploadButton': 'Upload audio',
+    'onboarding.illus.shareTitle': 'Share voice note via…',
+    'onboarding.illus.appMessages': 'Messages',
+    'onboarding.illus.appMail': 'Mail',
+    'onboarding.illus.appCoach': 'Coach',
+    'onboarding.illus.appFiles': 'Files',
+    'onboarding.illus.shareContact': 'María',
+    'onboarding.illus.pickerTitle': 'Audio files',
+    // Onboarding — chrome
     'onboarding.cta.next': 'Next →',
     'onboarding.cta.letsGo': "Let's go →",
     'onboarding.cta.done': 'Done',
+    'onboarding.skip': 'Skip tutorial',
+    'onboarding.close': 'Close',
+    'onboarding.stepOfTotal': 'Step {n} of {total}',
     'onboarding.revisitLink': 'Revisit tutorial →',
     'settings.help': 'Help',
     'settings.howToUpload': 'How to upload audio',
+    'settings.howToShare': 'Share from WhatsApp',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -733,19 +757,43 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.signOut': 'Cerrar sesión',
     'settings.app': 'App',
     'settings.version': 'Versión',
-    // Onboarding tutorial
-    'onboarding.step1.heading': 'Así funciona',
-    'onboarding.step1.body': 'Grabá una conversación en español, subila acá y recibí correcciones suaves sobre tu habla. Guardá las que valgan la pena y anotalas.',
-    'onboarding.step2.heading': 'Subí una grabación',
-    'onboarding.step2.body': 'Después de una conversación, tocá Subir audio para elegir el archivo desde tu celular. Se transcribe automáticamente — sin pasos extra.',
-    'onboarding.step3.heading': 'O compartí desde WhatsApp',
-    'onboarding.step3.body': '¿Tenés una nota de voz en WhatsApp? Mantenéla presionada, tocá Compartir y elegí Conversation Coach. El audio se sube al instante.',
+    // Onboarding — selección de idioma (paso 0)
+    'onboarding.languageSelect.heading': '¿Qué estás aprendiendo?',
+    'onboarding.languageSelect.body':
+      'Elegí el idioma que querés practicar. Lo podés cambiar después en Configuración.',
+    'onboarding.languageSelect.targetLanguageAria': 'Idioma objetivo',
+    'onboarding.languageSelect.spanish': 'Español',
+    'onboarding.languageSelect.spanishVariant': 'Rioplatense · Argentino',
+    'onboarding.languageSelect.english': 'Inglés',
+    'onboarding.languageSelect.englishVariant': 'Inglés de Nueva Zelanda',
+    'onboarding.languageSelect.cta': 'Empezar →',
+    // Onboarding — pasos del tutorial
+    'onboarding.upload.heading': 'Subí una grabación',
+    'onboarding.upload.body':
+      'Después de una conversación, tocá Subir audio para elegir el archivo desde tu celular. Se transcribe automáticamente — sin pasos extra.',
+    'onboarding.share.heading': 'Compartí desde WhatsApp',
+    'onboarding.share.body':
+      '¿Tenés una nota de voz en WhatsApp? Mantenéla presionada, tocá Compartir y elegí Conversation Coach. El audio se sube al instante.',
+    // Onboarding — etiquetas de las ilustraciones
+    'onboarding.illus.uploadButton': 'Subir audio',
+    'onboarding.illus.shareTitle': 'Compartir nota de voz vía…',
+    'onboarding.illus.appMessages': 'Mensajes',
+    'onboarding.illus.appMail': 'Correo',
+    'onboarding.illus.appCoach': 'Coach',
+    'onboarding.illus.appFiles': 'Archivos',
+    'onboarding.illus.shareContact': 'María',
+    'onboarding.illus.pickerTitle': 'Archivos de audio',
+    // Onboarding — chrome
     'onboarding.cta.next': 'Siguiente →',
     'onboarding.cta.letsGo': '¡Vamos! →',
     'onboarding.cta.done': 'Listo',
+    'onboarding.skip': 'Saltar tutorial',
+    'onboarding.close': 'Cerrar',
+    'onboarding.stepOfTotal': 'Paso {n} de {total}',
     'onboarding.revisitLink': 'Ver tutorial otra vez →',
     'settings.help': 'Ayuda',
     'settings.howToUpload': 'Cómo subir audio',
+    'settings.howToShare': 'Compartir desde WhatsApp',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

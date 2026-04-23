@@ -1,148 +1,80 @@
 'use client'
-import { Suspense, useState } from 'react'
-import type { ReactNode } from 'react'
+import { Suspense, useRef, useState } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { OnboardingStep } from '@/components/OnboardingStep'
+import { UploadIllustration } from '@/components/UploadIllustration'
+import { WhatsAppShareIllustration } from '@/components/WhatsAppShareIllustration'
+import { Wordmark } from '@/components/Wordmark'
 import type { TargetLanguage } from '@/lib/types'
 
-const LANGUAGE_OPTIONS: { value: TargetLanguage; name: string; variant: string; flag: string }[] = [
-  { value: 'es-AR', name: 'Spanish', variant: 'Rioplatense · Argentine', flag: '🇦🇷' },
-  { value: 'en-NZ', name: 'English', variant: 'New Zealand English', flag: '🇳🇿' },
+const TOTAL_TUTORIAL_STEPS = 2
+const FIRST_TUTORIAL_STEP = 1
+
+interface LanguageOption {
+  value: TargetLanguage
+  nameKey: string
+  variantKey: string
+  flag: string
+}
+
+const LANGUAGE_OPTIONS: LanguageOption[] = [
+  {
+    value: 'es-AR',
+    nameKey: 'onboarding.languageSelect.spanish',
+    variantKey: 'onboarding.languageSelect.spanishVariant',
+    flag: '🇦🇷',
+  },
+  {
+    value: 'en-NZ',
+    nameKey: 'onboarding.languageSelect.english',
+    variantKey: 'onboarding.languageSelect.englishVariant',
+    flag: '🇳🇿',
+  },
 ]
 
-// ─── Step illustrations ────────────────────────────────────────────────────────
-// These are decorative mockups of the app UI, shown at a fixed language to
-// represent the real interface. Strings here are aria-hidden and intentionally
-// not in i18n — they depict the app surface, not translated content.
-
-function Step1Illustration() {
-  const items = [
-    { icon: '🎙️', label: 'Record' },
-    { icon: '📤', label: 'Upload' },
-    { icon: '✏️', label: 'Review' },
-    { icon: '📝', label: 'Write' },
-  ]
-  return (
-    <div className="flex items-center gap-1 px-3 w-full" aria-hidden="true">
-      {items.flatMap((item, i, arr) => {
-        const node = (
-          <div key={item.label} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-accent-chip flex items-center justify-center text-xl leading-none">
-              {item.icon}
-            </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary text-center w-full truncate">
-              {item.label}
-            </span>
-          </div>
-        )
-        return i < arr.length - 1
-          ? [node, <span key={`a${i}`} className="text-text-tertiary text-xs flex-shrink-0 mb-3">›</span>]
-          : [node]
-      })}
-    </div>
-  )
-}
-
-function Step2Illustration() {
-  return (
-    <div className="flex flex-col items-center gap-3" aria-hidden="true">
-      <div className="flex items-center gap-2 bg-accent-primary text-white rounded-full py-3 px-5 shadow-lg">
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        <span className="text-sm font-semibold">Upload audio</span>
-      </div>
-      <div className="flex gap-1.5">
-        {['.mp3', '.m4a', '.wav', '.opus'].map(ext => (
-          <span
-            key={ext}
-            className="text-xs font-semibold px-2 py-1 rounded-md bg-surface-elevated text-text-tertiary"
-          >
-            {ext}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function Step3Illustration() {
-  const apps = [
-    { label: 'Messages', content: <span>💬</span>, highlight: false },
-    { label: 'Mail', content: <span>📧</span>, highlight: false },
-    { label: 'Coach', content: <span className="text-white text-xs font-bold">CC</span>, highlight: true },
-    { label: 'Files', content: <span>📁</span>, highlight: false },
-  ]
-  return (
-    <div className="flex items-center justify-center w-full" aria-hidden="true">
-      <div className="w-60 bg-surface rounded-2xl shadow-lg overflow-hidden border border-border-subtle">
-        <div className="bg-surface-elevated px-3 py-2.5 border-b border-border-subtle text-center text-xs text-text-tertiary font-medium">
-          Share voice note via…
-        </div>
-        <div className="flex items-start justify-around px-2 py-3">
-          {apps.map(app => (
-            <div
-              key={app.label}
-              className={`flex flex-col items-center gap-1.5 ${app.highlight ? '' : 'opacity-40'}`}
-            >
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${
-                  app.highlight ? 'bg-accent-primary shadow-md' : 'bg-surface-elevated'
-                }`}
-              >
-                {app.content}
-              </div>
-              <span
-                className={`text-[10px] font-medium text-center ${
-                  app.highlight ? 'text-accent-primary font-semibold' : 'text-text-tertiary'
-                }`}
-              >
-                {app.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Step content map ─────────────────────────────────────────────────────────
+// Illustrations live in their own components (see components/UploadIllustration
+// and components/WhatsAppShareIllustration). Labels go through t() so a
+// Spanish-speaking learner doesn't see English chrome inside an otherwise-
+// Spanish tutorial.
 
-type TutorialStep = 1 | 2 | 3
+type TutorialStep = 1 | 2
 
 interface StepConfig {
-  illustration: ReactNode
+  illustration: (t: (key: string) => string) => ReactNode
   headingKey: string
   bodyKey: string
 }
 
 const STEP_CONFIG: Record<TutorialStep, StepConfig> = {
   1: {
-    illustration: <Step1Illustration />,
-    headingKey: 'onboarding.step1.heading',
-    bodyKey: 'onboarding.step1.body',
+    illustration: t => (
+      <UploadIllustration
+        uploadLabel={t('onboarding.illus.uploadButton')}
+        pickerTitle={t('onboarding.illus.pickerTitle')}
+        appLabel={t('onboarding.illus.appCoach')}
+      />
+    ),
+    headingKey: 'onboarding.upload.heading',
+    bodyKey: 'onboarding.upload.body',
   },
   2: {
-    illustration: <Step2Illustration />,
-    headingKey: 'onboarding.step2.heading',
-    bodyKey: 'onboarding.step2.body',
-  },
-  3: {
-    illustration: <Step3Illustration />,
-    headingKey: 'onboarding.step3.heading',
-    bodyKey: 'onboarding.step3.body',
+    illustration: t => (
+      <WhatsAppShareIllustration
+        shareTitle={t('onboarding.illus.shareTitle')}
+        contactName={t('onboarding.illus.shareContact')}
+        appLabels={{
+          messages: t('onboarding.illus.appMessages'),
+          mail: t('onboarding.illus.appMail'),
+          coach: t('onboarding.illus.appCoach'),
+          files: t('onboarding.illus.appFiles'),
+        }}
+      />
+    ),
+    headingKey: 'onboarding.share.heading',
+    bodyKey: 'onboarding.share.body',
   },
 }
 
@@ -153,6 +85,7 @@ function OnboardingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t, setTargetLanguage } = useTranslation()
+  const radioRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   const stepParam = searchParams.get('step')
   const revisit = searchParams.get('revisit') === 'true'
@@ -162,16 +95,55 @@ function OnboardingContent() {
   function handleLanguageConfirm() {
     if (!selected) return
     setTargetLanguage(selected)
-    router.push('/onboarding?step=1')
+    router.push(`/onboarding?step=${FIRST_TUTORIAL_STEP}`)
+  }
+
+  function gotoStep(n: number) {
+    const params = revisit ? `?step=${n}&revisit=true` : `?step=${n}`
+    router.push(`/onboarding${params}`)
   }
 
   function handleNext(currentStep: TutorialStep) {
-    if (currentStep < 3) {
-      const next = currentStep + 1
-      const params = revisit ? `?step=${next}&revisit=true` : `?step=${next}`
-      router.push(`/onboarding${params}`)
+    if (currentStep < TOTAL_TUTORIAL_STEPS) {
+      gotoStep(currentStep + 1)
     } else {
       router.push(revisit ? '/settings' : '/')
+    }
+  }
+
+  function handleBack(currentStep: TutorialStep) {
+    if (currentStep > FIRST_TUTORIAL_STEP) gotoStep(currentStep - 1)
+  }
+
+  function handleExit() {
+    router.push(revisit ? '/settings' : '/')
+  }
+
+  // Radiogroup keyboard nav: Arrow keys move focus AND selection between
+  // the language options, matching the WAI-ARIA radiogroup pattern.
+  function handleRadioKeyDown(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
+    const last = LANGUAGE_OPTIONS.length - 1
+    let nextIdx: number | null = null
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        nextIdx = idx === last ? 0 : idx + 1
+        break
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        nextIdx = idx === 0 ? last : idx - 1
+        break
+      case 'Home':
+        nextIdx = 0
+        break
+      case 'End':
+        nextIdx = last
+        break
+    }
+    if (nextIdx !== null) {
+      e.preventDefault()
+      setSelected(LANGUAGE_OPTIONS[nextIdx].value)
+      radioRefs.current[nextIdx]?.focus()
     }
   }
 
@@ -180,30 +152,39 @@ function OnboardingContent() {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-6">
         <div className="w-full max-w-sm space-y-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-text-tertiary text-center">
-            Conversation Coach
-          </p>
+          <Wordmark className="text-center" />
 
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-              What are you learning?
+              {t('onboarding.languageSelect.heading')}
             </h1>
             <p className="text-sm text-text-secondary">
-              Pick the language you want to practise. You can change this later in Settings.
+              {t('onboarding.languageSelect.body')}
             </p>
           </div>
 
-          <div className="space-y-3" role="radiogroup" aria-label="Target language">
-            {LANGUAGE_OPTIONS.map(opt => {
+          <div
+            className="space-y-3"
+            role="radiogroup"
+            aria-label={t('onboarding.languageSelect.targetLanguageAria')}
+          >
+            {LANGUAGE_OPTIONS.map((opt, idx) => {
               const isSelected = selected === opt.value
+              // Roving tabindex: only the selected (or first if none) is in tab order.
+              const isTabStop = isSelected || (selected === null && idx === 0)
               return (
                 <button
                   key={opt.value}
+                  ref={el => {
+                    radioRefs.current[idx] = el
+                  }}
                   type="button"
                   role="radio"
                   aria-checked={isSelected}
+                  tabIndex={isTabStop ? 0 : -1}
                   onClick={() => setSelected(opt.value)}
-                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border text-left transition-colors ${
+                  onKeyDown={e => handleRadioKeyDown(e, idx)}
+                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     isSelected
                       ? 'border-accent-primary bg-accent-chip'
                       : 'border-border bg-surface hover:border-accent-primary/40 hover:bg-surface-elevated'
@@ -211,8 +192,8 @@ function OnboardingContent() {
                 >
                   <span className="text-4xl leading-none flex-shrink-0">{opt.flag}</span>
                   <div className="flex-1">
-                    <p className="font-semibold text-text-primary">{opt.name}</p>
-                    <p className="text-sm text-text-tertiary mt-0.5">{opt.variant}</p>
+                    <p className="font-semibold text-text-primary">{t(opt.nameKey)}</p>
+                    <p className="text-sm text-text-tertiary mt-0.5">{t(opt.variantKey)}</p>
                   </div>
                   <div
                     className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -231,35 +212,52 @@ function OnboardingContent() {
             type="button"
             onClick={handleLanguageConfirm}
             disabled={selected === null}
-            className="w-full py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            Get started →
+            {t('onboarding.languageSelect.cta')}
           </button>
         </div>
       </div>
     )
   }
 
-  // ── Steps 1–3: tutorial ──────────────────────────────────────────────────────
-  const tutorialStep = Math.min(3, step) as TutorialStep
+  // ── Tutorial steps (clamped into the configured range) ──────────────────────
+  const tutorialStep = Math.min(TOTAL_TUTORIAL_STEPS, Math.max(FIRST_TUTORIAL_STEP, step)) as TutorialStep
   const config = STEP_CONFIG[tutorialStep]
-  const ctaKey =
-    tutorialStep < 3
-      ? 'onboarding.cta.next'
-      : revisit
-      ? 'onboarding.cta.done'
-      : 'onboarding.cta.letsGo'
+  const isLastStep = tutorialStep === TOTAL_TUTORIAL_STEPS
+  const ctaKey = !isLastStep
+    ? 'onboarding.cta.next'
+    : revisit
+    ? 'onboarding.cta.done'
+    : 'onboarding.cta.letsGo'
+
+  // Back is only meaningful between tutorial steps. We deliberately do NOT
+  // route back to step 0 (the language picker) — once chosen, language change
+  // belongs in Settings, not in the wizard.
+  const showBack = tutorialStep > FIRST_TUTORIAL_STEP
+  // Exit (Skip / Close) gives every step an in-app way out so the user is never
+  // forced to march to the end. Skip on first run, Close on revisit.
+  const exitKey = revisit ? 'onboarding.close' : 'onboarding.skip'
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-6">
       <div className="w-full max-w-sm">
         <OnboardingStep
           step={tutorialStep}
-          illustration={config.illustration}
+          totalSteps={TOTAL_TUTORIAL_STEPS}
+          illustration={config.illustration(t)}
           heading={t(config.headingKey)}
           body={t(config.bodyKey)}
           ctaLabel={t(ctaKey)}
           onNext={() => handleNext(tutorialStep)}
+          onBack={showBack ? () => handleBack(tutorialStep) : undefined}
+          backLabel={showBack ? t('nav.back') : undefined}
+          onExit={handleExit}
+          exitLabel={t(exitKey)}
+          stepOfTotalLabel={t('onboarding.stepOfTotal', {
+            n: tutorialStep,
+            total: TOTAL_TUTORIAL_STEPS,
+          })}
         />
       </div>
     </div>

@@ -104,12 +104,20 @@ export default function SettingsPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
           {t('settings.help')}
         </h2>
-        <Link
-          href="/onboarding?step=1&revisit=true"
-          className="block w-full px-4 py-2 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors text-sm text-left text-text-primary"
-        >
-          {t('settings.howToUpload')}
-        </Link>
+        <div className="space-y-2">
+          <Link
+            href="/onboarding?step=1&revisit=true"
+            className="block w-full px-4 py-2 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors text-sm text-left text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {t('settings.howToUpload')}
+          </Link>
+          <Link
+            href="/onboarding?step=2&revisit=true"
+            className="block w-full px-4 py-2 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors text-sm text-left text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {t('settings.howToShare')}
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-3">

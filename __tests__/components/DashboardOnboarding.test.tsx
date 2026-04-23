@@ -22,4 +22,11 @@ describe('DashboardOnboarding', () => {
     const link = screen.getByRole('link', { name: /revisit.*tutorial/i })
     expect(link).toHaveAttribute('href', '/onboarding?step=1&revisit=true')
   })
+
+  it('revisit link uses text-text-secondary (not text-tertiary) so it reads as an action, not a footnote', () => {
+    wrap()
+    const link = screen.getByRole('link', { name: /revisit.*tutorial/i })
+    expect(link.className).toMatch(/text-text-secondary/)
+    expect(link.className).not.toMatch(/text-text-tertiary/)
+  })
 })
