@@ -6,7 +6,8 @@
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ],
   "share_target": {
     "action": "/share-target",
