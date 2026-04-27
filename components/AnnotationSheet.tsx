@@ -23,10 +23,12 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { AnnotationCard } from '@/components/AnnotationCard'
 import { DockedSheet } from '@/components/DockedSheet'
 import { NavHint } from '@/components/NavHint'
-import type { Annotation } from '@/lib/types'
+import type { Annotation, TranscriptSegment } from '@/lib/types'
 
 interface Props {
   annotation: Annotation | null
+  segment: TranscriptSegment | null
+  audioUrl: string | null
   /** 1-indexed position of this annotation among the user's annotations. */
   position: { current: number; total: number } | null
   hasPrev: boolean
@@ -48,6 +50,8 @@ interface Props {
 
 export function AnnotationSheet({
   annotation,
+  segment,
+  audioUrl,
   position,
   hasPrev,
   hasNext,
@@ -81,7 +85,7 @@ export function AnnotationSheet({
       }
     >
       <NavHint />
-      <AnnotationCard annotation={annotation} {...cardProps} />
+      <AnnotationCard annotation={annotation} segment={segment} audioUrl={audioUrl} {...cardProps} />
     </DockedSheet>
   )
 }

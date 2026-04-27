@@ -13,6 +13,7 @@ import IdentifyPage from '@/app/sessions/[id]/identify/page'
 
 const mockDetail = {
   session: { id: 's1' },
+  audio_url: null,
   segments: [
     { id: 'seg-1', session_id: 's1', speaker: 'A', text: 'Hola.', start_ms: 0, end_ms: 1000, position: 0 },
     { id: 'seg-2', session_id: 's1', speaker: 'B', text: 'Buenos días.', start_ms: 1100, end_ms: 2000, position: 1 },

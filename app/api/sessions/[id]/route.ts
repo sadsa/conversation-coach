@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { loadSessionDetail } from '@/lib/loaders'
+import { deleteObject } from '@/lib/r2'
 
 type Params = { params: { id: string } }
 
@@ -53,11 +54,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createServerClient()
+  const { data: session } = await db
+    .from('sessions')
+    .select('audio_r2_key')
+    .eq('id', params.id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (session?.audio_r2_key) {
+    await deleteObject(session.audio_r2_key)
+  }
+
   const { error } = await db
     .from('sessions')
     .delete()
     .eq('id', params.id)
+    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

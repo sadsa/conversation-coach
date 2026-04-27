@@ -52,7 +52,6 @@ describe('runClaudeAnalysis', () => {
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test Session', annotations: [] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-b')
 
@@ -101,7 +100,6 @@ describe('runClaudeAnalysis', () => {
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test Session', annotations: [] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-ab')
 
@@ -148,7 +146,6 @@ describe('runClaudeAnalysis', () => {
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test Session', annotations: [
       { segment_id: 'seg-1', type: 'grammar', original: 'Yo fui', start_char: 0, end_char: 6, correction: 'Fui', explanation: 'Drop pronoun.' },
     ] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-1')
 
@@ -184,7 +181,6 @@ describe('runClaudeAnalysis', () => {
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Charla con Ana', annotations: [] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-title-test')
 
@@ -219,7 +215,6 @@ describe('runClaudeAnalysis', () => {
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test', annotations: [
       { segment_id: 'seg-1', type: 'grammar', sub_category: 'subjunctive', original: 'vengas', start_char: 8, end_char: 14, correction: 'venís', explanation: 'Voseo form.' },
     ] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('sess-1')
 
@@ -252,7 +247,6 @@ describe('runClaudeAnalysis', () => {
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test', annotations: [
       { segment_id: 'seg-1', type: 'grammar', sub_category: 'made-up-category', original: 'Yo fui', start_char: 0, end_char: 6, correction: 'Fui', explanation: 'Drop pronoun.' },
     ] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('sess-2')
 
@@ -286,7 +280,6 @@ describe('runClaudeAnalysis', () => {
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test', annotations: [
       { segment_id: 'seg-1', type: 'grammar', sub_category: 'voseo', original: 'voseo', start_char: 0, end_char: 5, correction: null, explanation: 'Good voseo.' },
     ] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('sess-3')
 
@@ -319,7 +312,6 @@ describe('runClaudeAnalysis', () => {
     vi.mocked(analyseUserTurns).mockResolvedValue({ title: 'Test', annotations: [
       { segment_id: 'seg-1', type: 'grammar', sub_category: 'other', original: 'test', start_char: 0, end_char: 4, correction: 'test fix', explanation: 'Misc grammar issue.' },
     ] })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('sess-4')
 
@@ -360,7 +352,6 @@ describe('runClaudeAnalysis', () => {
         flashcard_note: 'Subject pronouns are dropped in Rioplatense.',
       }],
     })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('sess-1')
 
@@ -408,10 +399,56 @@ describe('runClaudeAnalysis', () => {
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(analyseUserTurns).mockResolvedValue({ annotations: [], title: 'Session Title' })
-    vi.mocked(deleteObject).mockResolvedValue(undefined)
 
     await runClaudeAnalysis('session-1')
 
     expect(sendPushNotification).toHaveBeenCalledWith('session-1', 'Session Title')
+  })
+
+  it('keeps session audio in R2 after analysis', async () => {
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    user_speaker_labels: ['A'],
+                    audio_r2_key: 'audio/keep-me.ogg',
+                    original_filename: 'clip.ogg',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            update: updateMock,
+          }
+        }
+        if (table === 'transcript_segments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [{ id: 'seg-a', speaker: 'A', text: 'Hola.' }],
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'annotations') return { insert: vi.fn().mockResolvedValue({ error: null }) }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(analyseUserTurns).mockResolvedValue({ annotations: [], title: 'Audio test' })
+
+    await runClaudeAnalysis('session-audio')
+
+    expect(deleteObject).not.toHaveBeenCalled()
+    const updatePayloads = updateMock.mock.calls.map(([payload]) => payload as Record<string, unknown>)
+    expect(updatePayloads.some(payload => Object.prototype.hasOwnProperty.call(payload, 'audio_r2_key'))).toBe(false)
   })
 })

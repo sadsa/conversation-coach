@@ -21,6 +21,8 @@ const annotation: Annotation = {
 }
 
 const defaultProps = {
+  segment: { start_ms: 0, end_ms: 2000, text: 'Yo fui al mercado.' },
+  audioUrl: null,
   sessionId: 's1',
   practiceItemId: null,
   isWrittenDown: false,
@@ -43,6 +45,12 @@ describe('AnnotationCard — content', () => {
   it('does not render a sub-category pill (distilled — the user does not act on it)', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
     expect(screen.queryByText('Subjunctive')).not.toBeInTheDocument()
+  })
+
+  it('renders disabled snippet playback when session audio is unavailable', () => {
+    render(<AnnotationCard annotation={annotation} {...defaultProps} audioUrl={null} />)
+    expect(screen.getByRole('button', { name: /play the audio snippet/i })).toBeDisabled()
+    expect(screen.getByText(/audio unavailable for this session/i)).toBeInTheDocument()
   })
 })
 

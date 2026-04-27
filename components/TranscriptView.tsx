@@ -10,6 +10,7 @@ interface Props {
   segments: TranscriptSegment[]
   annotations: Annotation[]
   userSpeakerLabels: ('A' | 'B')[] | null
+  audioUrl: string | null
   sessionId: string
   addedAnnotations: Map<string, string>
   writtenAnnotations: Set<string>
@@ -22,7 +23,7 @@ interface Props {
 }
 
 export function TranscriptView({
-  segments, annotations, userSpeakerLabels, sessionId,
+  segments, annotations, userSpeakerLabels, audioUrl, sessionId,
   addedAnnotations, writtenAnnotations, unhelpfulAnnotations,
   onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
   onAnnotationUnhelpfulChanged,
@@ -171,6 +172,8 @@ export function TranscriptView({
             ? { ...activeAnnotation, is_unhelpful: unhelpfulAnnotations.has(activeAnnotation.id) }
             : null
         }
+        segment={activeAnnotation ? segments.find(s => s.id === activeAnnotation.segment_id) ?? null : null}
+        audioUrl={audioUrl}
         position={activeAnnotation ? { current: activeIndex + 1, total: orderedAnnotations.length } : null}
         hasPrev={activeIndex > 0}
         hasNext={activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1}

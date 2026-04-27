@@ -259,6 +259,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         segments={segments}
         annotations={annotations}
         userSpeakerLabels={session.user_speaker_labels ?? null}
+        audioUrl={detail.audio_url}
         sessionId={sessionId}
         addedAnnotations={addedAnnotations}
         writtenAnnotations={writtenAnnotations}

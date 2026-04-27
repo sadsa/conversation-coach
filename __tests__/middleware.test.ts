@@ -99,6 +99,12 @@ describe('middleware', () => {
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
+  it('passes /api/maintenance/audio-retention through without calling getUser', async () => {
+    const res = await middleware(makeRequest('/api/maintenance/audio-retention'))
+    expect(res.status).toBe(200)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
   it('blocks all users when ALLOWED_EMAILS is empty', async () => {
     process.env.ALLOWED_EMAILS = ''
     mockGetUser.mockResolvedValueOnce({ data: { user: { email: 'allowed@example.com' } } })
