@@ -68,24 +68,24 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/Hoy fui al mercado/)).toBeInTheDocument()
   })
 
-  it('defaults auto-open-first-correction toggle to enabled', () => {
-    render(<SettingsPage />)
-    expect(screen.getByRole('switch', { name: /open first correction automatically/i })).toBeChecked()
-  })
-
-  it('loads auto-open-first-correction toggle from localStorage when disabled', () => {
-    localStorage.setItem('cc:review:auto-open-first-correction:v1', '0')
+  it('defaults auto-open-first-correction toggle to disabled', () => {
     render(<SettingsPage />)
     expect(screen.getByRole('switch', { name: /open first correction automatically/i })).not.toBeChecked()
+  })
+
+  it('loads auto-open-first-correction toggle from localStorage when enabled', () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '1')
+    render(<SettingsPage />)
+    expect(screen.getByRole('switch', { name: /open first correction automatically/i })).toBeChecked()
   })
 
   it('persists auto-open-first-correction toggle changes to localStorage', async () => {
     render(<SettingsPage />)
     const toggle = screen.getByRole('switch', { name: /open first correction automatically/i })
-    expect(toggle).toBeChecked()
-    await userEvent.click(toggle)
     expect(toggle).not.toBeChecked()
-    expect(localStorage.getItem('cc:review:auto-open-first-correction:v1')).toBe('0')
+    await userEvent.click(toggle)
+    expect(toggle).toBeChecked()
+    expect(localStorage.getItem('cc:review:auto-open-first-correction:v1')).toBe('1')
   })
 
   it('renders the App section with a version string', () => {

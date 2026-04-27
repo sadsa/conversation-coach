@@ -21,7 +21,7 @@ const VERSION = BUILD_DATE ? `${SHA} · ${BUILD_DATE}` : SHA
 
 export default function SettingsPage() {
   const [size, setSize] = useState<number>(16)
-  const [autoOpenFirstCorrection, setAutoOpenFirstCorrection] = useState(true)
+  const [autoOpenFirstCorrection, setAutoOpenFirstCorrection] = useState(false)
   const router = useRouter()
   const { targetLanguage, setTargetLanguage, t } = useTranslation()
   useEffect(() => {

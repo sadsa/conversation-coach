@@ -38,12 +38,11 @@ beforeEach(() => {
 })
 
 describe('TranscriptView', () => {
-  it('auto-opens the first correction by default', () => {
+  it('does not auto-open the first correction by default', () => {
     render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
-    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
-    expect(screen.getByText('1 of 1')).toBeInTheDocument()
+    expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
   it('does not auto-open when the setting is disabled', () => {
@@ -55,6 +54,7 @@ describe('TranscriptView', () => {
   })
 
   it('does not re-open automatically after the user closes the sheet', async () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '1')
     render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )

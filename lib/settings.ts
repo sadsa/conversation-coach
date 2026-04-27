@@ -2,12 +2,12 @@ const AUTO_OPEN_FIRST_CORRECTION_KEY = 'cc:review:auto-open-first-correction:v1'
 
 /**
  * Review UX preference: open the first correction automatically on session load.
- * Defaults to enabled when unset to remove first-interaction friction.
+ * Defaults to disabled when unset; users can opt in from Settings.
  */
 export function getAutoOpenFirstCorrectionPreference(): boolean {
-  if (typeof window === 'undefined') return true
+  if (typeof window === 'undefined') return false
   const stored = window.localStorage.getItem(AUTO_OPEN_FIRST_CORRECTION_KEY)
-  if (stored === null) return true
+  if (stored === null) return false
   return stored === '1'
 }
 
