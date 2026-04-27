@@ -50,6 +50,15 @@ describe('TranscriptView', () => {
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
+  it('does not re-open automatically after the user closes the sheet', async () => {
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /close/i }))
+    expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
+  })
+
   it('dims native speaker turns (speaker B when user is A)', () => {
     const { container } = render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />

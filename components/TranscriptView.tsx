@@ -1,6 +1,6 @@
 // components/TranscriptView.tsx
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
 import { useTranslation } from '@/components/LanguageProvider'
@@ -30,6 +30,7 @@ export function TranscriptView({
 }: Props) {
   const { t } = useTranslation()
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null)
+  const didInitialAutoOpenRef = useRef(false)
 
   const annotationsBySegment = annotations.reduce<Record<string, Annotation[]>>((acc, a) => {
     if (!acc[a.segment_id]) acc[a.segment_id] = []
@@ -58,11 +59,12 @@ export function TranscriptView({
   const activeAnnotation = activeIndex >= 0 ? orderedAnnotations[activeIndex] : null
 
   useEffect(() => {
-    if (activeAnnotationId !== null) return
+    if (didInitialAutoOpenRef.current) return
+    didInitialAutoOpenRef.current = true
     if (orderedAnnotations.length === 0) return
     if (!getAutoOpenFirstCorrectionPreference()) return
     setActiveAnnotationId(orderedAnnotations[0].id)
-  }, [activeAnnotationId, orderedAnnotations])
+  }, [orderedAnnotations])
 
   function handleClick(a: Annotation) {
     setActiveAnnotationId(prev => (prev === a.id ? null : a.id))
