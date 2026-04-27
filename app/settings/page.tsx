@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { TARGET_LANGUAGES, type TargetLanguage } from '@/lib/types'
+import {
+  getAutoOpenFirstCorrectionPreference,
+  setAutoOpenFirstCorrectionPreference,
+} from '@/lib/settings'
 import { useTranslation } from '@/components/LanguageProvider'
 
 const MIN = 14
@@ -17,11 +21,13 @@ const VERSION = BUILD_DATE ? `${SHA} · ${BUILD_DATE}` : SHA
 
 export default function SettingsPage() {
   const [size, setSize] = useState<number>(16)
+  const [autoOpenFirstCorrection, setAutoOpenFirstCorrection] = useState(true)
   const router = useRouter()
   const { targetLanguage, setTargetLanguage, t } = useTranslation()
   useEffect(() => {
     const stored = localStorage.getItem(KEY)
     if (stored) setSize(parseInt(stored, 10))
+    setAutoOpenFirstCorrection(getAutoOpenFirstCorrectionPreference())
   }, [])
 
   function apply(newSize: number) {
@@ -88,6 +94,32 @@ export default function SettingsPage() {
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.review')}</h2>
+        <label className="flex items-start justify-between gap-4 border border-border-subtle rounded-lg p-4 cursor-pointer">
+          <div className="space-y-1">
+            <p className="text-sm text-text-primary">{t('settings.autoOpenFirstCorrection')}</p>
+            <p className="text-xs text-text-tertiary">{t('settings.autoOpenFirstCorrectionHelp')}</p>
+          </div>
+          <span className="relative inline-flex h-6 w-11 items-center">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={autoOpenFirstCorrection}
+              onChange={e => {
+                const enabled = e.target.checked
+                setAutoOpenFirstCorrection(enabled)
+                setAutoOpenFirstCorrectionPreference(enabled)
+              }}
+              aria-label={t('settings.autoOpenFirstCorrection')}
+              className="peer sr-only"
+            />
+            <span className="absolute inset-0 rounded-full border border-border bg-surface-elevated transition-colors peer-checked:bg-accent-primary peer-checked:border-accent-primary" />
+            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-surface shadow-sm transition-transform peer-checked:translate-x-5" />
+          </span>
+        </label>
       </div>
 
       <div className="space-y-3">

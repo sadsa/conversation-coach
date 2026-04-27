@@ -34,6 +34,22 @@ const defaultProps = {
 }
 
 describe('TranscriptView', () => {
+  it('auto-opens the first correction by default', () => {
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
+    expect(screen.getByText('1 of 1')).toBeInTheDocument()
+  })
+
+  it('does not auto-open when the setting is disabled', () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '0')
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
+  })
+
   it('dims native speaker turns (speaker B when user is A)', () => {
     const { container } = render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />

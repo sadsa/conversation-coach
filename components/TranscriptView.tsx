@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
 import { useTranslation } from '@/components/LanguageProvider'
+import { getAutoOpenFirstCorrectionPreference } from '@/lib/settings'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
 interface Props {
@@ -55,6 +56,13 @@ export function TranscriptView({
     ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
     : -1
   const activeAnnotation = activeIndex >= 0 ? orderedAnnotations[activeIndex] : null
+
+  useEffect(() => {
+    if (activeAnnotationId !== null) return
+    if (orderedAnnotations.length === 0) return
+    if (!getAutoOpenFirstCorrectionPreference()) return
+    setActiveAnnotationId(orderedAnnotations[0].id)
+  }, [activeAnnotationId, orderedAnnotations])
 
   function handleClick(a: Annotation) {
     setActiveAnnotationId(prev => (prev === a.id ? null : a.id))
