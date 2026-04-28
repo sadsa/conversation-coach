@@ -138,6 +138,14 @@ npm test             # Run all tests once
 npm run test:watch   # Watch mode
 ```
 
+## Cursor Cloud Agent environment
+
+This repo includes `.cursor/environment.json` so cloud agents can bootstrap consistently:
+
+- Uses `ghcr.io/cursor-images/node-20:latest` as the base image
+- Runs `.cursor/install.sh` during environment install
+- Script executes `npm ci` and verifies Vitest via `npx vitest --version`
+
 ## Design Notes
 
 - **No authentication** — single-user app; all API routes are intentionally unprotected
