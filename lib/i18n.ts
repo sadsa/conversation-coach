@@ -352,6 +352,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.targetLanguage': 'Target Language',
     'settings.account': 'Account',
     'settings.signOut': 'Sign out',
+    'settings.signOutError': 'Sign out failed — please try again',
     'settings.app': 'App',
     'settings.version': 'Version',
     // Onboarding — language select (step 0)
@@ -742,6 +743,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.targetLanguage': 'Idioma objetivo',
     'settings.account': 'Cuenta',
     'settings.signOut': 'Cerrar sesión',
+    'settings.signOutError': 'No se pudo cerrar sesión — intentá de nuevo',
     'settings.app': 'App',
     'settings.version': 'Versión',
     // Onboarding — selección de idioma (paso 0)
