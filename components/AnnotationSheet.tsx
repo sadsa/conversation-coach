@@ -71,6 +71,7 @@ export function AnnotationSheet({
       hasPrev={hasPrev}
       hasNext={hasNext}
       preserveOutsideSelector="[data-annotation-id]"
+      mobileMaxHeight="75vh"
       contentKey={annotation.id}
       headerLead={
         position && (

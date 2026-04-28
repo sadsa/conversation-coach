@@ -290,7 +290,10 @@ export function DockedSheet({
       </header>
 
       <div className="relative flex-1 min-h-0">
-        <div ref={bodyRef} className="h-full overflow-y-auto px-5 py-5">
+        <div
+          ref={bodyRef}
+          className="h-full overflow-y-auto px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        >
           <div
             key={contentKey}
             className="motion-safe:animate-[fadein_180ms_ease-out_both]"
