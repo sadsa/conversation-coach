@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   title: 'Conversation Coach',
   description: 'Analyse your conversations',
   manifest: '/manifest.json',
+  // iOS "Add to Home Screen" ignores manifest icons; it needs a PNG
+  // apple-touch-icon (SVG in the manifest alone yields a generic snapshot).
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
   // Tells iOS Safari this site is PWA-capable. Required for
   // `apple-mobile-web-app-status-bar-style` to actually take effect on
   // standalone launches — without it iOS draws its full Safari chrome.
