@@ -40,7 +40,7 @@ app/
   login/page.tsx                  # Magic-link login (public)
   access-denied/page.tsx          # Shown when email not in allowlist (public)
   onboarding/page.tsx             # First-login wizard: language select (step 0) → tutorial steps (?step=1, 2)
-  auth/callback/route.ts          # OAuth code exchange (public)
+  auth/callback/page.tsx          # Client page: reads hash-fragment tokens (implicit flow) → redirects to / or /onboarding
   sessions/[id]/
     page.tsx                      # RSC: loads SessionDetail, hands to <TranscriptClient>
     loading.tsx                   # Skeleton shown during the RSC fetch (no post-hydration flash)
@@ -68,12 +68,14 @@ components/
   LanguageProvider.tsx            # UI language context with live switching
   HomeClient.tsx                  # Client island for /: upload, polling, dashboard composition
   HomeUploadFab.tsx               # Labelled mobile FAB ("Upload audio") + desktop inline button
+  UploadCoachmark.tsx             # First-run spotlight on the mobile FAB — mobile-only (`md:hidden`); FAB lives outside so tap → file-picker works unchanged
   DashboardOnboarding.tsx         # First-time empty state on home
   DashboardInProgress.tsx         # In-flight sessions strip
   DashboardReminders.tsx          # Write-down count widget
   DashboardRecentSessions.tsx     # Recent sessions list with delete + read toggle
   TranscriptClient.tsx            # Client island for /sessions/[id] — annotation review state
   WriteClient.tsx                 # Client island for /write — wraps WriteList
+  AnnotationCard.tsx              # Single annotation row in the transcript — triggers AnnotationSheet, Add to Write button
   AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps `DockedSheet`
   WriteSheet.tsx                  # Docked review sheet for items in the Write list — wraps `DockedSheet`
   WriteList.tsx                   # The Write surface: queue of saved corrections + quiet "Written" archive link
@@ -98,7 +100,9 @@ lib/
   push.ts                         # sendPushNotification helper
   dashboard-summary.ts            # computeDashboardSummary() → { writeDownCount, ... }
   supabase-server.ts              # Supabase client for server components/routes
-  supabase-browser.ts             # Supabase client for client components
+  supabase-browser.ts             # Supabase client for client components (implicit flow — see auth design decision)
+  audio-upload.ts                 # Canonical ACCEPTED_TYPES, ACCEPTED_EXTENSIONS, MAX_BYTES constants — import from here, don't duplicate
+  theme-meta.ts                   # PWA/browser status-bar color constants (theme-color + apple-mobile-web-app-status-bar-style)
   r2.ts                           # presignedUploadUrl, deleteObject
   pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook
@@ -126,6 +130,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Server-rendered pages, client islands**: Home (`/`), Write (`/write`), and Session detail (`/sessions/[id]`) are Server Components that fetch their data in parallel via `lib/loaders.ts`, then hand it to a single client island (`HomeClient`, `WriteClient`, `TranscriptClient`) for interactivity. Result: real content on first paint instead of skeleton → `useEffect` → render. When adding a new page, prefer this pattern — put the SQL in `lib/loaders.ts` so the API route and the RSC share one query.
 - **Auth header passthrough**: `middleware.ts` is the single trust boundary — it calls `supabase.auth.getUser()` once per request and forwards the verified identity via `x-cc-user-id` / `x-cc-user-email` / `x-cc-user-target-language` request headers. `getAuthenticatedUser()` reads those headers (zero network calls) and falls back to a cookie-based verify only when middleware didn't run (tests, or routes carved out of the matcher). Wrapped in React `cache()` so layout + page + nested RSCs share one result. Middleware strips any incoming `x-cc-*` headers before setting its own — never trust client-supplied identity headers.
 - **Auth**: Supabase Auth (email magic link). `middleware.ts` guards all routes except `/login`, `/auth`, `/access-denied`, `/api/webhooks`. `ALLOWED_EMAILS` env var (comma-separated) controls who can access.
+- **Magic-link uses implicit flow, not PKCE**: `lib/supabase-browser.ts` sets `flowType: 'implicit'`. Reason: PWA magic links open in a separate browser context (Gmail in-app browser) that shares no cookies with the PWA that initiated sign-in — PKCE's code-verifier cookie is inaccessible. With implicit flow, tokens travel in the URL hash instead. `app/auth/callback/page.tsx` is a client component (not a route handler) because hash fragments are never sent to the server.
 - **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
 - **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
 - **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
