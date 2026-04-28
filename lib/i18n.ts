@@ -26,17 +26,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Sign out',
 
     // Auth — login page
-    'auth.signInTitle': 'Conversation Coach',
+    'auth.signInTitle': 'Sign in with your email',
     'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
     'auth.emailLabel': 'Email',
     'auth.emailPlaceholder': 'you@example.com',
     'auth.submit': 'Email me a sign-in link',
     'auth.submitting': 'Sending…',
-    'auth.invitedNote':
-      "Access is invite-only. We'll email you a one-time link — no password needed.",
-    'auth.linkSentTo': 'Sign-in link sent to {email}.',
+    'auth.invitedNote': "Invite-only — we'll send a sign-in link to your inbox, no password needed.",
+    'auth.linkSentTo': 'We sent a sign-in link to {email}.',
     'auth.linkSentNote':
-      "Open it on this device to continue. Check your spam folder if you don't see it within a minute.",
+      "Open it on this device to sign in. Check your spam if you don't see it in a few minutes.",
+    'auth.continueAs': 'Continue as {email}',
+    'auth.openMailApp': 'Open mail app',
     'auth.useDifferentEmail': 'Use a different email',
     'auth.invalidEmail': "That doesn't look like an email address.",
     'auth.error.rateLimit':
@@ -416,17 +417,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Cerrar sesión',
 
     // Auth — login page
-    'auth.signInTitle': 'Entrenador de conversación',
+    'auth.signInTitle': 'Iniciá sesión con tu correo',
     'auth.signInSubtitle': 'Iniciá sesión para revisar tus conversaciones grabadas.',
     'auth.emailLabel': 'Correo electrónico',
     'auth.emailPlaceholder': 'vos@ejemplo.com',
     'auth.submit': 'Enviame un enlace de inicio',
     'auth.submitting': 'Enviando…',
-    'auth.invitedNote':
-      'El acceso es por invitación. Te enviamos un enlace de un solo uso — sin contraseña.',
-    'auth.linkSentTo': 'Enlace de inicio enviado a {email}.',
+    'auth.invitedNote': 'Solo por invitación — te enviamos un enlace de inicio, sin contraseña.',
+    'auth.linkSentTo': 'Te enviamos un enlace de inicio a {email}.',
     'auth.linkSentNote':
-      'Abrilo en este dispositivo para continuar. Revisá la carpeta de spam si no lo ves en un minuto.',
+      'Abrilo en este dispositivo para iniciar sesión. Revisá spam si no lo ves en unos minutos.',
+    'auth.continueAs': 'Continuar como {email}',
+    'auth.openMailApp': 'Abrir la app de correo',
     'auth.useDifferentEmail': 'Usar otro correo',
     'auth.invalidEmail': 'Eso no parece una dirección de correo válida.',
     'auth.error.rateLimit':

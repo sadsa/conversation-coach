@@ -1,13 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useTranslation } from '@/components/LanguageProvider'
-import { Button } from '@/components/Button'
+import { Button, buttonStyles } from '@/components/Button'
+import { LogoMark } from '@/components/LogoMark'
+import { Wordmark } from '@/components/Wordmark'
 
 // Loose RFC-5322-ish check: localpart@domain.tld. Permissive on purpose —
 // Supabase will reject anything truly malformed, so this is just to catch
 // obvious typos before the network call.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const SAVED_EMAIL_KEY = 'cc:login-email'
 
 function isValidEmail(value: string): boolean {
   return EMAIL_RE.test(value.trim())
@@ -43,28 +46,29 @@ function friendlyError(
 export default function LoginPage() {
   const { t } = useTranslation()
   const [email, setEmail] = useState('')
+  // Email remembered from a previous sign-in (localStorage). When present,
+  // the quick-select view offers "Continue as X" instead of the full form.
+  const [savedEmail, setSavedEmail] = useState<string | null>(null)
+  // Set to true when the user explicitly wants to type a different email.
+  const [showEmailForm, setShowEmailForm] = useState(false)
   const [touched, setTouched] = useState(false)
   const [sent, setSent] = useState(false)
+  // Tracks which email was actually sent — may differ from `email` state
+  // when the request came from the quick-select path.
+  const [sentTo, setSentTo] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const trimmed = email.trim()
-  const formatValid = isValidEmail(trimmed)
-  // Only surface the inline validity hint after the user has interacted —
-  // pre-submit nagging is hostile to first-time users.
-  const showInlineInvalid = touched && trimmed.length > 0 && !formatValid
+  useEffect(() => {
+    const stored = localStorage.getItem(SAVED_EMAIL_KEY)
+    if (stored) setSavedEmail(stored)
+  }, [])
 
-  async function sendMagicLink(e: React.FormEvent) {
-    e.preventDefault()
-    setTouched(true)
-    if (!formatValid) {
-      setError(t('auth.invalidEmail'))
-      return
-    }
+  async function requestLink(targetEmail: string) {
     setLoading(true)
     setError(null)
     const { error: authError } = await getSupabaseBrowserClient().auth.signInWithOtp({
-      email: trimmed,
+      email: targetEmail,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         shouldCreateUser: true,
@@ -73,46 +77,108 @@ export default function LoginPage() {
     setLoading(false)
     if (authError) {
       setError(friendlyError(authError, t))
-    } else {
-      setSent(true)
+      return
     }
+    localStorage.setItem(SAVED_EMAIL_KEY, targetEmail)
+    setSavedEmail(targetEmail)
+    setSentTo(targetEmail)
+    setSent(true)
   }
 
+  async function sendMagicLink(e: React.FormEvent) {
+    e.preventDefault()
+    setTouched(true)
+    const trimmed = email.trim()
+    if (!isValidEmail(trimmed)) {
+      setError(t('auth.invalidEmail'))
+      return
+    }
+    await requestLink(trimmed)
+  }
+
+  const trimmed = email.trim()
+  const formatValid = isValidEmail(trimmed)
+  // Only surface the inline validity hint after the user has interacted —
+  // pre-submit nagging is hostile to first-time users.
+  const showInlineInvalid = touched && trimmed.length > 0 && !formatValid
   const submitDisabled = loading || trimmed.length === 0 || !formatValid
+
+  // Quick-select: show remembered email as a one-tap option unless the user
+  // has explicitly asked to type a different address.
+  const showQuickSelect = savedEmail !== null && !showEmailForm
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-6">
       <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <LogoMark size={64} />
+            <Wordmark />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
             {t('auth.signInTitle')}
           </h1>
-          <p className="text-base text-text-secondary">
-            {t('auth.signInSubtitle')}
-          </p>
         </div>
 
         {sent ? (
-          <div className="space-y-4 rounded-2xl border border-border-subtle bg-surface p-6 text-center">
+          <div className="space-y-4">
             <p className="text-base text-text-primary">
-              {t('auth.linkSentTo', { email: trimmed })}
+              {t('auth.linkSentTo', { email: sentTo })}
             </p>
-            <p className="text-sm text-text-tertiary">
+            <p className="text-sm text-text-secondary">
               {t('auth.linkSentNote')}
             </p>
+            <a
+              href="mailto:"
+              className={buttonStyles({ variant: 'secondary', size: 'sm', fullWidth: true })}
+            >
+              {t('auth.openMailApp')}
+            </a>
             <button
               type="button"
               onClick={() => {
                 setSent(false)
+                setSentTo('')
+                setShowEmailForm(true)
                 setError(null)
               }}
-              className="text-sm text-accent-primary hover:underline"
+              className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
+            >
+              {t('auth.useDifferentEmail')}
+            </button>
+          </div>
+        ) : showQuickSelect ? (
+          <div className="space-y-4">
+            {error && (
+              <p
+                role="alert"
+                className="text-sm text-on-error-surface bg-error-surface px-3 py-2 rounded-lg"
+              >
+                {error}
+              </p>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              fullWidth
+              disabled={loading}
+              onClick={() => requestLink(savedEmail!)}
+            >
+              {loading ? t('auth.submitting') : t('auth.continueAs', { email: savedEmail! })}
+            </Button>
+            <button
+              type="button"
+              onClick={() => { setShowEmailForm(true); setError(null) }}
+              className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
             >
               {t('auth.useDifferentEmail')}
             </button>
           </div>
         ) : (
           <form onSubmit={sendMagicLink} className="space-y-4" noValidate>
+            <p className="text-sm text-text-secondary">
+              {t('auth.invitedNote')}
+            </p>
             <div className="space-y-1.5">
               <label
                 htmlFor="email"
@@ -126,6 +192,8 @@ export default function LoginPage() {
                 type="email"
                 required
                 autoComplete="email"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
                 inputMode="email"
                 placeholder={t('auth.emailPlaceholder')}
                 value={email}
@@ -166,9 +234,6 @@ export default function LoginPage() {
             <Button type="submit" size="sm" fullWidth disabled={submitDisabled}>
               {loading ? t('auth.submitting') : t('auth.submit')}
             </Button>
-            <p className="text-xs text-text-tertiary text-center">
-              {t('auth.invitedNote')}
-            </p>
           </form>
         )}
       </div>
