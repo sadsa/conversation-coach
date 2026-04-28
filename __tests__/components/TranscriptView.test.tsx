@@ -1,5 +1,5 @@
 // __tests__/components/TranscriptView.test.tsx
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TranscriptView } from '@/components/TranscriptView'
@@ -33,7 +33,36 @@ const defaultProps = {
   onAnnotationUnhelpfulChanged: vi.fn(),
 }
 
+beforeEach(() => {
+  localStorage.clear()
+})
+
 describe('TranscriptView', () => {
+  it('does not auto-open the first correction by default', () => {
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
+  })
+
+  it('does not auto-open when the setting is disabled', () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '0')
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
+  })
+
+  it('does not re-open automatically after the user closes the sheet', async () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '1')
+    render(
+      <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /close/i }))
+    expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
+  })
+
   it('dims native speaker turns (speaker B when user is A)', () => {
     const { container } = render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
@@ -44,10 +73,11 @@ describe('TranscriptView', () => {
   })
 
   it('shows modal with annotation content when highlight is clicked', async () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '0')
     render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
-    await userEvent.click(screen.getByText('Yo fui'))
+    await userEvent.click(screen.getByRole('button', { name: /open correction/i }))
     // Explanation is rendered inside AnnotationCard inside the Modal
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
     // Modal close button should be present
@@ -55,10 +85,11 @@ describe('TranscriptView', () => {
   })
 
   it('closes modal when X button is clicked', async () => {
+    localStorage.setItem('cc:review:auto-open-first-correction:v1', '0')
     render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
-    await userEvent.click(screen.getByText('Yo fui'))
+    await userEvent.click(screen.getByRole('button', { name: /open correction/i }))
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /close/i }))
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
@@ -74,7 +105,7 @@ describe('TranscriptView', () => {
   })
 
   it('applies saved class to a highlight when annotation is in addedAnnotations', () => {
-    render(
+    const { container } = render(
       <TranscriptView
         segments={segments}
         annotations={annotations}
@@ -83,7 +114,8 @@ describe('TranscriptView', () => {
         addedAnnotations={new Map([['ann-1', 'pi-1']])}
       />
     )
-    expect(screen.getByText('Yo fui')).toHaveClass('annotation-saved')
+    const mark = container.querySelector('mark[data-annotation-id="ann-1"]')
+    expect(mark).toHaveClass('annotation-saved')
   })
 
   it('passes writtenAnnotationIds to AnnotatedText so written annotations get written style', () => {
