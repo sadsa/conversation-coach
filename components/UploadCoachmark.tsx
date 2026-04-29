@@ -71,7 +71,11 @@ export function UploadCoachmark({ onDismiss }: Props) {
         aria-label={t('home.coachmarkDismiss')}
         onClick={onDismiss}
         data-testid="upload-coachmark-backdrop"
-        className="fixed inset-0 z-30 bg-black/55 cursor-pointer focus-visible:outline-none"
+        // Use the brand-tinted scrim token instead of bare `bg-black/55` —
+        // pure black scrims read harsh against the warm cream surfaces and
+        // shift the page hue toward neutral grey when active. The token
+        // already incorporates the brand-navy tint and the right alpha.
+        className="fixed inset-0 z-30 bg-scrim cursor-pointer focus-visible:outline-none"
       />
 
       {/* Caption — floats just above the mobile FAB, anchored to the same

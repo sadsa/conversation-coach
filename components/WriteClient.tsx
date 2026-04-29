@@ -15,7 +15,9 @@ export function WriteClient({ initialItems }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{t('write.title')}</h1>
+        <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+          {t('write.title')}
+        </h1>
         {items.length === 0 && (
           <p className="text-sm text-text-secondary mt-1">{t('write.subtitle')}</p>
         )}

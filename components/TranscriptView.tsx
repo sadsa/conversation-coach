@@ -6,6 +6,12 @@ import { AnnotationSheet } from '@/components/AnnotationSheet'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
+// One-shot localStorage flag: once the user has actually opened an
+// annotation in this session (clicked any mark), we treat the legend as
+// "learned" and stop rendering it on future sessions. Bumping the suffix
+// here will re-show it for everyone if the colour states ever change.
+const LEGEND_LEARNED_KEY = 'cc:transcript-legend.learned.v1'
+
 interface Props {
   segments: TranscriptSegment[]
   annotations: Annotation[]
@@ -29,6 +35,23 @@ export function TranscriptView({
 }: Props) {
   const { t } = useTranslation()
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null)
+  // Legend visibility — true on first paint for first-time users, false
+  // forever after the user has opened any annotation. Lives in local state
+  // because we need to react to the user's first click within the session
+  // even if localStorage already says "learned".
+  const [legendVisible, setLegendVisible] = useState(true)
+
+  // On mount, hide the legend immediately for returning users so it never
+  // flashes. SSR-safe — no localStorage access during render.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (window.localStorage.getItem(LEGEND_LEARNED_KEY)) setLegendVisible(false)
+    } catch {
+      // localStorage can throw in private mode; safer to keep showing the
+      // legend than to swallow it.
+    }
+  }, [])
 
   const annotationsBySegment = annotations.reduce<Record<string, Annotation[]>>((acc, a) => {
     if (!acc[a.segment_id]) acc[a.segment_id] = []
@@ -58,6 +81,17 @@ export function TranscriptView({
 
   function handleClick(a: Annotation) {
     setActiveAnnotationId(prev => (prev === a.id ? null : a.id))
+    // First time the user actually engages with a mark, retire the legend
+    // — they've now demonstrated they understand the affordance, and the
+    // coloured swatches above the transcript are pure chrome from here on.
+    if (legendVisible) {
+      setLegendVisible(false)
+      try {
+        window.localStorage.setItem(LEGEND_LEARNED_KEY, '1')
+      } catch {
+        // Same as the read above — best effort, not load-bearing.
+      }
+    }
   }
 
   function handlePrev() {
@@ -101,20 +135,38 @@ export function TranscriptView({
 
   return (
     <div>
-      {/* Inline legend — explains the colour states without forcing the user
-          to learn them by trial. Only shown when there are annotations. */}
-      {annotations.length > 0 && (
+      {/* Inline legend — first-time onboarding only. Hides itself the moment
+          the user opens any annotation (and remembers across sessions via
+          localStorage). The swatches now carry a non-colour secondary signal
+          — a tiny mark glyph that mirrors how the mark itself is rendered in
+          the transcript — so colour-blind users have a working signal too. */}
+      {annotations.length > 0 && legendVisible && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-tertiary mb-5">
           <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="annotation-unreviewed inline-block w-3 h-3 rounded-sm" />
+            <span
+              aria-hidden="true"
+              className="annotation-unreviewed inline-flex items-center justify-center w-5 h-4 rounded-sm font-medium text-[10px] leading-none"
+            >
+              Aa
+            </span>
             {t('transcript.legend.amber')}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="annotation-saved inline-block w-3 h-3 rounded-sm" />
+            <span
+              aria-hidden="true"
+              className="annotation-saved inline-flex items-center justify-center w-5 h-4 rounded-sm font-medium text-[10px] leading-none underline decoration-2 underline-offset-2"
+            >
+              Aa
+            </span>
             {t('transcript.legend.violet')}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="annotation-written inline-block w-3 h-3 rounded-sm" />
+            <span
+              aria-hidden="true"
+              className="annotation-written inline-flex items-center justify-center w-5 h-4 rounded-sm font-medium text-[10px] leading-none"
+            >
+              ✓
+            </span>
             {t('transcript.legend.green')}
           </span>
         </div>

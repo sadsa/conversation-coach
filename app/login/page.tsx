@@ -115,7 +115,7 @@ export default function LoginPage() {
             <LogoMark size={64} />
             <Wordmark />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+          <h1 className="font-display text-3xl font-medium text-text-primary">
             {t('auth.signInTitle')}
           </h1>
         </div>

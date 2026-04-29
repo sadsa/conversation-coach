@@ -164,7 +164,7 @@ function OnboardingContent() {
               intrinsic content size. */}
           <div className="flex flex-1 flex-col justify-center gap-6 min-h-0">
             <div className="space-y-2 text-center">
-              <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+              <h1 className="font-display text-3xl font-medium text-text-primary">
                 {t('onboarding.languageSelect.heading')}
               </h1>
               <p className="text-sm text-text-secondary">

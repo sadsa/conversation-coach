@@ -18,7 +18,7 @@ export function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Quick navigation"
     >
-      <div className="flex h-16 max-w-4xl mx-auto">
+      <div className="flex h-16 max-w-2xl mx-auto">
         {NAV_TABS.map(tab => {
           const active = isTabActive(tab, pathname)
           return (

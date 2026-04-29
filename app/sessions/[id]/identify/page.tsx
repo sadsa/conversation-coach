@@ -60,7 +60,7 @@ export default function IdentifyPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">{t('identify.title')}</h1>
+        <h1 className="font-display text-2xl md:text-3xl font-medium text-text-primary">{t('identify.title')}</h1>
         <p className="text-sm text-text-secondary mt-1">{t('identify.subtitle')}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

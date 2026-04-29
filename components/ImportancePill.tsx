@@ -33,22 +33,45 @@ export function importanceLabelKey(score: number | null): 'annotation.importantP
 }
 
 const PILL_BASE =
-  'inline-flex items-center gap-1.5 rounded-full border border-pill-rank2-bg text-pill-amber px-2.5 py-1 text-xs font-medium'
+  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors'
+
+// Hierarchy: score 3 ("High priority") wears the FILLED rank-1 chip so it
+// reads as one notch louder at a glance than score 2 ("Worth remembering"),
+// which keeps the lighter outlined rank-2 chip. Same colour family, two
+// weights — the eye lands on rank-1 first when both sit in the same view.
+const PILL_VARIANTS: Record<'rank1' | 'rank2', { rest: string; hover: string; dot: string }> = {
+  rank1: {
+    rest: 'bg-pill-rank1 text-on-pill-rank1 border border-transparent',
+    hover: 'hover:bg-pill-rank1/80',
+    dot: 'bg-on-pill-rank1',
+  },
+  rank2: {
+    rest: 'bg-pill-rank2/40 text-pill-amber border border-pill-rank2',
+    hover: 'hover:bg-pill-rank2',
+    dot: 'bg-pill-amber',
+  },
+}
 
 export function ImportancePill({ score, note, expanded, onToggle, toggleAriaKey = 'annotation.importantPillAria' }: Props) {
   const { t } = useTranslation()
   const labelKey = importanceLabelKey(score)
   if (!labelKey) return null
 
+  const variant = score === 3 ? PILL_VARIANTS.rank1 : PILL_VARIANTS.rank2
   const label = t(labelKey)
-  const dot = <span className="w-1.5 h-1.5 rounded-full bg-pill-amber shrink-0" aria-hidden="true" />
+  const dot = (
+    <span
+      className={`w-1.5 h-1.5 rounded-full shrink-0 ${variant.dot}`}
+      aria-hidden="true"
+    />
+  )
 
   if (note) {
     return (
       <button
         type="button"
         onClick={onToggle}
-        className={`${PILL_BASE} bg-pill-rank2-bg/40 hover:bg-pill-rank2-bg transition-colors`}
+        className={`${PILL_BASE} ${variant.rest} ${variant.hover}`}
         aria-label={t(toggleAriaKey)}
         aria-expanded={expanded}
       >
@@ -59,7 +82,7 @@ export function ImportancePill({ score, note, expanded, onToggle, toggleAriaKey 
   }
 
   return (
-    <span className={`${PILL_BASE} bg-pill-rank2-bg/40`}>
+    <span className={`${PILL_BASE} ${variant.rest}`}>
       {dot}
       {label}
     </span>

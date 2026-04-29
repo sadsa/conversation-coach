@@ -68,9 +68,13 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
         }}
         className="fixed top-0 left-0 right-0 z-40 bg-surface border-b border-border-subtle"
       >
+        {/* Header inner row tracks the same 672px reading column the page
+            content uses (see <main> in app/layout.tsx). Without this match
+            the menu/back/section-label cluster would float left of where
+            the page content starts on wide viewports. */}
         <div
           style={{ height: 'var(--header-height)' }}
-          className="max-w-4xl mx-auto px-4 flex items-center justify-between gap-2"
+          className="max-w-2xl mx-auto px-4 md:px-10 flex items-center justify-between gap-2"
         >
           <div className="flex items-center gap-1 min-w-0">
             <button
@@ -119,7 +123,7 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             className="w-11 h-11 -mr-2 flex items-center justify-center flex-shrink-0 group"
           >
-            <span className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-text-secondary group-hover:text-text-primary transition-colors">
+            <span className="w-8 h-8 rounded-full border border-border-subtle flex items-center justify-center text-text-secondary group-hover:text-text-primary group-hover:border-border transition-colors">
             {theme === 'dark' ? (
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"

@@ -17,7 +17,7 @@ export function ExplainSheet({ isOpen, onClose, original, correction, note }: Ex
           {/* Backdrop */}
           <motion.div
             data-testid="explain-sheet-backdrop"
-            className="fixed inset-0 z-40 bg-black/60"
+            className="fixed inset-0 z-40 bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

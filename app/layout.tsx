@@ -11,6 +11,7 @@ import type { TargetLanguage } from '@/lib/types'
 import { TARGET_LANGUAGES } from '@/lib/types'
 import { inferUiLanguage } from '@/lib/i18n'
 import { THEME_COLOR, STATUS_BAR_STYLE } from '@/lib/theme-meta'
+import { fontBody, fontDisplay } from './fonts'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -77,7 +78,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   `
 
   return (
-    <html lang={uiLanguage} suppressHydrationWarning className="overflow-x-hidden">
+    <html
+      lang={uiLanguage}
+      suppressHydrationWarning
+      className={`overflow-x-hidden ${fontBody.variable} ${fontDisplay.variable}`}
+    >
       <head>
         {/* Light-theme default for the Android / Safari address-bar tint.
             The matching iOS PWA `apple-mobile-web-app-status-bar-style`
@@ -115,7 +120,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 marginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
                 scrollMarginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
               }}
-              className="max-w-4xl mx-auto px-6 pt-8 pb-20 focus:outline-none"
+              // Single, intentional reading column. The app is a reading
+              // surface — transcripts, corrections, written-down queue —
+              // so we commit to a 672px max-width centered on the viewport,
+              // matching the column tradition of newspaper feature pages
+              // and the references in .impeccable.md (Google Recorder,
+              // Gmail mobile). Wider would push line-length past comfort
+              // for body text; a side-rail "dashboard" widget column
+              // would betray the "spacious / patient" brand. Owning the
+              // empty space as a frame is the design decision.
+              //
+              // Bumped horizontal padding on `md:` so the column reads as
+              // intentionally inset on desktop rather than slumped against
+              // a narrower max-width by accident. Top padding also breathes
+              // a notch more on desktop where vertical real-estate is cheap.
+              className="max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 pb-20 focus:outline-none"
             >
               {children}
             </main>

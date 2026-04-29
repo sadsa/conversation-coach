@@ -244,12 +244,19 @@ export function AnnotationCard({
       className={`space-y-5 transition-opacity duration-200 ${isUnhelpful ? 'opacity-60' : 'opacity-100'}`}
       data-unhelpful={isUnhelpful || undefined}
     >
+      {/* Wrong → right pair. The "wrong" fragment used to sit inside a red
+          error-surface chip, which read as scolding for what is by definition
+          a learning moment — directly at odds with the "patient, encouraging"
+          brand. We now use a pencil-mark treatment instead: tertiary tone +
+          line-through, like a teacher's softly struck draft, with the
+          correction carrying the visual weight (font-display + correction
+          token) so the eye lands on the *answer*, not on the mistake. */}
       <p className="text-base md:text-lg leading-relaxed">
-        <span className="bg-error-surface text-on-error-surface px-2 py-1 rounded">
+        <span className="text-text-tertiary line-through decoration-text-tertiary/50 decoration-2 underline-offset-2">
           {annotation.original}
         </span>
         <span className="mx-2 text-text-tertiary" aria-hidden="true">→</span>
-        <span className="font-semibold text-lg md:text-xl text-correction">
+        <span className="font-display font-medium text-xl md:text-2xl text-correction">
           {annotation.correction}
         </span>
       </p>

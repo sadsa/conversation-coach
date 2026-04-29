@@ -282,7 +282,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
       <header className="space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2 flex-1">
-            <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
+            <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
               {t(greetingKey)}
             </h1>
             <p className="text-text-secondary leading-relaxed">

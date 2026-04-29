@@ -7,6 +7,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { TARGET_LANGUAGES, type TargetLanguage } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Toast } from '@/components/Toast'
+import { Wordmark } from '@/components/Wordmark'
 
 const MIN = 14
 const MAX = 22
@@ -49,8 +50,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-sm space-y-10">
-      <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
+    // Settings inherits the page's reading column from <main> in
+    // app/layout.tsx — no inner max-width override. Individual form
+    // controls cap their own width below where the visual rhythm wants it
+    // (the +/- text-size cluster, the language <select>) so the form
+    // doesn't stretch absurdly across a 672px column.
+    <div className="space-y-10">
+      <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+        {t('settings.title')}
+      </h1>
 
       {/* Preferences: text size + language as labelled form fields, no section header */}
       <div className="space-y-6">
@@ -75,7 +83,9 @@ export default function SettingsPage() {
               +
             </button>
           </div>
-          <div className="border border-border-subtle rounded-lg p-4 space-y-3">
+          {/* Preview card capped at a typical reading width so the sample
+              sentence wraps the way it would in a real transcript snippet. */}
+          <div className="max-w-sm border border-border-subtle rounded-lg p-4 space-y-3">
             <div>
               <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1">{t('settings.previewYou')}</p>
               <span className="text-sm leading-relaxed">{t('settings.previewSentence')}</span>
@@ -88,14 +98,17 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="lang-select" className="text-sm font-medium text-text-secondary">
+          <label htmlFor="lang-select" className="block text-sm font-medium text-text-secondary">
             {t('settings.targetLanguage')}
           </label>
           <select
             id="lang-select"
             value={targetLanguage}
             onChange={e => setTargetLanguage(e.target.value as TargetLanguage)}
-            className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary text-sm focus:outline-none focus:border-text-secondary focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            // Capped to the same width as the preview card above so the
+            // form rows feel like a column of related controls rather
+            // than stretching across the whole reading column.
+            className="w-full max-w-sm px-3 py-2 rounded border border-border bg-surface text-text-primary text-sm focus:outline-none focus:border-text-secondary focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {(Object.entries(TARGET_LANGUAGES) as [TargetLanguage, string][]).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -104,22 +117,36 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Help — read-only documentation links, not form fields. The previous
+          full-width bordered buttons mirrored the language <select> above
+          and made the section look like another preference toggle. List-link
+          styling (chevron + hover-tinted text) reads as "tap to learn",
+          which matches what these actually do (re-open the tutorial). */}
       <div className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.help')}</h2>
-        <div className="space-y-2">
-          <Link
-            href="/onboarding?step=1&revisit=true"
-            className="block w-full px-4 py-2 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors text-sm text-left text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {t('settings.howToUpload')}
-          </Link>
-          <Link
-            href="/onboarding?step=2&revisit=true"
-            className="block w-full px-4 py-2 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors text-sm text-left text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {t('settings.howToShare')}
-          </Link>
-        </div>
+        <ul className="-mx-2 divide-y divide-border-subtle">
+          {[
+            { href: '/onboarding?step=1&revisit=true', label: t('settings.howToUpload') },
+            { href: '/onboarding?step=2&revisit=true', label: t('settings.howToShare') },
+          ].map(link => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="group flex items-center justify-between gap-3 px-2 py-2.5 text-sm text-text-primary hover:text-accent-primary focus-visible:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors"
+              >
+                <span>{link.label}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+                  className="w-4 h-4 text-text-tertiary group-hover:text-accent-primary transition-colors"
+                  aria-hidden="true"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="space-y-3">
@@ -134,7 +161,14 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <p className="text-xs text-text-tertiary pt-2">{VERSION}</p>
+      {/* Footer — quietly stamps the brand alongside the version. The
+          wordmark on its own would feel decorative; pairing it with the
+          build SHA + date keeps the slot informational while still
+          carrying the brand on a surface that previously had none. */}
+      <div className="pt-2 space-y-1">
+        <Wordmark />
+        <p className="text-xs text-text-tertiary tabular-nums">{VERSION}</p>
+      </div>
 
       {signOutError && (
         <Toast message={t('settings.signOutError')} toastKey={`sign-out-error-${signOutRetry}`} />

@@ -20,7 +20,7 @@ export default async function StatusPage({ params }: { params: { id: string } })
     <div className="space-y-10">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary break-words">
+          <h1 className="font-display text-3xl sm:text-4xl font-medium text-text-primary break-words">
             {session.title}
           </h1>
         </div>

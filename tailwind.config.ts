@@ -8,6 +8,31 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Hanken Grotesk — humanist sans body face. Loaded in app/fonts.ts.
+        // Used everywhere by default via the body selector in globals.css.
+        sans: [
+          'var(--font-body)',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+        // Source Serif 4 — display face for greetings + page H1s. Reach for
+        // this with `font-display` only on titles where the bookish register
+        // matters. Body, labels, eyebrows, buttons all stay sans.
+        display: [
+          'var(--font-display)',
+          'ui-serif',
+          'Georgia',
+          'Cambria',
+          'Times New Roman',
+          'serif',
+        ],
+      },
       colors: {
         bg: "var(--color-bg)",
         surface: "var(--color-surface)",

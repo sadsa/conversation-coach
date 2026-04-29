@@ -1,6 +1,6 @@
 // __tests__/components/SessionList.test.tsx
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SessionList } from '@/components/SessionList'
 import type { SessionListItem } from '@/lib/types'
@@ -208,50 +208,69 @@ describe('SessionList — swipe-right toggles read/unread', () => {
   // toggle behaviour for both states is verified above via the test seam.
 })
 
-describe('SessionList — swipe to delete', () => {
+// Optimistic delete + 5s Undo (parity with WriteList). The old confirmation
+// Modal flow was retired in the /distill design pass — the swipe gesture is
+// the commit, the toast is the safety net.
+describe('SessionList — swipe to delete (optimistic + Undo)', () => {
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
-  it('shows confirmation modal when delete seam is triggered', async () => {
+  it('hides the row immediately and shows an Undo toast', async () => {
     render(<SessionList sessions={[readySession]} />)
-    await userEvent.click(screen.getByTestId('delete-session-sess-1'))
-    expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument()
-  })
-
-  it('modal shows session title and data warning', async () => {
-    render(<SessionList sessions={[readySession]} />)
-    await userEvent.click(screen.getByTestId('delete-session-sess-1'))
-    const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByText(/Chat with María/)).toBeInTheDocument()
-    expect(within(dialog).getByText(/annotations/i)).toBeInTheDocument()
-    expect(within(dialog).getByText(/saved corrections/i)).toBeInTheDocument()
-  })
-
-  it('closes modal without calling API on Cancel', async () => {
-    render(<SessionList sessions={[readySession]} />)
-    await userEvent.click(screen.getByTestId('delete-session-sess-1'))
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    await user.click(screen.getByTestId('delete-session-sess-1'))
+    // Toast appears with Undo affordance, no Modal anywhere.
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument()
     expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
+    // No network call yet — DELETE is scheduled inside the Undo window.
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
-  it('calls DELETE API and fires onDeleted when Delete is confirmed', async () => {
+  it('cancels the pending DELETE and restores the row on Undo', async () => {
     const onDeleted = vi.fn()
     render(<SessionList sessions={[readySession]} onDeleted={onDeleted} />)
-    await userEvent.click(screen.getByTestId('delete-session-sess-1'))
-    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    await user.click(screen.getByTestId('delete-session-sess-1'))
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /undo/i }))
+    // Advance past the would-be DELETE timer to prove it really was cancelled.
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(onDeleted).not.toHaveBeenCalled()
+    // Row's seam button is still mounted — i.e. the row came back.
+    expect(screen.getByTestId('delete-session-sess-1')).toBeInTheDocument()
+  })
+
+  it('calls DELETE and fires onDeleted once the Undo window expires', async () => {
+    const onDeleted = vi.fn()
+    render(<SessionList sessions={[readySession]} onDeleted={onDeleted} />)
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    await user.click(screen.getByTestId('delete-session-sess-1'))
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument())
+    await vi.advanceTimersByTimeAsync(5100)
     expect(global.fetch).toHaveBeenCalledWith('/api/sessions/sess-1', { method: 'DELETE' })
     await vi.waitFor(() => expect(onDeleted).toHaveBeenCalledWith('sess-1'))
   })
 
-  it('shows error toast and does not call onDeleted when API fails', async () => {
+  it('restores the row + shows error toast when the DELETE fails', async () => {
+    // First call (the actual DELETE) fails; subsequent toast renders use the
+    // cached state so we don't need to re-mock anything.
     global.fetch = vi.fn().mockResolvedValue({ ok: false })
     const onDeleted = vi.fn()
     render(<SessionList sessions={[readySession]} onDeleted={onDeleted} />)
-    await userEvent.click(screen.getByTestId('delete-session-sess-1'))
-    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }))
-    await vi.waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    await user.click(screen.getByTestId('delete-session-sess-1'))
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument())
+    await vi.advanceTimersByTimeAsync(5100)
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled())
     expect(onDeleted).not.toHaveBeenCalled()
+    // Row restored + an error alert is up.
+    await vi.waitFor(() => expect(screen.getByTestId('delete-session-sess-1')).toBeInTheDocument())
   })
 })

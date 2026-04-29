@@ -127,6 +127,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.cancelButton': 'Cancel',
     'session.noSessions': 'No sessions yet — tap Upload to add your first conversation.',
     'session.deleteError': 'Couldn\'t delete session — try again.',
+    // Optimistic delete + 5s Undo (parity with /write). Replaces the old
+    // confirmation modal: the swipe is the commit, the toast is the safety net.
+    'session.movedToTrash': 'Conversation moved to trash.',
+    'session.undo': 'Undo',
     // Swipe-right toggle on a session row in the recent inbox.
     'session.markUnread': 'Mark unread',
     'session.markRead': 'Mark read',
@@ -285,7 +289,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Write page (the queue of saved corrections waiting to be written down)
     'write.title': 'Write',
-    'write.subtitle': 'Saved corrections waiting to be written down.',
+    // Empty-state only. The H1 already names the surface; the subtitle's
+    // job here is to invite the next action without restating "saved
+    // corrections waiting to be written down" (the page is the noun, the
+    // subtitle is the verb).
+    'write.subtitle': 'Pick up a saved correction whenever you\'re ready.',
     'write.loading': 'Loading…',
     'write.error': 'Error: {msg}',
 
@@ -519,6 +527,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.cancelButton': 'Cancelar',
     'session.noSessions': 'Todavía no hay sesiones — tocá Subir para agregar tu primera conversación.',
     'session.deleteError': 'No se pudo eliminar la sesión — intentá de nuevo.',
+    // Eliminado optimista con 5s para deshacer (mismo patrón que /write).
+    // El gesto deslizar ya es la confirmación; el toast es la red de seguridad.
+    'session.movedToTrash': 'Conversación enviada a la papelera.',
+    'session.undo': 'Deshacer',
     // Toggle leído/sin leer al deslizar a la derecha sobre una fila.
     'session.markUnread': 'Sin leer',
     'session.markRead': 'Leída',
@@ -679,7 +691,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Write page (the queue of saved corrections waiting to be written down)
     'write.title': 'Anotar',
-    'write.subtitle': 'Correcciones guardadas para anotar.',
+    // Solo estado vacío. El H1 ya nombra la superficie; el subtítulo invita
+    // a la próxima acción sin repetir "correcciones guardadas".
+    'write.subtitle': 'Tomá una corrección guardada cuando quieras.',
     'write.loading': 'Cargando…',
     'write.error': 'Error: {msg}',
 
