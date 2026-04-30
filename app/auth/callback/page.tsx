@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 
@@ -27,11 +27,19 @@ import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
  * handles it via detectSessionInUrl, and keeping this as a client page
  * preserves the implicit-flow fallback path if flowType ever changes again.
  */
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const handled = useRef(false)
 
   useEffect(() => {
+    // Supabase sets ?error=... when the link is invalid or expired.
+    // Redirect immediately rather than waiting for the 8-second safety net.
+    if (searchParams.get('error')) {
+      router.replace('/login')
+      return
+    }
+
     const supabase = getSupabaseBrowserClient()
 
     function redirect(session: { user: { user_metadata?: { target_language?: string } } }) {
@@ -62,7 +70,15 @@ export default function AuthCallbackPage() {
       subscription.unsubscribe()
       clearTimeout(timeout)
     }
-  }, [router])
+  }, [router, searchParams])
 
   return null
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <AuthCallbackContent />
+    </Suspense>
+  )
 }

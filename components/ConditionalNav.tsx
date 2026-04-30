@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
 import { BottomNav } from '@/components/BottomNav'
 
-const HIDDEN_ON = ['/login', '/access-denied', '/onboarding']
+const HIDDEN_ON = ['/login', '/access-denied', '/onboarding', '/auth']
 
 export function ConditionalNav() {
   const pathname = usePathname()
