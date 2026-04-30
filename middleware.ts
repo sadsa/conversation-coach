@@ -1,6 +1,7 @@
 // middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { log } from '@/lib/logger'
 
 const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/api/webhooks']
 
@@ -56,9 +57,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError) {
+    log.error('middleware: getUser failed', { path: pathname, error: authError.message, status: authError.status })
+  }
 
   if (!user) {
+    log.warn('middleware: no user, redirecting to login', { path: pathname, hasAuthError: !!authError })
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -71,18 +77,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/access-denied', request.url))
   }
 
-  // Forward the verified identity to downstream layouts, pages, and API
-  // routes so they don't have to re-call getUser() themselves.
+  // Capture any Set-Cookie headers that setAll() wrote during getUser() (token refresh).
+  // We must do this BEFORE recreating the response below, otherwise they're lost.
+  const refreshCookies = supabaseResponse.headers.getSetCookie()
+
+  // Forward the verified identity as *request* headers so downstream RSCs and
+  // API routes can read them without re-calling getUser().
   requestHeaders.set(USER_ID_HEADER, user.id)
   if (user.email) requestHeaders.set(USER_EMAIL_HEADER, user.email)
   const targetLanguage = (user.user_metadata?.target_language as string | undefined) ?? ''
   if (targetLanguage) requestHeaders.set(USER_TARGET_LANGUAGE_HEADER, targetLanguage)
 
-  return NextResponse.next({ request: { headers: requestHeaders } })
+  // Rebuild with the identity-enriched requestHeaders.
+  supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
+
+  // Restore any refresh cookies so the browser receives the new tokens.
+  // Without this, a token-refresh cycle during middleware would silently
+  // discard the new credentials — the user would be signed out on their
+  // very next request despite passing auth just now.
+  for (const cookie of refreshCookies) {
+    supabaseResponse.headers.append('Set-Cookie', cookie)
+  }
+
+  return supabaseResponse
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|apple-touch-icon.png|icon-192.png|icon-512.png).*)',
+    '/((?!_next/static|_next/image|favicon.ico|logo.svg|icon.svg|manifest.json|sw.js|icons|apple-touch-icon.png|icon-192.png|icon-512.png).*)',
   ],
 }
