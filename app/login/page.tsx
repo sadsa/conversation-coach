@@ -10,48 +10,6 @@ import { Wordmark } from '@/components/Wordmark'
 // Supabase will reject anything truly malformed, so this is just to catch
 // obvious typos before the network call.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-interface EmailProvider {
-  scheme: string
-  webUrl: string
-  label: string
-}
-
-function getEmailProvider(email: string): EmailProvider {
-  const domain = email.split('@')[1]?.toLowerCase() ?? ''
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    return { scheme: 'googlegmail:///', webUrl: 'https://mail.google.com/mail/u/0/#inbox', label: 'Open Gmail' }
-  }
-  if (['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain)) {
-    return { scheme: 'ms-outlook://', webUrl: 'https://outlook.live.com/mail/inbox', label: 'Open Outlook' }
-  }
-  if (domain.startsWith('yahoo.')) {
-    return { scheme: 'ymail://', webUrl: 'https://mail.yahoo.com/', label: 'Open Yahoo Mail' }
-  }
-  if (['icloud.com', 'me.com', 'mac.com'].includes(domain)) {
-    return { scheme: 'message://', webUrl: '', label: 'Open Mail' }
-  }
-  if (domain === 'protonmail.com' || domain === 'proton.me') {
-    return { scheme: 'protonmail://', webUrl: 'https://mail.proton.me/', label: 'Open Proton Mail' }
-  }
-  return { scheme: 'mailto:', webUrl: '', label: '' }
-}
-
-/**
- * Try the native app scheme first. Custom schemes silently fail in iOS PWA
- * standalone mode, so after 1.5 s check if the page is still visible — if so,
- * the app didn't open and we fall back to the web URL in a new tab (which
- * leaves the PWA context and lets Safari hand off to the native app).
- */
-function openEmailApp(provider: EmailProvider) {
-  window.location.href = provider.scheme
-  if (!provider.webUrl) return
-  setTimeout(() => {
-    if (!document.hidden) {
-      window.open(provider.webUrl, '_blank', 'noopener,noreferrer')
-    }
-  }, 1500)
-}
 const SAVED_EMAIL_KEY = 'cc:login-email'
 
 function isValidEmail(value: string): boolean {
@@ -170,18 +128,12 @@ export default function LoginPage() {
             <p className="text-sm text-text-secondary">
               {t('auth.linkSentNote')}
             </p>
-            {(() => {
-              const provider = getEmailProvider(sentTo)
-              return (
-                <button
-                  type="button"
-                  onClick={() => openEmailApp(provider)}
-                  className={buttonStyles({ variant: 'secondary', size: 'sm', fullWidth: true })}
-                >
-                  {provider.label || t('auth.openMailApp')}
-                </button>
-              )
-            })()}
+            <a
+              href="mailto:"
+              className={buttonStyles({ variant: 'secondary', size: 'sm', fullWidth: true })}
+            >
+              {t('auth.openMailApp')}
+            </a>
             <button
               type="button"
               onClick={() => {
