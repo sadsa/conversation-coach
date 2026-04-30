@@ -151,12 +151,13 @@ export default function LoginPage() {
             {(() => {
               const { href, label } = getEmailInboxUrl(sentTo)
               return (
-                <a
-                  href={href}
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = href }}
                   className={buttonStyles({ variant: 'secondary', size: 'sm', fullWidth: true })}
                 >
                   {label || t('auth.openMailApp')}
-                </a>
+                </button>
               )
             })()}
             <button
