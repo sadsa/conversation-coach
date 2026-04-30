@@ -64,7 +64,6 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user) {
-    log.warn('middleware: no user, redirecting to login', { path: pathname, hasAuthError: !!authError })
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
