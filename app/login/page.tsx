@@ -14,19 +14,19 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 function getEmailInboxUrl(email: string): { href: string; label: string } {
   const domain = email.split('@')[1]?.toLowerCase() ?? ''
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    return { href: 'https://mail.google.com/mail/u/0/#inbox', label: 'Open Gmail' }
+    return { href: 'googlegmail://', label: 'Open Gmail' }
   }
   if (['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain)) {
-    return { href: 'https://outlook.live.com/mail/inbox', label: 'Open Outlook' }
+    return { href: 'ms-outlook://', label: 'Open Outlook' }
   }
   if (domain.startsWith('yahoo.')) {
-    return { href: 'https://mail.yahoo.com/', label: 'Open Yahoo Mail' }
+    return { href: 'ymail://', label: 'Open Yahoo Mail' }
   }
   if (['icloud.com', 'me.com', 'mac.com'].includes(domain)) {
-    return { href: 'https://www.icloud.com/mail/', label: 'Open iCloud Mail' }
+    return { href: 'mailto:', label: 'Open Mail' }
   }
   if (domain === 'protonmail.com' || domain === 'proton.me') {
-    return { href: 'https://mail.proton.me/', label: 'Open Proton Mail' }
+    return { href: 'protonmail://', label: 'Open Proton Mail' }
   }
   return { href: 'mailto:', label: '' }
 }
@@ -153,8 +153,6 @@ export default function LoginPage() {
               return (
                 <a
                   href={href}
-                  target={href.startsWith('http') ? '_blank' : undefined}
-                  rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   className={buttonStyles({ variant: 'secondary', size: 'sm', fullWidth: true })}
                 >
                   {label || t('auth.openMailApp')}
