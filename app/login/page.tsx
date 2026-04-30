@@ -11,24 +11,46 @@ import { Wordmark } from '@/components/Wordmark'
 // obvious typos before the network call.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function getEmailInboxUrl(email: string): { href: string; label: string } {
+interface EmailProvider {
+  scheme: string
+  webUrl: string
+  label: string
+}
+
+function getEmailProvider(email: string): EmailProvider {
   const domain = email.split('@')[1]?.toLowerCase() ?? ''
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    return { href: 'googlegmail://', label: 'Open Gmail' }
+    return { scheme: 'googlegmail:///', webUrl: 'https://mail.google.com/mail/u/0/#inbox', label: 'Open Gmail' }
   }
   if (['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain)) {
-    return { href: 'ms-outlook://', label: 'Open Outlook' }
+    return { scheme: 'ms-outlook://', webUrl: 'https://outlook.live.com/mail/inbox', label: 'Open Outlook' }
   }
   if (domain.startsWith('yahoo.')) {
-    return { href: 'ymail://', label: 'Open Yahoo Mail' }
+    return { scheme: 'ymail://', webUrl: 'https://mail.yahoo.com/', label: 'Open Yahoo Mail' }
   }
   if (['icloud.com', 'me.com', 'mac.com'].includes(domain)) {
-    return { href: 'mailto:', label: 'Open Mail' }
+    return { scheme: 'message://', webUrl: '', label: 'Open Mail' }
   }
   if (domain === 'protonmail.com' || domain === 'proton.me') {
-    return { href: 'protonmail://', label: 'Open Proton Mail' }
+    return { scheme: 'protonmail://', webUrl: 'https://mail.proton.me/', label: 'Open Proton Mail' }
   }
-  return { href: 'mailto:', label: '' }
+  return { scheme: 'mailto:', webUrl: '', label: '' }
+}
+
+/**
+ * Try the native app scheme first. Custom schemes silently fail in iOS PWA
+ * standalone mode, so after 1.5 s check if the page is still visible — if so,
+ * the app didn't open and we fall back to the web URL in a new tab (which
+ * leaves the PWA context and lets Safari hand off to the native app).
+ */
+function openEmailApp(provider: EmailProvider) {
+  window.location.href = provider.scheme
+  if (!provider.webUrl) return
+  setTimeout(() => {
+    if (!document.hidden) {
+      window.open(provider.webUrl, '_blank', 'noopener,noreferrer')
+    }
+  }, 1500)
 }
 const SAVED_EMAIL_KEY = 'cc:login-email'
 
@@ -149,14 +171,14 @@ export default function LoginPage() {
               {t('auth.linkSentNote')}
             </p>
             {(() => {
-              const { href, label } = getEmailInboxUrl(sentTo)
+              const provider = getEmailProvider(sentTo)
               return (
                 <button
                   type="button"
-                  onClick={() => { window.location.href = href }}
+                  onClick={() => openEmailApp(provider)}
                   className={buttonStyles({ variant: 'secondary', size: 'sm', fullWidth: true })}
                 >
-                  {label || t('auth.openMailApp')}
+                  {provider.label || t('auth.openMailApp')}
                 </button>
               )
             })()}
