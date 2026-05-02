@@ -65,7 +65,6 @@ function playStartTone(ctx: AudioContext) {
 }
 
 export interface VoiceAgent {
-  updateFocus: (correction: FocusedCorrection, allItems: FocusedCorrection[], targetLanguage: TargetLanguage) => void
   setMuted: (muted: boolean) => void
   disconnect: () => void
 }
@@ -75,11 +74,10 @@ const WS_ENDPOINT =
 
 const DEFAULT_VOICE = 'Aoede'
 
-/** Pure function — builds the system prompt injected on connect. Unchanged from AssemblyAI version. */
+/** Pure function — builds the system prompt injected on connect. */
 export function buildSystemPrompt(
   targetLanguage: TargetLanguage,
-  items: FocusedCorrection[],
-  focused: FocusedCorrection
+  items: FocusedCorrection[]
 ): string {
   const isEsAR = targetLanguage === 'es-AR'
 
@@ -97,25 +95,7 @@ export function buildSystemPrompt(
 The user has these corrections to review:
 ${itemList}
 
-Currently discussing: "${focused.original}" → "${focused.correction ?? focused.original}"
-${focused.explanation}
-
-Be brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted.
-
-If the user switches to a different correction, you'll receive a short message starting with "Dale, ahora…" (Spanish) or "Right, next…" (English). When that happens, drop your previous explanation entirely — do not continue with phrases like "that's why" or "so as I was saying". Open with a brief, natural acknowledgement of the switch ("Listo, esta…", "Bueno, en este caso…", "Okay, this one…", "Right, so for this one…") then state the key point about the new correction in one or two sentences.`
-}
-
-/**
- * Returns the text injected as a user-turn when focus changes mid-session.
- * Localised so the model stays in the conversation language and reads the
- * cue as a clear topic switch (not a clarifying aside on the previous one).
- */
-export function buildFocusUpdateMessage(
-  focused: FocusedCorrection,
-  targetLanguage: TargetLanguage
-): string {
-  const lead = targetLanguage === 'es-AR' ? 'Dale, ahora esta' : 'Right, next'
-  return `${lead}: "${focused.original}" → "${focused.correction ?? focused.original}"`
+Be brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted. Let the user guide which correction they want to discuss.`
 }
 
 /**
@@ -128,7 +108,6 @@ export function buildFocusUpdateMessage(
 export async function connect(
   targetLanguage: TargetLanguage,
   items: FocusedCorrection[],
-  focused: FocusedCorrection,
   callbacks: VoiceAgentCallbacks
 ): Promise<VoiceAgent> {
   // 1. Get Google API key from our auth-gated server route.
@@ -254,7 +233,7 @@ export async function connect(
             },
           },
           systemInstruction: {
-            parts: [{ text: buildSystemPrompt(targetLanguage, items, focused) }],
+            parts: [{ text: buildSystemPrompt(targetLanguage, items) }],
           },
         },
       })
@@ -338,26 +317,6 @@ export async function connect(
 
   // 4. Return the agent handle.
   return {
-    updateFocus(correction, _allItems, focusTargetLanguage) {
-      if (ws.readyState !== WebSocket.OPEN) return
-      // Cut local playback the instant the user changes focus — don't wait
-      // for the server's `interrupted` signal to round-trip, otherwise the
-      // old turn keeps playing for ~100-300ms over the start of the new one.
-      stopAgentPlayback()
-      ws.send(
-        JSON.stringify({
-          clientContent: {
-            turns: [
-              {
-                role: 'user',
-                parts: [{ text: buildFocusUpdateMessage(correction, focusTargetLanguage) }],
-              },
-            ],
-            turnComplete: true,
-          },
-        })
-      )
-    },
     setMuted(muted) {
       audioTrack.enabled = !muted
     },

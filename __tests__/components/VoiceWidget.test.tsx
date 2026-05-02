@@ -105,7 +105,6 @@ describe('VoiceWidget', () => {
 
   it('calls connect when the FAB is tapped', async () => {
     mockConnect.mockResolvedValue({
-      updateFocus: vi.fn(),
       setMuted: vi.fn(),
       disconnect: vi.fn(),
     })
@@ -115,11 +114,10 @@ describe('VoiceWidget', () => {
   })
 
   it('shows expanded controls when session is active', async () => {
-    let capturedCallbacks: Parameters<typeof mockConnect>[3]
-    mockConnect.mockImplementation((_lang, _items, _focused, callbacks) => {
+    let capturedCallbacks: Parameters<typeof mockConnect>[2]
+    mockConnect.mockImplementation((_lang, _items, callbacks) => {
       capturedCallbacks = callbacks
       return Promise.resolve({
-        updateFocus: vi.fn(),
         setMuted: vi.fn(),
         disconnect: vi.fn(),
       })
@@ -136,33 +134,12 @@ describe('VoiceWidget', () => {
     expect(screen.getByRole('button', { name: /mute microphone/i })).toBeInTheDocument()
   })
 
-  it('calls updateFocus when next is tapped with two items', async () => {
-    const updateFocus = vi.fn()
-    let capturedCallbacks: Parameters<typeof mockConnect>[3]
-    mockConnect.mockImplementation((_lang, _items, _focused, callbacks) => {
-      capturedCallbacks = callbacks
-      return Promise.resolve({ updateFocus, setMuted: vi.fn(), disconnect: vi.fn() })
-    })
-
-    const items = [makeItem({ id: 'item-1' }), makeItem({ id: 'item-2', original: 'tengo calor', correction: 'hace calor' })]
-    wrap(items)
-    fireEvent.click(screen.getByRole('button', { name: /talk it through/i }))
-    await waitFor(() => { capturedCallbacks!.onStateChange('active') })
-
-    fireEvent.click(screen.getByRole('button', { name: /next correction/i }))
-    expect(updateFocus).toHaveBeenCalledWith(
-      expect.objectContaining({ original: 'tengo calor' }),
-      expect.any(Array),
-      'es-AR'
-    )
-  })
-
   it('calls setMuted when mute button is tapped', async () => {
     const setMuted = vi.fn()
-    let capturedCallbacks: Parameters<typeof mockConnect>[3]
-    mockConnect.mockImplementation((_lang, _items, _focused, callbacks) => {
+    let capturedCallbacks: Parameters<typeof mockConnect>[2]
+    mockConnect.mockImplementation((_lang, _items, callbacks) => {
       capturedCallbacks = callbacks
-      return Promise.resolve({ updateFocus: vi.fn(), setMuted, disconnect: vi.fn() })
+      return Promise.resolve({ setMuted, disconnect: vi.fn() })
     })
 
     wrap()
@@ -175,10 +152,10 @@ describe('VoiceWidget', () => {
 
   it('calls disconnect and collapses when end is tapped', async () => {
     const disconnect = vi.fn()
-    let capturedCallbacks: Parameters<typeof mockConnect>[3]
-    mockConnect.mockImplementation((_lang, _items, _focused, callbacks) => {
+    let capturedCallbacks: Parameters<typeof mockConnect>[2]
+    mockConnect.mockImplementation((_lang, _items, callbacks) => {
       capturedCallbacks = callbacks
-      return Promise.resolve({ updateFocus: vi.fn(), setMuted: vi.fn(), disconnect })
+      return Promise.resolve({ setMuted: vi.fn(), disconnect })
     })
 
     wrap()

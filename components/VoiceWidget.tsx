@@ -15,7 +15,7 @@
 // `.voice-indicator` rule in `globals.css` so reduced-motion users get the
 // colour information but no movement.
 //
-// Keyboard: while active, ←/→ change focus, Esc ends, Space toggles mute.
+// Keyboard: while active, Esc ends, Space toggles mute.
 // Listener is only mounted while active; cleaned up on state change /
 // unmount. Inputs and textareas are ignored so we don't fight forms.
 //
@@ -39,7 +39,6 @@ interface Props {
 type WidgetState = 'idle' | 'connecting' | 'active' | 'muted'
 type Speaker = 'idle' | 'user' | 'agent'
 
-const HINT_STORAGE_KEY = 'cc:voice-first-hint:v1'
 // RMS thresholds — anything below `RMS_FLOOR` reads as silence. Tuned by ear
 // against the Gemini Live PCM streams; mic noise floor sits ~0.002.
 const RMS_FLOOR = 0.004
@@ -60,9 +59,7 @@ function toFocusedCorrection(item: PracticeItem): FocusedCorrection {
 export function VoiceWidget({ initialItems }: Props) {
   const { t, targetLanguage } = useTranslation()
   const [widgetState, setWidgetState] = useState<WidgetState>('idle')
-  const [focusedIndex, setFocusedIndex] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
-  const [showHint, setShowHint] = useState(false)
   const agentRef = useRef<VoiceAgent | null>(null)
   const toastKeyRef = useRef(0)
   const toastTimerRef = useRef<number | null>(null)
@@ -75,7 +72,6 @@ export function VoiceWidget({ initialItems }: Props) {
   const rafRef = useRef<number | null>(null)
 
   const items = initialItems
-  const focusedItem = items[focusedIndex] ?? items[0]
 
   const isActive = widgetState === 'active' || widgetState === 'muted'
   const isMuted = widgetState === 'muted'
@@ -92,14 +88,13 @@ export function VoiceWidget({ initialItems }: Props) {
   }, [])
 
   const handleStart = useCallback(async () => {
-    if (widgetState !== 'idle' || !focusedItem) return
+    if (widgetState !== 'idle' || items.length === 0) return
     setWidgetState('connecting')
 
     try {
       const agent = await connect(
         targetLanguage,
         items.map(toFocusedCorrection),
-        toFocusedCorrection(focusedItem),
         {
           onStateChange: (state: VoiceAgentState) => {
             if (state === 'active') setWidgetState('active')
@@ -126,7 +121,7 @@ export function VoiceWidget({ initialItems }: Props) {
       setWidgetState('idle')
       showToast(t('voice.micPermission'))
     }
-  }, [widgetState, focusedItem, items, targetLanguage, t, showToast])
+  }, [widgetState, items, targetLanguage, t, showToast])
 
   const handleEnd = useCallback(() => {
     agentRef.current?.disconnect()
@@ -143,34 +138,6 @@ export function VoiceWidget({ initialItems }: Props) {
     }
   }, [widgetState])
 
-  const handlePrev = useCallback(() => {
-    if (!agentRef.current || focusedIndex === 0) return
-    const nextIndex = focusedIndex - 1
-    setFocusedIndex(nextIndex)
-    const nextItem = items[nextIndex]
-    if (nextItem) {
-      agentRef.current.updateFocus(
-        toFocusedCorrection(nextItem),
-        items.map(toFocusedCorrection),
-        targetLanguage
-      )
-    }
-  }, [focusedIndex, items, targetLanguage])
-
-  const handleNext = useCallback(() => {
-    if (!agentRef.current || focusedIndex === items.length - 1) return
-    const nextIndex = focusedIndex + 1
-    setFocusedIndex(nextIndex)
-    const nextItem = items[nextIndex]
-    if (nextItem) {
-      agentRef.current.updateFocus(
-        toFocusedCorrection(nextItem),
-        items.map(toFocusedCorrection),
-        targetLanguage
-      )
-    }
-  }, [focusedIndex, items, targetLanguage])
-
   // Keyboard shortcuts — only mounted while active. Inputs / textareas /
   // contenteditable are ignored so we don't fight any future form on /write.
   useEffect(() => {
@@ -184,12 +151,6 @@ export function VoiceWidget({ initialItems }: Props) {
       if (e.key === 'Escape') {
         e.preventDefault()
         handleEnd()
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        handlePrev()
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        handleNext()
       } else if (e.code === 'Space' && !e.repeat) {
         e.preventDefault()
         handleMute()
@@ -197,28 +158,7 @@ export function VoiceWidget({ initialItems }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isActive, handleEnd, handlePrev, handleNext, handleMute])
-
-  // First-open hint — one-shot per browser, separate key from the sheet
-  // navigation hint so the two surfaces teach independently.
-  useEffect(() => {
-    if (!isActive) return
-    if (typeof window === 'undefined') return
-    if (window.localStorage.getItem(HINT_STORAGE_KEY) === '1') return
-    setShowHint(true)
-    const timer = window.setTimeout(() => {
-      setShowHint(false)
-      window.localStorage.setItem(HINT_STORAGE_KEY, '1')
-    }, 6000)
-    return () => window.clearTimeout(timer)
-  }, [isActive])
-
-  const dismissHint = useCallback(() => {
-    setShowHint(false)
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(HINT_STORAGE_KEY, '1')
-    }
-  }, [])
+  }, [isActive, handleEnd, handleMute])
 
   // Audio-flow indicator drive loop. Runs only while active. Reads RMS refs,
   // decays them, writes transform + data-speaker straight to the DOM so we
@@ -324,32 +264,11 @@ export function VoiceWidget({ initialItems }: Props) {
         </div>
       )}
 
-      {isActive && focusedItem && (
+      {isActive && (
         <div
           className="fixed left-0 right-0 z-40 flex flex-col items-center gap-2 px-3"
           style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom) + 10px)' }}
         >
-          {showHint && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-elevated border border-border-subtle text-xs text-text-secondary shadow-sm motion-safe:animate-[fadein_220ms_ease-out_both]">
-              <span className="flex items-center gap-0.5 text-text-tertiary shrink-0" aria-hidden="true">
-                <Icon name="chevron-left" className="w-3.5 h-3.5" />
-                <Icon name="chevron-right" className="w-3.5 h-3.5" />
-              </span>
-              <span className="leading-snug">{t('voice.firstHint')}</span>
-              <button
-                type="button"
-                onClick={dismissHint}
-                className="text-text-tertiary hover:text-text-secondary text-xs font-medium px-1.5 py-0.5 rounded shrink-0"
-              >
-                {t('sheet.navHintDismiss')}
-              </button>
-            </div>
-          )}
-
-          {/* Single floating object — the correction text already lives in
-              the Write list above. The counter sits inline between the
-              chevrons (paginator pattern), so the steady-state stack is just
-              one pill instead of two. */}
           <div
             role="toolbar"
             aria-label={t('voice.toolbarAria')}
@@ -360,52 +279,6 @@ export function VoiceWidget({ initialItems }: Props) {
               shadow-lg
             "
           >
-            <button
-              type="button"
-              onClick={handlePrev}
-              disabled={focusedIndex === 0}
-              aria-disabled={focusedIndex === 0}
-              aria-label={t('voice.prevAria')}
-              className="
-                w-9 h-9 rounded-full flex items-center justify-center
-                text-text-secondary
-                hover:text-text-primary hover:bg-bg
-                disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed
-                transition-colors
-                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-              "
-            >
-              <Icon name="chevron-left" className="w-5 h-5" />
-            </button>
-
-            {/* Counter sits in the paginator slot between the chevrons. min-w
-                stops the toolbar from jiggling between "1 of 9" and "10 of 9"
-                style transitions. */}
-            <span
-              className="min-w-[3.25rem] px-1 text-center text-xs text-text-tertiary tabular-nums select-none"
-              aria-live="off"
-            >
-              {t('voice.focus', { n: focusedIndex + 1, total: items.length })}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={focusedIndex === items.length - 1}
-              aria-disabled={focusedIndex === items.length - 1}
-              aria-label={t('voice.nextAria')}
-              className="
-                w-9 h-9 rounded-full flex items-center justify-center
-                text-text-secondary
-                hover:text-text-primary hover:bg-bg
-                disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed
-                transition-colors
-                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-              "
-            >
-              <Icon name="chevron-right" className="w-5 h-5" />
-            </button>
-
             {/* Audio-flow indicator. Non-interactive on purpose — the only
                 "mic" affordance lives on the mute button to its right. */}
             <div
