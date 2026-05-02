@@ -344,4 +344,41 @@
   .animate-coachmark-in {
     animation: coachmark-fade-in 240ms var(--ease-out-quart) both;
   }
+
+  /* Voice widget — audio-flow indicator dot.
+     ───────────────────────────────────────────────────────────────────────
+     One non-interactive circle that swaps colour based on who's speaking
+     (data-speaker = "user" | "agent" | "idle") and scales via inline
+     transform driven by RMS in the component. The colour halo communicates
+     who's audible without competing for attention; the scale change is
+     subtle so reading the rest of the page isn't pulled at.
+     Reduced-motion users get the colour swap but no scaling — the indicator
+     still tells the truth about state, it just doesn't move. */
+  .voice-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    background: var(--color-text-tertiary);
+    transition:
+      background-color 220ms var(--ease-out-quart),
+      box-shadow 220ms var(--ease-out-quart);
+    will-change: transform;
+  }
+  .voice-indicator[data-speaker="user"] {
+    background: var(--color-accent-primary);
+    /* Halo derived from the same brand token via color-mix so any future
+       brand-hue shift carries through without re-tuning literals. */
+    box-shadow: 0 0 0 5px color-mix(in oklch, var(--color-accent-primary) 18%, transparent);
+  }
+  .voice-indicator[data-speaker="agent"] {
+    background: var(--color-correction-text);
+    box-shadow: 0 0 0 5px color-mix(in oklch, var(--color-correction-text) 18%, transparent);
+  }
+  .voice-indicator[data-muted="true"] {
+    background: var(--color-text-tertiary);
+    box-shadow: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .voice-indicator { transform: none !important; }
+  }
 }

@@ -14,7 +14,6 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
-- **Gemini Multimodal Live API** (raw WebSocket, `models/gemini-3.1-flash-live-preview`) — real-time voice coaching in `VoiceWidget`
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
 - **`framer-motion`** — sheet entrance animations + `useReducedMotion`
 - **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`
@@ -41,7 +40,7 @@ app/
   login/page.tsx                  # Magic-link login (public)
   access-denied/page.tsx          # Shown when email not in allowlist (public)
   onboarding/page.tsx             # First-login wizard: language select (step 0) → tutorial steps (?step=1, 2)
-  auth/callback/page.tsx          # Client page: reads hash-fragment tokens (implicit flow) → redirects to / or /onboarding
+  auth/callback/route.ts          # OAuth code exchange (public)
   sessions/[id]/
     page.tsx                      # RSC: loads SessionDetail, hands to <TranscriptClient>
     loading.tsx                   # Skeleton shown during the RSC fetch (no post-hydration flash)
@@ -69,21 +68,18 @@ components/
   LanguageProvider.tsx            # UI language context with live switching
   HomeClient.tsx                  # Client island for /: upload, polling, dashboard composition
   HomeUploadFab.tsx               # Labelled mobile FAB ("Upload audio") + desktop inline button
-  UploadCoachmark.tsx             # First-run spotlight on the mobile FAB — mobile-only (`md:hidden`); FAB lives outside so tap → file-picker works unchanged
   DashboardOnboarding.tsx         # First-time empty state on home
   DashboardInProgress.tsx         # In-flight sessions strip
   DashboardReminders.tsx          # Write-down count widget
   DashboardRecentSessions.tsx     # Recent sessions list with delete + read toggle
   TranscriptClient.tsx            # Client island for /sessions/[id] — annotation review state
   WriteClient.tsx                 # Client island for /write — wraps WriteList
-  AnnotationCard.tsx              # Single annotation row in the transcript — triggers AnnotationSheet, Add to Write button
   AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps `DockedSheet`
   WriteSheet.tsx                  # Docked review sheet for items in the Write list — wraps `DockedSheet`
   WriteList.tsx                   # The Write surface: queue of saved corrections + quiet "Written" archive link
   Icon.tsx                        # Shared inline-SVG icon set (no icon dep)
   # Shared UI primitives — prefer these over inlining new ones:
-  Button.tsx                      # `<Button>` + `buttonStyles()` for primary/secondary actions; import `buttonStyles` directly for non-button elements (e.g. `<a>` anchors) that need button appearance
-  LogoMark.tsx                    # Robot logo mark without background — body fill adapts to theme via --color-surface; use wherever the brand icon is needed
+  Button.tsx                      # `<Button>` + `buttonStyles()` for primary/secondary actions
   IconButton.tsx                  # Square / circle icon-only button (toolbar / dismiss / nav-arrow)
   Skeleton.tsx                    # `<Skeleton>` + `<SkeletonRow>` for loading.tsx boundaries
   CorrectionInContext.tsx         # Canonical "sentence-with-strike-and-rewrite" treatment (WriteList + WriteSheet)
@@ -102,14 +98,11 @@ lib/
   push.ts                         # sendPushNotification helper
   dashboard-summary.ts            # computeDashboardSummary() → { writeDownCount, ... }
   supabase-server.ts              # Supabase client for server components/routes
-  supabase-browser.ts             # Supabase client for client components (implicit flow — see auth design decision)
-  audio-upload.ts                 # Canonical ACCEPTED_TYPES, ACCEPTED_EXTENSIONS, MAX_BYTES constants — import from here, don't duplicate
-  theme-meta.ts                   # PWA/browser status-bar color constants (theme-color + apple-mobile-web-app-status-bar-style)
+  supabase-browser.ts             # Supabase client for client components
   r2.ts                           # presignedUploadUrl, deleteObject
   pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook
   claude.ts                       # analyseUserTurns — prompt + JSON parse
-  voice-agent.ts                  # Gemini Live WebSocket: connect(), buildSystemPrompt(), buildFocusUpdateMessage()
 middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist + identity-header passthrough
 supabase/migrations/              # SQL migrations
 __tests__/                        # Vitest tests mirroring src structure
@@ -133,10 +126,6 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Server-rendered pages, client islands**: Home (`/`), Write (`/write`), and Session detail (`/sessions/[id]`) are Server Components that fetch their data in parallel via `lib/loaders.ts`, then hand it to a single client island (`HomeClient`, `WriteClient`, `TranscriptClient`) for interactivity. Result: real content on first paint instead of skeleton → `useEffect` → render. When adding a new page, prefer this pattern — put the SQL in `lib/loaders.ts` so the API route and the RSC share one query.
 - **Auth header passthrough**: `middleware.ts` is the single trust boundary — it calls `supabase.auth.getUser()` once per request and forwards the verified identity via `x-cc-user-id` / `x-cc-user-email` / `x-cc-user-target-language` request headers. `getAuthenticatedUser()` reads those headers (zero network calls) and falls back to a cookie-based verify only when middleware didn't run (tests, or routes carved out of the matcher). Wrapped in React `cache()` so layout + page + nested RSCs share one result. Middleware strips any incoming `x-cc-*` headers before setting its own — never trust client-supplied identity headers.
 - **Auth**: Supabase Auth (email magic link). `middleware.ts` guards all routes except `/login`, `/auth`, `/access-denied`, `/api/webhooks`. `ALLOWED_EMAILS` env var (comma-separated) controls who can access.
-- **Magic-link uses PKCE flow**: `@supabase/ssr` v0.9+ hardcodes `flowType: 'pkce'` inside `createBrowserClient`, overriding any `flowType` option passed by the caller — so `lib/supabase-browser.ts` no longer sets it. `app/auth/callback/page.tsx` is a client component; `detectSessionInUrl` handles the code exchange automatically, fires `SIGNED_IN`, then `router.refresh()` clears any stale Next.js router-cache redirects before `router.replace()` navigates to the app.
-- **Next.js router cache + middleware auth**: Nav `<Link>` elements trigger Next.js prefetches. If a page is reachable while unauthenticated and the nav renders, those prefetch requests hit middleware with no session, return 307s to `/login`, and those redirects get cached client-side — causing a login loop after sign-in. Fix: add any unauthenticated route to `HIDDEN_ON` in `components/ConditionalNav.tsx`, and call `router.refresh()` before `router.replace()` in `app/auth/callback/page.tsx` to flush stale cache entries.
-- **Middleware must return `supabaseResponse`, not a new `NextResponse.next()`**: If `supabase.auth.getUser()` triggers a token refresh, `setAll()` writes the new cookies to `supabaseResponse`. Returning a freshly created `NextResponse.next()` at the end of middleware discards those cookies — the user's session silently breaks on the next request. Capture `supabaseResponse.headers.getSetCookie()` before rebuilding the response, then re-append them.
-- **Middleware matcher must exclude all public static assets**: Any file served from `/public` that is not in the matcher exclusion regex will be auth-guarded. Currently excluded: `_next/static`, `_next/image`, `favicon.ico`, `logo.svg`, `icon.svg`, `manifest.json`, `sw.js`, `icons/`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`. Add new public assets here or they will 307-redirect unauthenticated users (including the login page itself).
 - **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
 - **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
 - **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
@@ -145,7 +134,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced via `<ImportancePill>` (not stars) in `AnnotationCard` and `WriteSheet`. Score 3 → "High priority"; score 2 → "Worth remembering"; score 1 is intentionally suppressed (low signal). Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
 - **Write page = Write ↔ Written** (`/write`): `WriteList` defaults to the Write surface (`!written_down`); the Written archive is a quiet text link beside it (no segmented control). Rows expose a trailing fast-path tap to flip `written_down` without opening the sheet. Sub-category pills, importance sort UI, and bulk-select were all removed in simplification passes. The `?sub_category=…` query param is accepted on `GET /api/practice-items` but currently a no-op (kept so old bookmarks don't break; revisit when category filtering returns).
 - **`<CorrectionInContext>` is the canonical correction treatment** (`components/CorrectionInContext.tsx`) — sentence with the wrong fragment struck through and the rewrite inserted inline, used by `WriteList` rows and `WriteSheet`. Falls back to `<StrikeOriginal>` when there's no segment data (still used for the empty-state teaching example). For naturalness annotations (no rewrite) it tints the wrong fragment instead of striking it.
-- **`<NavHint>` cue inside DockedSheet bodies**: One-shot first-open chip teaching the chevron/swipe nav. Single shared localStorage key (`cc:sheet-nav-hint:v1`) across both annotation and write sheets — learning the model once on either surface dismisses both. Login page stores the last-used address at `cc:login-email` for the one-tap "Continue as" quick-select.
+- **`<NavHint>` cue inside DockedSheet bodies**: One-shot first-open chip teaching the chevron/swipe nav. Single shared localStorage key (`cc:sheet-nav-hint:v1`) across both annotation and write sheets — learning the model once on either surface dismisses both.
 - **Onboarding wizard is URL-driven** (`app/onboarding/page.tsx`): `?step=0` is the language picker (one-time gate), `?step=1, 2` are the tutorial steps rendered via `<OnboardingStep>` chrome. `&revisit=true` swaps the chrome's "Skip" for "Close" and routes exits back to Settings instead of `/`. Settings → Help links straight to `?step=1&revisit=true` and `?step=2&revisit=true` so users can re-learn either step in isolation. Add new tutorial steps to the `STEP_CONFIG` map and bump `TOTAL_TUTORIAL_STEPS` — the wizard chrome handles dots, back/forward, and CTA labelling automatically.
 - **Tutorial illustrations share the `oa-*` keyframe vocabulary** (`app/globals.css`): `oa-touch` (press-and-hold finger pad) → `oa-sheet` (bottom sheet rise) → `oa-backdrop` (dim) → `oa-pulse` (accent ring on the destination). All four use `animation-fill-mode: both` so the rest state IS the destination — reduced-motion users (whose duration is clamped to 0.01ms globally) snap straight to a complete teaching frame instead of nothing. New illustrations should reuse these classes rather than inventing parallel ones; only the surrounding mock content (header, body, sheet contents) should differ between steps.
 - **Insights feature removed**: The `/insights` page, its API handler, `lib/insights.ts`, and the corresponding Supabase RPCs (`get_subcategory_error_counts`, `get_subcategory_examples`) were removed in a distill pass — the surface wasn't delivering enough value. Dropped in migration `20260418000000_drop_insights_rpcs.sql`. If recurring-mistake surfacing returns, rebuild from the raw `annotations` table rather than recreating the RPCs.
@@ -154,8 +143,6 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
-- **Gemini Live binary frame protocol**: Gemini sends ALL WebSocket frames as binary (ArrayBuffer) — both control messages (e.g. `setupComplete`, errors) and raw PCM16 audio. The message handler in `lib/voice-agent.ts` tries UTF-8 JSON decode first; if that fails it treats the frame as a PCM16 audio chunk. Do not set `ws.binaryType = 'arraybuffer'` and then blindly `JSON.parse` — you'll get `"[object ArrayBuffer] is not valid JSON"`. Also: `realtime_input.media_chunks` is deprecated; use `realtime_input.audio` instead.
-- **VoiceWidget is write-page only**: `<VoiceWidget>` is mounted in `ConditionalNav` but only rendered when `pathname === '/write'`. Fetch for practice items is also skipped on other pages.
 - **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`, used to render inline highlights.
 - **`PATCH /api/sessions/:id` accepts `title` only**: All other session state is managed by server-side pipeline logic.
 - **`POST /api/sessions/:id/retry`**: Only valid for `uploading` and `transcribing` error stages. Use `/analyse` for analysing errors.
@@ -207,8 +194,6 @@ See `.env.local.example` for all required keys:
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
 - `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_WEBHOOK_SECRET`
 - `ANTHROPIC_API_KEY`
-- `GOOGLE_API_KEY` — Gemini Live API key (server-only, returned auth-gated via `/api/voice-token`)
-- `NEXT_PUBLIC_GOOGLE_VOICE` — Gemini prebuilt voice name (optional, default `Aoede`)
 - `ALLOWED_EMAILS` — comma-separated list of emails permitted past the auth middleware
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT` — Web Push (generate with `npx web-push generate-vapid-keys`)
 - `APP_URL` — public URL for AssemblyAI webhooks (use ngrok tunnel for local dev)
