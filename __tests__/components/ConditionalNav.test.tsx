@@ -1,9 +1,15 @@
 // __tests__/components/ConditionalNav.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { ConditionalNav } from '@/components/ConditionalNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { LanguageProvider } from '@/components/LanguageProvider'
+
+vi.mock('@/components/VoiceWidget', () => ({
+  VoiceWidget: ({ initialItems }: { initialItems: unknown[] }) => (
+    initialItems.length > 0 ? <div data-testid="voice-widget" /> : null
+  ),
+}))
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
@@ -82,5 +88,19 @@ describe('ConditionalNav', () => {
     mockPathname.mockReturnValue('/login')
     const { container } = wrap()
     expect(container.firstChild).toBeNull()
+  })
+
+  it('renders VoiceWidget on "/"', async () => {
+    mockPathname.mockReturnValue('/')
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([
+        { id: 'p1', written_down: false, original: 'fui', correction: 'anduve' },
+      ]),
+    })
+    wrap()
+    await waitFor(() => {
+      expect(screen.getByTestId('voice-widget')).toBeInTheDocument()
+    })
   })
 })
