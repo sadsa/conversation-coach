@@ -109,7 +109,7 @@ lib/
   pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook
   claude.ts                       # analyseUserTurns — prompt + JSON parse
-  voice-agent.ts                  # Gemini Live WebSocket: connect(), buildSystemPrompt(), buildFocusUpdateMessage()
+  voice-agent.ts                  # Gemini Live WebSocket: connect(targetLanguage, items, callbacks), buildSystemPrompt()
 middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist + identity-header passthrough
 supabase/migrations/              # SQL migrations
 __tests__/                        # Vitest tests mirroring src structure
