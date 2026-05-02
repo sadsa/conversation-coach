@@ -23,6 +23,11 @@ export interface VoiceAgent {
 
 const WS_ENDPOINT = 'wss://agents.assemblyai.com/v1/ws'
 
+const VOICE_NAME: Record<TargetLanguage, string> = {
+  'es-AR': 'diego',
+  'en-NZ': 'ivy',
+}
+
 /** Pure function — builds the system prompt injected on connect and on focus change. */
 export function buildSystemPrompt(
   targetLanguage: TargetLanguage,
@@ -126,7 +131,7 @@ export async function connect(
       type: 'session.update',
       session: {
         system_prompt: buildSystemPrompt(targetLanguage, items, focused),
-        output: { voice: 'ivy' },
+        output: { voice: VOICE_NAME[targetLanguage] },
       },
     }))
   })

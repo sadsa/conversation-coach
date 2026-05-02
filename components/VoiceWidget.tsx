@@ -4,7 +4,7 @@
 // or an expanded control pill (active/muted) anchored above the bottom nav.
 // Hides entirely when there are no unwritten practice items to discuss.
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 import { useTranslation } from '@/components/LanguageProvider'
@@ -93,6 +93,26 @@ export function VoiceWidget({ initialItems }: Props) {
       setWidgetState('muted')
     }
   }, [widgetState])
+
+  // When the user opens an annotation on the transcript, sync the voice
+  // widget's focus so the conversation follows without a manual tap.
+  useEffect(() => {
+    function handleVoiceFocus(e: Event) {
+      const detail = (e as CustomEvent).detail as FocusedCorrection
+      const idx = items.findIndex(i => i.original === detail.original)
+      if (idx < 0) return
+      setFocusedIndex(idx)
+      if (agentRef.current) {
+        agentRef.current.updateFocus(
+          detail,
+          items.map(toFocusedCorrection),
+          targetLanguage
+        )
+      }
+    }
+    window.addEventListener('voice:focus', handleVoiceFocus)
+    return () => window.removeEventListener('voice:focus', handleVoiceFocus)
+  }, [items, targetLanguage])
 
   const handlePrev = useCallback(() => {
     if (!agentRef.current || focusedIndex === 0) return
