@@ -23,11 +23,6 @@ export interface VoiceAgent {
 
 const WS_ENDPOINT = 'wss://agents.assemblyai.com/v1/ws'
 
-const VOICE_NAME: Record<TargetLanguage, string> = {
-  'es-AR': 'diego',
-  'en-NZ': 'ivy',
-}
-
 /** Pure function — builds the system prompt injected on connect and on focus change. */
 export function buildSystemPrompt(
   targetLanguage: TargetLanguage,
@@ -56,7 +51,7 @@ ${itemList}
 Currently discussing: "${focused.original}" → "${focused.correction ?? focused.original}"
 ${focused.explanation}
 
-Be conversational. Ask the user questions, give examples from everyday ${region} speech, and help them understand why the correction matters in natural ${register} usage.`
+Be brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted.`
 }
 
 /**
@@ -131,7 +126,7 @@ export async function connect(
       type: 'session.update',
       session: {
         system_prompt: buildSystemPrompt(targetLanguage, items, focused),
-        output: { voice: VOICE_NAME[targetLanguage] },
+        output: { voice: 'ivy' },
       },
     }))
   })
