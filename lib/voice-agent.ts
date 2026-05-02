@@ -165,6 +165,22 @@ export async function connect(
   let playbackTime = safeCtx.currentTime
   const voiceName = process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
 
+  // Track every scheduled agent audio source so we can hard-stop playback
+  // when the user changes focus mid-response (otherwise the new turn's audio
+  // overlaps the tail of the old one). Sources self-remove on `ended`.
+  const activeAgentSources = new Set<AudioBufferSourceNode>()
+
+  function stopAgentPlayback() {
+    for (const src of activeAgentSources) {
+      try { src.stop() } catch { /* already stopped — fine */ }
+    }
+    activeAgentSources.clear()
+    playbackTime = safeCtx.currentTime
+    // Snap the indicator back to silence so the UI doesn't keep pulsing
+    // green for a beat after we cut the audio.
+    callbacks.onAgentAudio?.(0)
+  }
+
   // Decode + schedule a PCM16 chunk from the agent at 24 kHz, and emit RMS
   // at the moment that chunk actually starts playing (so the indicator is in
   // sync with what the user hears, not when the bytes arrived).
@@ -176,9 +192,11 @@ export async function connect(
     const src = safeCtx.createBufferSource()
     src.buffer = buffer
     src.connect(safeCtx.destination)
+    src.onended = () => { activeAgentSources.delete(src) }
     const now = safeCtx.currentTime
     playbackTime = Math.max(playbackTime, now)
     const startAt = playbackTime
+    activeAgentSources.add(src)
     src.start(startAt)
     playbackTime += buffer.duration
 
@@ -274,7 +292,10 @@ export async function connect(
     } }).serverContent
 
     if (serverContent?.interrupted) {
-      playbackTime = safeCtx.currentTime
+      // Server confirms the previous turn was cut short. Drop any chunks
+      // we'd already scheduled locally so the agent's tail can't bleed into
+      // the new response.
+      stopAgentPlayback()
       return
     }
 
@@ -312,6 +333,10 @@ export async function connect(
   return {
     updateFocus(correction) {
       if (ws.readyState !== WebSocket.OPEN) return
+      // Cut local playback the instant the user changes focus — don't wait
+      // for the server's `interrupted` signal to round-trip, otherwise the
+      // old turn keeps playing for ~100-300ms over the start of the new one.
+      stopAgentPlayback()
       ws.send(
         JSON.stringify({
           clientContent: {
