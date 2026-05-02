@@ -104,19 +104,6 @@ export function TranscriptView({
     }
   }
 
-  // Notify VoiceWidget of the focused annotation so it can shift conversation
-  // context mid-session without the user needing to tap ← / →.
-  useEffect(() => {
-    if (!activeAnnotation) return
-    window.dispatchEvent(new CustomEvent('voice:focus', {
-      detail: {
-        original: activeAnnotation.original,
-        correction: activeAnnotation.correction,
-        explanation: activeAnnotation.explanation,
-      },
-    }))
-  }, [activeAnnotation?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // When the active annotation changes, scroll the corresponding mark into a
   // visible band so the user keeps their place. On mobile the sheet covers
   // the bottom ~55%, so we aim for the upper third. On desktop the sheet is

@@ -23,6 +23,30 @@ const localStorageMock = (() => {
 })()
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
+// jsdom lacks matchMedia — the audio-flow indicator effect calls it to gate
+// motion. Default to "not reduced" so the rAF loop runs.
+window.matchMedia = window.matchMedia ?? ((query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: () => {},
+  removeListener: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => false,
+}) as unknown as MediaQueryList)
+// Force overwrite even if it exists but returns undefined (some jsdom builds).
+;(window as unknown as { matchMedia: (q: string) => MediaQueryList }).matchMedia = (query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: () => {},
+  removeListener: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => false,
+}) as unknown as MediaQueryList
+
 vi.mock('@/components/Toast', () => ({
   Toast: ({ message }: { message: string }) => <div role="alert">{message}</div>,
 }))
@@ -74,19 +98,19 @@ describe('VoiceWidget', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders the idle mic bubble when items exist', () => {
+  it('renders the idle FAB when items exist', () => {
     wrap()
-    expect(screen.getByRole('button', { name: /start voice conversation/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /talk it through/i })).toBeInTheDocument()
   })
 
-  it('calls connect when the mic button is tapped', async () => {
+  it('calls connect when the FAB is tapped', async () => {
     mockConnect.mockResolvedValue({
       updateFocus: vi.fn(),
       setMuted: vi.fn(),
       disconnect: vi.fn(),
     })
     wrap()
-    fireEvent.click(screen.getByRole('button', { name: /start voice conversation/i }))
+    fireEvent.click(screen.getByRole('button', { name: /talk it through/i }))
     await waitFor(() => expect(mockConnect).toHaveBeenCalledOnce())
   })
 
@@ -102,7 +126,7 @@ describe('VoiceWidget', () => {
     })
 
     wrap()
-    fireEvent.click(screen.getByRole('button', { name: /start voice conversation/i }))
+    fireEvent.click(screen.getByRole('button', { name: /talk it through/i }))
 
     await waitFor(() => {
       capturedCallbacks!.onStateChange('active')
@@ -122,7 +146,7 @@ describe('VoiceWidget', () => {
 
     const items = [makeItem({ id: 'item-1' }), makeItem({ id: 'item-2', original: 'tengo calor', correction: 'hace calor' })]
     wrap(items)
-    fireEvent.click(screen.getByRole('button', { name: /start voice conversation/i }))
+    fireEvent.click(screen.getByRole('button', { name: /talk it through/i }))
     await waitFor(() => { capturedCallbacks!.onStateChange('active') })
 
     fireEvent.click(screen.getByRole('button', { name: /next correction/i }))
@@ -142,7 +166,7 @@ describe('VoiceWidget', () => {
     })
 
     wrap()
-    fireEvent.click(screen.getByRole('button', { name: /start voice conversation/i }))
+    fireEvent.click(screen.getByRole('button', { name: /talk it through/i }))
     await waitFor(() => { capturedCallbacks!.onStateChange('active') })
 
     fireEvent.click(screen.getByRole('button', { name: /mute microphone/i }))
@@ -158,7 +182,7 @@ describe('VoiceWidget', () => {
     })
 
     wrap()
-    fireEvent.click(screen.getByRole('button', { name: /start voice conversation/i }))
+    fireEvent.click(screen.getByRole('button', { name: /talk it through/i }))
     await waitFor(() => { capturedCallbacks!.onStateChange('active') })
 
     fireEvent.click(screen.getByRole('button', { name: /end voice conversation/i }))

@@ -13,6 +13,55 @@ export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 export interface VoiceAgentCallbacks {
   onStateChange: (state: VoiceAgentState) => void
   onError: (message: string) => void
+  /** Mic-side RMS (0..1) per outgoing audio frame. Optional — for "you are speaking" indicator. */
+  onUserAudio?: (rms: number) => void
+  /** Agent-side RMS (0..1) emitted at the moment the chunk actually plays. Optional — for "agent is speaking" indicator. */
+  onAgentAudio?: (rms: number) => void
+}
+
+/** Compute normalised RMS (0..1) over a PCM16 sample buffer. */
+function pcm16Rms(samples: Int16Array): number {
+  if (samples.length === 0) return 0
+  let sum = 0
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i] / 32768
+    sum += s * s
+  }
+  return Math.sqrt(sum / samples.length)
+}
+
+/**
+ * Plays a short two-note "ready to listen" chime through the existing
+ * AudioContext. C5 → G5 (perfect fifth rising), sine, ~180ms total. Calm and
+ * encouraging — meant to land at the moment the user can start speaking, not
+ * to feel like a notification.
+ *
+ * Synthesised on the fly so we ship no audio asset. Each note has a smooth
+ * attack/release envelope to avoid the click that bare `start`/`stop` cause.
+ */
+function playStartTone(ctx: AudioContext) {
+  const now = ctx.currentTime
+  const master = ctx.createGain()
+  master.gain.value = 0.18
+  master.connect(ctx.destination)
+
+  function note(freq: number, startOffset: number, duration: number) {
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.value = freq
+    const gain = ctx.createGain()
+    const start = now + startOffset
+    gain.gain.setValueAtTime(0, start)
+    gain.gain.linearRampToValueAtTime(1, start + 0.014)
+    gain.gain.linearRampToValueAtTime(0, start + duration)
+    osc.connect(gain)
+    gain.connect(master)
+    osc.start(start)
+    osc.stop(start + duration + 0.02)
+  }
+
+  note(523.25, 0, 0.1)     // C5
+  note(783.99, 0.06, 0.14)  // G5
 }
 
 export interface VoiceAgent {
@@ -116,10 +165,43 @@ export async function connect(
   let playbackTime = safeCtx.currentTime
   const voiceName = process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
 
+  // Decode + schedule a PCM16 chunk from the agent at 24 kHz, and emit RMS
+  // at the moment that chunk actually starts playing (so the indicator is in
+  // sync with what the user hears, not when the bytes arrived).
+  function scheduleAgentPcm(pcm16: Int16Array) {
+    const float32 = new Float32Array(pcm16.length)
+    for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768
+    const buffer = safeCtx.createBuffer(1, float32.length, 24000)
+    buffer.getChannelData(0).set(float32)
+    const src = safeCtx.createBufferSource()
+    src.buffer = buffer
+    src.connect(safeCtx.destination)
+    const now = safeCtx.currentTime
+    playbackTime = Math.max(playbackTime, now)
+    const startAt = playbackTime
+    src.start(startAt)
+    playbackTime += buffer.duration
+
+    if (callbacks.onAgentAudio) {
+      const rms = pcm16Rms(pcm16)
+      const delayMs = Math.max(0, (startAt - now) * 1000)
+      // Pulse on at playback start, decay back to silence after the chunk ends.
+      // The widget's own decay loop smooths the trailing edge.
+      window.setTimeout(() => callbacks.onAgentAudio?.(rms), delayMs)
+    }
+  }
+
   // Stream mic audio once the session is ready.
   worklet.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
     if (!ready || ws.readyState !== WebSocket.OPEN) return
     const bytes = new Uint8Array(e.data)
+    // Emit RMS from the same PCM16 buffer so the indicator is driven by the
+    // exact bytes being sent. When muted, audioTrack.enabled = false silences
+    // the worklet output, so RMS naturally reads ~0.
+    if (callbacks.onUserAudio) {
+      const samples = new Int16Array(e.data.slice(0))
+      callbacks.onUserAudio(pcm16Rms(samples))
+    }
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     const b64 = btoa(binary)
@@ -164,17 +246,7 @@ export async function connect(
       } catch {
         // Not JSON — raw PCM16 audio chunk.
         const pcm16 = new Int16Array(event.data)
-        const float32 = new Float32Array(pcm16.length)
-        for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768
-        const buffer = safeCtx.createBuffer(1, float32.length, 24000)
-        buffer.getChannelData(0).set(float32)
-        const src = safeCtx.createBufferSource()
-        src.buffer = buffer
-        src.connect(safeCtx.destination)
-        const now = safeCtx.currentTime
-        playbackTime = Math.max(playbackTime, now)
-        src.start(playbackTime)
-        playbackTime += buffer.duration
+        scheduleAgentPcm(pcm16)
         return
       }
     } else {
@@ -183,6 +255,15 @@ export async function connect(
 
     if ('setupComplete' in msg) {
       ready = true
+      // Audible "ready to listen" cue. Played BEFORE the state change so the
+      // tone reaches the speakers at roughly the same instant the UI flips
+      // active. Wrapped in try/catch so an audio glitch (e.g. context
+      // suspended on background tab) never blocks the session going live.
+      try {
+        playStartTone(safeCtx)
+      } catch {
+        /* non-fatal — the session is up, the chime is a nice-to-have */
+      }
       callbacks.onStateChange('active')
       return
     }
@@ -206,17 +287,7 @@ export async function connect(
         for (let i = 0; i < pcm16.length; i++) {
           pcm16[i] = raw.charCodeAt(i * 2) | (raw.charCodeAt(i * 2 + 1) << 8)
         }
-        const float32 = new Float32Array(pcm16.length)
-        for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768
-        const buffer = safeCtx.createBuffer(1, float32.length, 24000)
-        buffer.getChannelData(0).set(float32)
-        const src = safeCtx.createBufferSource()
-        src.buffer = buffer
-        src.connect(safeCtx.destination)
-        const now = safeCtx.currentTime
-        playbackTime = Math.max(playbackTime, now)
-        src.start(playbackTime)
-        playbackTime += buffer.duration
+        scheduleAgentPcm(pcm16)
       }
     }
 
