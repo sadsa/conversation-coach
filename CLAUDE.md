@@ -14,6 +14,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
+- **Gemini Multimodal Live API** (raw WebSocket, `models/gemini-3.1-flash-live-preview`) — real-time voice coaching in `VoiceWidget`
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
 - **`framer-motion`** — sheet entrance animations + `useReducedMotion`
 - **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`
@@ -108,6 +109,7 @@ lib/
   pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook
   claude.ts                       # analyseUserTurns — prompt + JSON parse
+  voice-agent.ts                  # Gemini Live WebSocket: connect(), buildSystemPrompt(), buildFocusUpdateMessage()
 middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist + identity-header passthrough
 supabase/migrations/              # SQL migrations
 __tests__/                        # Vitest tests mirroring src structure
@@ -152,6 +154,8 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
+- **Gemini Live binary frame protocol**: Gemini sends ALL WebSocket frames as binary (ArrayBuffer) — both control messages (e.g. `setupComplete`, errors) and raw PCM16 audio. The message handler in `lib/voice-agent.ts` tries UTF-8 JSON decode first; if that fails it treats the frame as a PCM16 audio chunk. Do not set `ws.binaryType = 'arraybuffer'` and then blindly `JSON.parse` — you'll get `"[object ArrayBuffer] is not valid JSON"`. Also: `realtime_input.media_chunks` is deprecated; use `realtime_input.audio` instead.
+- **VoiceWidget is write-page only**: `<VoiceWidget>` is mounted in `ConditionalNav` but only rendered when `pathname === '/write'`. Fetch for practice items is also skipped on other pages.
 - **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`, used to render inline highlights.
 - **`PATCH /api/sessions/:id` accepts `title` only**: All other session state is managed by server-side pipeline logic.
 - **`POST /api/sessions/:id/retry`**: Only valid for `uploading` and `transcribing` error stages. Use `/analyse` for analysing errors.
@@ -203,6 +207,8 @@ See `.env.local.example` for all required keys:
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
 - `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_WEBHOOK_SECRET`
 - `ANTHROPIC_API_KEY`
+- `GOOGLE_API_KEY` — Gemini Live API key (server-only, returned auth-gated via `/api/voice-token`)
+- `NEXT_PUBLIC_GOOGLE_VOICE` — Gemini prebuilt voice name (optional, default `Aoede`)
 - `ALLOWED_EMAILS` — comma-separated list of emails permitted past the auth middleware
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT` — Web Push (generate with `npx web-push generate-vapid-keys`)
 - `APP_URL` — public URL for AssemblyAI webhooks (use ngrok tunnel for local dev)

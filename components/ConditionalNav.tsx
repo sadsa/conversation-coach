@@ -15,15 +15,16 @@ export function ConditionalNav() {
   const [isOpen, setIsOpen] = useState(false)
   const [voiceItems, setVoiceItems] = useState<PracticeItem[]>([])
 
-  // Fetch unwritten practice items for the voice widget once on mount.
+  // Fetch unwritten practice items for the voice widget — only on the write page.
   useEffect(() => {
+    if (pathname !== '/write') return
     fetch('/api/practice-items')
       .then(r => r.ok ? r.json() : [])
       .then((items: PracticeItem[]) => {
         setVoiceItems(items.filter(i => !i.written_down))
       })
       .catch(() => {/* widget stays hidden */})
-  }, [])
+  }, [pathname])
 
   if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null
 
@@ -32,7 +33,7 @@ export function ConditionalNav() {
       <AppHeader isOpen={isOpen} onOpen={() => setIsOpen(true)} />
       <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
       <BottomNav />
-      <VoiceWidget initialItems={voiceItems} />
+      {pathname === '/write' && <VoiceWidget initialItems={voiceItems} />}
     </>
   )
 }
