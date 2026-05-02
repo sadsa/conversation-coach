@@ -92,9 +92,6 @@ export function buildSystemPrompt(
     .map((item, i) => `${i + 1}. "${item.original}" → "${item.correction ?? item.original}" — ${item.explanation}`)
     .join('\n')
 
-  const region = isEsAR ? 'Argentine' : 'New Zealand'
-  const register = isEsAR ? 'Rioplatense' : 'Kiwi'
-
   return `${languageBlock}
 
 The user has these corrections to review:
