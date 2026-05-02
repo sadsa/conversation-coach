@@ -11,7 +11,7 @@ const mockGetUser = getAuthenticatedUser as ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   vi.resetAllMocks()
-  process.env.ASSEMBLYAI_API_KEY = 'test-api-key'
+  process.env.GOOGLE_API_KEY = 'test-google-key'
 })
 
 describe('GET /api/voice-token', () => {
@@ -21,25 +21,17 @@ describe('GET /api/voice-token', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns a token when authenticated', async () => {
+  it('returns the Google API key as token when authenticated', async () => {
     mockGetUser.mockResolvedValue({ id: 'user-1', email: 'test@example.com' })
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ token: 'temp-token-abc' }),
-    })
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.token).toBe('temp-token-abc')
+    expect(body.token).toBe('test-google-key')
   })
 
-  it('returns 500 when AssemblyAI token fetch fails', async () => {
+  it('returns 500 when GOOGLE_API_KEY is not set', async () => {
     mockGetUser.mockResolvedValue({ id: 'user-1', email: 'test@example.com' })
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      text: () => Promise.resolve('Service unavailable'),
-    })
+    delete process.env.GOOGLE_API_KEY
     const res = await GET()
     expect(res.status).toBe(500)
   })

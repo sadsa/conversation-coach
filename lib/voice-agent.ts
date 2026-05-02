@@ -21,9 +21,12 @@ export interface VoiceAgent {
   disconnect: () => void
 }
 
-const WS_ENDPOINT = 'wss://agents.assemblyai.com/v1/ws'
+const WS_ENDPOINT =
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
 
-/** Pure function — builds the system prompt injected on connect and on focus change. */
+const DEFAULT_VOICE = 'Aoede'
+
+/** Pure function — builds the system prompt injected on connect. Unchanged from AssemblyAI version. */
 export function buildSystemPrompt(
   targetLanguage: TargetLanguage,
   items: FocusedCorrection[],
@@ -54,10 +57,15 @@ ${focused.explanation}
 Be brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted.`
 }
 
+/** Returns the text injected as a user-turn when focus changes mid-session. */
+export function buildFocusUpdateMessage(focused: FocusedCorrection): string {
+  return `Now let's focus on: "${focused.original}" → "${focused.correction ?? focused.original}"`
+}
+
 /**
- * Opens a real-time voice session with the AssemblyAI Voice Agent API.
- * Fetches a short-lived token from /api/voice-token, opens a WebSocket,
- * streams PCM16 mic audio, and plays back PCM16 agent audio.
+ * Opens a real-time voice session with the Gemini Multimodal Live API.
+ * Fetches the Google API key from /api/voice-token, opens a WebSocket,
+ * streams PCM16 mic audio at 16 kHz, and plays back PCM16 agent audio at 24 kHz.
  *
  * Returns a handle for mid-conversation updates, mute, and disconnect.
  */
@@ -67,20 +75,20 @@ export async function connect(
   focused: FocusedCorrection,
   callbacks: VoiceAgentCallbacks
 ): Promise<VoiceAgent> {
-  // 1. Mint a short-lived token from our server route.
+  // 1. Get Google API key from our auth-gated server route.
   const tokenRes = await fetch('/api/voice-token')
   if (!tokenRes.ok) throw new Error('Failed to get voice token')
-  const { token } = await tokenRes.json() as { token: string }
+  const { token } = (await tokenRes.json()) as { token: string }
 
-  // 2. Set up AudioContext at 24 kHz (avoids resampling) and mic stream.
+  // 2. Set up AudioContext at 16 kHz (Gemini Live input requirement) and mic stream.
   let audioCtx: AudioContext | undefined
   let stream: MediaStream | undefined
 
   try {
-    audioCtx = new AudioContext({ sampleRate: 24000 })
+    audioCtx = new AudioContext({ sampleRate: 16000 })
     await audioCtx.audioWorklet.addModule('/pcm-processor.js')
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, sampleRate: 24000 },
+      audio: { echoCancellation: true, sampleRate: 16000 },
     })
   } catch (err) {
     stream?.getTracks().forEach(t => t.stop())
@@ -88,27 +96,25 @@ export async function connect(
     throw err
   }
 
-  // audioCtx and stream are guaranteed non-null here — the try/catch above re-throws.
   const safeCtx = audioCtx as AudioContext
   const safeStream = stream as MediaStream
-
   const [audioTrack] = safeStream.getAudioTracks()
 
   const source = safeCtx.createMediaStreamSource(safeStream)
   const worklet = new AudioWorkletNode(safeCtx, 'pcm-processor')
   source.connect(worklet)
-  // The worklet writes nothing to outputs[], so this produces silence at the
-  // destination — required only to keep the AudioContext active in background tabs.
+  // Connect to destination to keep AudioContext active in background tabs.
   worklet.connect(safeCtx.destination)
 
-  // 3. Open WebSocket.
+  // 3. Open WebSocket — API key in query param.
   const wsUrl = new URL(WS_ENDPOINT)
-  wsUrl.searchParams.set('token', token)
+  wsUrl.searchParams.set('key', token)
   const ws = new WebSocket(wsUrl.toString())
   ws.binaryType = 'arraybuffer'
 
   let ready = false
   let playbackTime = safeCtx.currentTime
+  const voiceName = process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
 
   // Stream mic audio once the session is ready.
   worklet.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
@@ -117,50 +123,106 @@ export async function connect(
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     const b64 = btoa(binary)
-    ws.send(JSON.stringify({ type: 'input.audio', audio: b64 }))
+    ws.send(
+      JSON.stringify({
+        realtime_input: {
+          audio: { data: b64, mimeType: 'audio/pcm;rate=16000' },
+        },
+      })
+    )
   }
 
   ws.addEventListener('open', () => {
     callbacks.onStateChange('connecting')
-    ws.send(JSON.stringify({
-      type: 'session.update',
-      session: {
-        system_prompt: buildSystemPrompt(targetLanguage, items, focused),
-        output: { voice: 'diego' },
-      },
-    }))
+    ws.send(
+      JSON.stringify({
+        setup: {
+          model: 'models/gemini-3.1-flash-live-preview',
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName },
+              },
+            },
+          },
+          systemInstruction: {
+            parts: [{ text: buildSystemPrompt(targetLanguage, items, focused) }],
+          },
+        },
+      })
+    )
   })
 
   ws.addEventListener('message', (event: MessageEvent) => {
-    const msg = JSON.parse(event.data as string) as Record<string, unknown>
+    // Gemini sends ALL frames as binary — control messages (JSON) and audio (raw PCM16).
+    // Try UTF-8 decode + JSON parse first; treat as audio only if that fails.
+    let msg: Record<string, unknown> | null = null
+    if (event.data instanceof ArrayBuffer) {
+      try {
+        msg = JSON.parse(new TextDecoder().decode(event.data)) as Record<string, unknown>
+      } catch {
+        // Not JSON — raw PCM16 audio chunk.
+        const pcm16 = new Int16Array(event.data)
+        const float32 = new Float32Array(pcm16.length)
+        for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768
+        const buffer = safeCtx.createBuffer(1, float32.length, 24000)
+        buffer.getChannelData(0).set(float32)
+        const src = safeCtx.createBufferSource()
+        src.buffer = buffer
+        src.connect(safeCtx.destination)
+        const now = safeCtx.currentTime
+        playbackTime = Math.max(playbackTime, now)
+        src.start(playbackTime)
+        playbackTime += buffer.duration
+        return
+      }
+    } else {
+      msg = JSON.parse(event.data as string) as Record<string, unknown>
+    }
 
-    if (msg.type === 'session.ready') {
+    if ('setupComplete' in msg) {
       ready = true
       callbacks.onStateChange('active')
-    } else if (msg.type === 'reply.audio') {
-      // Decode base64 PCM16 and schedule playback.
-      const raw = atob(msg.data as string)
-      const pcm16 = new Int16Array(raw.length / 2)
-      for (let i = 0; i < pcm16.length; i++) {
-        pcm16[i] = raw.charCodeAt(i * 2) | (raw.charCodeAt(i * 2 + 1) << 8)
-      }
-      const float32 = new Float32Array(pcm16.length)
-      for (let i = 0; i < pcm16.length; i++) {
-        float32[i] = pcm16[i] / 32768
-      }
-      const buffer = safeCtx.createBuffer(1, float32.length, 24000)
-      buffer.getChannelData(0).set(float32)
-      const src = safeCtx.createBufferSource()
-      src.buffer = buffer
-      src.connect(safeCtx.destination)
-      const now = safeCtx.currentTime
-      playbackTime = Math.max(playbackTime, now)
-      src.start(playbackTime)
-      playbackTime += buffer.duration
-    } else if (msg.type === 'reply.done' && msg.status === 'interrupted') {
+      return
+    }
+
+    const serverContent = (msg as { serverContent?: {
+      interrupted?: boolean
+      modelTurn?: { parts: Array<{ inlineData?: { mimeType: string; data: string } }> }
+    } }).serverContent
+
+    if (serverContent?.interrupted) {
       playbackTime = safeCtx.currentTime
-    } else if (msg.type === 'session.error' || msg.type === 'error') {
-      callbacks.onError((msg.message ?? 'Voice session error') as string)
+      return
+    }
+
+    if (serverContent?.modelTurn?.parts) {
+      for (const part of serverContent.modelTurn.parts) {
+        if (!part.inlineData?.data) continue
+        // Decode base64 PCM16 and schedule playback at 24 kHz.
+        const raw = atob(part.inlineData.data)
+        const pcm16 = new Int16Array(raw.length / 2)
+        for (let i = 0; i < pcm16.length; i++) {
+          pcm16[i] = raw.charCodeAt(i * 2) | (raw.charCodeAt(i * 2 + 1) << 8)
+        }
+        const float32 = new Float32Array(pcm16.length)
+        for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768
+        const buffer = safeCtx.createBuffer(1, float32.length, 24000)
+        buffer.getChannelData(0).set(float32)
+        const src = safeCtx.createBufferSource()
+        src.buffer = buffer
+        src.connect(safeCtx.destination)
+        const now = safeCtx.currentTime
+        playbackTime = Math.max(playbackTime, now)
+        src.start(playbackTime)
+        playbackTime += buffer.duration
+      }
+    }
+
+    const error = (msg as { error?: { message?: string } }).error
+    if (error) {
+      callbacks.onError(error.message ?? 'Voice session error')
     }
   })
 
@@ -177,14 +239,21 @@ export async function connect(
 
   // 4. Return the agent handle.
   return {
-    updateFocus(correction, allItems, lang) {
+    updateFocus(correction) {
       if (ws.readyState !== WebSocket.OPEN) return
-      ws.send(JSON.stringify({
-        type: 'session.update',
-        session: {
-          system_prompt: buildSystemPrompt(lang, allItems, correction),
-        },
-      }))
+      ws.send(
+        JSON.stringify({
+          clientContent: {
+            turns: [
+              {
+                role: 'user',
+                parts: [{ text: buildFocusUpdateMessage(correction) }],
+              },
+            ],
+            turnComplete: true,
+          },
+        })
+      )
     },
     setMuted(muted) {
       audioTrack.enabled = !muted

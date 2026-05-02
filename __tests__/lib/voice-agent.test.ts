@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSystemPrompt } from '@/lib/voice-agent'
+import { buildSystemPrompt, buildFocusUpdateMessage } from '@/lib/voice-agent'
 import type { FocusedCorrection } from '@/lib/voice-agent'
 
 const items: FocusedCorrection[] = [
@@ -37,5 +37,27 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Currently discussing')
     expect(prompt).toContain('tengo calor')
     expect(prompt).toContain('hace calor')
+  })
+})
+
+describe('buildFocusUpdateMessage', () => {
+  it('contains the original and correction', () => {
+    const msg = buildFocusUpdateMessage({
+      original: 'fui',
+      correction: 'anduve',
+      explanation: '"Andar" for movement through a space.',
+    })
+    expect(msg).toContain('fui')
+    expect(msg).toContain('anduve')
+  })
+
+  it('falls back to original when correction is null', () => {
+    const msg = buildFocusUpdateMessage({
+      original: 'fui',
+      correction: null,
+      explanation: 'test',
+    })
+    expect(msg).toContain('fui')
+    expect(msg).not.toContain('null')
   })
 })
