@@ -126,7 +126,7 @@ export async function connect(
       type: 'session.update',
       session: {
         system_prompt: buildSystemPrompt(targetLanguage, items, focused),
-        output: { voice: 'ivy' },
+        output: { voice: 'kyle' },
       },
     }))
   })
