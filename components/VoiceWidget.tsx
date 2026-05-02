@@ -117,9 +117,12 @@ export function VoiceWidget({ initialItems }: Props) {
         }
       )
       agentRef.current = agent
-    } catch {
+    } catch (err) {
       setWidgetState('idle')
-      showToast(t('voice.micPermission'))
+      const isPermissionError =
+        (err instanceof DOMException && err.name === 'NotAllowedError') ||
+        (err instanceof Error && (err.message.toLowerCase().includes('permission') || err.message.toLowerCase().includes('denied')))
+      showToast(isPermissionError ? t('voice.micPermission') : t('voice.sessionEnded'))
     }
   }, [widgetState, items, targetLanguage, t, showToast])
 

@@ -110,24 +110,45 @@ export async function connect(
   items: FocusedCorrection[],
   callbacks: VoiceAgentCallbacks
 ): Promise<VoiceAgent> {
-  // 1. Get Google API key from our auth-gated server route.
-  const tokenRes = await fetch('/api/voice-token')
-  if (!tokenRes.ok) throw new Error('Failed to get voice token')
-  const { token } = (await tokenRes.json()) as { token: string }
-
-  // 2. Set up AudioContext at 16 kHz (Gemini Live input requirement) and mic stream.
+  // 1. Set up AudioContext at 16 kHz (Gemini Live input requirement).
+  //    IMPORTANT: must happen before any `await` so it runs within the
+  //    user-gesture activation window. Android Chrome suspends AudioContexts
+  //    that are created after an async gap, causing the AudioWorklet to never
+  //    fire and silently dropping all mic audio.
   let audioCtx: AudioContext | undefined
-  let stream: MediaStream | undefined
-
   try {
     audioCtx = new AudioContext({ sampleRate: 16000 })
+    // resume() is a no-op if already running, but on Android the context
+    // may start suspended even when created during a user gesture.
+    await audioCtx.resume()
     await audioCtx.audioWorklet.addModule('/pcm-processor.js')
+  } catch (err) {
+    await audioCtx?.close()
+    throw err
+  }
+
+  // 2. Get Google API key from our auth-gated server route.
+  let token: string
+  try {
+    const tokenRes = await fetch('/api/voice-token')
+    if (!tokenRes.ok) throw new Error('Failed to get voice token')
+    ;({ token } = (await tokenRes.json()) as { token: string })
+  } catch (err) {
+    await audioCtx.close()
+    throw err
+  }
+
+  // 3. Acquire mic stream.
+  //    `sampleRate` is not a valid getUserMedia audio constraint — passing it
+  //    can trigger OverconstrainedError on Android Chrome. The AudioContext
+  //    handles resampling automatically via its own sample-rate setting.
+  let stream: MediaStream | undefined
+  try {
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, sampleRate: 16000 },
+      audio: { echoCancellation: true },
     })
   } catch (err) {
-    stream?.getTracks().forEach(t => t.stop())
-    await audioCtx?.close()
+    await audioCtx.close()
     throw err
   }
 
@@ -141,7 +162,7 @@ export async function connect(
   // Connect to destination to keep AudioContext active in background tabs.
   worklet.connect(safeCtx.destination)
 
-  // 3. Open WebSocket — API key in query param.
+  // 4. Open WebSocket — API key in query param.
   const wsUrl = new URL(WS_ENDPOINT)
   wsUrl.searchParams.set('key', token)
   const ws = new WebSocket(wsUrl.toString())
@@ -315,7 +336,7 @@ export async function connect(
     callbacks.onError('Connection error')
   })
 
-  // 4. Return the agent handle.
+  // 5. Return the agent handle.
   return {
     setMuted(muted) {
       audioTrack.enabled = !muted
