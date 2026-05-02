@@ -1,12 +1,14 @@
 // lib/voice-agent.ts
 
+import type { TargetLanguage } from '@/lib/types'
+
 export interface FocusedCorrection {
   original: string
   correction: string | null
   explanation: string
 }
 
-export type VoiceAgentState = 'connecting' | 'active' | 'reconnecting' | 'ended'
+export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 
 export interface VoiceAgentCallbacks {
   onStateChange: (state: VoiceAgentState) => void
@@ -14,7 +16,7 @@ export interface VoiceAgentCallbacks {
 }
 
 export interface VoiceAgent {
-  updateFocus: (correction: FocusedCorrection, allItems: FocusedCorrection[], targetLanguage: string) => void
+  updateFocus: (correction: FocusedCorrection, allItems: FocusedCorrection[], targetLanguage: TargetLanguage) => void
   setMuted: (muted: boolean) => void
   disconnect: () => void
 }
@@ -23,7 +25,7 @@ const WS_ENDPOINT = 'wss://agents.assemblyai.com/v1/ws'
 
 /** Pure function — builds the system prompt injected on connect and on focus change. */
 export function buildSystemPrompt(
-  targetLanguage: string,
+  targetLanguage: TargetLanguage,
   items: FocusedCorrection[],
   focused: FocusedCorrection
 ): string {
@@ -60,7 +62,7 @@ Be conversational. Ask the user questions, give examples from everyday ${region}
  * Returns a handle for mid-conversation updates, mute, and disconnect.
  */
 export async function connect(
-  targetLanguage: string,
+  targetLanguage: TargetLanguage,
   items: FocusedCorrection[],
   focused: FocusedCorrection,
   callbacks: VoiceAgentCallbacks
@@ -71,20 +73,33 @@ export async function connect(
   const { token } = await tokenRes.json() as { token: string }
 
   // 2. Set up AudioContext at 24 kHz (avoids resampling) and mic stream.
-  const audioCtx = new AudioContext({ sampleRate: 24000 })
-  await audioCtx.audioWorklet.addModule('/pcm-processor.js')
+  let audioCtx: AudioContext | undefined
+  let stream: MediaStream | undefined
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, sampleRate: 24000 },
-  })
-  const [audioTrack] = stream.getAudioTracks()
+  try {
+    audioCtx = new AudioContext({ sampleRate: 24000 })
+    await audioCtx.audioWorklet.addModule('/pcm-processor.js')
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, sampleRate: 24000 },
+    })
+  } catch (err) {
+    stream?.getTracks().forEach(t => t.stop())
+    await audioCtx?.close()
+    throw err
+  }
 
-  const source = audioCtx.createMediaStreamSource(stream)
-  const worklet = new AudioWorkletNode(audioCtx, 'pcm-processor')
+  // audioCtx and stream are guaranteed non-null here — the try/catch above re-throws.
+  const safeCtx = audioCtx as AudioContext
+  const safeStream = stream as MediaStream
+
+  const [audioTrack] = safeStream.getAudioTracks()
+
+  const source = safeCtx.createMediaStreamSource(safeStream)
+  const worklet = new AudioWorkletNode(safeCtx, 'pcm-processor')
   source.connect(worklet)
-  // Connect worklet to destination so AudioContext stays alive (no audible output
-  // from the mic path — the worklet captures only, not plays back).
-  worklet.connect(audioCtx.destination)
+  // The worklet writes nothing to outputs[], so this produces silence at the
+  // destination — required only to keep the AudioContext active in background tabs.
+  worklet.connect(safeCtx.destination)
 
   // 3. Open WebSocket.
   const wsUrl = new URL(WS_ENDPOINT)
@@ -93,13 +108,15 @@ export async function connect(
   ws.binaryType = 'arraybuffer'
 
   let ready = false
-  let playbackTime = audioCtx.currentTime
+  let playbackTime = safeCtx.currentTime
 
   // Stream mic audio once the session is ready.
   worklet.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
     if (!ready || ws.readyState !== WebSocket.OPEN) return
     const bytes = new Uint8Array(e.data)
-    const b64 = btoa(String.fromCharCode(...bytes))
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const b64 = btoa(binary)
     ws.send(JSON.stringify({ type: 'input.audio', audio: b64 }))
   }
 
@@ -131,17 +148,17 @@ export async function connect(
       for (let i = 0; i < pcm16.length; i++) {
         float32[i] = pcm16[i] / 32768
       }
-      const buffer = audioCtx.createBuffer(1, float32.length, 24000)
+      const buffer = safeCtx.createBuffer(1, float32.length, 24000)
       buffer.getChannelData(0).set(float32)
-      const src = audioCtx.createBufferSource()
+      const src = safeCtx.createBufferSource()
       src.buffer = buffer
-      src.connect(audioCtx.destination)
-      const now = audioCtx.currentTime
+      src.connect(safeCtx.destination)
+      const now = safeCtx.currentTime
       playbackTime = Math.max(playbackTime, now)
       src.start(playbackTime)
       playbackTime += buffer.duration
     } else if (msg.type === 'reply.done' && msg.status === 'interrupted') {
-      playbackTime = audioCtx.currentTime
+      playbackTime = safeCtx.currentTime
     } else if (msg.type === 'session.error' || msg.type === 'error') {
       callbacks.onError((msg.message ?? 'Voice session error') as string)
     }
@@ -150,8 +167,8 @@ export async function connect(
   ws.addEventListener('close', () => {
     ready = false
     callbacks.onStateChange('ended')
-    audioCtx.close()
-    stream.getTracks().forEach(t => t.stop())
+    safeCtx.close()
+    safeStream.getTracks().forEach(t => t.stop())
   })
 
   ws.addEventListener('error', () => {
@@ -173,7 +190,7 @@ export async function connect(
       audioTrack.enabled = !muted
     },
     disconnect() {
-      ws.close()
+      if (ws.readyState !== WebSocket.CLOSED) ws.close()
     },
   }
 }
