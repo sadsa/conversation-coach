@@ -157,9 +157,9 @@ export async function connect(
   const activeAgentSources = new Set<AudioBufferSourceNode>()
 
   function stopAgentPlayback() {
-    for (const src of activeAgentSources) {
+    activeAgentSources.forEach(src => {
       try { src.stop() } catch { /* already stopped — fine */ }
-    }
+    })
     activeAgentSources.clear()
     playbackTime = safeCtx.currentTime
     // Snap the indicator back to silence so the UI doesn't keep pulsing
