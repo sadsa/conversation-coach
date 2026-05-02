@@ -81,8 +81,6 @@ export function VoiceWidget({ initialItems }: Props) {
 
   const handleEnd = useCallback(() => {
     agentRef.current?.disconnect()
-    agentRef.current = null
-    setWidgetState('idle')
   }, [])
 
   const handleMute = useCallback(() => {
@@ -157,6 +155,7 @@ export function VoiceWidget({ initialItems }: Props) {
       {/* Connecting spinner in same position */}
       {isConnecting && (
         <div
+          role="status"
           className="fixed left-4 z-40 w-12 h-12 rounded-full bg-accent-primary text-white shadow-lg flex items-center justify-center"
           style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom) + 12px)' }}
           aria-label={t('voice.connecting')}
@@ -215,7 +214,7 @@ export function VoiceWidget({ initialItems }: Props) {
             <div
               className={`
                 w-11 h-11 rounded-full flex items-center justify-center shadow-md
-                ${isMuted ? 'bg-red-500 shadow-red-500/25' : 'bg-accent-primary shadow-accent-primary/25'}
+                ${isMuted ? 'bg-status-error shadow-status-error/25' : 'bg-accent-primary shadow-accent-primary/25'}
               `}
             >
               <Icon name={isMuted ? 'mic-off' : 'mic'} className="w-5 h-5 text-white" />
