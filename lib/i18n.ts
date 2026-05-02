@@ -414,6 +414,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'subCat.register': 'Register',
     'subCat.phrasing': 'Phrasing',
     'subCat.other': 'Other',
+
+    // Voice widget
+    'voice.startAria': 'Start voice conversation',
+    'voice.endAria': 'End voice conversation',
+    'voice.muteAria': 'Mute microphone',
+    'voice.unmuteAria': 'Unmute microphone',
+    'voice.prevAria': 'Previous correction',
+    'voice.nextAria': 'Next correction',
+    'voice.focus': '{n} of {total}',
+    'voice.micPermission': 'Microphone access needed. Check browser settings.',
+    'voice.sessionEnded': 'Voice session ended',
+    'voice.connecting': 'Connecting…',
+    'voice.reconnecting': 'Reconnecting…',
   },
 
   es: {
@@ -811,5 +824,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'subCat.register': 'Registro',
     'subCat.phrasing': 'Frases',
     'subCat.other': 'Otro',
+
+    // Voice widget
+    'voice.startAria': 'Iniciar conversación de voz',
+    'voice.endAria': 'Finalizar conversación de voz',
+    'voice.muteAria': 'Silenciar micrófono',
+    'voice.unmuteAria': 'Activar micrófono',
+    'voice.prevAria': 'Corrección anterior',
+    'voice.nextAria': 'Siguiente corrección',
+    'voice.focus': '{n} de {total}',
+    'voice.micPermission': 'Se necesita acceso al micrófono. Revisá la configuración del navegador.',
+    'voice.sessionEnded': 'Sesión de voz finalizada',
+    'voice.connecting': 'Conectando…',
+    'voice.reconnecting': 'Reconectando…',
   },
 }
