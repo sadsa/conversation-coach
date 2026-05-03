@@ -129,8 +129,9 @@ export function buildSystemPrompt(
  */
 export async function connect(
   targetLanguage: TargetLanguage,
-  items: FocusedCorrection[],
-  callbacks: VoiceAgentCallbacks
+  items: FocusedCorrection[] = [],
+  callbacks: VoiceAgentCallbacks,
+  routeContext: VoiceRouteContext = { kind: 'other' }
 ): Promise<VoiceAgent> {
   // 1. Get Google API key from our auth-gated server route.
   const tokenRes = await fetch('/api/voice-token')
@@ -255,7 +256,7 @@ export async function connect(
             },
           },
           systemInstruction: {
-            parts: [{ text: buildSystemPrompt(targetLanguage, items) }],
+            parts: [{ text: buildSystemPrompt(targetLanguage, items, routeContext) }],
           },
         },
       })
