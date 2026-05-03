@@ -119,6 +119,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               style={{
                 marginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
                 scrollMarginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
+                // Pairs with .voice-strip-anim's slide-down so when the
+                // strip mounts and writes --voice-strip-height: 2.75rem the
+                // page content slides down with it instead of popping. The
+                // global prefers-reduced-motion rule clamps this to 0.01ms.
+                transition: 'margin-top 180ms var(--ease-out-quart)',
               }}
               // Single, intentional reading column. The app is a reading
               // surface — transcripts, corrections, written-down queue —

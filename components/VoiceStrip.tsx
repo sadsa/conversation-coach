@@ -2,13 +2,21 @@
 //
 // 44px status strip rendered between AppHeader and <main> while a voice
 // session is active. Owns the audio-flow indicator (driven by RMS refs in
-// VoiceController via `indicatorRef`), the language pill, mute, and end.
+// VoiceController via `indicatorRef`), mute, and end.
+//
+// Distilled in 2026-05: dropped the static "Voice coach" title and the
+// always-on language pill. Both restated context the user already had
+// (the tinted strip + pulsing dot already say "voice session active"),
+// and the language pill never earned its space for users who never
+// switch target language. The dot becomes the headline; chrome quiets.
 //
 // Surface side-effect: on mount the strip writes `--voice-strip-height` so
 // `<main>`'s top margin grows in lockstep with the strip's appearance.
 // Cleared on unmount. The strip itself is fixed below the header via CSS
 // rather than affecting layout flow — `<main>` learns about its presence
-// purely through the CSS variable.
+// purely through the CSS variable. Pairs with `.voice-strip-anim` (slide
+// down + fade) and the matching margin-top transition on `<main>` so the
+// arrival is choreographed instead of janky.
 'use client'
 import { useEffect } from 'react'
 import { Icon } from '@/components/Icon'
@@ -22,8 +30,7 @@ interface Props {
 }
 
 export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
-  const { t, targetLanguage } = useTranslation()
-  const pillKey = targetLanguage === 'en-NZ' ? 'voice.languagePill.enNZ' : 'voice.languagePill.esAR'
+  const { t } = useTranslation()
 
   useEffect(() => {
     document.documentElement.style.setProperty('--voice-strip-height', '2.75rem')
@@ -36,15 +43,19 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
     <div
       role="region"
       aria-label={t('voice.regionAria')}
+      aria-keyshortcuts="Escape Space"
       className="
+        voice-strip-anim
         fixed left-0 right-0 z-30
         h-11
         border-b border-border-subtle
       "
       style={{
         top: 'calc(var(--header-height) + env(safe-area-inset-top))',
+        // Bumped from 8% to 12% so the "session is live" cue holds up in
+        // bright sunlight on cheap displays without shouting indoors.
         background:
-          'color-mix(in oklch, var(--color-surface-elevated) 92%, var(--color-accent-primary) 8%)',
+          'color-mix(in oklch, var(--color-surface-elevated) 88%, var(--color-accent-primary) 12%)',
       }}
     >
       <div
@@ -56,22 +67,15 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
           <div ref={indicatorRef} className="voice-indicator" data-speaker="idle" data-muted={muted ? 'true' : 'false'} />
         </div>
 
-        <span className="text-xs font-medium text-text-primary whitespace-nowrap">
-          {t('voice.coachTitle')}
-        </span>
-
-        <span
-          className="
-            text-[10px] font-medium uppercase tracking-wider
-            text-on-accent-chip bg-accent-chip
-            border border-accent-chip-border/40
-            px-2 py-0.5 rounded-full whitespace-nowrap
-          "
-        >
-          {t(pillKey)}
-        </span>
-
         <div className="flex-1" />
+
+        {/* Keyboard shortcut hint — desktop only because the strip is roomy
+            there. Mobile users don't have a keyboard so the chrome cost
+            isn't worth the signal. Tertiary tone keeps it as a sidenote
+            rather than a competing element. */}
+        <span className="hidden md:inline text-[11px] text-text-tertiary mr-1 select-none whitespace-nowrap">
+          {t('voice.shortcutHint')}
+        </span>
 
         <button
           type="button"
@@ -81,7 +85,7 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
           className="
             w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
             text-text-secondary hover:text-text-primary
-            aria-pressed:bg-error-surface aria-pressed:text-on-error-surface
+            aria-pressed:bg-text-tertiary/15 aria-pressed:text-text-tertiary
             transition-colors
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
           "
@@ -89,13 +93,17 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
           <Icon name={muted ? 'mic-off' : 'mic'} className="w-4 h-4" />
         </button>
 
+        {/* End — destructive. Tinted in error-text so the user reads the
+            red-on-the-X as "this kills the session" rather than as a
+            generic close affordance. Hover deepens the bg without changing
+            the foreground tone (it's already saying everything it needs). */}
         <button
           type="button"
           onClick={onEnd}
           aria-label={t('voice.endAria')}
           className="
             w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-            text-text-secondary hover:text-text-primary
+            text-on-error-surface hover:bg-error-surface
             transition-colors
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
           "

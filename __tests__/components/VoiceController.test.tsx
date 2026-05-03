@@ -39,6 +39,11 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('useVoiceController', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    // Belt-and-braces: if a previous test left fake timers installed (e.g.
+    // a hung test that didn't reach its finally), the next test's waitFor()
+    // would never tick. Always restore real timers at the start of every
+    // test so we can't get stuck.
+    vi.useRealTimers()
     navState.pathname = '/write'
     delete (window as unknown as { __ccSessionTitle?: string }).__ccSessionTitle
   })
@@ -126,22 +131,26 @@ describe('useVoiceController', () => {
     await waitFor(() => expect(disconnect).toHaveBeenCalledOnce())
   })
 
-  it('returns to idle when permission is denied', async () => {
+  it('returns to idle when permission is denied (toast NOT retryable — user must fix browser settings)', async () => {
     mockConnect.mockRejectedValue(new Error('Permission denied by user'))
     const { result } = renderHook(() => useVoiceController(), { wrapper })
     await act(async () => { result.current.start() })
 
     await waitFor(() => expect(result.current.state).toBe('idle'))
-    expect(result.current.toast).toMatch(/microphone/i)
+    expect(result.current.toast?.message).toMatch(/microphone/i)
+    // Permission failures aren't recoverable by re-tapping; surfacing a
+    // "Try again" would just loop the user through the same denial.
+    expect(result.current.toast?.retryable).toBe(false)
   })
 
-  it('shows generic toast for non-permission errors', async () => {
+  it('marks generic transport errors as retryable so the toast can offer "Try again"', async () => {
     mockConnect.mockRejectedValue(new Error('Network failure'))
     const { result } = renderHook(() => useVoiceController(), { wrapper })
     await act(async () => { result.current.start() })
 
     await waitFor(() => expect(result.current.state).toBe('idle'))
-    expect(result.current.toast).toMatch(/voice session ended/i)
+    expect(result.current.toast?.message).toMatch(/voice session ended/i)
+    expect(result.current.toast?.retryable).toBe(true)
   })
 
   it('start() is a no-op when already connecting', async () => {
@@ -162,6 +171,7 @@ describe('useVoiceController', () => {
     await waitFor(() => expect(result.current.toast).toBeTruthy())
     expect(result.current.toastKey).toBeGreaterThan(initialKey)
   })
+
 
   it('survives React Strict Mode mount/unmount/remount cycle', async () => {
     // React 18 Strict Mode in dev double-invokes the effect lifecycle:

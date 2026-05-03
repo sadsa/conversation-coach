@@ -15,7 +15,7 @@ function wrap(ui: React.ReactNode) {
 }
 
 describe('VoiceStrip', () => {
-  it('renders the dot, title, language pill, mute and end controls', () => {
+  it('renders the indicator dot, keyboard hint, mute and end controls', () => {
     const ref = createRef<HTMLDivElement>()
     wrap(
       <VoiceStrip
@@ -25,20 +25,16 @@ describe('VoiceStrip', () => {
         onEnd={vi.fn()}
       />
     )
-    expect(screen.getByText('Voice coach')).toBeInTheDocument()
-    expect(screen.getByText('ES-AR')).toBeInTheDocument()
+    // Distill pass dropped the static "Voice coach" title and the always-on
+    // language pill — the dot + tinted background already say "session active".
+    expect(screen.queryByText('Voice coach')).not.toBeInTheDocument()
+    expect(screen.queryByText('ES-AR')).not.toBeInTheDocument()
+    expect(screen.queryByText('EN-NZ')).not.toBeInTheDocument()
+    // Keyboard shortcut hint surfaces on desktop (the test DOM still
+    // renders it; CSS hides on mobile via `hidden md:inline`).
+    expect(screen.getByText(/esc to end/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /mute microphone/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /end voice conversation/i })).toBeInTheDocument()
-  })
-
-  it('renders EN-NZ pill for en-NZ users', () => {
-    const ref = createRef<HTMLDivElement>()
-    render(
-      <LanguageProvider initialTargetLanguage="en-NZ">
-        <VoiceStrip muted={false} indicatorRef={ref} onMute={vi.fn()} onEnd={vi.fn()} />
-      </LanguageProvider>
-    )
-    expect(screen.getByText('EN-NZ')).toBeInTheDocument()
   })
 
   it('writes --voice-strip-height on mount and clears it on unmount', () => {
@@ -58,6 +54,37 @@ describe('VoiceStrip', () => {
     )
     const muteBtn = screen.getByRole('button', { name: /unmute microphone/i })
     expect(muteBtn).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('end button uses error-text foreground so it reads as destructive', () => {
+    const ref = createRef<HTMLDivElement>()
+    wrap(<VoiceStrip muted={false} indicatorRef={ref} onMute={vi.fn()} onEnd={vi.fn()} />)
+    const endBtn = screen.getByRole('button', { name: /end voice conversation/i })
+    expect(endBtn.className).toMatch(/text-on-error-surface/)
+  })
+
+  it('muted pressed state uses neutral tint, not error-red', () => {
+    const ref = createRef<HTMLDivElement>()
+    wrap(<VoiceStrip muted={true} indicatorRef={ref} onMute={vi.fn()} onEnd={vi.fn()} />)
+    const muteBtn = screen.getByRole('button', { name: /unmute microphone/i })
+    // Conflating muted (a deliberate choice) with error-red was misleading;
+    // we now use a neutral text-tertiary tint matching the indicator dot.
+    expect(muteBtn.className).not.toMatch(/error-surface/)
+    expect(muteBtn.className).toMatch(/aria-pressed:bg-text-tertiary/)
+  })
+
+  it('exposes keyboard shortcuts to assistive tech via aria-keyshortcuts', () => {
+    const ref = createRef<HTMLDivElement>()
+    wrap(<VoiceStrip muted={false} indicatorRef={ref} onMute={vi.fn()} onEnd={vi.fn()} />)
+    const region = screen.getByRole('region', { name: /voice coach session/i })
+    expect(region).toHaveAttribute('aria-keyshortcuts', 'Escape Space')
+  })
+
+  it('animates in via .voice-strip-anim (matches `<main>` margin transition)', () => {
+    const ref = createRef<HTMLDivElement>()
+    wrap(<VoiceStrip muted={false} indicatorRef={ref} onMute={vi.fn()} onEnd={vi.fn()} />)
+    const region = screen.getByRole('region', { name: /voice coach session/i })
+    expect(region.className).toMatch(/voice-strip-anim/)
   })
 
   it('calls onMute / onEnd', () => {

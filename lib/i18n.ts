@@ -439,6 +439,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'voice.startCoachmark': 'Ask the coach anything',
     'voice.regionAria': 'Voice coach session',
     'voice.connectedAnnouncement': 'Voice coach connected',
+    'voice.connectingAnnouncement': 'Connecting to voice coach',
+    'voice.shortcutHint': 'Esc to end · Space to mute',
+    'voice.tryAgain': 'Try again',
   },
 
   es: {
@@ -861,5 +864,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'voice.startCoachmark': 'Pregúntale al coach',
     'voice.regionAria': 'Sesión con el coach de voz',
     'voice.connectedAnnouncement': 'Coach de voz conectado',
+    'voice.connectingAnnouncement': 'Conectando con el coach de voz',
+    'voice.shortcutHint': 'Esc para finalizar · Espacio para silenciar',
+    'voice.tryAgain': 'Reintentar',
   },
 }

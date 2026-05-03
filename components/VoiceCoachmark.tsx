@@ -6,6 +6,12 @@
 // distilled to a tooltip-style bubble rather than a backdrop+spotlight —
 // the trigger is small but discoverable, and a heavyweight overlay would
 // over-dramatise it.
+//
+// Anchoring: rendered as an absolutely-positioned child of AppHeader's
+// right cluster (which is `relative`). Previously this used a fixed
+// position with hard-coded `right-12`, which broke any time the header's
+// right cluster grew or shrank. Now its position derives from the cluster
+// itself, so future icons added beside the trigger don't break the cue.
 'use client'
 import { useEffect, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
@@ -38,23 +44,32 @@ export function VoiceCoachmark({ visible }: Props) {
   return (
     <div
       className="
-        md:hidden fixed top-[calc(var(--header-height)+env(safe-area-inset-top)+8px)]
-        right-12 z-40
+        md:hidden absolute top-full right-0 mt-2 z-40
         bg-surface-elevated border border-border rounded-2xl
         px-3 py-2 flex items-center gap-2
-        shadow-md
+        shadow-md whitespace-nowrap
+        animate-coachmark-in
       "
       role="dialog"
       aria-label={t('voice.startCoachmark')}
     >
-      <span className="text-xs font-medium text-text-primary whitespace-nowrap">
+      {/* Pointer triangle — connects bubble visually to the trigger above
+          it. Without this the floating bubble reads as orphaned chrome. */}
+      <span
+        aria-hidden="true"
+        className="
+          absolute -top-1.5 right-6 w-3 h-3 rotate-45
+          bg-surface-elevated border-l border-t border-border
+        "
+      />
+      <span className="relative text-xs font-medium text-text-primary">
         {t('voice.startCoachmark')}
       </span>
       <button
         type="button"
         onClick={dismiss}
         aria-label={t('common.close')}
-        className="w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-primary"
+        className="relative w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-primary"
       >
         <Icon name="close" className="w-3 h-3" />
       </button>

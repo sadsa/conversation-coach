@@ -348,6 +348,22 @@
     animation: coachmark-fade-in 240ms var(--ease-out-quart) both;
   }
 
+  /* Voice strip — entrance animation
+     ───────────────────────────────────────────────────────────────────────
+     Slide-down + fade. Pairs with the `margin-top` transition on `<main>`
+     in app/layout.tsx so the strip and the content it pushes share one
+     180ms ease-out. Without this, the strip pops into existence and `<main>`
+     jumps 44px — the most important "I'm live" moment of a voice session
+     ends up reading as a layout glitch. Reduced-motion users get an instant
+     snap via the global rule above. */
+  @keyframes voice-strip-enter {
+    0%   { opacity: 0; transform: translateY(-100%); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .voice-strip-anim {
+    animation: voice-strip-enter 180ms var(--ease-out-quart) both;
+  }
+
   /* Voice widget — audio-flow indicator dot.
      ───────────────────────────────────────────────────────────────────────
      One non-interactive circle that swaps colour based on who's speaking

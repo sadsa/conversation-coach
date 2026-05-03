@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 import { useTranslation } from '@/components/LanguageProvider'
 import { VoiceTrigger, type VoiceTriggerState } from '@/components/VoiceTrigger'
+import { VoiceCoachmark } from '@/components/VoiceCoachmark'
 
 interface AppHeaderProps {
   isOpen: boolean
@@ -122,8 +123,13 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-1 -mr-1">
+          <div className="relative flex items-center gap-1 -mr-1">
             {voice && <VoiceTrigger state={voice.state} onStart={voice.onStart} />}
+            {/* Coachmark anchors to this cluster (`relative` parent), so
+                its position derives from where the trigger actually is —
+                survives any future right-cluster reshuffles. Renders
+                nothing once dismissed or while a session is active. */}
+            {voice && <VoiceCoachmark visible={voice.state === 'idle'} />}
             {/* Theme toggle — 44x44 hit area for AAA touch-target compliance,
                 with a smaller 32px visual circle inside so the chrome stays
                 quiet. */}

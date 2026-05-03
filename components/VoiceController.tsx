@@ -38,9 +38,16 @@ const SCALE_MAX = 0.45
 
 export type VoiceControllerState = 'idle' | 'connecting' | 'active' | 'muted'
 
+export interface VoiceToast {
+  message: string
+  /** When `true`, the toast surfaces a "Try again" action that re-runs `start()`.
+   *  Set on transport / connection failures where retry is the obvious next move. */
+  retryable?: boolean
+}
+
 export interface VoiceController {
   state: VoiceControllerState
-  toast: string | null
+  toast: VoiceToast | null
   toastKey: number
   indicatorRef: React.RefObject<HTMLDivElement>
   start: () => void
@@ -62,7 +69,7 @@ export function useVoiceController(): VoiceController {
   const { t, targetLanguage } = useTranslation()
   const pathname = usePathname()
   const [state, setState] = useState<VoiceControllerState>('idle')
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<VoiceToast | null>(null)
   const [toastKey, setToastKey] = useState(0)
 
   const agentRef = useRef<VoiceAgent | null>(null)
@@ -79,16 +86,22 @@ export function useVoiceController(): VoiceController {
   const tRef = useRef(t)
   useEffect(() => { tRef.current = t }, [t])
 
-  const showToast = useCallback((message: string) => {
+  // Mutable retryable flag — passing it as a third positional arg keeps the
+  // call sites readable: `showToast(msg)` for benign info, `showToast(msg, true)`
+  // for failures the user can recover from.
+  const showToast = useCallback((message: string, retryable: boolean = false) => {
     if (!isMountedRef.current) return
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
-    setToast(message)
+    setToast({ message, retryable })
     setToastKey(k => k + 1)
+    // Retryable toasts get a longer dwell (8s vs 4s) — the user needs time
+    // to read the message AND decide whether to tap "Try again". Benign
+    // info toasts auto-dismiss faster so they don't loiter.
     toastTimerRef.current = window.setTimeout(() => {
       if (!isMountedRef.current) return
       setToast(null)
       toastTimerRef.current = null
-    }, 4000)
+    }, retryable ? 8000 : 4000)
   }, [])
 
   const start = useCallback(async () => {
@@ -114,9 +127,12 @@ export function useVoiceController(): VoiceController {
             setState('idle')
             agentRef.current = null
             if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('denied')) {
+              // Permission toasts are NOT retryable — the user has to fix
+              // browser settings, not just tap again. Leaving "Try again"
+              // off prevents a loop of futile retries.
               showToast(tRef.current('voice.micPermission'))
             } else {
-              showToast(tRef.current('voice.sessionEnded'))
+              showToast(tRef.current('voice.sessionEnded'), true)
             }
           },
           onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
@@ -139,7 +155,7 @@ export function useVoiceController(): VoiceController {
       if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('denied')) {
         showToast(tRef.current('voice.micPermission'))
       } else {
-        showToast(tRef.current('voice.sessionEnded'))
+        showToast(tRef.current('voice.sessionEnded'), true)
       }
     } finally {
       startingRef.current = false

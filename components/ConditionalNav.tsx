@@ -6,8 +6,8 @@ import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
 import { BottomNav } from '@/components/BottomNav'
 import { VoiceStrip } from '@/components/VoiceStrip'
-import { VoiceCoachmark } from '@/components/VoiceCoachmark'
 import { useVoiceController } from '@/components/VoiceController'
+import { useTranslation } from '@/components/LanguageProvider'
 import { Toast } from '@/components/Toast'
 
 const HIDDEN_ON = ['/login', '/access-denied', '/onboarding', '/auth']
@@ -16,6 +16,7 @@ export function ConditionalNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const voice = useVoiceController()
+  const { t } = useTranslation()
 
   if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null
 
@@ -28,7 +29,6 @@ export function ConditionalNav() {
         onOpen={() => setIsOpen(true)}
         voice={{ state: voice.state, onStart: voice.start }}
       />
-      <VoiceCoachmark visible={voice.state === 'idle'} />
       <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
       <BottomNav />
       {voiceActive && (
@@ -39,7 +39,17 @@ export function ConditionalNav() {
           onEnd={voice.end}
         />
       )}
-      {voice.toast && <Toast message={voice.toast} toastKey={voice.toastKey} />}
+      {voice.toast && (
+        <Toast
+          message={voice.toast.message}
+          toastKey={voice.toastKey}
+          action={
+            voice.toast.retryable
+              ? { label: t('voice.tryAgain'), onClick: voice.start }
+              : undefined
+          }
+        />
+      )}
     </>
   )
 }
