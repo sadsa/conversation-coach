@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
 import { BottomNav } from '@/components/BottomNav'
 import { VoiceStrip } from '@/components/VoiceStrip'
+import { VoiceCoachmark } from '@/components/VoiceCoachmark'
 import { useVoiceController } from '@/components/VoiceController'
 import { Toast } from '@/components/Toast'
 
@@ -27,6 +28,7 @@ export function ConditionalNav() {
         onOpen={() => setIsOpen(true)}
         voice={{ state: voice.state, onStart: voice.start }}
       />
+      <VoiceCoachmark visible={voice.state === 'idle'} />
       <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
       <BottomNav />
       {voiceActive && (

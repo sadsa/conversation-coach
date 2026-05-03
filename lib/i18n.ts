@@ -17,6 +17,9 @@ export function t(key: string, lang: UiLanguage, replacements?: Replacements): s
 
 const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
   en: {
+    // Common
+    'common.close': 'Dismiss',
+
     // Navigation
     'nav.recordings': 'Recordings',
     'nav.write': 'Write',
@@ -439,6 +442,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
   },
 
   es: {
+    // Common
+    'common.close': 'Cerrar',
+
     // Navigation
     'nav.recordings': 'Grabaciones',
     'nav.write': 'Anotar',
