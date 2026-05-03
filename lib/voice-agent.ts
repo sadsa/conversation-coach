@@ -8,6 +8,11 @@ export interface FocusedCorrection {
   explanation: string
 }
 
+export type VoiceRouteContext =
+  | { kind: 'write' }
+  | { kind: 'session'; sessionTitle: string }
+  | { kind: 'other' }
+
 export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 
 export interface VoiceAgentCallbacks {
@@ -77,7 +82,8 @@ const DEFAULT_VOICE = 'Aoede'
 /** Pure function — builds the system prompt injected on connect. */
 export function buildSystemPrompt(
   targetLanguage: TargetLanguage,
-  items: FocusedCorrection[]
+  items: FocusedCorrection[],
+  routeContext: VoiceRouteContext = { kind: 'other' }
 ): string {
   const isEsAR = targetLanguage === 'es-AR'
 
@@ -85,17 +91,30 @@ export function buildSystemPrompt(
     ? `You are a Rioplatense Argentine Spanish coach.\nSpeak exclusively in Argentine Spanish with a Rioplatense accent.\nUse voseo verb forms and natural everyday Rioplatense vocabulary.`
     : `You are a New Zealand English coach.\nSpeak exclusively in New Zealand English with a Kiwi accent and idioms.`
 
-  const itemList = items
-    .slice(0, 10)
-    .map((item, i) => `${i + 1}. "${item.original}" → "${item.correction ?? item.original}" — ${item.explanation}`)
-    .join('\n')
+  const itemsBlock = items.length === 0
+    ? ''
+    : `\n\nThe user has these corrections to review:\n${items
+        .slice(0, 10)
+        .map((item, i) => `${i + 1}. "${item.original}" → "${item.correction ?? item.original}" — ${item.explanation}`)
+        .join('\n')}`
 
-  return `${languageBlock}
+  const routeHint = (() => {
+    if (routeContext.kind === 'write') {
+      return `\n\nThe user is currently looking at their Write list — saved corrections they want to internalise.`
+    }
+    if (routeContext.kind === 'session') {
+      return isEsAR
+        ? `\n\nEl usuario está repasando la conversación titulada '${routeContext.sessionTitle}'.`
+        : `\n\nThe user is currently reviewing the conversation titled '${routeContext.sessionTitle}'.`
+    }
+    return ''
+  })()
 
-The user has these corrections to review:
-${itemList}
+  const openingGuidance = items.length === 0 && routeContext.kind === 'other'
+    ? `\n\nThe user has not given you a specific topic. Greet them briefly and ask how you can help.`
+    : `\n\nBe brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted. Let the user guide which correction they want to discuss.`
 
-Be brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted. Let the user guide which correction they want to discuss.`
+  return `${languageBlock}${itemsBlock}${routeHint}${openingGuidance}`
 }
 
 /**

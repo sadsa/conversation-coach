@@ -37,4 +37,45 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('tengo calor')
     expect(prompt).toContain('hace calor')
   })
+
+  it('appends a Write-list hint when routeContext.kind is "write"', () => {
+    const prompt = buildSystemPrompt('es-AR', items, { kind: 'write' })
+    expect(prompt).toContain('Write list')
+    expect(prompt).toContain('saved corrections')
+  })
+
+  it('appends a session-review hint with the title when routeContext.kind is "session"', () => {
+    const prompt = buildSystemPrompt('es-AR', items, {
+      kind: 'session',
+      sessionTitle: 'Café con Mati',
+    })
+    expect(prompt).toContain("'Café con Mati'")
+    expect(prompt).toContain('repasando')
+  })
+
+  it('uses English session-review wording for en-NZ', () => {
+    const prompt = buildSystemPrompt('en-NZ', items, {
+      kind: 'session',
+      sessionTitle: 'Coffee with Mati',
+    })
+    expect(prompt).toContain("'Coffee with Mati'")
+    expect(prompt).toContain('reviewing')
+  })
+
+  it('does not append a hint when routeContext.kind is "other"', () => {
+    const prompt = buildSystemPrompt('es-AR', items, { kind: 'other' })
+    expect(prompt).not.toContain('Write list')
+    expect(prompt).not.toContain('reviewing')
+    expect(prompt).not.toContain('repasando')
+  })
+
+  it('tells the agent to greet open-endedly when items empty and route is "other"', () => {
+    const prompt = buildSystemPrompt('es-AR', [], { kind: 'other' })
+    expect(prompt).toContain('Greet them briefly and ask how you can help')
+  })
+
+  it('omits the items block entirely when items is an empty array', () => {
+    const prompt = buildSystemPrompt('es-AR', [], { kind: 'other' })
+    expect(prompt).not.toContain('corrections to review')
+  })
 })
