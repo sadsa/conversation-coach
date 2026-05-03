@@ -168,7 +168,7 @@ Session title: when navigating into `/sessions/[id]`, the `TranscriptClient` wri
 | `session` (en-NZ) | `The user is currently reviewing the conversation titled '${sessionTitle}'.` |
 | `other` | (nothing appended) |
 
-When `items` is empty and `routeContext` is `other`, the prompt explicitly tells the agent: "The user has not given you a specific topic. Greet them briefly and ask how you can help." This replaces the `items.length === 0 → return null` short-circuit in the current widget.
+When `items` is empty — regardless of route — the prompt explicitly tells the agent: "The user has not given you a specific topic. Greet them briefly and ask how you can help." This replaces the `items.length === 0 → return null` short-circuit in the current widget. (Relaxed during implementation from the original `routeContext === 'other'` gate: if the list is empty there's nothing to open on, `/write` or not.)
 
 ---
 

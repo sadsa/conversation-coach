@@ -14,7 +14,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
-- **Gemini Multimodal Live API** (raw WebSocket, `models/gemini-3.1-flash-live-preview`) — real-time voice coaching in `VoiceWidget`
+- **Gemini Multimodal Live API** (raw WebSocket, `models/gemini-3.1-flash-live-preview`) — real-time voice coaching via `useVoiceController` (global, header-anchored)
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
 - **`framer-motion`** — sheet entrance animations + `useReducedMotion`
 - **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`
@@ -155,7 +155,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
 - **Gemini Live binary frame protocol**: Gemini sends ALL WebSocket frames as binary (ArrayBuffer) — both control messages (e.g. `setupComplete`, errors) and raw PCM16 audio. The message handler in `lib/voice-agent.ts` tries UTF-8 JSON decode first; if that fails it treats the frame as a PCM16 audio chunk. Do not set `ws.binaryType = 'arraybuffer'` and then blindly `JSON.parse` — you'll get `"[object ArrayBuffer] is not valid JSON"`. Also: `realtime_input.media_chunks` is deprecated; use `realtime_input.audio` instead.
-- **VoiceWidget is write-page only**: `<VoiceWidget>` is mounted in `ConditionalNav` but only rendered when `pathname === '/write'`. Fetch for practice items is also skipped on other pages.
+- **Voice coach is global**: `useVoiceController` (in `components/VoiceController.tsx`) is mounted inside `ConditionalNav`, so the WebSocket / mic / AudioContext survive in-app navigation. `VoiceTrigger` (in `AppHeader`'s right cluster) opens a session; `VoiceStrip` (fixed under the header while active, writes `--voice-strip-height` so `<main>` shifts down 44px) owns mute / end / audio-flow indicator. System prompt gets a single-sentence route hint via `VoiceRouteContext` — `/write` and `/sessions/[id]` only; other routes get no hint. Session title is bridged through `window.__ccSessionTitle` (published by `TranscriptClient` on mount, cleared on unmount; read lazily inside `start()`). First-run `VoiceCoachmark` (mobile-only) cues the trigger via `cc:voice-trigger-coachmark:v1` localStorage flag.
 - **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`, used to render inline highlights.
 - **`PATCH /api/sessions/:id` accepts `title` only**: All other session state is managed by server-side pipeline logic.
 - **`POST /api/sessions/:id/retry`**: Only valid for `uploading` and `transcribing` error stages. Use `/analyse` for analysing errors.
