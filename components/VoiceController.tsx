@@ -42,7 +42,7 @@ export interface VoiceController {
   state: VoiceControllerState
   toast: string | null
   toastKey: number
-  indicatorRef: React.RefObject<HTMLDivElement | null>
+  indicatorRef: React.RefObject<HTMLDivElement>
   start: () => void
   toggleMute: () => void
   end: () => void
@@ -68,7 +68,7 @@ export function useVoiceController(): VoiceController {
   const agentRef = useRef<VoiceAgent | null>(null)
   const userRmsRef = useRef(0)
   const agentRmsRef = useRef(0)
-  const indicatorRef = useRef<HTMLDivElement | null>(null)
+  const indicatorRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const toastTimerRef = useRef<number | null>(null)
   const isMountedRef = useRef(true)

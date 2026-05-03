@@ -16,7 +16,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 
 interface Props {
   muted: boolean
-  indicatorRef: React.RefObject<HTMLDivElement | null>
+  indicatorRef: React.RefObject<HTMLDivElement>
   onMute: () => void
   onEnd: () => void
 }
