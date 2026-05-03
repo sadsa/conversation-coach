@@ -145,6 +145,9 @@
        hidden, so the toast can sit closer to the edge (still respecting
        the safe area on iPad / landscape iPhone). */
     --toast-bottom: calc(5rem + env(safe-area-inset-bottom));
+    /* Filled by VoiceStrip on mount; 0px when no voice session is active.
+       Keeps `<main>`'s top spacing in lockstep with the strip's slide. */
+    --voice-strip-height: 0px;
   }
 
   /* Browser-driven scroll-into-view (anchor links, focus(), scrollIntoView)

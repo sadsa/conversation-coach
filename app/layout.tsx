@@ -117,8 +117,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               // status-bar safe area, since the fixed AppHeader now extends
               // its own background up under the status bar.
               style={{
-                marginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
-                scrollMarginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
+                marginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
+                scrollMarginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
               }}
               // Single, intentional reading column. The app is a reading
               // surface — transcripts, corrections, written-down queue —
