@@ -1,12 +1,15 @@
 // __tests__/components/AppHeader.test.tsx
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { AppHeader } from '@/components/AppHeader'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { LanguageProvider } from '@/components/LanguageProvider'
 
+let mockPathname = '/'
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => mockPathname,
 }))
 
 const localStorageMock = (() => {
@@ -32,6 +35,7 @@ describe('AppHeader', () => {
   beforeEach(() => {
     localStorageMock.clear()
     vi.resetAllMocks()
+    mockPathname = '/'
   })
 
   it('renders the open menu button', () => {
@@ -72,5 +76,63 @@ describe('AppHeader', () => {
     await userEvent.click(screen.getByRole('button', { name: /switch to light mode/i }))
     await userEvent.click(screen.getByRole('button', { name: /switch to dark mode/i }))
     expect(screen.getByRole('button', { name: /switch to light mode/i })).toBeInTheDocument()
+  })
+})
+
+afterEach(cleanup)
+
+function wrapWithLang(ui: ReactNode) {
+  return render(
+    <ThemeProvider>
+      <LanguageProvider initialTargetLanguage="es-AR">
+        {ui}
+      </LanguageProvider>
+    </ThemeProvider>
+  )
+}
+
+describe('AppHeader voice trigger', () => {
+  beforeEach(() => {
+    localStorageMock.clear()
+    mockPathname = '/write'
+  })
+
+  it('renders the voice trigger when voice prop is provided', () => {
+    wrapWithLang(
+      <AppHeader
+        isOpen={false}
+        onOpen={vi.fn()}
+        voice={{ state: 'idle', onStart: vi.fn() }}
+      />
+    )
+    expect(screen.getByRole('button', { name: /start voice conversation/i })).toBeInTheDocument()
+  })
+
+  it('omits the voice trigger when voice prop is missing', () => {
+    wrapWithLang(<AppHeader isOpen={false} onOpen={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /start voice conversation/i })).toBeNull()
+  })
+
+  it('hides the section label when voice state is active', () => {
+    wrapWithLang(
+      <AppHeader
+        isOpen={false}
+        onOpen={vi.fn()}
+        voice={{ state: 'active', onStart: vi.fn() }}
+      />
+    )
+    // /write route would normally show "Write" — confirm it's gone.
+    expect(screen.queryByText(/^write$/i)).toBeNull()
+  })
+
+  it('shows the section label when voice state is idle', () => {
+    wrapWithLang(
+      <AppHeader
+        isOpen={false}
+        onOpen={vi.fn()}
+        voice={{ state: 'idle', onStart: vi.fn() }}
+      />
+    )
+    expect(screen.getByText(/^write$/i)).toBeInTheDocument()
   })
 })
