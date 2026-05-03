@@ -47,6 +47,18 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     fetch(`/api/sessions/${sessionId}/view`, { method: 'POST' }).catch(() => { /* non-critical */ })
   }, [sessionId])
 
+  // Publish the session title for the global voice controller. The
+  // controller reads this lazily inside `start()` so opening voice while
+  // here lets the agent know which conversation the user is reviewing
+  // without prop-drilling through the layout. Cleared on unmount so
+  // navigating elsewhere never leaves a stale title behind.
+  useEffect(() => {
+    window.__ccSessionTitle = title
+    return () => {
+      delete window.__ccSessionTitle
+    }
+  }, [title])
+
   useEffect(() => {
     if (!toastMessage) return
     const timer = setTimeout(() => setToastMessage(null), 3000)
