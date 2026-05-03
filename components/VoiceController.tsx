@@ -10,6 +10,20 @@
 // Page-context hint is computed at start() time, not on every render. Once
 // connected, the agent's mental model of "where you are" doesn't whiplash
 // when the user navigates mid-session.
+//
+// Lifecycle hardening:
+// - `isMountedRef` guards setState/setToast inside async callbacks and
+//   forces a `disconnect()` on any agent that resolves AFTER the consumer
+//   unmounted (otherwise the WebSocket / mic / AudioContext leak — the
+//   first unmount cleanup ran when `agentRef.current` was still null).
+// - `startingRef` blocks a synchronous double-tap on the trigger from
+//   issuing two `connect()` calls before the first `setState('connecting')`
+//   has flushed.
+// - `tRef` snapshots the latest translator so a toast fired after a UI
+//   language switch uses the new copy, not the closure-captured old one.
+// - `endRef`/`toggleMuteRef` keep the global keydown listener stable across
+//   active↔muted toggles — it mounts once when entering the session and
+//   tears down once on the way out.
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
@@ -27,6 +41,7 @@ export type VoiceControllerState = 'idle' | 'connecting' | 'active' | 'muted'
 export interface VoiceController {
   state: VoiceControllerState
   toast: string | null
+  toastKey: number
   indicatorRef: React.RefObject<HTMLDivElement | null>
   start: () => void
   toggleMute: () => void
@@ -48,6 +63,7 @@ export function useVoiceController(): VoiceController {
   const pathname = usePathname()
   const [state, setState] = useState<VoiceControllerState>('idle')
   const [toast, setToast] = useState<string | null>(null)
+  const [toastKey, setToastKey] = useState(0)
 
   const agentRef = useRef<VoiceAgent | null>(null)
   const userRmsRef = useRef(0)
@@ -55,18 +71,29 @@ export function useVoiceController(): VoiceController {
   const indicatorRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const toastTimerRef = useRef<number | null>(null)
+  const isMountedRef = useRef(true)
+  const startingRef = useRef(false)
+
+  // Snapshot the latest `t` so closures captured by `connect()`'s callbacks
+  // pick up UI-language changes that happen after the session started.
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t }, [t])
 
   const showToast = useCallback((message: string) => {
+    if (!isMountedRef.current) return
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
     setToast(message)
+    setToastKey(k => k + 1)
     toastTimerRef.current = window.setTimeout(() => {
+      if (!isMountedRef.current) return
       setToast(null)
       toastTimerRef.current = null
     }, 4000)
   }, [])
 
   const start = useCallback(async () => {
-    if (state !== 'idle') return
+    if (startingRef.current || state !== 'idle') return
+    startingRef.current = true
     setState('connecting')
 
     try {
@@ -75,6 +102,7 @@ export function useVoiceController(): VoiceController {
         [],
         {
           onStateChange: (s: VoiceAgentState) => {
+            if (!isMountedRef.current) return
             if (s === 'active') setState('active')
             else if (s === 'ended') {
               setState('idle')
@@ -82,12 +110,13 @@ export function useVoiceController(): VoiceController {
             }
           },
           onError: (message: string) => {
+            if (!isMountedRef.current) return
             setState('idle')
             agentRef.current = null
             if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('denied')) {
-              showToast(t('voice.micPermission'))
+              showToast(tRef.current('voice.micPermission'))
             } else {
-              showToast(t('voice.sessionEnded'))
+              showToast(tRef.current('voice.sessionEnded'))
             }
           },
           onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
@@ -95,17 +124,27 @@ export function useVoiceController(): VoiceController {
         },
         deriveRouteContext(pathname)
       )
+      // Consumer may have unmounted while `connect()` was in flight. The
+      // unmount cleanup ran with `agentRef.current === null`, so without
+      // this guard the agent would leak — disconnect it ourselves and bail.
+      if (!isMountedRef.current) {
+        agent.disconnect()
+        return
+      }
       agentRef.current = agent
     } catch (err) {
+      if (!isMountedRef.current) return
       setState('idle')
       const message = err instanceof Error ? err.message : ''
       if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('denied')) {
-        showToast(t('voice.micPermission'))
+        showToast(tRef.current('voice.micPermission'))
       } else {
-        showToast(t('voice.sessionEnded'))
+        showToast(tRef.current('voice.sessionEnded'))
       }
+    } finally {
+      startingRef.current = false
     }
-  }, [state, targetLanguage, pathname, t, showToast])
+  }, [state, targetLanguage, pathname, showToast])
 
   const end = useCallback(() => {
     agentRef.current?.disconnect()
@@ -122,7 +161,16 @@ export function useVoiceController(): VoiceController {
     }
   }, [state])
 
-  // Keyboard shortcuts — only mounted while in an active session.
+  // Keep refs to the latest callbacks so the keydown listener can stay
+  // mounted across active↔muted toggles instead of re-binding each flip.
+  const endRef = useRef(end)
+  const toggleMuteRef = useRef(toggleMute)
+  useEffect(() => { endRef.current = end }, [end])
+  useEffect(() => { toggleMuteRef.current = toggleMute }, [toggleMute])
+
+  // Keyboard shortcuts — mounted once when entering the active session,
+  // torn down once when leaving. Inputs / textareas / contenteditable are
+  // ignored so we don't fight forms.
   useEffect(() => {
     if (state !== 'active' && state !== 'muted') return
     function onKey(e: KeyboardEvent) {
@@ -133,15 +181,15 @@ export function useVoiceController(): VoiceController {
       }
       if (e.key === 'Escape') {
         e.preventDefault()
-        end()
+        endRef.current()
       } else if (e.code === 'Space' && !e.repeat) {
         e.preventDefault()
-        toggleMute()
+        toggleMuteRef.current()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [state, end, toggleMute])
+  }, [state])
 
   // Audio-flow indicator drive loop. Reads RMS refs, decays them, writes
   // transform + data-speaker straight to the DOM so we don't trigger React
@@ -189,14 +237,17 @@ export function useVoiceController(): VoiceController {
 
   // Disconnect the agent and clear any pending toast on unmount so a
   // ConditionalNav unmount (sign-out, auth-public route) doesn't leak the
-  // WebSocket or fire setState on an unmounted component.
+  // WebSocket or fire setState on an unmounted component. The
+  // `isMountedRef` flip also lets a still-pending `connect()` promise's
+  // resolution disconnect the agent itself when it finally lands.
   useEffect(() => {
     return () => {
+      isMountedRef.current = false
       agentRef.current?.disconnect()
       agentRef.current = null
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
     }
   }, [])
 
-  return { state, toast, indicatorRef, start, toggleMute, end }
+  return { state, toast, toastKey, indicatorRef, start, toggleMute, end }
 }

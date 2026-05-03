@@ -8,8 +8,14 @@ vi.mock('@/lib/voice-agent', () => ({
   buildSystemPrompt: vi.fn(() => 'mock prompt'),
 }))
 
+// Hoisted mutable nav state — `vi.mock` is lifted to the top of the module,
+// so we can't close over a regular `let` here. `vi.hoisted` gives us a
+// shared object that's safe to read from inside the factory and mutate
+// from inside individual tests.
+const navState = vi.hoisted(() => ({ pathname: '/write' as string }))
+
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/write',
+  usePathname: () => navState.pathname,
 }))
 
 const mockConnect = (await import('@/lib/voice-agent')).connect as ReturnType<typeof vi.fn>
@@ -32,6 +38,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('useVoiceController', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    navState.pathname = '/write'
     delete (window as unknown as { __ccSessionTitle?: string }).__ccSessionTitle
   })
 
@@ -70,6 +77,23 @@ describe('useVoiceController', () => {
     )
   })
 
+  it('passes routeContext "session" with sessionTitle when on /sessions/[id] with window.__ccSessionTitle', async () => {
+    navState.pathname = '/sessions/abc-123'
+    ;(window as unknown as { __ccSessionTitle?: string }).__ccSessionTitle = 'Café con Mati'
+    mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect: vi.fn() })
+
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+    await waitFor(() => expect(mockConnect).toHaveBeenCalled())
+
+    expect(mockConnect).toHaveBeenCalledWith(
+      'es-AR',
+      [],
+      expect.any(Object),
+      { kind: 'session', sessionTitle: 'Café con Mati' }
+    )
+  })
+
   it('disconnects on unmount', async () => {
     const disconnect = vi.fn()
     let cb: Parameters<typeof mockConnect>[2]
@@ -87,6 +111,20 @@ describe('useVoiceController', () => {
     expect(disconnect).toHaveBeenCalledOnce()
   })
 
+  it('disconnects the agent if unmounted mid-connect', async () => {
+    const disconnect = vi.fn()
+    let resolveConnect: (a: unknown) => void = () => {}
+    mockConnect.mockImplementation(() => new Promise((r) => { resolveConnect = r }))
+    const { result, unmount } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+    unmount()
+    // Resolve the promise after unmount — the in-flight start() should
+    // notice `isMountedRef` is false and disconnect the freshly-arrived
+    // agent itself rather than letting it leak.
+    await act(async () => { resolveConnect({ setMuted: vi.fn(), disconnect }) })
+    await waitFor(() => expect(disconnect).toHaveBeenCalledOnce())
+  })
+
   it('returns to idle when permission is denied', async () => {
     mockConnect.mockRejectedValue(new Error('Permission denied by user'))
     const { result } = renderHook(() => useVoiceController(), { wrapper })
@@ -94,6 +132,34 @@ describe('useVoiceController', () => {
 
     await waitFor(() => expect(result.current.state).toBe('idle'))
     expect(result.current.toast).toMatch(/microphone/i)
+  })
+
+  it('shows generic toast for non-permission errors', async () => {
+    mockConnect.mockRejectedValue(new Error('Network failure'))
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+
+    await waitFor(() => expect(result.current.state).toBe('idle'))
+    expect(result.current.toast).toMatch(/voice session ended/i)
+  })
+
+  it('start() is a no-op when already connecting', async () => {
+    let resolveConnect: (a: unknown) => void = () => {}
+    mockConnect.mockImplementation(() => new Promise((r) => { resolveConnect = r }))
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+    await act(async () => { result.current.start() })
+    expect(mockConnect).toHaveBeenCalledOnce()
+    resolveConnect({ setMuted: vi.fn(), disconnect: vi.fn() })
+  })
+
+  it('toastKey increments when a toast is shown', async () => {
+    mockConnect.mockRejectedValue(new Error('Permission denied'))
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    const initialKey = result.current.toastKey
+    await act(async () => { result.current.start() })
+    await waitFor(() => expect(result.current.toast).toBeTruthy())
+    expect(result.current.toastKey).toBeGreaterThan(initialKey)
   })
 
   it('mutes and unmutes', async () => {
