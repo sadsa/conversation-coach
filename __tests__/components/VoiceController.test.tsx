@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { useVoiceController } from '@/components/VoiceController'
 
@@ -160,6 +161,30 @@ describe('useVoiceController', () => {
     await act(async () => { result.current.start() })
     await waitFor(() => expect(result.current.toast).toBeTruthy())
     expect(result.current.toastKey).toBeGreaterThan(initialKey)
+  })
+
+  it('survives React Strict Mode mount/unmount/remount cycle', async () => {
+    // React 18 Strict Mode in dev double-invokes the effect lifecycle:
+    // mount → cleanup → remount. The cleanup flips `isMountedRef.current`
+    // to false; the effect body must reset it to true on remount or the
+    // controller permanently thinks it's unmounted and disconnects every
+    // freshly-resolved agent before the WS handshake completes.
+    const disconnect = vi.fn()
+    mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect })
+
+    function strictWrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <StrictMode>
+          <LanguageProvider initialTargetLanguage="es-AR">{children}</LanguageProvider>
+        </StrictMode>
+      )
+    }
+
+    const { result } = renderHook(() => useVoiceController(), { wrapper: strictWrapper })
+    await act(async () => { result.current.start() })
+    await waitFor(() => expect(mockConnect).toHaveBeenCalled())
+
+    expect(disconnect).not.toHaveBeenCalled()
   })
 
   it('mutes and unmutes', async () => {

@@ -240,7 +240,13 @@ export function useVoiceController(): VoiceController {
   // WebSocket or fire setState on an unmounted component. The
   // `isMountedRef` flip also lets a still-pending `connect()` promise's
   // resolution disconnect the agent itself when it finally lands.
+  //
+  // Reset `isMountedRef` to `true` on every effect run so React 18 Strict
+  // Mode's mount → cleanup → remount cycle doesn't permanently leave the
+  // ref `false` — without this, the post-await guard inside `start()`
+  // would fire `agent.disconnect()` on every fresh session in dev.
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
       isMountedRef.current = false
       agentRef.current?.disconnect()
