@@ -100,17 +100,20 @@ export function buildSystemPrompt(
 
   const routeHint = (() => {
     if (routeContext.kind === 'write') {
-      return `\n\nThe user is currently looking at their Write list — saved corrections they want to internalise.`
+      return isEsAR
+        ? `\n\nEl usuario está mirando su lista de cosas para escribir — correcciones que quiere internalizar.`
+        : `\n\nThe user is currently looking at their Write list — saved corrections they want to internalise.`
     }
     if (routeContext.kind === 'session') {
+      const safeTitle = routeContext.sessionTitle.replace(/'/g, '')
       return isEsAR
-        ? `\n\nEl usuario está repasando la conversación titulada '${routeContext.sessionTitle}'.`
-        : `\n\nThe user is currently reviewing the conversation titled '${routeContext.sessionTitle}'.`
+        ? `\n\nEl usuario está repasando la conversación titulada '${safeTitle}'.`
+        : `\n\nThe user is currently reviewing the conversation titled '${safeTitle}'.`
     }
     return ''
   })()
 
-  const openingGuidance = items.length === 0 && routeContext.kind === 'other'
+  const openingGuidance = items.length === 0
     ? `\n\nThe user has not given you a specific topic. Greet them briefly and ask how you can help.`
     : `\n\nBe brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted. Let the user guide which correction they want to discuss.`
 

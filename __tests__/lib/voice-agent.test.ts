@@ -40,6 +40,11 @@ describe('buildSystemPrompt', () => {
 
   it('appends a Write-list hint when routeContext.kind is "write"', () => {
     const prompt = buildSystemPrompt('es-AR', items, { kind: 'write' })
+    expect(prompt).toContain('lista de cosas para escribir')
+  })
+
+  it('appends an English Write-list hint when routeContext.kind is "write" and language is en-NZ', () => {
+    const prompt = buildSystemPrompt('en-NZ', items, { kind: 'write' })
     expect(prompt).toContain('Write list')
     expect(prompt).toContain('saved corrections')
   })
@@ -77,5 +82,20 @@ describe('buildSystemPrompt', () => {
   it('omits the items block entirely when items is an empty array', () => {
     const prompt = buildSystemPrompt('es-AR', [], { kind: 'other' })
     expect(prompt).not.toContain('corrections to review')
+  })
+
+  it('uses an open-ended closer when items empty even on the write route', () => {
+    const prompt = buildSystemPrompt('es-AR', [], { kind: 'write' })
+    expect(prompt).not.toContain('which correction they want to discuss')
+    expect(prompt).toContain('Greet them briefly and ask how you can help')
+  })
+
+  it('strips apostrophes from session titles to keep quoting intact', () => {
+    const prompt = buildSystemPrompt('en-NZ', items, {
+      kind: 'session',
+      sessionTitle: "Lucia's birthday",
+    })
+    expect(prompt).toContain("'Lucias birthday'")
+    expect(prompt).not.toContain("'Lucia's birthday'")
   })
 })
