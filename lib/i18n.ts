@@ -430,6 +430,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'voice.sessionEnded': 'Voice session ended',
     'voice.connecting': 'Connecting…',
     'voice.reconnecting': 'Reconnecting…',
+    'voice.coachTitle': 'Voice coach',
+    'voice.languagePill.esAR': 'ES-AR',
+    'voice.languagePill.enNZ': 'EN-NZ',
+    'voice.startCoachmark': 'Ask the coach anything',
+    'voice.regionAria': 'Voice coach session',
+    'voice.connectedAnnouncement': 'Voice coach connected',
   },
 
   es: {
@@ -843,5 +849,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'voice.sessionEnded': 'Sesión de voz finalizada',
     'voice.connecting': 'Conectando…',
     'voice.reconnecting': 'Reconectando…',
+    'voice.coachTitle': 'Coach de voz',
+    'voice.languagePill.esAR': 'ES-AR',
+    'voice.languagePill.enNZ': 'EN-NZ',
+    'voice.startCoachmark': 'Pregúntale al coach',
+    'voice.regionAria': 'Sesión con el coach de voz',
+    'voice.connectedAnnouncement': 'Coach de voz conectado',
   },
 }
