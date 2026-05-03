@@ -12,6 +12,7 @@
 
 import { createServerClient } from '@/lib/supabase-server'
 import { computeDashboardSummary, type DashboardSummary } from '@/lib/dashboard-summary'
+import { publicUrl } from '@/lib/r2'
 import type {
   Annotation,
   PracticeItem,
@@ -66,7 +67,7 @@ export async function loadSessionDetail(
 
   const { data: session, error: sessionError } = await db
     .from('sessions')
-    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at')
+    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at, audio_r2_key')
     .eq('id', sessionId)
     .eq('user_id', userId)
     .single()
@@ -110,7 +111,17 @@ export async function loadSessionDetail(
   }
 
   return {
-    session,
+    session: {
+      id: session.id,
+      title: session.title,
+      status: session.status,
+      error_stage: session.error_stage,
+      duration_seconds: session.duration_seconds,
+      detected_speaker_count: session.detected_speaker_count,
+      user_speaker_labels: session.user_speaker_labels,
+      created_at: session.created_at,
+    },
+    audio_url: session.audio_r2_key ? publicUrl(session.audio_r2_key) : null,
     segments,
     annotations,
     addedAnnotations,

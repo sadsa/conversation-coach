@@ -156,6 +156,11 @@ export interface SessionDetail {
     'id' | 'title' | 'status' | 'error_stage' | 'duration_seconds' |
     'detected_speaker_count' | 'user_speaker_labels' | 'created_at'
   >
+  /**
+   * Public playback URL for this session's retained audio, if available.
+   * Null for legacy sessions (audio deleted) or sessions still in flight.
+   */
+  audio_url: string | null
   segments: TranscriptSegment[]
   annotations: Annotation[]
   addedAnnotations: Record<string, string>   // annotationId -> practiceItemId

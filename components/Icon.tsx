@@ -33,6 +33,11 @@ export function Icon({ name, className = 'w-5 h-5', title, ...rest }: Props) {
 }
 
 const ICONS = {
+  play: <polygon points="8 5 19 12 8 19 8 5" />,
+  pause: <>
+    <line x1="10" y1="5" x2="10" y2="19" />
+    <line x1="14" y1="5" x2="14" y2="19" />
+  </>,
   plus: <>
     <line x1="12" y1="5" x2="12" y2="19" />
     <line x1="5" y1="12" x2="19" y2="12" />

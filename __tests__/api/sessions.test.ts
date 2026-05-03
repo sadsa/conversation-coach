@@ -7,13 +7,14 @@ vi.mock('@/lib/supabase-server', () => ({
 }))
 vi.mock('@/lib/r2', () => ({
   presignedUploadUrl: vi.fn(),
+  deleteObject: vi.fn(),
 }))
 vi.mock('@/lib/auth', () => ({
   getAuthenticatedUser: vi.fn(),
 }))
 
 import { createServerClient } from '@/lib/supabase-server'
-import { presignedUploadUrl } from '@/lib/r2'
+import { presignedUploadUrl, deleteObject } from '@/lib/r2'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { GET, POST } from '@/app/api/sessions/route'
 import { GET as getDetail, PATCH, DELETE } from '@/app/api/sessions/[id]/route'
@@ -425,9 +426,28 @@ describe('POST /api/sessions/:id/view', () => {
 
 describe('DELETE /api/sessions/:id', () => {
   it('deletes the session and returns ok', async () => {
+    const selectSingle = vi.fn().mockResolvedValue({ data: { audio_r2_key: null }, error: null })
     const eqMock = vi.fn().mockResolvedValue({ error: null })
     const mockDb = {
-      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: selectSingle,
+                }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: eqMock,
+              }),
+            }),
+          }
+        }
+        return {}
+      }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
 
@@ -436,19 +456,79 @@ describe('DELETE /api/sessions/:id', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toEqual({ ok: true })
-    expect(eqMock).toHaveBeenCalledWith('id', 'sess-1')
+    expect(eqMock).toHaveBeenCalledWith('user_id', 'user-123')
   })
 
   it('returns 500 when the database delete fails', async () => {
+    const selectSingle = vi.fn().mockResolvedValue({ data: { audio_r2_key: null }, error: null })
     const eqMock = vi.fn().mockResolvedValue({ error: { message: 'DB error' } })
     const mockDb = {
-      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: selectSingle,
+                }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: eqMock,
+              }),
+            }),
+          }
+        }
+        return {}
+      }),
     }
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
 
     const req = new NextRequest('http://localhost', { method: 'DELETE' })
     const res = await DELETE(req, { params: { id: 'sess-1' } })
     expect(res.status).toBe(500)
+  })
+
+  it('deletes retained session audio before deleting the session row', async () => {
+    const selectSingle = vi.fn().mockResolvedValue({ data: { audio_r2_key: 'audio/clip-1.ogg' }, error: null })
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: selectSingle,
+                }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: eqMock,
+              }),
+            }),
+          }
+        }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: { id: 'sess-1' } })
+
+    expect(res.status).toBe(200)
+    expect(deleteObject).toHaveBeenCalledWith('audio/clip-1.ogg')
+  })
+
+  it('returns 401 for unauthenticated delete requests', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null)
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: { id: 'sess-1' } })
+    expect(res.status).toBe(401)
   })
 })
 

@@ -41,6 +41,12 @@ import { ImportancePill } from '@/components/ImportancePill'
 
 interface Props {
   annotation: Annotation
+  segment: {
+    start_ms: number
+    end_ms: number
+    text: string
+  } | null
+  audioUrl: string | null
   sessionId: string
   practiceItemId: string | null
   /** Retained on the interface so transcript-side state plumbing (the green
@@ -56,7 +62,7 @@ interface Props {
 }
 
 export function AnnotationCard({
-  annotation, sessionId,
+  annotation, segment, audioUrl, sessionId,
   practiceItemId: initialPracticeItemId,
   isWrittenDown: _isWrittenDown,
   onAnnotationAdded, onAnnotationRemoved,
@@ -77,6 +83,10 @@ export function AnnotationCard({
    *  happened" without needing a toast. */
   const [justSaved, setJustSaved] = useState(false)
   const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [audioError, setAudioError] = useState<string | null>(null)
+  const [isPlayingSnippet, setIsPlayingSnippet] = useState(false)
+  const clipEndMsRef = useRef<number | null>(null)
 
   useEffect(() => {
     setPracticeItemId(initialPracticeItemId)
@@ -85,11 +95,24 @@ export function AnnotationCard({
     setErrorMessage(null)
     setLastFailedAction(null)
     setJustSaved(false)
+    setAudioError(null)
+    setIsPlayingSnippet(false)
+    clipEndMsRef.current = null
+    if (audioRef.current) audioRef.current.pause()
     if (justSavedTimer.current) {
       clearTimeout(justSavedTimer.current)
       justSavedTimer.current = null
     }
   }, [annotation.id, annotation.is_unhelpful, initialPracticeItemId])
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -225,6 +248,68 @@ export function AnnotationCard({
     else if (lastFailedAction === 'unhelpful') void handleUnhelpful()
   }
 
+  function resolveSnippetBoundsMs() {
+    if (!segment || !segment.text) return null
+    const segDuration = Math.max(0, segment.end_ms - segment.start_ms)
+    if (segDuration <= 0) return null
+    const textLen = Math.max(1, segment.text.length)
+    const clampedStart = Math.max(0, Math.min(annotation.start_char, textLen))
+    const clampedEnd = Math.max(clampedStart, Math.min(annotation.end_char, textLen))
+    const ratioStart = clampedStart / textLen
+    const ratioEnd = clampedEnd / textLen
+    const baseStartMs = segment.start_ms + ratioStart * segDuration
+    const baseEndMs = segment.start_ms + ratioEnd * segDuration
+    const leadInMs = 300
+    const tailMs = 450
+    return {
+      startMs: Math.max(segment.start_ms, baseStartMs - leadInMs),
+      endMs: Math.min(segment.end_ms, baseEndMs + tailMs),
+    }
+  }
+
+  async function handlePlaySnippet() {
+    if (!audioUrl || !segment) return
+    if (isPlayingSnippet) {
+      audioRef.current?.pause()
+      setIsPlayingSnippet(false)
+      return
+    }
+    const bounds = resolveSnippetBoundsMs()
+    if (!bounds || bounds.endMs <= bounds.startMs) {
+      setAudioError(t('annotation.audioUnavailable'))
+      return
+    }
+    setAudioError(null)
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioUrl)
+      audioRef.current.preload = 'metadata'
+      audioRef.current.addEventListener('ended', () => setIsPlayingSnippet(false))
+      audioRef.current.addEventListener('pause', () => setIsPlayingSnippet(false))
+    } else if (audioRef.current.src !== audioUrl) {
+      audioRef.current.pause()
+      audioRef.current.src = audioUrl
+    }
+
+    clipEndMsRef.current = bounds.endMs
+    audioRef.current.currentTime = bounds.startMs / 1000
+
+    audioRef.current.ontimeupdate = () => {
+      if (!audioRef.current || clipEndMsRef.current == null) return
+      if (audioRef.current.currentTime * 1000 >= clipEndMsRef.current) {
+        audioRef.current.pause()
+        setIsPlayingSnippet(false)
+      }
+    }
+
+    try {
+      await audioRef.current.play()
+      setIsPlayingSnippet(true)
+    } catch {
+      setAudioError(t('annotation.audioPlayError'))
+      setIsPlayingSnippet(false)
+    }
+  }
+
   const primaryLabel = practiceItemId ? t('annotation.savedPrimary') : t('annotation.savePrimary')
   const primaryAria = practiceItemId ? t('annotation.savedPrimaryAria') : t('annotation.savePrimaryAria')
   const secondaryLabel = isUnhelpful ? t('annotation.notUsefulRestore') : t('annotation.notUseful')
@@ -264,6 +349,29 @@ export function AnnotationCard({
       <p className="text-text-secondary leading-relaxed text-base">
         {annotation.explanation}
       </p>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handlePlaySnippet}
+          disabled={!audioUrl || !segment}
+          aria-label={isPlayingSnippet ? t('annotation.stopSnippetAria') : t('annotation.playSnippetAria')}
+          className={buttonStyles({
+            variant: 'secondary',
+            size: 'sm',
+            className: 'inline-flex items-center',
+          })}
+        >
+          <Icon name={isPlayingSnippet ? 'pause' : 'play'} className="w-4 h-4 mr-2" />
+          {isPlayingSnippet ? t('annotation.stopSnippet') : t('annotation.playSnippet')}
+        </button>
+        {!audioUrl && (
+          <span className="text-xs text-text-tertiary">{t('annotation.audioUnavailable')}</span>
+        )}
+      </div>
+      {audioError && (
+        <p className="text-sm text-status-error">{audioError}</p>
+      )}
 
       <ImportancePill
         score={annotation.importance_score}

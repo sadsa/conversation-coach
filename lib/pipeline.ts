@@ -1,7 +1,6 @@
 // lib/pipeline.ts
 import { createServerClient } from '@/lib/supabase-server'
 import { analyseUserTurns } from '@/lib/claude'
-import { deleteObject } from '@/lib/r2'
 import { sendPushNotification } from '@/lib/push'
 import { log } from '@/lib/logger'
 import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
@@ -105,12 +104,6 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
       })
       throw new Error(`Failed to insert annotations: ${annotationError.message}`)
     }
-  }
-
-  // Delete audio from R2
-  if (session.audio_r2_key) {
-    await deleteObject(session.audio_r2_key)
-    await db.from('sessions').update({ audio_r2_key: null }).eq('id', sessionId)
   }
 
   log.info('Claude analysis complete', { sessionId, annotationCount: correctedAnnotations.length })

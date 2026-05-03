@@ -22,6 +22,7 @@ const annotations: Annotation[] = [
 ]
 
 const defaultProps = {
+  audioUrl: null,
   sessionId: 's1',
   addedAnnotations: new Map<string, string>(),
   writtenAnnotations: new Set<string>(),
