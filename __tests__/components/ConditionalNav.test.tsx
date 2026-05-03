@@ -1,14 +1,17 @@
 // __tests__/components/ConditionalNav.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { ConditionalNav } from '@/components/ConditionalNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { LanguageProvider } from '@/components/LanguageProvider'
 
-vi.mock('@/components/VoiceWidget', () => ({
-  VoiceWidget: ({ initialItems }: { initialItems: unknown[] }) => (
-    initialItems.length > 0 ? <div data-testid="voice-widget" /> : null
-  ),
+// Stub out the voice agent module so the controller's start() never tries
+// to mint a real token / open a WebSocket. The hook itself is exercised in
+// VoiceController.test.tsx — here we just want ConditionalNav to mount
+// cleanly and render the trigger inside the header.
+vi.mock('@/lib/voice-agent', () => ({
+  connect: vi.fn(),
+  buildSystemPrompt: vi.fn(() => 'mock prompt'),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -90,17 +93,9 @@ describe('ConditionalNav', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders VoiceWidget on "/"', async () => {
+  it('renders the voice trigger inside the header', () => {
     mockPathname.mockReturnValue('/')
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([
-        { id: 'p1', written_down: false, original: 'fui', correction: 'anduve' },
-      ]),
-    })
     wrap()
-    await waitFor(() => {
-      expect(screen.getByTestId('voice-widget')).toBeInTheDocument()
-    })
+    expect(screen.getByRole('button', { name: /start voice/i })).toBeInTheDocument()
   })
 })
