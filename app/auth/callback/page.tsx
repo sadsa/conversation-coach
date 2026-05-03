@@ -56,10 +56,19 @@ function AuthCallbackContent() {
       if (event === 'SIGNED_IN' && session) redirect(session)
     })
 
-    // Fallback: if the client already has a session (e.g. page reload), redirect now.
-    supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
-      if (result.data.session) redirect(result.data.session)
-    })
+    // Fallback: redirect immediately when there is an already-valid session (e.g.
+    // the user reloads /auth/callback after a successful exchange). Skip this when
+    // ?code= is present — the PKCE exchange is still in-flight and getSession()
+    // reads raw cookie storage, which may still hold an old (stale) session from a
+    // previous login. Calling redirect() with that stale session fires router.refresh()
+    // before the exchange completes, then middleware getUser() tries to use the
+    // now-rotated refresh token → "refresh_token_not_found". onAuthStateChange
+    // SIGNED_IN is the reliable signal that the exchange actually succeeded.
+    if (!searchParams.get('code')) {
+      supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
+        if (result.data.session) redirect(result.data.session)
+      })
+    }
 
     // Safety net: if nothing fires within 8 seconds (bad/expired link), go to login.
     const timeout = setTimeout(() => {

@@ -6,6 +6,7 @@ import {
   USER_ID_HEADER,
   USER_EMAIL_HEADER,
   USER_TARGET_LANGUAGE_HEADER,
+  PUBLIC_PATH_HEADER,
 } from '@/middleware'
 
 /**
@@ -45,6 +46,13 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       targetLanguage: headerList.get(USER_TARGET_LANGUAGE_HEADER),
     }
   }
+  // Middleware explicitly bypassed auth for this path (login, auth/callback,
+  // access-denied, webhooks). Do NOT fall through to verifyFromCookie() — that
+  // calls supabase.auth.getUser() which can silently rotate the refresh token
+  // server-side. Because Server Components can't write cookies, the new token
+  // can't be persisted, and the browser is left with a consumed/invalid refresh
+  // token. The next request fails with refresh_token_not_found → /login redirect.
+  if (headerList.get(PUBLIC_PATH_HEADER) === '1') return null
   return verifyFromCookie()
 })
 

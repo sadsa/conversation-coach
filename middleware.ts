@@ -21,13 +21,30 @@ const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/api/webhooks']
 export const USER_ID_HEADER = 'x-cc-user-id'
 export const USER_EMAIL_HEADER = 'x-cc-user-email'
 export const USER_TARGET_LANGUAGE_HEADER = 'x-cc-user-target-language'
+/**
+ * Set on request headers by middleware for public paths (login, auth/callback,
+ * access-denied, webhooks). The root layout's getAuthenticatedUser() checks
+ * for this header to skip the verifyFromCookie() fallback on public paths.
+ *
+ * Why this matters: verifyFromCookie() calls supabase.auth.getUser() which
+ * can trigger a server-side token refresh (rotating the refresh token). In a
+ * Server Component, setAll() cannot write the new cookies back to the browser,
+ * so the browser is left with the old (now-consumed) refresh token. The next
+ * request that uses those stale cookies gets refresh_token_not_found, which
+ * manifests as a redirect to /login immediately after clicking the magic link.
+ */
+export const PUBLIC_PATH_HEADER = 'x-cc-is-public'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Public routes bypass auth entirely
+  // Public routes bypass auth entirely. Mark them with a request header so
+  // the root layout knows to skip verifyFromCookie() — see PUBLIC_PATH_HEADER.
   if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) {
-    return NextResponse.next()
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.delete(PUBLIC_PATH_HEADER) // strip any forged value first
+    requestHeaders.set(PUBLIC_PATH_HEADER, '1')
+    return NextResponse.next({ request: { headers: requestHeaders } })
   }
 
   // Strip any forged auth headers from the incoming request before we set
@@ -37,6 +54,7 @@ export async function middleware(request: NextRequest) {
   requestHeaders.delete(USER_ID_HEADER)
   requestHeaders.delete(USER_EMAIL_HEADER)
   requestHeaders.delete(USER_TARGET_LANGUAGE_HEADER)
+  requestHeaders.delete(PUBLIC_PATH_HEADER)
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
@@ -64,7 +82,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    // Forward any cookie mutations Supabase made during getUser() (e.g. clearing
+    // an invalid/rotated session) so the browser doesn't keep stale auth cookies.
+    // Without this, a bad session persists across the /login redirect and causes
+    // repeated refresh_token_not_found errors on every subsequent request.
+    const redirectResponse = NextResponse.redirect(new URL('/login', request.url))
+    for (const cookie of supabaseResponse.headers.getSetCookie()) {
+      redirectResponse.headers.append('Set-Cookie', cookie)
+    }
+    return redirectResponse
   }
 
   const allowedEmails = (process.env.ALLOWED_EMAILS ?? '')
