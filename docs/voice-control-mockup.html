@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Control — Placement Mockup</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Real app tokens, light mode */
+      --color-bg: oklch(97.5% 0.008 75);
+      --color-surface: oklch(99.5% 0.003 75);
+      --color-surface-elevated: oklch(95% 0.01 75);
+      --color-border: oklch(82% 0.012 75);
+      --color-border-subtle: oklch(90% 0.008 75);
+      --color-text-primary: oklch(22% 0.02 265);
+      --color-text-secondary: oklch(42% 0.015 265);
+      --color-text-tertiary: oklch(55% 0.01 265);
+      --color-accent-primary: oklch(55% 0.2 285);
+      --color-chip-bg: oklch(94% 0.035 285);
+      --color-chip-text: oklch(42% 0.14 285);
+      --color-chip-border: oklch(62% 0.16 285);
+      --annotation-saved-text: oklch(35% 0.14 285);
+      --annotation-saved-bg: oklch(94% 0.04 285);
+      --annotation-saved-border: oklch(50% 0.16 285);
+      --color-correction-text: oklch(48% 0.14 150);
+
+      --doc-bg: oklch(96% 0.005 75);
+      --doc-text-2: oklch(45% 0.012 265);
+      --doc-text-3: oklch(60% 0.01 265);
+    }
+
+    html, body {
+      background: var(--doc-bg);
+      font-family: 'Hanken Grotesk', system-ui, sans-serif;
+      color: var(--color-text-primary);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: 'ss01', 'cv11';
+    }
+
+    body {
+      padding: 56px 32px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+    }
+
+    h1 {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 500;
+      font-size: 28px;
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+    }
+    .lede {
+      color: var(--doc-text-2);
+      max-width: 64ch;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    section h2 {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 500;
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+    section .sub {
+      color: var(--doc-text-2);
+      font-size: 14px;
+      margin-bottom: 20px;
+      max-width: 64ch;
+    }
+
+    .row {
+      display: flex;
+      gap: 36px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .frame-cap {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .cap-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+    .cap-sub {
+      font-size: 12px;
+      color: var(--doc-text-3);
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    /* ── Phone frame ── */
+    .phone {
+      width: 320px;
+      height: 600px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 36px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    /* iOS-ish status bar */
+    .statusbar {
+      height: 24px;
+      background: var(--color-bg);
+      flex-shrink: 0;
+    }
+
+    /* ── App header ── */
+    .header {
+      height: 44px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border-subtle);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+    }
+    .icon-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+    }
+    .section-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-left: 4px;
+    }
+
+    /* The new mic trigger sitting in the right cluster */
+    .mic-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-accent-primary);
+      background: var(--color-surface);
+    }
+    .mic-btn.connecting {
+      color: var(--color-accent-primary);
+      animation: spin 1.4s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Voice status strip (active state) ── */
+    .voice-strip {
+      height: 44px;
+      background: color-mix(in oklch, var(--color-surface-elevated) 92%, var(--color-accent-primary) 8%);
+      border-bottom: 1px solid var(--color-border-subtle);
+      padding: 0 12px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .voice-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-accent-primary);
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-accent-primary) 18%, transparent);
+      animation: pulse 1.6s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+    .voice-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      letter-spacing: 0.01em;
+    }
+    .voice-pill {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--color-chip-text);
+      background: var(--color-chip-bg);
+      border: 1px solid color-mix(in oklch, var(--color-chip-border) 40%, transparent);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .voice-spacer { flex: 1; }
+    .voice-action {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+    }
+
+    /* ── Page content (faked Write list) ── */
+    .content {
+      flex: 1;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--color-bg);
+    }
+    .page-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .page-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+    .write-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .write-source {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--color-text-secondary);
+    }
+    .write-strike {
+      text-decoration: line-through;
+      text-decoration-color: oklch(48% 0.18 25 / 0.6);
+      text-decoration-thickness: 2px;
+      color: var(--color-text-tertiary);
+    }
+    .write-correct {
+      color: var(--color-correction-text);
+      font-weight: 500;
+    }
+    .write-meta {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* ── Bottom nav ── */
+    .bottomnav {
+      height: 60px;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border-subtle);
+      display: flex;
+      flex-shrink: 0;
+    }
+    .bn-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: var(--color-text-tertiary);
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .bn-tab.active { color: var(--color-accent-primary); }
+
+    /* ── Desktop frame ── */
+    .desktop {
+      width: 720px;
+      height: 440px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .desktop .header { padding: 0 28px; }
+    .desktop .voice-strip { padding: 0 24px; }
+    .desktop .content { padding: 28px 28px 16px; gap: 18px; }
+    .desktop .header-inner,
+    .desktop .voice-inner {
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 100%;
+    }
+    .desktop .header-inner { justify-content: space-between; }
+
+    /* ── Annotations between frames ── */
+    .annotation {
+      position: relative;
+      font-size: 11px;
+      color: var(--color-accent-primary);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Tiny SVG icon helpers ── */
+    svg { width: 16px; height: 16px; }
+    .icon-sm svg { width: 14px; height: 14px; }
+    .icon-xs svg { width: 12px; height: 12px; }
+  </style>
+</head>
+<body>
+
+  <header style="max-width: 720px;">
+    <h1>Voice control — placement</h1>
+    <p class="lede">
+      Header trigger that's always there, plus a WhatsApp-style status strip that pushes
+      down from below the header while a session is active. Real app tokens, real
+      proportions. Light theme; dark mirrors the same shape.
+    </p>
+  </header>
+
+  <!-- ────────────────────────────────────────────────── -->
+  <!-- MOBILE STATES -->
+  <!-- ────────────────────────────────────────────────── -->
+  <section>
+    <h2>Mobile — three states</h2>
+    <p class="sub">
+      Idle is the resting position the user sees on every authenticated page. Connecting
+      is &lt;1s. Active expands a thin strip below the header with the audio dot, mute,
+      and end. Tap mic again or X to dismiss.
+    </p>
+
+    <div class="row">
+
+      <!-- ── Idle ── -->
+      <div class="frame-cap">
+        <div class="phone">
+          <div class="statusbar"></div>
+          <div class="header">
+            <div class="header-left">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </div>
+              <span class="section-label">Write</span>
+            </div>
+            <div class="header-right">
+              <button class="mic-btn" aria-label="Start voice coach">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                  <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/>
+                </svg>
+              </button>
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 13px; height: 13px;">
+                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="content">
+            <div class="page-eyebrow">3 to write down</div>
+            <div class="write-row">
+              <div class="write-source">Hoy<span class="write-strike"> voy al boliche</span> <span class="write-correct">salgo a bailar</span> con los pibes.</div>
+              <div class="write-meta">Voseo · register</div>
+            </div>
+            <div class="write-row">
+              <div class="write-source">Está<span class="write-strike"> bueno</span> <span class="write-correct">copado</span>, che.</div>
+              <div class="write-meta">Lunfardo</div>
+            </div>
+            <div class="write-row" style="opacity: 0.5;">
+              <div class="write-source">Necesito<span class="write-strike"> agua</span> <span class="write-correct">un vaso de agua</span>…</div>
+            </div>
+          </div>
+          <div class="bottomnav">
+            <div class="bn-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5h-2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Recordings
+            </div>
+            <div class="bn-tab active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              Write
+            </div>
+            <div class="bn-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </div>
+          </div>
+        </div>
+        <div class="cap-title">Idle</div>
+        <div class="cap-sub">Mic button next to theme toggle. Same chrome (28px circle, border-subtle). Only the icon is accent-tinted so the eye finds it on first scan.</div>
+      </div>
+
+      <!-- ── Connecting ── -->
+      <div class="frame-cap">
+        <div class="phone">
+          <div class="statusbar"></div>
+          <div class="header">
+            <div class="header-left">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </div>
+              <span class="section-label">Write</span>
+            </div>
+            <div class="header-right">
+              <button class="mic-btn connecting" aria-busy="true" aria-label="Connecting">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width: 13px; height: 13px;">
+                  <path d="M21 12a9 9 0 1 1-6.2-8.6"/>
+                </svg>
+              </button>
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width: 13px; height: 13px;">
+                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="content">
+            <div class="page-eyebrow">3 to write down</div>
+            <div class="write-row">
+              <div class="write-source">Hoy<span class="write-strike"> voy al boliche</span> <span class="write-correct">salgo a bailar</span> con los pibes.</div>
+              <div class="write-meta">Voseo · register</div>
+            </div>
+            <div class="write-row">
+              <div class="write-source">Está<span class="write-strike"> bueno</span> <span class="write-correct">copado</span>, che.</div>
+              <div class="write-meta">Lunfardo</div>
+            </div>
+            <div class="write-row" style="opacity: 0.5;">
+              <div class="write-source">Necesito<span class="write-strike"> agua</span> <span class="write-correct">un vaso de agua</span>…</div>
+            </div>
+          </div>
+          <div class="bottomnav">
+            <div class="bn-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5h-2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Recordings
+            </div>
+            <div class="bn-tab active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              Write
+            </div>
+            <div class="bn-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/></svg>
+              Settings
+            </div>
+          </div>
+        </div>
+        <div class="cap-title">Connecting</div>
+        <div class="cap-sub">Mic icon swaps to a quiet spinner. <code>aria-busy</code>. Layout unchanged so the user can keep reading while the WebSocket opens.</div>
+      </div>
+
+      <!-- ── Active ── -->
+      <div class="frame-cap">
+        <div class="phone">
+          <div class="statusbar"></div>
+          <div class="header">
+            <div class="header-left">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </div>
+              <span class="section-label">Write</span>
+            </div>
+            <div class="header-right">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width: 13px; height: 13px;">
+                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <!-- The new strip -->
+          <div class="voice-strip">
+            <div class="voice-dot"></div>
+            <span class="voice-title">Voice coach</span>
+            <span class="voice-pill">ES-AR</span>
+            <div class="voice-spacer"></div>
+            <div class="voice-action" aria-label="Mute">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/>
+              </svg>
+            </div>
+            <div class="voice-action" aria-label="End">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width: 14px; height: 14px;">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </div>
+          </div>
+          <div class="content">
+            <div class="page-eyebrow">3 to write down</div>
+            <div class="write-row">
+              <div class="write-source">Hoy<span class="write-strike"> voy al boliche</span> <span class="write-correct">salgo a bailar</span> con los pibes.</div>
+              <div class="write-meta">Voseo · register</div>
+            </div>
+            <div class="write-row">
+              <div class="write-source">Está<span class="write-strike"> bueno</span> <span class="write-correct">copado</span>, che.</div>
+              <div class="write-meta">Lunfardo</div>
+            </div>
+          </div>
+          <div class="bottomnav">
+            <div class="bn-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5h-2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Recordings
+            </div>
+            <div class="bn-tab active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+              Write
+            </div>
+            <div class="bn-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/></svg>
+              Settings
+            </div>
+          </div>
+        </div>
+        <div class="cap-title">Active</div>
+        <div class="cap-sub">Mic button hides — the strip itself is the affordance. Audio-flow dot pulses in sync with whoever is speaking. Mute, end. Page content shifts down by exactly the strip height (44px).</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ────────────────────────────────────────────────── -->
+  <!-- DESKTOP -->
+  <!-- ────────────────────────────────────────────────── -->
+  <section>
+    <h2>Desktop — same shape, wider rail</h2>
+    <p class="sub">
+      Strip stretches the viewport but its contents track the same 672px reading column
+      the header uses. No `BottomNav` on desktop — the header trigger and strip are the
+      only voice surface.
+    </p>
+
+    <div class="row">
+
+      <!-- Desktop active -->
+      <div class="frame-cap">
+        <div class="desktop">
+          <div class="header">
+            <div class="header-inner">
+              <div class="header-left">
+                <div class="icon-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </div>
+                <span class="section-label">Write</span>
+              </div>
+              <div class="header-right">
+                <div class="icon-circle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width: 13px; height: 13px;">
+                    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="voice-strip">
+            <div class="voice-inner">
+              <div class="voice-dot"></div>
+              <span class="voice-title">Voice coach</span>
+              <span class="voice-pill">ES-AR</span>
+              <div class="voice-spacer"></div>
+              <div class="voice-action" aria-label="Mute">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                  <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/>
+                </svg>
+              </div>
+              <div class="voice-action" aria-label="End">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width: 14px; height: 14px;">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="content">
+            <div class="page-eyebrow">3 to write down</div>
+            <div class="write-row">
+              <div class="write-source">Hoy<span class="write-strike"> voy al boliche</span> <span class="write-correct">salgo a bailar</span> con los pibes.</div>
+              <div class="write-meta">Voseo · register</div>
+            </div>
+            <div class="write-row">
+              <div class="write-source">Está<span class="write-strike"> bueno</span> <span class="write-correct">copado</span>, che.</div>
+              <div class="write-meta">Lunfardo</div>
+            </div>
+          </div>
+        </div>
+        <div class="cap-title">Active — desktop</div>
+        <div class="cap-sub">Header chrome runs full-width but contents centre to <code>max-w-2xl</code>. Strip mirrors that exactly so the audio dot lines up with the section label above it.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ────────────────────────────────────────────────── -->
+  <!-- TRADE-OFFS -->
+  <!-- ────────────────────────────────────────────────── -->
+  <section style="max-width: 720px;">
+    <h2>What this gets right</h2>
+    <p class="sub">
+      One trigger surface across every authenticated route. No fight with the home
+      <code>UploadFab</code>. No fight with <code>BottomNav</code> semantics. The active
+      strip <em>IS</em> the "you're in a session" cue — no separate floating pill needed.
+      Page content shifting down 44px when active is intentional: it's how the user
+      knows the session is real, not a phantom WebSocket.
+    </p>
+
+    <h2 style="margin-top: 32px;">Open trade-offs</h2>
+    <p class="sub">
+      <strong>Header crowding.</strong> On a 320-wide phone the header now carries
+      menu + back? + label + mic + theme. If we hit collisions, drop the section label
+      while the strip is active — the strip already announces context.
+    </p>
+    <p class="sub">
+      <strong>Layout shift.</strong> Cheap mitigation: animate the strip in over 180ms
+      with <code>ease-out-quart</code>; reduced-motion users get an instant snap. The
+      <code>main</code> element gains a CSS variable <code>--voice-strip-height</code>
+      that drives padding-top, so scroll position stays anchored to the user's reading
+      position.
+    </p>
+    <p class="sub">
+      <strong>Discoverability.</strong> First-run cue: a small "Ask the coach anything"
+      coachmark over the mic on first authenticated load. Same one-shot localStorage
+      pattern as the existing <code>UploadCoachmark</code>.
+    </p>
+  </section>
+
+</body>
+</html>
