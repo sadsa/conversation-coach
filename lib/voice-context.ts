@@ -148,9 +148,43 @@ export function buildSessionContext(
 }
 
 export function buildWriteContext(
-  _items: PracticeItem[]
+  items: PracticeItem[]
 ): VoicePageContext | null {
-  throw new Error('not implemented')
+  const pending = items.filter(i => !i.written_down)
+  if (pending.length === 0) return null
+
+  const contextItems: WriteContextItem[] = pending.map(i => ({
+    original: i.original,
+    correction: i.correction,
+    explanation: i.explanation,
+    segmentText: i.segment_text,
+    sessionTitle: i.session_title,
+  }))
+
+  function renderWriteBlock(list: WriteContextItem[]): string {
+    return `Pending corrections the user has saved:\n${list
+      .map((ci, idx) => {
+        const corrPart = ci.correction ? ` → "${ci.correction}"` : ''
+        const fromPart = ci.sessionTitle ? ` (from "${ci.sessionTitle}")` : ''
+        return `${idx + 1}. "${ci.original}"${corrPart} — ${ci.explanation}${fromPart}`
+      })
+      .join('\n')}`
+  }
+
+  let kept = contextItems
+  while (kept.length > 1 && renderWriteBlock(kept).length > CAP_CHARS) {
+    kept = kept.slice(0, -1)
+  }
+
+  if (kept.length < contextItems.length) {
+    log.warn('voice-context cap hit', {
+      kind: 'write',
+      originalCount: contextItems.length,
+      keptCount: kept.length,
+    })
+  }
+
+  return { kind: 'write', items: kept }
 }
 
 // Re-export cap so tests can assert against the same value.

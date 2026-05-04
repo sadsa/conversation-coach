@@ -201,3 +201,74 @@ describe('buildSessionContext', () => {
     )
   })
 })
+
+// --- buildWriteContext ---
+
+describe('buildWriteContext', () => {
+  it('returns null for an empty array', () => {
+    expect(buildWriteContext([])).toBeNull()
+  })
+
+  it('returns null when all items are written_down', () => {
+    expect(buildWriteContext([item('a', { written_down: true })])).toBeNull()
+  })
+
+  it('returns a write payload with only pending (not written_down) items', () => {
+    const items = [
+      item('a', { written_down: false }),
+      item('b', { written_down: true }),
+      item('c', { written_down: false }),
+    ]
+    const result = buildWriteContext(items)
+    expect(result!.kind).toBe('write')
+    if (result!.kind === 'write') {
+      expect(result!.items).toHaveLength(2)
+      expect(result!.items.map(i => i.original)).toEqual(['original-a', 'original-c'])
+    }
+  })
+
+  it('maps WriteContextItem fields correctly from PracticeItem', () => {
+    const src = item('x', {
+      original: 'mal',
+      correction: 'bien',
+      explanation: 'because',
+      segment_text: 'Yo dije mal antes.',
+      session_title: 'Chat with Ana',
+    })
+    const result = buildWriteContext([src])
+    if (result!.kind === 'write') {
+      const ci = result!.items[0]
+      expect(ci.original).toBe('mal')
+      expect(ci.correction).toBe('bien')
+      expect(ci.explanation).toBe('because')
+      expect(ci.segmentText).toBe('Yo dije mal antes.')
+      expect(ci.sessionTitle).toBe('Chat with Ana')
+    }
+  })
+
+  it('passes null correction and sessionTitle through', () => {
+    const src = item('y', { correction: null, session_title: null })
+    const result = buildWriteContext([src])
+    if (result!.kind === 'write') {
+      expect(result!.items[0].correction).toBeNull()
+      expect(result!.items[0].sessionTitle).toBeNull()
+    }
+  })
+
+  it('drops items from the end when the prompt block exceeds 8000 chars', () => {
+    const bigItems = Array.from({ length: 30 }, (_, i) =>
+      item(`big-${i}`, { explanation: 'e'.repeat(500) })
+    )
+    const result = buildWriteContext(bigItems)
+    expect(result!.kind).toBe('write')
+    if (result!.kind === 'write') {
+      expect(result!.items.length).toBeLessThan(30)
+      // The first item (index 0) is preserved; only tail items are dropped.
+      expect(result!.items[0].original).toBe('original-big-0')
+    }
+    expect(vi.mocked(log.warn)).toHaveBeenCalledWith(
+      'voice-context cap hit',
+      expect.objectContaining({ kind: 'write' })
+    )
+  })
+})
