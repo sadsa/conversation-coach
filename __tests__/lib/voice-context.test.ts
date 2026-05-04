@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildSessionContext, buildWriteContext, CAP_CHARS } from '@/lib/voice-context'
 import type { TranscriptSegment, Annotation, PracticeItem } from '@/lib/types'
 
+vi.mock('@/lib/logger', () => ({
+  log: { warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}))
+
+const { log } = await import('@/lib/logger')
+
 // --- helpers ---
 
 function seg(position: number, speaker: 'A' | 'B' = 'A', id?: string): TranscriptSegment {
@@ -67,6 +73,10 @@ function item(id: string, overrides: Partial<PracticeItem> = {}): PracticeItem {
 }
 
 const session = { title: 'Test Convo', user_speaker_labels: ['A'] as string[] | null }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 // --- buildSessionContext ---
 
@@ -173,7 +183,6 @@ describe('buildSessionContext', () => {
   })
 
   it('drops annotations from the end when the prompt block exceeds 8000 chars', () => {
-    const warnSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const segs = Array.from({ length: 20 }, (_, i) => ({
       ...seg(i),
       text: 'x'.repeat(500),
@@ -186,9 +195,9 @@ describe('buildSessionContext', () => {
     if (result!.kind === 'session') {
       expect(result!.annotations.length).toBeLessThan(20)
     }
-    // Assert warn log was emitted
-    const loggedLines = warnSpy.mock.calls.map(c => c[0] as string)
-    expect(loggedLines.some(l => l.includes('voice-context cap hit'))).toBe(true)
-    warnSpy.mockRestore()
+    expect(vi.mocked(log.warn)).toHaveBeenCalledWith(
+      'voice-context cap hit',
+      expect.objectContaining({ kind: 'session' })
+    )
   })
 })

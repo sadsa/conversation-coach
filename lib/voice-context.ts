@@ -71,7 +71,7 @@ export function buildSessionContext(
 
   const userLabels = session.user_speaker_labels
 
-  function makeExcerpts(positions: Set<number>): SessionExcerpt[] {
+  function makeExcerpts(positions: Set<number>, annotated: Set<number>): SessionExcerpt[] {
     return [...positions]
       .sort((a, b) => a - b)
       .map(pos => {
@@ -80,7 +80,7 @@ export function buildSessionContext(
           position: pos,
           speaker: userLabels === null || userLabels.includes(s.speaker) ? 'user' : 'other',
           text: s.text,
-          isAnnotated: annotatedPositions.has(pos),
+          isAnnotated: annotated.has(pos),
         }
       })
   }
@@ -115,7 +115,7 @@ export function buildSessionContext(
   }
 
   let kept = allAnnotations
-  let keptExcerpts = makeExcerpts(expandedPositions)
+  let keptExcerpts = makeExcerpts(expandedPositions, annotatedPositions)
 
   while (kept.length > 0 && renderBlock(keptExcerpts, kept).length > CAP_CHARS) {
     kept = kept.slice(0, -1)
@@ -127,7 +127,8 @@ export function buildSessionContext(
       reExpanded.add(pos)
       if (segByPos.has(pos + 1)) reExpanded.add(pos + 1)
     }
-    keptExcerpts = makeExcerpts(reExpanded)
+    const remainingAnnotated = new Set(kept.map(a => a.segmentPosition))
+    keptExcerpts = makeExcerpts(reExpanded, remainingAnnotated)
   }
 
   if (kept.length < allAnnotations.length) {
