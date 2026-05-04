@@ -29,7 +29,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/voice-agent', () => ({
-  connect: vi.fn(async (_l, _i, callbacks) => {
+  connect: vi.fn(async (_l, callbacks) => {
     agentSpies.ref.stateChange = callbacks.onStateChange
     return { setMuted: agentSpies.setMuted, disconnect: agentSpies.disconnect }
   }),

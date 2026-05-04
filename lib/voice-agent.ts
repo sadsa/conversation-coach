@@ -1,12 +1,7 @@
 // lib/voice-agent.ts
 
 import type { TargetLanguage } from '@/lib/types'
-
-export interface FocusedCorrection {
-  original: string
-  correction: string | null
-  explanation: string
-}
+import type { VoicePageContext } from '@/lib/voice-context'
 
 export type VoiceRouteContext =
   | { kind: 'write' }
@@ -18,9 +13,7 @@ export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 export interface VoiceAgentCallbacks {
   onStateChange: (state: VoiceAgentState) => void
   onError: (message: string) => void
-  /** Mic-side RMS (0..1) per outgoing audio frame. Optional — for "you are speaking" indicator. */
   onUserAudio?: (rms: number) => void
-  /** Agent-side RMS (0..1) emitted at the moment the chunk actually plays. Optional — for "agent is speaking" indicator. */
   onAgentAudio?: (rms: number) => void
 }
 
@@ -82,21 +75,14 @@ const DEFAULT_VOICE = 'Aoede'
 /** Pure function — builds the system prompt injected on connect. */
 export function buildSystemPrompt(
   targetLanguage: TargetLanguage,
-  items: FocusedCorrection[],
-  routeContext: VoiceRouteContext = { kind: 'other' }
+  routeContext: VoiceRouteContext = { kind: 'other' },
+  pageContext?: VoicePageContext
 ): string {
   const isEsAR = targetLanguage === 'es-AR'
 
   const languageBlock = isEsAR
     ? `You are a Rioplatense Argentine Spanish coach.\nSpeak exclusively in Argentine Spanish with a Rioplatense accent.\nUse voseo verb forms and natural everyday Rioplatense vocabulary.`
     : `You are a New Zealand English coach.\nSpeak exclusively in New Zealand English with a Kiwi accent and idioms.`
-
-  const itemsBlock = items.length === 0
-    ? ''
-    : `\n\nThe user has these corrections to review:\n${items
-        .slice(0, 10)
-        .map((item, i) => `${i + 1}. "${item.original}" → "${item.correction ?? item.original}" — ${item.explanation}`)
-        .join('\n')}`
 
   const routeHint = (() => {
     if (routeContext.kind === 'write') {
@@ -113,11 +99,48 @@ export function buildSystemPrompt(
     return ''
   })()
 
-  const openingGuidance = items.length === 0
-    ? `\n\nThe user has not given you a specific topic. Greet them briefly and ask how you can help.`
-    : `\n\nBe brief and direct. State the key point in one or two sentences, then stop and wait for the user to respond. Only elaborate if the user asks. Do not volunteer extra examples or tangents unprompted. Let the user guide which correction they want to discuss.`
+  const pageContextBlock = (() => {
+    if (!pageContext) return ''
 
-  return `${languageBlock}${itemsBlock}${routeHint}${openingGuidance}`
+    if (pageContext.kind === 'write') {
+      // segmentText is not included in the prompt — the correction + explanation is sufficient context.
+      const lines = pageContext.items
+        .map((item, i) => {
+          const corrPart = item.correction ? ` → "${item.correction}"` : ''
+          const fromPart = item.sessionTitle ? ` (from "${item.sessionTitle}")` : ''
+          return `${i + 1}. "${item.original}"${corrPart} — ${item.explanation}${fromPart}`
+        })
+        .join('\n')
+      return `\n\nPending corrections the user has saved:\n${lines}`
+    }
+
+    if (pageContext.kind === 'session') {
+      if (pageContext.excerpts.length === 0) {
+        const safeTitle = pageContext.sessionTitle.replace(/'/g, '')
+        return `\n\nThe user is reviewing the conversation titled '${safeTitle}'.`
+      }
+      const excerptLines = pageContext.excerpts
+        .map(e => `[${e.speaker}, position ${e.position}]: ${e.text}${e.isAnnotated ? '  ← annotated' : ''}`)
+        .join('\n')
+      const annotationLines = pageContext.annotations.length > 0
+        ? `\n\nAnnotations on this excerpt:\n${pageContext.annotations
+            .map((a, i) => {
+              const corrPart = a.correction ? ` → "${a.correction}"` : ''
+              return `${i + 1}. On the ${a.type} at position ${a.segmentPosition}: "${a.original}"${corrPart} — ${a.explanation}`
+            })
+            .join('\n')}`
+        : ''
+      return `\n\nThe user is reviewing this conversation excerpt:\n${excerptLines}${annotationLines}`
+    }
+
+    return ''
+  })()
+
+  const openingGuidance = pageContext
+    ? `\n\nThe user may refer to these by deixis ("this one", "the third", "the part about …"). When they do, anchor your answer to the specific item. Otherwise stay free-form. Be brief — one or two sentences, then wait for the user to respond.`
+    : `\n\nThe user has not given you a specific topic. Greet them briefly and ask how you can help.`
+
+  return `${languageBlock}${routeHint}${pageContextBlock}${openingGuidance}`
 }
 
 /**
@@ -125,13 +148,13 @@ export function buildSystemPrompt(
  * Fetches the Google API key from /api/voice-token, opens a WebSocket,
  * streams PCM16 mic audio at 16 kHz, and plays back PCM16 agent audio at 24 kHz.
  *
- * Returns a handle for mid-conversation updates, mute, and disconnect.
+ * Returns a handle for mute and disconnect.
  */
 export async function connect(
   targetLanguage: TargetLanguage,
-  items: FocusedCorrection[] = [],
   callbacks: VoiceAgentCallbacks,
-  routeContext: VoiceRouteContext = { kind: 'other' }
+  routeContext: VoiceRouteContext = { kind: 'other' },
+  pageContext?: VoicePageContext
 ): Promise<VoiceAgent> {
   // 1. Get Google API key from our auth-gated server route.
   const tokenRes = await fetch('/api/voice-token')
@@ -256,7 +279,7 @@ export async function connect(
             },
           },
           systemInstruction: {
-            parts: [{ text: buildSystemPrompt(targetLanguage, items, routeContext) }],
+            parts: [{ text: buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
           },
         },
       })
