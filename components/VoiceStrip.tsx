@@ -63,11 +63,26 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
         aria-label={t('voice.toolbarAria')}
         className="h-full max-w-2xl mx-auto px-4 md:px-10 flex items-center gap-2"
       >
-        <div className="w-8 h-8 flex items-center justify-center flex-shrink-0" aria-hidden="true">
-          <div ref={indicatorRef} className="voice-indicator" data-speaker="idle" data-muted={muted ? 'true' : 'false'} />
+        {/* Indicator: outer div provides 32px hit-area spacing; inner div is
+            the CSS-driven status dot (.voice-indicator handles its own size,
+            background, and box-shadow — no SVG needed here). */}
+        <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+          <div
+            ref={indicatorRef}
+            className="voice-indicator"
+            data-speaker="idle"
+            data-muted={muted ? 'true' : 'false'}
+            aria-hidden="true"
+          />
         </div>
 
-        <div className="flex-1" />
+        {/* Status label — confirms the session is live and its current state.
+            Replaces the empty flex-1 spacer so the middle carries meaning. */}
+        <div className="flex-1 min-w-0">
+          <span className="text-[11px] text-text-tertiary select-none">
+            {muted ? t('voice.statusMuted') : t('voice.statusListening')}
+          </span>
+        </div>
 
         {/* Keyboard shortcut hint — desktop only because the strip is roomy
             there. Mobile users don't have a keyboard so the chrome cost
@@ -93,16 +108,15 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
           <Icon name={muted ? 'mic-off' : 'mic'} className="w-4 h-4" />
         </button>
 
-        {/* End — destructive. Tinted in error-text so the user reads the
-            red-on-the-X as "this kills the session" rather than as a
-            generic close affordance. Hover deepens the bg without changing
-            the foreground tone (it's already saying everything it needs). */}
+        {/* End — ml-2 adds 8px on top of gap-2 = 16px total separation from
+            Mute, reducing accidental taps on mobile. Destructive tint signals
+            intent without requiring a confirmation dialog. */}
         <button
           type="button"
           onClick={onEnd}
           aria-label={t('voice.endAria')}
           className="
-            w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+            ml-2 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
             text-on-error-surface hover:bg-error-surface
             transition-colors
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
@@ -112,8 +126,14 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
         </button>
       </div>
 
+      {/* Session-connected announcement — fires once on mount. */}
       <span aria-live="polite" className="sr-only">
         {t('voice.connectedAnnouncement')}
+      </span>
+      {/* Mute-state announcement — fires on toggle only (empty string when
+          unmuted so screen readers don't announce on mount or on unmute). */}
+      <span aria-live="polite" className="sr-only">
+        {muted ? t('voice.indicatorMuted') : ''}
       </span>
     </div>
   )

@@ -37,7 +37,7 @@ export function VoiceTrigger({ state, onStart }: Props) {
         aria-busy={isConnecting || undefined}
         disabled={isConnecting}
         className="
-          h-11 -mr-1 flex items-center gap-1.5 pl-1 pr-1 flex-shrink-0 group
+          h-11 min-w-[44px] -mr-1 flex items-center justify-center gap-1.5 pl-1 pr-1 flex-shrink-0 group
           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
           rounded-full
         "
@@ -51,10 +51,33 @@ export function VoiceTrigger({ state, onStart }: Props) {
             transition-colors
           "
         >
-          <Icon
-            name={isConnecting ? 'spinner' : 'mic'}
-            className="w-4 h-4"
-          />
+          {isConnecting ? (
+            <Icon name="spinner" className="w-4 h-4" />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width={18}
+              height={18}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {/* Antenna stem + dot */}
+              <line x1="12" y1="4" x2="12" y2="7" />
+              <circle cx="12" cy="3" r="1.5" fill="currentColor" stroke="none" />
+              {/* Head / body */}
+              <rect x="3" y="7" width="18" height="14" rx="4" />
+              {/* Eyes */}
+              <circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none" />
+              {/* Smile */}
+              <path d="M9 17 Q12 19.5 15 17" strokeWidth={1.5} />
+            </svg>
+          )}
         </span>
         {/* Visible "Connecting…" label on desktop only — gives the user
             reassurance that the silent spinner is working without crowding

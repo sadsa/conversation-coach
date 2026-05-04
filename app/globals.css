@@ -348,6 +348,16 @@
     animation: coachmark-fade-in 240ms var(--ease-out-quart) both;
   }
 
+  /* Voice coachmark entrance — slight drop from trigger + fade. Paired
+     with the coachmark's absolute positioning below the header mic button. */
+  @keyframes voice-coachmark-enter {
+    0%   { opacity: 0; transform: translateY(-6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .animate-voice-coachmark-in {
+    animation: voice-coachmark-enter 240ms var(--ease-out-quart) both;
+  }
+
   /* Voice strip — entrance animation
      ───────────────────────────────────────────────────────────────────────
      Slide-down + fade. Pairs with the `margin-top` transition on `<main>`

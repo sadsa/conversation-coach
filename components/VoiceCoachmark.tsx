@@ -1,11 +1,11 @@
 // components/VoiceCoachmark.tsx
 //
-// One-shot first-run cue over the header mic button. Mobile-only (md:hidden)
-// because on desktop the trigger sits next to the theme toggle in plain
-// view. Mirrors the localStorage one-shot pattern of UploadCoachmark, but
-// distilled to a tooltip-style bubble rather than a backdrop+spotlight —
-// the trigger is small but discoverable, and a heavyweight overlay would
-// over-dramatise it.
+// One-shot first-run cue anchored below the header mic button. Shown on
+// all viewports — previously md:hidden (desktop users had no discovery path
+// for the voice feature at all). Mirrors the localStorage one-shot pattern
+// of UploadCoachmark, but distilled to a tooltip-style bubble rather than a
+// backdrop+spotlight — the trigger is small but discoverable, and a
+// heavyweight overlay would over-dramatise it.
 //
 // Anchoring: rendered as an absolutely-positioned child of AppHeader's
 // right cluster (which is `relative`). Previously this used a fixed
@@ -44,35 +44,37 @@ export function VoiceCoachmark({ visible }: Props) {
   return (
     <div
       className="
-        md:hidden absolute top-full right-0 mt-2 z-40
+        absolute top-full right-0 mt-2 z-40
         bg-surface-elevated border border-border rounded-2xl
-        px-3 py-2 flex items-center gap-2
-        shadow-md whitespace-nowrap
-        animate-coachmark-in
+        px-3 py-2.5 w-52
+        shadow-md
+        animate-voice-coachmark-in
       "
       role="dialog"
       aria-label={t('voice.startCoachmark')}
     >
-      {/* Pointer triangle — connects bubble visually to the trigger above
-          it. Without this the floating bubble reads as orphaned chrome. */}
+      {/* Pointer triangle — right-14 (56px) aligns with the mic circle
+          center: 44px theme-toggle + 4px pr-1 + 16px half of w-8. */}
       <span
         aria-hidden="true"
         className="
-          absolute -top-1.5 right-6 w-3 h-3 rotate-45
+          absolute -top-1.5 right-14 w-3 h-3 rotate-45
           bg-surface-elevated border-l border-t border-border
         "
       />
-      <span className="relative text-xs font-medium text-text-primary">
-        {t('voice.startCoachmark')}
-      </span>
-      <button
-        type="button"
-        onClick={dismiss}
-        aria-label={t('common.close')}
-        className="relative w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-primary"
-      >
-        <Icon name="close" className="w-3 h-3" />
-      </button>
+      <div className="relative flex items-center gap-2">
+        <span className="flex-1 text-xs font-medium text-text-primary">
+          {t('voice.startCoachmark')}
+        </span>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label={t('common.close')}
+          className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors"
+        >
+          <Icon name="close" className="w-3 h-3" />
+        </button>
+      </div>
     </div>
   )
 }
