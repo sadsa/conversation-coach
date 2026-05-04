@@ -52,7 +52,7 @@ For each annotation:
 - "original": copy the exact substring from the turn's text
 - "start_char" / "end_char": character offsets of "original" within the turn's text content only — do NOT count the [ID: ...] prefix line; offset 0 is the first character of the text itself
 - "correction": the improved version
-- "explanation": a concise plain-language explanation tuned to New Zealand English conventions
+- "explanation": a concise plain-language explanation in Spanish (Rioplatense register), tuned to New Zealand English conventions
 - "sub_category": classify into exactly one of these categories (use "other" if nothing fits):
   Grammar: "verb-conjugation", "subjunctive", "gender-agreement", "number-agreement", "ser-estar", "por-para", "tense-selection", "article-usage", "word-order"
   Naturalness: "vocabulary-choice", "register", "phrasing"
@@ -64,7 +64,7 @@ For each annotation:
   - 3: phrase is very common in everyday NZ speech; the original would sound immediately wrong or unnatural to a native speaker
   - 2: moderately common; noticeable but not jarring to a native
   - 1: rare phrasing or minor slip; most NZ speakers would not notice or care
-- "importance_note": one English sentence explaining the score, covering how common the phrase is, how noticeable the error is, and how much it affects sounding like a native
+- "importance_note": one sentence in Spanish (Rioplatense register) explaining the score, covering how common the phrase is, how noticeable the error is, and how much it affects sounding like a native
 
 Be tuned to New Zealand English: use NZ spelling (colour, organise, programme), NZ vocabulary and idioms, and everyday NZ register. Note that NZ English tends to be informal and direct.
 

@@ -190,7 +190,7 @@ export function TranscriptView({
                 <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1.5 font-medium">
                   {isUser ? userLabel : themLabel}
                 </p>
-                <span className="text-base md:text-lg leading-loose break-words text-text-primary">
+                <span className="text-base md:text-lg leading-[1.8] break-words text-text-primary">
                   {isUser && (annotationsBySegment[seg.id] ?? []).length > 0 ? (
                     <AnnotatedText
                       text={seg.text}
