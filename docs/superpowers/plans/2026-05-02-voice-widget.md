@@ -12,28 +12,30 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Create | `public/pcm-processor.js` | AudioWorklet processor — converts Float32 mic input to PCM16, sends to main thread |
-| Create | `app/api/voice-token/route.ts` | Mints short-lived AssemblyAI Voice Agent token, auth-gated |
-| Modify | `components/Icon.tsx` | Add `mic` and `mic-off` icons |
-| Modify | `lib/i18n.ts` | Add voice widget translation keys (both `en` and `es`) |
-| Create | `lib/voice-agent.ts` | WebSocket wrapper + `buildSystemPrompt` helper |
-| Create | `components/VoiceWidget.tsx` | Floating bubble → expanded pill UI |
-| Modify | `components/ConditionalNav.tsx` | Mount `<VoiceWidget>` |
-| Create | `__tests__/lib/voice-agent.test.ts` | Unit tests for `buildSystemPrompt` and WebSocket lifecycle |
-| Create | `__tests__/components/VoiceWidget.test.tsx` | Component tests for all widget states |
-| Modify | `__tests__/components/ConditionalNav.test.tsx` | Assert widget renders on protected routes |
+
+| Action | Path                                           | Responsibility                                                                     |
+| ------ | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Create | `public/pcm-processor.js`                      | AudioWorklet processor — converts Float32 mic input to PCM16, sends to main thread |
+| Create | `app/api/voice-token/route.ts`                 | Mints short-lived AssemblyAI Voice Agent token, auth-gated                         |
+| Modify | `components/Icon.tsx`                          | Add `mic` and `mic-off` icons                                                      |
+| Modify | `lib/i18n.ts`                                  | Add voice widget translation keys (both `en` and `es`)                             |
+| Create | `lib/voice-agent.ts`                           | WebSocket wrapper + `buildSystemPrompt` helper                                     |
+| Create | `components/VoiceWidget.tsx`                   | Floating bubble → expanded pill UI                                                 |
+| Modify | `components/ConditionalNav.tsx`                | Mount `<VoiceWidget>`                                                              |
+| Create | `__tests__/lib/voice-agent.test.ts`            | Unit tests for `buildSystemPrompt` and WebSocket lifecycle                         |
+| Create | `__tests__/components/VoiceWidget.test.tsx`    | Component tests for all widget states                                              |
+| Modify | `__tests__/components/ConditionalNav.test.tsx` | Assert widget renders on protected routes                                          |
+
 
 ---
 
 ## Task 1: Server token route
 
 **Files:**
+
 - Create: `app/api/voice-token/route.ts`
 - Create: `__tests__/api/voice-token.test.ts`
-
-- [ ] **Step 1: Write the failing test**
+- **Step 1: Write the failing test**
 
 ```ts
 // __tests__/api/voice-token.test.ts
@@ -85,7 +87,7 @@ describe('GET /api/voice-token', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -- __tests__/api/voice-token.test.ts
@@ -93,7 +95,7 @@ npm test -- __tests__/api/voice-token.test.ts
 
 Expected: FAIL — `Cannot find module '@/app/api/voice-token/route'`
 
-- [ ] **Step 3: Create the route**
+- **Step 3: Create the route**
 
 ```ts
 // app/api/voice-token/route.ts
@@ -122,7 +124,7 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/api/voice-token.test.ts
@@ -130,7 +132,7 @@ npm test -- __tests__/api/voice-token.test.ts
 
 Expected: 3 passing
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add app/api/voice-token/route.ts __tests__/api/voice-token.test.ts
@@ -142,11 +144,12 @@ git commit -m "feat(voice): add server-side voice token endpoint"
 ## Task 2: PCM audio processor worklet
 
 **Files:**
+
 - Create: `public/pcm-processor.js`
 
 This file must be a plain JavaScript AudioWorklet processor served as a static file. No TypeScript, no imports.
 
-- [ ] **Step 1: Create the worklet processor**
+- **Step 1: Create the worklet processor**
 
 ```js
 // public/pcm-processor.js
@@ -167,7 +170,7 @@ class PCMProcessor extends AudioWorkletProcessor {
 registerProcessor('pcm-processor', PCMProcessor)
 ```
 
-- [ ] **Step 2: Verify the file is served by the dev server**
+- **Step 2: Verify the file is served by the dev server**
 
 ```bash
 npm run dev &
@@ -178,7 +181,7 @@ Expected: first line is `class PCMProcessor extends AudioWorkletProcessor {`
 
 Kill the dev server after verifying.
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add public/pcm-processor.js
@@ -190,10 +193,10 @@ git commit -m "feat(voice): add PCM16 AudioWorklet processor"
 ## Task 3: Add mic icons and i18n keys
 
 **Files:**
+
 - Modify: `components/Icon.tsx`
 - Modify: `lib/i18n.ts`
-
-- [ ] **Step 1: Add `mic` and `mic-off` to Icon.tsx**
+- **Step 1: Add `mic` and `mic-off` to Icon.tsx**
 
 In `components/Icon.tsx`, add these entries inside the `ICONS` object (after the existing `'thumbs-up'` entry, before the closing `} as const`):
 
@@ -213,7 +216,7 @@ In `components/Icon.tsx`, add these entries inside the `ICONS` object (after the
   </>,
 ```
 
-- [ ] **Step 2: Add translation keys to `lib/i18n.ts`**
+- **Step 2: Add translation keys to `lib/i18n.ts`**
 
 Inside the `en` block, add after the last existing key:
 
@@ -249,7 +252,7 @@ Inside the `es` block, add the same keys translated:
     'voice.reconnecting': 'Reconectando…',
 ```
 
-- [ ] **Step 3: Run existing i18n tests to confirm nothing broke**
+- **Step 3: Run existing i18n tests to confirm nothing broke**
 
 ```bash
 npm test -- __tests__/lib/i18n.test.ts
@@ -257,7 +260,7 @@ npm test -- __tests__/lib/i18n.test.ts
 
 Expected: all passing
 
-- [ ] **Step 4: Commit**
+- **Step 4: Commit**
 
 ```bash
 git add components/Icon.tsx lib/i18n.ts
@@ -269,6 +272,7 @@ git commit -m "feat(voice): add mic icons and voice widget i18n keys"
 ## Task 4: Create `lib/voice-agent.ts`
 
 **Files:**
+
 - Create: `lib/voice-agent.ts`
 - Create: `__tests__/lib/voice-agent.test.ts`
 
@@ -295,7 +299,7 @@ export interface VoiceAgent {
 }
 ```
 
-- [ ] **Step 1: Write failing tests for `buildSystemPrompt`**
+- **Step 1: Write failing tests for `buildSystemPrompt`**
 
 ```ts
 // __tests__/lib/voice-agent.test.ts
@@ -342,7 +346,7 @@ describe('buildSystemPrompt', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts
@@ -350,7 +354,7 @@ npm test -- __tests__/lib/voice-agent.test.ts
 
 Expected: FAIL — `Cannot find module '@/lib/voice-agent'`
 
-- [ ] **Step 3: Implement `lib/voice-agent.ts`**
+- **Step 3: Implement `lib/voice-agent.ts`**
 
 ```ts
 // lib/voice-agent.ts
@@ -534,7 +538,7 @@ export async function connect(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts
@@ -542,7 +546,7 @@ npm test -- __tests__/lib/voice-agent.test.ts
 
 Expected: 4 passing
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add lib/voice-agent.ts __tests__/lib/voice-agent.test.ts
@@ -554,10 +558,10 @@ git commit -m "feat(voice): add voice-agent WebSocket wrapper and system prompt 
 ## Task 5: Create `components/VoiceWidget.tsx`
 
 **Files:**
+
 - Create: `components/VoiceWidget.tsx`
 - Create: `__tests__/components/VoiceWidget.test.tsx`
-
-- [ ] **Step 1: Write failing component tests**
+- **Step 1: Write failing component tests**
 
 ```tsx
 // __tests__/components/VoiceWidget.test.tsx
@@ -717,7 +721,7 @@ describe('VoiceWidget', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -- __tests__/components/VoiceWidget.test.tsx
@@ -725,7 +729,7 @@ npm test -- __tests__/components/VoiceWidget.test.tsx
 
 Expected: FAIL — `Cannot find module '@/components/VoiceWidget'`
 
-- [ ] **Step 3: Implement `components/VoiceWidget.tsx`**
+- **Step 3: Implement `components/VoiceWidget.tsx`**
 
 ```tsx
 // components/VoiceWidget.tsx
@@ -980,7 +984,7 @@ export function VoiceWidget({ initialItems }: Props) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/components/VoiceWidget.test.tsx
@@ -988,7 +992,7 @@ npm test -- __tests__/components/VoiceWidget.test.tsx
 
 Expected: 7 passing
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add components/VoiceWidget.tsx __tests__/components/VoiceWidget.test.tsx
@@ -1000,10 +1004,10 @@ git commit -m "feat(voice): add VoiceWidget component with idle/active/muted sta
 ## Task 6: Wire VoiceWidget into ConditionalNav
 
 **Files:**
+
 - Modify: `components/ConditionalNav.tsx`
 - Modify: `__tests__/components/ConditionalNav.test.tsx`
-
-- [ ] **Step 1: Update ConditionalNav to render VoiceWidget**
+- **Step 1: Update ConditionalNav to render VoiceWidget**
 
 Replace the contents of `components/ConditionalNav.tsx` with:
 
@@ -1048,7 +1052,7 @@ export function ConditionalNav() {
 }
 ```
 
-- [ ] **Step 2: Add a test asserting the widget renders on protected routes**
+- **Step 2: Add a test asserting the widget renders on protected routes**
 
 In `__tests__/components/ConditionalNav.test.tsx`, add the following mocks at the top (alongside the existing mocks):
 
@@ -1079,11 +1083,12 @@ Then add this test to the existing `describe` block:
 ```
 
 Add `waitFor` to the import at the top of the test file:
+
 ```ts
 import { render, screen, waitFor } from '@testing-library/react'
 ```
 
-- [ ] **Step 3: Run the full test suite**
+- **Step 3: Run the full test suite**
 
 ```bash
 npm test -- __tests__/components/ConditionalNav.test.tsx
@@ -1091,7 +1096,7 @@ npm test -- __tests__/components/ConditionalNav.test.tsx
 
 Expected: all passing (including the new test)
 
-- [ ] **Step 4: Run all tests to confirm nothing is broken**
+- **Step 4: Run all tests to confirm nothing is broken**
 
 ```bash
 npm test
@@ -1099,7 +1104,7 @@ npm test
 
 Expected: all passing
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add components/ConditionalNav.tsx __tests__/components/ConditionalNav.test.tsx
@@ -1115,3 +1120,4 @@ git commit -m "feat(voice): wire VoiceWidget into ConditionalNav"
 - `VoiceWidget` receives `initialItems` as a prop — makes it testable without a live API fetch
 - `ConditionalNav` fetches items client-side on mount; this is a best-effort fetch (error swallowed) so the widget simply stays hidden on failure — no error surface needed
 - The `session.update` mid-conversation update is used for focus switching based on AssemblyAI's documented protocol; if the API changes this message type, only `lib/voice-agent.ts` needs updating
+

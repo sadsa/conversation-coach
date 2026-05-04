@@ -12,30 +12,33 @@
 
 ## File Map
 
-| Action | Path | Purpose |
-|--------|------|---------|
-| **Create** | `lib/voice-context.ts` | `VoicePageContext` types + `buildSessionContext` + `buildWriteContext` + 8000-char cap |
-| **Create** | `__tests__/lib/voice-context.test.ts` | Unit tests for both builders |
-| **Modify** | `types/window.d.ts` | Replace `__ccSessionTitle` with `__ccVoiceContext: VoicePageContext` |
-| **Modify** | `lib/voice-agent.ts` | Drop `FocusedCorrection`/`items`, add `pageContext` param, update `buildSystemPrompt` + `connect` |
-| **Modify** | `__tests__/lib/voice-agent.test.ts` | Rewrite for new signature; add page-context prompt assertions |
-| **Modify** | `components/VoiceController.tsx` | Read `__ccVoiceContext` in `start()`, update `connect()` call, update `deriveRouteContext` |
-| **Modify** | `__tests__/components/VoiceController.test.tsx` | Update mock signatures; add page-context assertions |
-| **Modify** | `components/TranscriptClient.tsx` | Replace `__ccSessionTitle` effect with `__ccVoiceContext` publish |
-| **Modify** | `components/WriteClient.tsx` | Add `__ccVoiceContext` publish effect |
-| **Modify** | `__tests__/integration/voice-cross-route.test.tsx` | Update mock for new `connect()` signature |
+
+| Action     | Path                                               | Purpose                                                                                           |
+| ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Create** | `lib/voice-context.ts`                             | `VoicePageContext` types + `buildSessionContext` + `buildWriteContext` + 8000-char cap            |
+| **Create** | `__tests__/lib/voice-context.test.ts`              | Unit tests for both builders                                                                      |
+| **Modify** | `types/window.d.ts`                                | Replace `__ccSessionTitle` with `__ccVoiceContext: VoicePageContext`                              |
+| **Modify** | `lib/voice-agent.ts`                               | Drop `FocusedCorrection`/`items`, add `pageContext` param, update `buildSystemPrompt` + `connect` |
+| **Modify** | `__tests__/lib/voice-agent.test.ts`                | Rewrite for new signature; add page-context prompt assertions                                     |
+| **Modify** | `components/VoiceController.tsx`                   | Read `__ccVoiceContext` in `start()`, update `connect()` call, update `deriveRouteContext`        |
+| **Modify** | `__tests__/components/VoiceController.test.tsx`    | Update mock signatures; add page-context assertions                                               |
+| **Modify** | `components/TranscriptClient.tsx`                  | Replace `__ccSessionTitle` effect with `__ccVoiceContext` publish                                 |
+| **Modify** | `components/WriteClient.tsx`                       | Add `__ccVoiceContext` publish effect                                                             |
+| **Modify** | `__tests__/integration/voice-cross-route.test.tsx` | Update mock for new `connect()` signature                                                         |
+
 
 ---
 
 ## Task 1: Types — `lib/voice-context.ts` skeleton + `types/window.d.ts`
 
 **Files:**
+
 - Create: `lib/voice-context.ts`
 - Modify: `types/window.d.ts`
 
 No tests yet — this task is pure type definitions that the builder tests in Task 2 depend on.
 
-- [ ] **Step 1: Create `lib/voice-context.ts` with types and stubs**
+- **Step 1: Create `lib/voice-context.ts` with types and stubs**
 
 ```ts
 // lib/voice-context.ts
@@ -102,7 +105,7 @@ export function buildWriteContext(
 export { CAP_CHARS }
 ```
 
-- [ ] **Step 2: Update `types/window.d.ts`** — replace `__ccSessionTitle` with `__ccVoiceContext`
+- **Step 2: Update `types/window.d.ts`** — replace `__ccSessionTitle` with `__ccVoiceContext`
 
 ```ts
 // types/window.d.ts
@@ -117,7 +120,7 @@ declare global {
 export {}
 ```
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add lib/voice-context.ts types/window.d.ts
@@ -129,10 +132,10 @@ git commit -m "feat(voice): add VoicePageContext types and window global"
 ## Task 2: Implement `buildSessionContext` — TDD
 
 **Files:**
+
 - Create: `__tests__/lib/voice-context.test.ts` (session half)
 - Modify: `lib/voice-context.ts`
-
-- [ ] **Step 1: Write the failing tests for `buildSessionContext`**
+- **Step 1: Write the failing tests for `buildSessionContext`**
 
 Create `__tests__/lib/voice-context.test.ts`:
 
@@ -333,7 +336,7 @@ describe('buildSessionContext', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests — expect all to fail with "not implemented"**
+- **Step 2: Run the tests — expect all to fail with "not implemented"**
 
 ```bash
 npm test -- __tests__/lib/voice-context.test.ts
@@ -341,7 +344,7 @@ npm test -- __tests__/lib/voice-context.test.ts
 
 Expected: all `buildSessionContext` tests fail with `Error: not implemented`.
 
-- [ ] **Step 3: Implement `buildSessionContext` in `lib/voice-context.ts`**
+- **Step 3: Implement `buildSessionContext` in `lib/voice-context.ts`**
 
 Replace the stub in `lib/voice-context.ts` (keep all the types and `buildWriteContext` stub):
 
@@ -449,7 +452,7 @@ export function buildSessionContext(
 }
 ```
 
-- [ ] **Step 4: Run the `buildSessionContext` tests — expect them to pass**
+- **Step 4: Run the `buildSessionContext` tests — expect them to pass**
 
 ```bash
 npm test -- __tests__/lib/voice-context.test.ts --reporter=verbose
@@ -457,7 +460,7 @@ npm test -- __tests__/lib/voice-context.test.ts --reporter=verbose
 
 Expected: all `buildSessionContext` describe block tests pass. `buildWriteContext` tests will still fail (not yet added).
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add lib/voice-context.ts __tests__/lib/voice-context.test.ts
@@ -469,10 +472,10 @@ git commit -m "feat(voice): implement buildSessionContext with ±1 expansion and
 ## Task 3: Implement `buildWriteContext` — TDD
 
 **Files:**
+
 - Modify: `__tests__/lib/voice-context.test.ts` (add write tests)
 - Modify: `lib/voice-context.ts`
-
-- [ ] **Step 1: Add `buildWriteContext` tests** to the bottom of `__tests__/lib/voice-context.test.ts`
+- **Step 1: Add `buildWriteContext` tests** to the bottom of `__tests__/lib/voice-context.test.ts`
 
 ```ts
 // --- buildWriteContext ---
@@ -547,13 +550,13 @@ describe('buildWriteContext', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests — expect `buildWriteContext` tests to fail with "not implemented"**
+- **Step 2: Run the tests — expect `buildWriteContext` tests to fail with "not implemented"**
 
 ```bash
 npm test -- __tests__/lib/voice-context.test.ts
 ```
 
-- [ ] **Step 3: Implement `buildWriteContext` in `lib/voice-context.ts`**
+- **Step 3: Implement `buildWriteContext` in `lib/voice-context.ts`**
 
 Replace the `buildWriteContext` stub:
 
@@ -599,7 +602,7 @@ export function buildWriteContext(
 }
 ```
 
-- [ ] **Step 4: Run all `voice-context` tests — expect full pass**
+- **Step 4: Run all `voice-context` tests — expect full pass**
 
 ```bash
 npm test -- __tests__/lib/voice-context.test.ts --reporter=verbose
@@ -607,7 +610,7 @@ npm test -- __tests__/lib/voice-context.test.ts --reporter=verbose
 
 Expected: all tests in both `buildSessionContext` and `buildWriteContext` describe blocks pass.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add lib/voice-context.ts __tests__/lib/voice-context.test.ts
@@ -619,17 +622,17 @@ git commit -m "feat(voice): implement buildWriteContext with cap"
 ## Task 4: Update `lib/voice-agent.ts` — drop `items`, add `pageContext`
 
 **Files:**
+
 - Modify: `lib/voice-agent.ts`
 - Modify: `__tests__/lib/voice-agent.test.ts`
 
 The existing `buildSystemPrompt` and `connect()` signatures change:
+
 - **Before:** `buildSystemPrompt(targetLanguage, items: FocusedCorrection[], routeContext?)`
 - **After:** `buildSystemPrompt(targetLanguage, routeContext, pageContext?)`
-
 - **Before:** `connect(targetLanguage, items, callbacks, routeContext?)`
 - **After:** `connect(targetLanguage, callbacks, routeContext?, pageContext?)`
-
-- [ ] **Step 1: Rewrite `__tests__/lib/voice-agent.test.ts`** to cover the new signature and page-context rendering
+- **Step 1: Rewrite `__tests__/lib/voice-agent.test.ts`** to cover the new signature and page-context rendering
 
 Replace the entire file:
 
@@ -810,7 +813,7 @@ describe('buildSystemPrompt', () => {
 })
 ```
 
-- [ ] **Step 2: Run the tests — expect failures because `buildSystemPrompt` still takes `items`**
+- **Step 2: Run the tests — expect failures because `buildSystemPrompt` still takes `items`**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts
@@ -818,9 +821,10 @@ npm test -- __tests__/lib/voice-agent.test.ts
 
 Expected: TypeScript errors and test failures.
 
-- [ ] **Step 3: Update `lib/voice-agent.ts`** — drop `FocusedCorrection`, update signatures and prompt body
+- **Step 3: Update `lib/voice-agent.ts`** — drop `FocusedCorrection`, update signatures and prompt body
 
 Replace the entire `lib/voice-agent.ts` file content. Key changes:
+
 1. Remove `FocusedCorrection` interface.
 2. `buildSystemPrompt(targetLanguage, routeContext, pageContext?)` — new signature.
 3. `connect(targetLanguage, callbacks, routeContext?, pageContext?)` — new signature.
@@ -1150,7 +1154,7 @@ export async function connect(
 }
 ```
 
-- [ ] **Step 4: Run the voice-agent tests — expect full pass**
+- **Step 4: Run the voice-agent tests — expect full pass**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts --reporter=verbose
@@ -1158,7 +1162,7 @@ npm test -- __tests__/lib/voice-agent.test.ts --reporter=verbose
 
 Expected: all tests pass. TypeScript compilation clean.
 
-- [ ] **Step 5: Run the full test suite to check for breakage**
+- **Step 5: Run the full test suite to check for breakage**
 
 ```bash
 npm test
@@ -1166,7 +1170,7 @@ npm test
 
 Expected: `VoiceController.test.tsx` and `voice-cross-route.test.tsx` will now fail because their `connect()` mock uses the old `(_l, _i, callbacks)` signature. That is expected and will be fixed in Task 5 and Task 8.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add lib/voice-agent.ts __tests__/lib/voice-agent.test.ts
@@ -1178,14 +1182,16 @@ git commit -m "feat(voice): drop items param, add pageContext to buildSystemProm
 ## Task 5: Update `VoiceController.tsx` + tests
 
 **Files:**
+
 - Modify: `components/VoiceController.tsx`
 - Modify: `__tests__/components/VoiceController.test.tsx`
 
 `deriveRouteContext` currently reads `window.__ccSessionTitle`. It now reads from `window.__ccVoiceContext`. The session title for the route hint comes from `__ccVoiceContext.sessionTitle` when the page is a session page.
 
-- [ ] **Step 1: Update `__tests__/components/VoiceController.test.tsx`**
+- **Step 1: Update `__tests__/components/VoiceController.test.tsx`**
 
 Three changes:
+
 1. `beforeEach` — clear `window.__ccVoiceContext` instead of `__ccSessionTitle`.
 2. Mock call signatures — `connect` now takes `(_l, callbacks, _ctx, _pageCtx)` instead of `(_l, _i, callbacks, _ctx)`.
 3. The routeContext session test — set `window.__ccVoiceContext` of kind `'session'` instead of `__ccSessionTitle`.
@@ -1454,15 +1460,16 @@ describe('useVoiceController', () => {
 })
 ```
 
-- [ ] **Step 2: Run the controller tests — expect them to fail (controller still uses old signature)**
+- **Step 2: Run the controller tests — expect them to fail (controller still uses old signature)**
 
 ```bash
 npm test -- __tests__/components/VoiceController.test.tsx
 ```
 
-- [ ] **Step 3: Update `components/VoiceController.tsx`**
+- **Step 3: Update `components/VoiceController.tsx`**
 
 Two changes:
+
 1. `deriveRouteContext` reads from `window.__ccVoiceContext` instead of `window.__ccSessionTitle`.
 2. `start()` reads `window.__ccVoiceContext` once and passes it as `pageContext` to `connect()`.
 3. `connect()` call drops the `[]` items arg.
@@ -1692,7 +1699,7 @@ export function useVoiceController(): VoiceController {
 }
 ```
 
-- [ ] **Step 4: Run the controller tests — expect full pass**
+- **Step 4: Run the controller tests — expect full pass**
 
 ```bash
 npm test -- __tests__/components/VoiceController.test.tsx --reporter=verbose
@@ -1700,7 +1707,7 @@ npm test -- __tests__/components/VoiceController.test.tsx --reporter=verbose
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add components/VoiceController.tsx __tests__/components/VoiceController.test.tsx
@@ -1712,11 +1719,12 @@ git commit -m "feat(voice): read __ccVoiceContext in start(), pass pageContext t
 ## Task 6: Update `TranscriptClient.tsx` — publish voice context
 
 **Files:**
+
 - Modify: `components/TranscriptClient.tsx`
 
 Replace the existing `__ccSessionTitle` effect with one that publishes the full `__ccVoiceContext` payload. The effect depends on `title` (local rename state), `detail.session.user_speaker_labels`, `detail.segments`, and `detail.annotations`.
 
-- [ ] **Step 1: Add the import and replace the title-bridge effect in `components/TranscriptClient.tsx`**
+- **Step 1: Add the import and replace the title-bridge effect in `components/TranscriptClient.tsx`**
 
 At the top of the file, add the import:
 
@@ -1749,7 +1757,7 @@ useEffect(() => {
 }, [title, detail.session.user_speaker_labels, detail.segments, detail.annotations])
 ```
 
-- [ ] **Step 2: Run lint**
+- **Step 2: Run lint**
 
 ```bash
 npm run lint
@@ -1757,7 +1765,7 @@ npm run lint
 
 Fix any errors (unused imports, etc). The `__ccSessionTitle` reference in the old code is gone; TypeScript will surface any missed references.
 
-- [ ] **Step 3: Run the full test suite**
+- **Step 3: Run the full test suite**
 
 ```bash
 npm test
@@ -1765,7 +1773,7 @@ npm test
 
 Expected: all previously passing tests still pass. No regressions in `TranscriptView.test.tsx`.
 
-- [ ] **Step 4: Commit**
+- **Step 4: Commit**
 
 ```bash
 git add components/TranscriptClient.tsx
@@ -1777,9 +1785,9 @@ git commit -m "feat(voice): TranscriptClient publishes full session context to _
 ## Task 7: Update `WriteClient.tsx` — publish voice context
 
 **Files:**
-- Modify: `components/WriteClient.tsx`
 
-- [ ] **Step 1: Add the import and publish effect to `components/WriteClient.tsx`**
+- Modify: `components/WriteClient.tsx`
+- **Step 1: Add the import and publish effect to `components/WriteClient.tsx`**
 
 Add the import after the existing imports:
 
@@ -1841,7 +1849,7 @@ export function WriteClient({ initialItems }: Props) {
 }
 ```
 
-- [ ] **Step 2: Run the full test suite**
+- **Step 2: Run the full test suite**
 
 ```bash
 npm test
@@ -1849,7 +1857,7 @@ npm test
 
 Expected: all tests pass except the integration test (which still has the old mock signature — fixed in Task 8).
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add components/WriteClient.tsx
@@ -1861,11 +1869,12 @@ git commit -m "feat(voice): WriteClient publishes pending corrections to __ccVoi
 ## Task 8: Update integration test for new `connect()` signature
 
 **Files:**
+
 - Modify: `__tests__/integration/voice-cross-route.test.tsx`
 
 The mock uses `(_l, _i, callbacks)` — the `_i` (items) arg is gone. The new signature is `(targetLanguage, callbacks, routeContext?, pageContext?)`.
 
-- [ ] **Step 1: Update the `connect` mock in `__tests__/integration/voice-cross-route.test.tsx`**
+- **Step 1: Update the `connect` mock in `__tests__/integration/voice-cross-route.test.tsx`**
 
 Find this block (around line 32):
 
@@ -1891,7 +1900,7 @@ vi.mock('@/lib/voice-agent', () => ({
 }))
 ```
 
-- [ ] **Step 2: Run the integration test — expect it to pass**
+- **Step 2: Run the integration test — expect it to pass**
 
 ```bash
 npm test -- __tests__/integration/voice-cross-route.test.tsx --reporter=verbose
@@ -1899,7 +1908,7 @@ npm test -- __tests__/integration/voice-cross-route.test.tsx --reporter=verbose
 
 Expected: both persistence and sign-out tests pass.
 
-- [ ] **Step 3: Run the full test suite — expect a clean pass**
+- **Step 3: Run the full test suite — expect a clean pass**
 
 ```bash
 npm test
@@ -1907,7 +1916,7 @@ npm test
 
 Expected: all tests pass, no TypeScript errors.
 
-- [ ] **Step 4: Run the linter**
+- **Step 4: Run the linter**
 
 ```bash
 npm run lint
@@ -1915,7 +1924,7 @@ npm run lint
 
 Expected: zero errors. Fix any unused-import warnings if present.
 
-- [ ] **Step 5: Final commit**
+- **Step 5: Final commit**
 
 ```bash
 git add __tests__/integration/voice-cross-route.test.tsx
@@ -1926,31 +1935,34 @@ git commit -m "test(voice): update cross-route integration mock for new connect(
 
 ## Spec Coverage Checklist
 
-| Spec requirement | Covered by |
-|-----------------|------------|
-| `buildSessionContext` — ±1 neighbour expansion | Task 2 |
-| `buildSessionContext` — dedupe | Task 2 |
-| `buildSessionContext` — speaker resolution (`user_speaker_labels`) | Task 2 |
-| `buildSessionContext` — returns null when segments empty | Task 2 |
-| `buildSessionContext` — returns payload with empty arrays when no annotations | Task 2 |
-| `buildSessionContext` — 8000-char cap, drops from end, logs warn | Task 2 |
-| `buildWriteContext` — filters `!written_down` | Task 3 |
-| `buildWriteContext` — returns null for empty | Task 3 |
-| `buildWriteContext` — 8000-char cap, drops from end | Task 3 |
-| `buildSystemPrompt` — write context block rendered | Task 4 |
-| `buildSystemPrompt` — session context block with annotated markers | Task 4 |
-| `buildSystemPrompt` — session context collapses to title when empty | Task 4 |
-| `buildSystemPrompt` — deixis opening guidance when pageContext present | Task 4 |
-| `buildSystemPrompt` — generic greeting when pageContext absent | Task 4 |
-| `buildSystemPrompt` — page-context block is language-independent | Task 4 |
-| `buildSystemPrompt` — `FocusedCorrection` / `items` removed | Task 4 |
-| `connect()` — new signature (no `items`) | Task 4 |
-| `VoiceController` — reads `__ccVoiceContext` at `start()` | Task 5 |
-| `VoiceController` — pin-at-connect (mutation after connect not observed) | Task 5 |
-| `VoiceController` — `deriveRouteContext` uses `voiceContext.sessionTitle` | Task 5 |
-| `TranscriptClient` — publishes `kind: 'session'` payload on mount | Task 6 |
-| `TranscriptClient` — clears global on unmount | Task 6 |
-| `WriteClient` — publishes `kind: 'write'` payload on mount | Task 7 |
-| `WriteClient` — clears global on unmount | Task 7 |
-| `window.__ccSessionTitle` removed | Tasks 5 + 6 |
-| `types/window.d.ts` updated | Task 1 |
+
+| Spec requirement                                                              | Covered by  |
+| ----------------------------------------------------------------------------- | ----------- |
+| `buildSessionContext` — ±1 neighbour expansion                                | Task 2      |
+| `buildSessionContext` — dedupe                                                | Task 2      |
+| `buildSessionContext` — speaker resolution (`user_speaker_labels`)            | Task 2      |
+| `buildSessionContext` — returns null when segments empty                      | Task 2      |
+| `buildSessionContext` — returns payload with empty arrays when no annotations | Task 2      |
+| `buildSessionContext` — 8000-char cap, drops from end, logs warn              | Task 2      |
+| `buildWriteContext` — filters `!written_down`                                 | Task 3      |
+| `buildWriteContext` — returns null for empty                                  | Task 3      |
+| `buildWriteContext` — 8000-char cap, drops from end                           | Task 3      |
+| `buildSystemPrompt` — write context block rendered                            | Task 4      |
+| `buildSystemPrompt` — session context block with annotated markers            | Task 4      |
+| `buildSystemPrompt` — session context collapses to title when empty           | Task 4      |
+| `buildSystemPrompt` — deixis opening guidance when pageContext present        | Task 4      |
+| `buildSystemPrompt` — generic greeting when pageContext absent                | Task 4      |
+| `buildSystemPrompt` — page-context block is language-independent              | Task 4      |
+| `buildSystemPrompt` — `FocusedCorrection` / `items` removed                   | Task 4      |
+| `connect()` — new signature (no `items`)                                      | Task 4      |
+| `VoiceController` — reads `__ccVoiceContext` at `start()`                     | Task 5      |
+| `VoiceController` — pin-at-connect (mutation after connect not observed)      | Task 5      |
+| `VoiceController` — `deriveRouteContext` uses `voiceContext.sessionTitle`     | Task 5      |
+| `TranscriptClient` — publishes `kind: 'session'` payload on mount             | Task 6      |
+| `TranscriptClient` — clears global on unmount                                 | Task 6      |
+| `WriteClient` — publishes `kind: 'write'` payload on mount                    | Task 7      |
+| `WriteClient` — clears global on unmount                                      | Task 7      |
+| `window.__ccSessionTitle` removed                                             | Tasks 5 + 6 |
+| `types/window.d.ts` updated                                                   | Task 1      |
+
+

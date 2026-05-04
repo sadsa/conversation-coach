@@ -12,38 +12,40 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `lib/voice-agent.ts` | Add `VoiceRouteContext` type. Extend `buildSystemPrompt` to append route hint. Make `items` optional in `connect()`. Accept optional `routeContext` parameter. |
-| Modify | `__tests__/lib/voice-agent.test.ts` | Add tests for route-context branches in `buildSystemPrompt`. |
-| Modify | `lib/i18n.ts` | Add `voice.coachTitle`, `voice.languagePill.esAR`, `voice.languagePill.enNZ`, `voice.startCoachmark`, `voice.regionAria`, `voice.connectedAnnouncement` for both `en` and `es`. |
-| Modify | `app/globals.css` | Add `--voice-strip-height: 0px` on `:root`. |
-| Modify | `app/layout.tsx` | `<main>`'s `marginTop` includes `--voice-strip-height`. |
-| Create | `components/VoiceTrigger.tsx` | Header mic button. Three states: idle / connecting / hidden. |
-| Create | `__tests__/components/VoiceTrigger.test.tsx` | State rendering + click handler tests. |
-| Create | `components/VoiceStrip.tsx` | The 44px status strip. Owns the audio-flow indicator, mute, end. Writes `--voice-strip-height` on mount, clears on unmount. |
-| Create | `__tests__/components/VoiceStrip.test.tsx` | Mount renders correct elements. CSS variable lifecycle. Mute/end handlers. |
-| Create | `components/VoiceController.tsx` | `useVoiceController` hook. State machine, agent lifecycle, RMS refs, keyboard shortcuts. |
-| Create | `__tests__/components/VoiceController.test.tsx` | State transitions, cleanup on unmount, keyboard handlers. |
-| Modify | `components/AppHeader.tsx` | Accept optional `voice` prop. Render `<VoiceTrigger>` in right cluster. Hide section label while voice is active. |
-| Modify | `components/ConditionalNav.tsx` | Mount `useVoiceController`. Pass handle to `AppHeader`. Render `<VoiceStrip>` between header and main. Drop the `/write`-only practice-items fetch. |
-| Modify | `components/TranscriptClient.tsx` | Write `window.__ccSessionTitle` on mount; clear on unmount. |
-| Create | `types/window.d.ts` | Ambient declaration for `window.__ccSessionTitle`. |
-| Create | `components/VoiceCoachmark.tsx` | One-shot first-run cue over the trigger on mobile. Uses existing `cc:voice-trigger-coachmark:v1` localStorage key pattern. |
-| Create | `__tests__/components/VoiceCoachmark.test.tsx` | First-run shows; subsequent runs hide. |
-| Create | `__tests__/integration/voice-cross-route.test.tsx` | Active session survives navigation between `/write` and `/sessions/[id]`. |
-| Delete | `components/VoiceWidget.tsx` | Replaced by trigger + strip + controller split. |
-| Delete | `__tests__/components/VoiceWidget.test.tsx` | Tests rewritten against the new components. |
+
+| Action | Path                                               | Responsibility                                                                                                                                                                  |
+| ------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Modify | `lib/voice-agent.ts`                               | Add `VoiceRouteContext` type. Extend `buildSystemPrompt` to append route hint. Make `items` optional in `connect()`. Accept optional `routeContext` parameter.                  |
+| Modify | `__tests__/lib/voice-agent.test.ts`                | Add tests for route-context branches in `buildSystemPrompt`.                                                                                                                    |
+| Modify | `lib/i18n.ts`                                      | Add `voice.coachTitle`, `voice.languagePill.esAR`, `voice.languagePill.enNZ`, `voice.startCoachmark`, `voice.regionAria`, `voice.connectedAnnouncement` for both `en` and `es`. |
+| Modify | `app/globals.css`                                  | Add `--voice-strip-height: 0px` on `:root`.                                                                                                                                     |
+| Modify | `app/layout.tsx`                                   | `<main>`'s `marginTop` includes `--voice-strip-height`.                                                                                                                         |
+| Create | `components/VoiceTrigger.tsx`                      | Header mic button. Three states: idle / connecting / hidden.                                                                                                                    |
+| Create | `__tests__/components/VoiceTrigger.test.tsx`       | State rendering + click handler tests.                                                                                                                                          |
+| Create | `components/VoiceStrip.tsx`                        | The 44px status strip. Owns the audio-flow indicator, mute, end. Writes `--voice-strip-height` on mount, clears on unmount.                                                     |
+| Create | `__tests__/components/VoiceStrip.test.tsx`         | Mount renders correct elements. CSS variable lifecycle. Mute/end handlers.                                                                                                      |
+| Create | `components/VoiceController.tsx`                   | `useVoiceController` hook. State machine, agent lifecycle, RMS refs, keyboard shortcuts.                                                                                        |
+| Create | `__tests__/components/VoiceController.test.tsx`    | State transitions, cleanup on unmount, keyboard handlers.                                                                                                                       |
+| Modify | `components/AppHeader.tsx`                         | Accept optional `voice` prop. Render `<VoiceTrigger>` in right cluster. Hide section label while voice is active.                                                               |
+| Modify | `components/ConditionalNav.tsx`                    | Mount `useVoiceController`. Pass handle to `AppHeader`. Render `<VoiceStrip>` between header and main. Drop the `/write`-only practice-items fetch.                             |
+| Modify | `components/TranscriptClient.tsx`                  | Write `window.__ccSessionTitle` on mount; clear on unmount.                                                                                                                     |
+| Create | `types/window.d.ts`                                | Ambient declaration for `window.__ccSessionTitle`.                                                                                                                              |
+| Create | `components/VoiceCoachmark.tsx`                    | One-shot first-run cue over the trigger on mobile. Uses existing `cc:voice-trigger-coachmark:v1` localStorage key pattern.                                                      |
+| Create | `__tests__/components/VoiceCoachmark.test.tsx`     | First-run shows; subsequent runs hide.                                                                                                                                          |
+| Create | `__tests__/integration/voice-cross-route.test.tsx` | Active session survives navigation between `/write` and `/sessions/[id]`.                                                                                                       |
+| Delete | `components/VoiceWidget.tsx`                       | Replaced by trigger + strip + controller split.                                                                                                                                 |
+| Delete | `__tests__/components/VoiceWidget.test.tsx`        | Tests rewritten against the new components.                                                                                                                                     |
+
 
 ---
 
 ## Task 1: Add `VoiceRouteContext` and route-aware `buildSystemPrompt`
 
 **Files:**
+
 - Modify: `lib/voice-agent.ts`
 - Modify: `__tests__/lib/voice-agent.test.ts`
-
-- [ ] **Step 1: Write the failing tests**
+- **Step 1: Write the failing tests**
 
 Append to `__tests__/lib/voice-agent.test.ts` (inside the existing `describe('buildSystemPrompt', ...)` block):
 
@@ -90,7 +92,7 @@ Append to `__tests__/lib/voice-agent.test.ts` (inside the existing `describe('bu
   })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts
@@ -98,7 +100,7 @@ npm test -- __tests__/lib/voice-agent.test.ts
 
 Expected: FAIL on the new cases — `buildSystemPrompt` does not yet accept a third argument and unconditionally renders the items block.
 
-- [ ] **Step 3: Add the type and update `buildSystemPrompt`**
+- **Step 3: Add the type and update `buildSystemPrompt`**
 
 In `lib/voice-agent.ts`, add the type below the existing `FocusedCorrection` interface:
 
@@ -150,7 +152,7 @@ export function buildSystemPrompt(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts
@@ -158,7 +160,7 @@ npm test -- __tests__/lib/voice-agent.test.ts
 
 Expected: PASS — all new cases plus the existing four.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add lib/voice-agent.ts __tests__/lib/voice-agent.test.ts
@@ -170,9 +172,9 @@ git commit -m "feat(voice): route-aware system prompt"
 ## Task 2: Make `items` optional + accept `routeContext` in `connect()`
 
 **Files:**
-- Modify: `lib/voice-agent.ts`
 
-- [ ] **Step 1: Update the `connect()` signature**
+- Modify: `lib/voice-agent.ts`
+- **Step 1: Update the `connect()` signature**
 
 In `lib/voice-agent.ts`, change the signature and the call to `buildSystemPrompt`:
 
@@ -193,7 +195,7 @@ Inside the function, replace the existing `systemInstruction.parts[0].text` line
           },
 ```
 
-- [ ] **Step 2: Verify nothing broke**
+- **Step 2: Verify nothing broke**
 
 ```bash
 npm test -- __tests__/lib/voice-agent.test.ts
@@ -202,7 +204,7 @@ npm run lint
 
 Expected: PASS, lint clean.
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add lib/voice-agent.ts
@@ -214,11 +216,11 @@ git commit -m "feat(voice): accept routeContext in connect()"
 ## Task 3: Add new i18n keys
 
 **Files:**
+
 - Modify: `lib/i18n.ts`
+- **Step 1: Add the keys**
 
-- [ ] **Step 1: Add the keys**
-
-In `lib/i18n.ts`, locate the `voice.*` cluster in the `en` block (around line 419) and append:
+In `lib/i18n.ts`, locate the `voice.`* cluster in the `en` block (around line 419) and append:
 
 ```ts
     'voice.coachTitle': 'Voice coach',
@@ -240,7 +242,7 @@ In the `es` block (around line 832) append:
     'voice.connectedAnnouncement': 'Coach de voz conectado',
 ```
 
-- [ ] **Step 2: Run lint**
+- **Step 2: Run lint**
 
 ```bash
 npm run lint
@@ -248,7 +250,7 @@ npm run lint
 
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add lib/i18n.ts
@@ -260,12 +262,13 @@ git commit -m "i18n(voice): add global voice control keys"
 ## Task 4: CSS variable + layout margin scaffold
 
 **Files:**
+
 - Modify: `app/globals.css`
 - Modify: `app/layout.tsx`
 
 This task makes the layout READY for the strip but adds no visible UI. The variable defaults to `0px` so nothing shifts.
 
-- [ ] **Step 1: Add the variable to `:root` in `globals.css`**
+- **Step 1: Add the variable to `:root` in `globals.css`**
 
 Inside the second `@layer base { :root { ... } }` block (around line 142, where `--header-height` is defined), append:
 
@@ -275,7 +278,7 @@ Inside the second `@layer base { :root { ... } }` block (around line 142, where 
     --voice-strip-height: 0px;
 ```
 
-- [ ] **Step 2: Update `<main>`'s margin in `app/layout.tsx`**
+- **Step 2: Update `<main>`'s margin in `app/layout.tsx`**
 
 Replace the existing `style` prop on `<main>` (around line 119–122) with:
 
@@ -286,7 +289,7 @@ Replace the existing `style` prop on `<main>` (around line 119–122) with:
               }}
 ```
 
-- [ ] **Step 3: Verify no visible change**
+- **Step 3: Verify no visible change**
 
 ```bash
 npm run dev
@@ -294,7 +297,7 @@ npm run dev
 
 Open the app, confirm header and content positions are unchanged. Stop the dev server.
 
-- [ ] **Step 4: Commit**
+- **Step 4: Commit**
 
 ```bash
 git add app/globals.css app/layout.tsx
@@ -306,10 +309,10 @@ git commit -m "chore(voice): scaffold strip-height CSS variable"
 ## Task 5: VoiceTrigger component
 
 **Files:**
+
 - Create: `components/VoiceTrigger.tsx`
 - Create: `__tests__/components/VoiceTrigger.test.tsx`
-
-- [ ] **Step 1: Write the failing tests**
+- **Step 1: Write the failing tests**
 
 ```tsx
 // __tests__/components/VoiceTrigger.test.tsx
@@ -368,7 +371,7 @@ describe('VoiceTrigger', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 ```bash
 npm test -- __tests__/components/VoiceTrigger.test.tsx
@@ -376,7 +379,7 @@ npm test -- __tests__/components/VoiceTrigger.test.tsx
 
 Expected: FAIL — `Cannot find module '@/components/VoiceTrigger'`.
 
-- [ ] **Step 3: Implement `VoiceTrigger`**
+- **Step 3: Implement `VoiceTrigger`**
 
 ```tsx
 // components/VoiceTrigger.tsx
@@ -434,7 +437,7 @@ export function VoiceTrigger({ state, onStart }: Props) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/components/VoiceTrigger.test.tsx
@@ -442,7 +445,7 @@ npm test -- __tests__/components/VoiceTrigger.test.tsx
 
 Expected: PASS — all six cases.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add components/VoiceTrigger.tsx __tests__/components/VoiceTrigger.test.tsx
@@ -454,10 +457,10 @@ git commit -m "feat(voice): VoiceTrigger header button"
 ## Task 6: VoiceStrip component
 
 **Files:**
+
 - Create: `components/VoiceStrip.tsx`
 - Create: `__tests__/components/VoiceStrip.test.tsx`
-
-- [ ] **Step 1: Write the failing tests**
+- **Step 1: Write the failing tests**
 
 ```tsx
 // __tests__/components/VoiceStrip.test.tsx
@@ -543,7 +546,7 @@ describe('VoiceStrip', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 ```bash
 npm test -- __tests__/components/VoiceStrip.test.tsx
@@ -551,7 +554,7 @@ npm test -- __tests__/components/VoiceStrip.test.tsx
 
 Expected: FAIL — `Cannot find module '@/components/VoiceStrip'`.
 
-- [ ] **Step 3: Implement `VoiceStrip`**
+- **Step 3: Implement `VoiceStrip`**
 
 ```tsx
 // components/VoiceStrip.tsx
@@ -668,7 +671,7 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- **Step 4: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/components/VoiceStrip.test.tsx
@@ -676,7 +679,7 @@ npm test -- __tests__/components/VoiceStrip.test.tsx
 
 Expected: PASS — all six cases.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add components/VoiceStrip.tsx __tests__/components/VoiceStrip.test.tsx
@@ -688,11 +691,11 @@ git commit -m "feat(voice): VoiceStrip status bar"
 ## Task 7: VoiceController hook
 
 **Files:**
+
 - Create: `components/VoiceController.tsx`
 - Create: `__tests__/components/VoiceController.test.tsx`
 - Create: `types/window.d.ts`
-
-- [ ] **Step 1: Add the ambient declaration**
+- **Step 1: Add the ambient declaration**
 
 ```ts
 // types/window.d.ts
@@ -721,7 +724,7 @@ npx tsc --noEmit
 
 Expected: PASS (the file is included by the project's `tsconfig.json` `include: ["**/*.ts", "**/*.tsx"]` glob).
 
-- [ ] **Step 2: Write the failing tests**
+- **Step 2: Write the failing tests**
 
 ```tsx
 // __tests__/components/VoiceController.test.tsx
@@ -846,7 +849,7 @@ describe('useVoiceController', () => {
 })
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- **Step 3: Run tests to verify they fail**
 
 ```bash
 npm test -- __tests__/components/VoiceController.test.tsx
@@ -854,7 +857,7 @@ npm test -- __tests__/components/VoiceController.test.tsx
 
 Expected: FAIL — `Cannot find module '@/components/VoiceController'`.
 
-- [ ] **Step 4: Implement the controller hook**
+- **Step 4: Implement the controller hook**
 
 ```tsx
 // components/VoiceController.tsx
@@ -1061,7 +1064,7 @@ export function useVoiceController(): VoiceController {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- **Step 5: Run tests to verify they pass**
 
 ```bash
 npm test -- __tests__/components/VoiceController.test.tsx
@@ -1069,7 +1072,7 @@ npm test -- __tests__/components/VoiceController.test.tsx
 
 Expected: PASS — six cases.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add components/VoiceController.tsx __tests__/components/VoiceController.test.tsx types/window.d.ts
@@ -1081,10 +1084,10 @@ git commit -m "feat(voice): useVoiceController hook"
 ## Task 8: Wire the trigger into AppHeader
 
 **Files:**
+
 - Modify: `components/AppHeader.tsx`
 - Modify: `__tests__/components/AppHeader.test.tsx` (if it exists; check first)
-
-- [ ] **Step 1: Check for an existing AppHeader test**
+- **Step 1: Check for an existing AppHeader test**
 
 ```bash
 ls __tests__/components/AppHeader.test.tsx 2>/dev/null || echo "no existing test"
@@ -1092,7 +1095,7 @@ ls __tests__/components/AppHeader.test.tsx 2>/dev/null || echo "no existing test
 
 If the test exists, modify it; if not, create one in step 4.
 
-- [ ] **Step 2: Update `AppHeader` to accept and render the trigger**
+- **Step 2: Update `AppHeader` to accept and render the trigger**
 
 In `components/AppHeader.tsx`:
 
@@ -1155,7 +1158,7 @@ In the right-cluster, insert the trigger immediately before the existing theme-t
 
 Wrap the existing theme-toggle button in that new `<div className="flex items-center gap-1 -mr-1">` so the two buttons sit as siblings. Remove the `-mr-2` from the theme-toggle button (the wrapper div carries the spacing now), but keep the inner 32×32 visual circle.
 
-- [ ] **Step 3: Smoke check**
+- **Step 3: Smoke check**
 
 ```bash
 npm run build
@@ -1163,7 +1166,7 @@ npm run build
 
 Expected: PASS. The trigger doesn't render yet because `ConditionalNav` doesn't pass the `voice` prop (Task 10).
 
-- [ ] **Step 4: Add component test**
+- **Step 4: Add component test**
 
 ```tsx
 // __tests__/components/AppHeader.test.tsx
@@ -1205,7 +1208,7 @@ describe('AppHeader', () => {
 
 > Note: `nav.write` resolves to "Anotar" in `es-AR` and "Write" in `en-NZ` (verified in `lib/i18n.ts`).
 
-- [ ] **Step 5: Run tests**
+- **Step 5: Run tests**
 
 ```bash
 npm test -- __tests__/components/AppHeader.test.tsx
@@ -1213,7 +1216,7 @@ npm test -- __tests__/components/AppHeader.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add components/AppHeader.tsx __tests__/components/AppHeader.test.tsx
@@ -1225,9 +1228,9 @@ git commit -m "feat(voice): wire VoiceTrigger into AppHeader"
 ## Task 9: TranscriptClient publishes session title
 
 **Files:**
-- Modify: `components/TranscriptClient.tsx`
 
-- [ ] **Step 1: Add the effect**
+- Modify: `components/TranscriptClient.tsx`
+- **Step 1: Add the effect**
 
 In `components/TranscriptClient.tsx`, immediately after the existing `const [title, setTitle] = useState(initialDetail.session.title)` (around line 25), add:
 
@@ -1246,7 +1249,7 @@ In `components/TranscriptClient.tsx`, immediately after the existing `const [tit
 
 Verify `useEffect` is already imported at the top of the file. It is, so no import change needed.
 
-- [ ] **Step 2: Smoke check**
+- **Step 2: Smoke check**
 
 ```bash
 npm run build
@@ -1254,7 +1257,7 @@ npm run build
 
 Expected: PASS. `window.__ccSessionTitle` typechecks against `types/window.d.ts`.
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add components/TranscriptClient.tsx
@@ -1266,11 +1269,11 @@ git commit -m "feat(voice): publish session title for voice hint"
 ## Task 10: Wire ConditionalNav + delete VoiceWidget
 
 **Files:**
+
 - Modify: `components/ConditionalNav.tsx`
 - Delete: `components/VoiceWidget.tsx`
 - Delete: `__tests__/components/VoiceWidget.test.tsx`
-
-- [ ] **Step 1: Replace `ConditionalNav.tsx` contents**
+- **Step 1: Replace `ConditionalNav.tsx` contents**
 
 ```tsx
 // components/ConditionalNav.tsx
@@ -1318,13 +1321,13 @@ export function ConditionalNav() {
 }
 ```
 
-- [ ] **Step 2: Delete the obsolete files**
+- **Step 2: Delete the obsolete files**
 
 ```bash
 git rm components/VoiceWidget.tsx __tests__/components/VoiceWidget.test.tsx
 ```
 
-- [ ] **Step 3: Run the full test suite**
+- **Step 3: Run the full test suite**
 
 ```bash
 npm test
@@ -1334,13 +1337,14 @@ npm run build
 
 Expected: PASS / PASS / PASS. Watch for any test importing `@/components/VoiceWidget` — there should be none after Step 2 since the only direct importer was `ConditionalNav`.
 
-- [ ] **Step 4: Manual smoke test**
+- **Step 4: Manual smoke test**
 
 ```bash
 npm run dev
 ```
 
 Verify on `localhost:3000`:
+
 - Header on `/write` shows the mic button next to the theme toggle.
 - Tapping mic transitions trigger to `aria-busy` for a beat, then the strip slides down between header and content. Section label disappears.
 - Page content shifts down by 44px in lockstep with the strip's appearance.
@@ -1349,7 +1353,7 @@ Verify on `localhost:3000`:
 
 Stop the dev server.
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add components/ConditionalNav.tsx
@@ -1361,11 +1365,11 @@ git commit -m "feat(voice): mount controller above route, drop FAB"
 ## Task 11: First-run coachmark
 
 **Files:**
+
 - Create: `components/VoiceCoachmark.tsx`
 - Create: `__tests__/components/VoiceCoachmark.test.tsx`
 - Modify: `components/ConditionalNav.tsx` (mount the coachmark)
-
-- [ ] **Step 1: Write the failing tests**
+- **Step 1: Write the failing tests**
 
 ```tsx
 // __tests__/components/VoiceCoachmark.test.tsx
@@ -1419,7 +1423,7 @@ describe('VoiceCoachmark', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- **Step 2: Run tests to verify they fail**
 
 ```bash
 npm test -- __tests__/components/VoiceCoachmark.test.tsx
@@ -1427,7 +1431,7 @@ npm test -- __tests__/components/VoiceCoachmark.test.tsx
 
 Expected: FAIL — `Cannot find module '@/components/VoiceCoachmark'`.
 
-- [ ] **Step 3: Implement the coachmark**
+- **Step 3: Implement the coachmark**
 
 ```tsx
 // components/VoiceCoachmark.tsx
@@ -1504,7 +1508,7 @@ If missing, add to both blocks:
 
 And replace the aria-label fallback with the bare `t('common.close')`.
 
-- [ ] **Step 4: Mount the coachmark in `ConditionalNav`**
+- **Step 4: Mount the coachmark in `ConditionalNav`**
 
 In `components/ConditionalNav.tsx`, add the import:
 
@@ -1518,7 +1522,7 @@ Inside the JSX, immediately before `<NavDrawer ...>`:
       <VoiceCoachmark visible={voice.state === 'idle'} />
 ```
 
-- [ ] **Step 5: Run tests**
+- **Step 5: Run tests**
 
 ```bash
 npm test -- __tests__/components/VoiceCoachmark.test.tsx
@@ -1527,7 +1531,7 @@ npm run build
 
 Expected: PASS / PASS.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add components/VoiceCoachmark.tsx components/ConditionalNav.tsx __tests__/components/VoiceCoachmark.test.tsx lib/i18n.ts
@@ -1539,9 +1543,9 @@ git commit -m "feat(voice): first-run coachmark on mic trigger"
 ## Task 12: Cross-route persistence integration test
 
 **Files:**
-- Create: `__tests__/integration/voice-cross-route.test.tsx`
 
-- [ ] **Step 1: Write the integration test**
+- Create: `__tests__/integration/voice-cross-route.test.tsx`
+- **Step 1: Write the integration test**
 
 ```tsx
 // __tests__/integration/voice-cross-route.test.tsx
@@ -1638,7 +1642,7 @@ describe('voice session persistence across routes', () => {
 })
 ```
 
-- [ ] **Step 2: Run the integration test**
+- **Step 2: Run the integration test**
 
 ```bash
 npm test -- __tests__/integration/voice-cross-route.test.tsx
@@ -1646,7 +1650,7 @@ npm test -- __tests__/integration/voice-cross-route.test.tsx
 
 Expected: PASS — both cases.
 
-- [ ] **Step 3: Run the full test suite once more**
+- **Step 3: Run the full test suite once more**
 
 ```bash
 npm test
@@ -1656,7 +1660,7 @@ npm run build
 
 Expected: PASS / PASS / PASS.
 
-- [ ] **Step 4: Commit**
+- **Step 4: Commit**
 
 ```bash
 git add __tests__/integration/voice-cross-route.test.tsx
@@ -1669,22 +1673,16 @@ git commit -m "test(voice): integration cover cross-route persistence"
 
 This task is a checklist, not code. Run it on the dev server before declaring the feature shipped.
 
-- [ ] **Light theme + dark theme** — toggle theme on `/write`. Mic icon stays visible and accent-tinted. Strip surface keeps the 8% accent mix in both themes.
-
-- [ ] **Mobile narrow (320×568)** — verify:
+- **Light theme + dark theme** — toggle theme on `/write`. Mic icon stays visible and accent-tinted. Strip surface keeps the 8% accent mix in both themes.
+- **Mobile narrow (320×568)** — verify:
   - Header doesn't overflow with menu + section label + mic + theme toggle.
   - Coachmark renders on first authenticated load and dismisses cleanly.
   - Strip contents fit (dot, title, pill, spacer, mute, end). Title may truncate; pill should not.
-
-- [ ] **Reduced motion** — toggle the OS setting (or DevTools emulation). Strip mounts/unmounts instantly. Audio-flow dot stops scaling but the colour still changes.
-
-- [ ] **Mic permission denied** — block mic permission in DevTools, click the trigger. State returns to idle, toast shows `voice.micPermission`.
-
-- [ ] **Cross-route smoke** — start session on `/`. Navigate to `/write`, then to `/sessions/<id>` (any session). Session stays alive on each transition. End on `/sessions/<id>`. Strip retracts, content shifts back up by 44px.
-
-- [ ] **Sign-out cleanup** — start a session, sign out via the nav drawer. WebSocket closes (check the Network tab); no errors in the console.
-
-- [ ] **iOS PWA standalone** — install to home screen. Verify safe-area insets respected: status-bar tint matches header-strip surface; bottom nav clearance correct.
+- **Reduced motion** — toggle the OS setting (or DevTools emulation). Strip mounts/unmounts instantly. Audio-flow dot stops scaling but the colour still changes.
+- **Mic permission denied** — block mic permission in DevTools, click the trigger. State returns to idle, toast shows `voice.micPermission`.
+- **Cross-route smoke** — start session on `/`. Navigate to `/write`, then to `/sessions/<id>` (any session). Session stays alive on each transition. End on `/sessions/<id>`. Strip retracts, content shifts back up by 44px.
+- **Sign-out cleanup** — start a session, sign out via the nav drawer. WebSocket closes (check the Network tab); no errors in the console.
+- **iOS PWA standalone** — install to home screen. Verify safe-area insets respected: status-bar tint matches header-strip surface; bottom nav clearance correct.
 
 If anything fails, file the issue against this plan and fix before merging.
 
@@ -1695,3 +1693,4 @@ If anything fails, file the issue against this plan and fix before merging.
 - Each spec section has a corresponding task: route hint (1, 2), CSS layout (4), trigger (5), strip (6), controller (7), header wiring (8), session-title bridge (9), main wiring (10), discoverability (11), tests (1, 5, 6, 7, 8, 11, 12).
 - All types and method names are consistent across tasks (`VoiceTriggerState`, `VoiceController`, `VoiceRouteContext`, `useVoiceController`, etc.).
 - Manual QA in Task 13 covers everything that can't be unit-tested (visual fidelity, OS-level reduced motion, iOS PWA insets).
+
