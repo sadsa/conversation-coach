@@ -103,6 +103,7 @@ export function buildSystemPrompt(
     if (!pageContext) return ''
 
     if (pageContext.kind === 'write') {
+      // segmentText is not included in the prompt — the correction + explanation is sufficient context.
       const lines = pageContext.items
         .map((item, i) => {
           const corrPart = item.correction ? ` → "${item.correction}"` : ''
@@ -121,13 +122,15 @@ export function buildSystemPrompt(
       const excerptLines = pageContext.excerpts
         .map(e => `[${e.speaker}, position ${e.position}]: ${e.text}${e.isAnnotated ? '  ← annotated' : ''}`)
         .join('\n')
-      const annotationLines = pageContext.annotations
-        .map((a, i) => {
-          const corrPart = a.correction ? ` → "${a.correction}"` : ''
-          return `${i + 1}. On the ${a.type} at position ${a.segmentPosition}: "${a.original}"${corrPart} — ${a.explanation}`
-        })
-        .join('\n')
-      return `\n\nThe user is reviewing this conversation excerpt:\n${excerptLines}\n\nAnnotations on this excerpt:\n${annotationLines}`
+      const annotationLines = pageContext.annotations.length > 0
+        ? `\n\nAnnotations on this excerpt:\n${pageContext.annotations
+            .map((a, i) => {
+              const corrPart = a.correction ? ` → "${a.correction}"` : ''
+              return `${i + 1}. On the ${a.type} at position ${a.segmentPosition}: "${a.original}"${corrPart} — ${a.explanation}`
+            })
+            .join('\n')}`
+        : ''
+      return `\n\nThe user is reviewing this conversation excerpt:\n${excerptLines}${annotationLines}`
     }
 
     return ''

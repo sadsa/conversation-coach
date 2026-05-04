@@ -135,6 +135,19 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toContain('Annotations on this excerpt:')
   })
 
+  it('omits the annotations header when session has excerpts but no annotations', () => {
+    const noAnnCtx: VoicePageContext = {
+      kind: 'session',
+      sessionTitle: 'Solo session',
+      excerpts: [{ position: 3, speaker: 'user', text: 'Hola.', isAnnotated: false }],
+      annotations: [],
+    }
+    const prompt = buildSystemPrompt('en-NZ', { kind: 'other' }, noAnnCtx)
+    expect(prompt).toContain('The user is reviewing this conversation excerpt:')
+    expect(prompt).toContain('[user, position 3]: Hola.')
+    expect(prompt).not.toContain('Annotations on this excerpt:')
+  })
+
   // --- opening guidance ---
 
   it('uses "greet briefly" guidance when pageContext is absent', () => {
