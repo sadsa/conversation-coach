@@ -1,35 +1,11 @@
 // components/VoiceController.tsx
-//
-// Lives above the route inside ConditionalNav. Owns the WebSocket / mic /
-// AudioContext via VoiceAgent so the session survives in-app navigation.
-//
-// State machine: idle → connecting → active ↔ muted → idle.
-// Cleanup: a single useEffect cleanup disconnects the agent if
-// ConditionalNav unmounts (sign-out, entering an auth-public route).
-//
-// Page-context hint is computed at start() time, not on every render. Once
-// connected, the agent's mental model of "where you are" doesn't whiplash
-// when the user navigates mid-session.
-//
-// Lifecycle hardening:
-// - `isMountedRef` guards setState/setToast inside async callbacks and
-//   forces a `disconnect()` on any agent that resolves AFTER the consumer
-//   unmounted (otherwise the WebSocket / mic / AudioContext leak — the
-//   first unmount cleanup ran when `agentRef.current` was still null).
-// - `startingRef` blocks a synchronous double-tap on the trigger from
-//   issuing two `connect()` calls before the first `setState('connecting')`
-//   has flushed.
-// - `tRef` snapshots the latest translator so a toast fired after a UI
-//   language switch uses the new copy, not the closure-captured old one.
-// - `endRef`/`toggleMuteRef` keep the global keydown listener stable across
-//   active↔muted toggles — it mounts once when entering the session and
-//   tears down once on the way out.
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { connect } from '@/lib/voice-agent'
 import type { VoiceAgent, VoiceAgentState, VoiceRouteContext } from '@/lib/voice-agent'
+import type { VoicePageContext } from '@/lib/voice-context'
 
 const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
@@ -40,8 +16,6 @@ export type VoiceControllerState = 'idle' | 'connecting' | 'active' | 'muted'
 
 export interface VoiceToast {
   message: string
-  /** When `true`, the toast surfaces a "Try again" action that re-runs `start()`.
-   *  Set on transport / connection failures where retry is the obvious next move. */
   retryable?: boolean
 }
 
@@ -55,12 +29,11 @@ export interface VoiceController {
   end: () => void
 }
 
-function deriveRouteContext(pathname: string | null): VoiceRouteContext {
+function deriveRouteContext(pathname: string | null, voiceContext?: VoicePageContext): VoiceRouteContext {
   if (!pathname) return { kind: 'other' }
   if (pathname.startsWith('/write')) return { kind: 'write' }
-  if (pathname.startsWith('/sessions/')) {
-    const sessionTitle = typeof window !== 'undefined' ? window.__ccSessionTitle : undefined
-    if (sessionTitle) return { kind: 'session', sessionTitle }
+  if (pathname.startsWith('/sessions/') && voiceContext?.kind === 'session') {
+    return { kind: 'session', sessionTitle: voiceContext.sessionTitle }
   }
   return { kind: 'other' }
 }
@@ -81,22 +54,14 @@ export function useVoiceController(): VoiceController {
   const isMountedRef = useRef(true)
   const startingRef = useRef(false)
 
-  // Snapshot the latest `t` so closures captured by `connect()`'s callbacks
-  // pick up UI-language changes that happen after the session started.
   const tRef = useRef(t)
   useEffect(() => { tRef.current = t }, [t])
 
-  // Mutable retryable flag — passing it as a third positional arg keeps the
-  // call sites readable: `showToast(msg)` for benign info, `showToast(msg, true)`
-  // for failures the user can recover from.
   const showToast = useCallback((message: string, retryable: boolean = false) => {
     if (!isMountedRef.current) return
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
     setToast({ message, retryable })
     setToastKey(k => k + 1)
-    // Retryable toasts get a longer dwell (8s vs 4s) — the user needs time
-    // to read the message AND decide whether to tap "Try again". Benign
-    // info toasts auto-dismiss faster so they don't loiter.
     toastTimerRef.current = window.setTimeout(() => {
       if (!isMountedRef.current) return
       setToast(null)
@@ -109,10 +74,13 @@ export function useVoiceController(): VoiceController {
     startingRef.current = true
     setState('connecting')
 
+    // Read page context once at connect time — pinned for the session lifetime.
+    const pageContext = typeof window !== 'undefined' ? window.__ccVoiceContext : undefined
+    const routeContext = deriveRouteContext(pathname, pageContext)
+
     try {
       const agent = await connect(
         targetLanguage,
-        [],
         {
           onStateChange: (s: VoiceAgentState) => {
             if (!isMountedRef.current) return
@@ -127,9 +95,6 @@ export function useVoiceController(): VoiceController {
             setState('idle')
             agentRef.current = null
             if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('denied')) {
-              // Permission toasts are NOT retryable — the user has to fix
-              // browser settings, not just tap again. Leaving "Try again"
-              // off prevents a loop of futile retries.
               showToast(tRef.current('voice.micPermission'))
             } else {
               showToast(tRef.current('voice.sessionEnded'), true)
@@ -138,11 +103,9 @@ export function useVoiceController(): VoiceController {
           onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
           onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
         },
-        deriveRouteContext(pathname)
+        routeContext,
+        pageContext
       )
-      // Consumer may have unmounted while `connect()` was in flight. The
-      // unmount cleanup ran with `agentRef.current === null`, so without
-      // this guard the agent would leak — disconnect it ourselves and bail.
       if (!isMountedRef.current) {
         agent.disconnect()
         return
@@ -177,16 +140,11 @@ export function useVoiceController(): VoiceController {
     }
   }, [state])
 
-  // Keep refs to the latest callbacks so the keydown listener can stay
-  // mounted across active↔muted toggles instead of re-binding each flip.
   const endRef = useRef(end)
   const toggleMuteRef = useRef(toggleMute)
   useEffect(() => { endRef.current = end }, [end])
   useEffect(() => { toggleMuteRef.current = toggleMute }, [toggleMute])
 
-  // Keyboard shortcuts — mounted once when entering the active session,
-  // torn down once when leaving. Inputs / textareas / contenteditable are
-  // ignored so we don't fight forms.
   useEffect(() => {
     if (state !== 'active' && state !== 'muted') return
     function onKey(e: KeyboardEvent) {
@@ -207,9 +165,6 @@ export function useVoiceController(): VoiceController {
     return () => window.removeEventListener('keydown', onKey)
   }, [state])
 
-  // Audio-flow indicator drive loop. Reads RMS refs, decays them, writes
-  // transform + data-speaker straight to the DOM so we don't trigger React
-  // re-renders at frame rate.
   useEffect(() => {
     if (state !== 'active' && state !== 'muted') {
       userRmsRef.current = 0
@@ -251,16 +206,6 @@ export function useVoiceController(): VoiceController {
     }
   }, [state])
 
-  // Disconnect the agent and clear any pending toast on unmount so a
-  // ConditionalNav unmount (sign-out, auth-public route) doesn't leak the
-  // WebSocket or fire setState on an unmounted component. The
-  // `isMountedRef` flip also lets a still-pending `connect()` promise's
-  // resolution disconnect the agent itself when it finally lands.
-  //
-  // Reset `isMountedRef` to `true` on every effect run so React 18 Strict
-  // Mode's mount → cleanup → remount cycle doesn't permanently leave the
-  // ref `false` — without this, the post-await guard inside `start()`
-  // would fire `agent.disconnect()` on every fresh session in dev.
   useEffect(() => {
     isMountedRef.current = true
     return () => {

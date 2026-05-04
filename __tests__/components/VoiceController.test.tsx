@@ -1,18 +1,16 @@
+// __tests__/components/VoiceController.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { useVoiceController } from '@/components/VoiceController'
+import type { VoicePageContext } from '@/lib/voice-context'
 
 vi.mock('@/lib/voice-agent', () => ({
   connect: vi.fn(),
   buildSystemPrompt: vi.fn(() => 'mock prompt'),
 }))
 
-// Hoisted mutable nav state — `vi.mock` is lifted to the top of the module,
-// so we can't close over a regular `let` here. `vi.hoisted` gives us a
-// shared object that's safe to read from inside the factory and mutate
-// from inside individual tests.
 const navState = vi.hoisted(() => ({ pathname: '/write' as string }))
 
 vi.mock('next/navigation', () => ({
@@ -39,13 +37,9 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('useVoiceController', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    // Belt-and-braces: if a previous test left fake timers installed (e.g.
-    // a hung test that didn't reach its finally), the next test's waitFor()
-    // would never tick. Always restore real timers at the start of every
-    // test so we can't get stuck.
     vi.useRealTimers()
     navState.pathname = '/write'
-    delete (window as unknown as { __ccSessionTitle?: string }).__ccSessionTitle
+    delete (window as unknown as { __ccVoiceContext?: VoicePageContext }).__ccVoiceContext
   })
 
   it('starts in idle state', () => {
@@ -54,8 +48,8 @@ describe('useVoiceController', () => {
   })
 
   it('transitions idle → connecting → active', async () => {
-    let cb: Parameters<typeof mockConnect>[2]
-    mockConnect.mockImplementation((_l, _i, callbacks) => {
+    let cb: Parameters<typeof mockConnect>[1]
+    mockConnect.mockImplementation((_l, callbacks) => {
       cb = callbacks
       return Promise.resolve({ setMuted: vi.fn(), disconnect: vi.fn() })
     })
@@ -77,15 +71,21 @@ describe('useVoiceController', () => {
 
     expect(mockConnect).toHaveBeenCalledWith(
       'es-AR',
-      [],
       expect.any(Object),
-      { kind: 'write' }
+      { kind: 'write' },
+      undefined
     )
   })
 
-  it('passes routeContext "session" with sessionTitle when on /sessions/[id] with window.__ccSessionTitle', async () => {
+  it('passes routeContext "session" and pageContext when on /sessions/[id] with __ccVoiceContext of kind session', async () => {
     navState.pathname = '/sessions/abc-123'
-    ;(window as unknown as { __ccSessionTitle?: string }).__ccSessionTitle = 'Café con Mati'
+    const ctx: VoicePageContext = {
+      kind: 'session',
+      sessionTitle: 'Café con Mati',
+      excerpts: [],
+      annotations: [],
+    }
+    ;(window as unknown as { __ccVoiceContext?: VoicePageContext }).__ccVoiceContext = ctx
     mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect: vi.fn() })
 
     const { result } = renderHook(() => useVoiceController(), { wrapper })
@@ -94,16 +94,65 @@ describe('useVoiceController', () => {
 
     expect(mockConnect).toHaveBeenCalledWith(
       'es-AR',
-      [],
       expect.any(Object),
-      { kind: 'session', sessionTitle: 'Café con Mati' }
+      { kind: 'session', sessionTitle: 'Café con Mati' },
+      ctx
     )
+  })
+
+  it('passes write pageContext when on /write with __ccVoiceContext of kind write', async () => {
+    navState.pathname = '/write'
+    const ctx: VoicePageContext = {
+      kind: 'write',
+      items: [{ original: 'fui', correction: 'anduve', explanation: 'reason', segmentText: null, sessionTitle: null }],
+    }
+    ;(window as unknown as { __ccVoiceContext?: VoicePageContext }).__ccVoiceContext = ctx
+    mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect: vi.fn() })
+
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+    await waitFor(() => expect(mockConnect).toHaveBeenCalled())
+
+    expect(mockConnect).toHaveBeenCalledWith(
+      'es-AR',
+      expect.any(Object),
+      { kind: 'write' },
+      ctx
+    )
+  })
+
+  it('passes undefined pageContext when __ccVoiceContext is not set', async () => {
+    navState.pathname = '/'
+    mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect: vi.fn() })
+
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+    await waitFor(() => expect(mockConnect).toHaveBeenCalled())
+
+    const call = mockConnect.mock.calls[0]
+    expect(call[3]).toBeUndefined()
+  })
+
+  it('does not update the agent after connect even if __ccVoiceContext changes (pin-at-connect)', async () => {
+    const ctx: VoicePageContext = { kind: 'write', items: [{ original: 'x', correction: 'y', explanation: 'z', segmentText: null, sessionTitle: null }] }
+    ;(window as unknown as { __ccVoiceContext?: VoicePageContext }).__ccVoiceContext = ctx
+    mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect: vi.fn() })
+
+    const { result } = renderHook(() => useVoiceController(), { wrapper })
+    await act(async () => { result.current.start() })
+    await waitFor(() => expect(mockConnect).toHaveBeenCalledOnce())
+
+    // Mutate the global after connect.
+    delete (window as unknown as { __ccVoiceContext?: VoicePageContext }).__ccVoiceContext
+
+    // A re-render does not trigger another connect().
+    expect(mockConnect).toHaveBeenCalledOnce()
   })
 
   it('disconnects on unmount', async () => {
     const disconnect = vi.fn()
-    let cb: Parameters<typeof mockConnect>[2]
-    mockConnect.mockImplementation((_l, _i, callbacks) => {
+    let cb: Parameters<typeof mockConnect>[1]
+    mockConnect.mockImplementation((_l, callbacks) => {
       cb = callbacks
       return Promise.resolve({ setMuted: vi.fn(), disconnect })
     })
@@ -124,26 +173,21 @@ describe('useVoiceController', () => {
     const { result, unmount } = renderHook(() => useVoiceController(), { wrapper })
     await act(async () => { result.current.start() })
     unmount()
-    // Resolve the promise after unmount — the in-flight start() should
-    // notice `isMountedRef` is false and disconnect the freshly-arrived
-    // agent itself rather than letting it leak.
     await act(async () => { resolveConnect({ setMuted: vi.fn(), disconnect }) })
     await waitFor(() => expect(disconnect).toHaveBeenCalledOnce())
   })
 
-  it('returns to idle when permission is denied (toast NOT retryable — user must fix browser settings)', async () => {
+  it('returns to idle when permission is denied (toast NOT retryable)', async () => {
     mockConnect.mockRejectedValue(new Error('Permission denied by user'))
     const { result } = renderHook(() => useVoiceController(), { wrapper })
     await act(async () => { result.current.start() })
 
     await waitFor(() => expect(result.current.state).toBe('idle'))
     expect(result.current.toast?.message).toMatch(/microphone/i)
-    // Permission failures aren't recoverable by re-tapping; surfacing a
-    // "Try again" would just loop the user through the same denial.
     expect(result.current.toast?.retryable).toBe(false)
   })
 
-  it('marks generic transport errors as retryable so the toast can offer "Try again"', async () => {
+  it('marks generic transport errors as retryable', async () => {
     mockConnect.mockRejectedValue(new Error('Network failure'))
     const { result } = renderHook(() => useVoiceController(), { wrapper })
     await act(async () => { result.current.start() })
@@ -172,13 +216,7 @@ describe('useVoiceController', () => {
     expect(result.current.toastKey).toBeGreaterThan(initialKey)
   })
 
-
   it('survives React Strict Mode mount/unmount/remount cycle', async () => {
-    // React 18 Strict Mode in dev double-invokes the effect lifecycle:
-    // mount → cleanup → remount. The cleanup flips `isMountedRef.current`
-    // to false; the effect body must reset it to true on remount or the
-    // controller permanently thinks it's unmounted and disconnects every
-    // freshly-resolved agent before the WS handshake completes.
     const disconnect = vi.fn()
     mockConnect.mockResolvedValue({ setMuted: vi.fn(), disconnect })
 
@@ -199,8 +237,8 @@ describe('useVoiceController', () => {
 
   it('mutes and unmutes', async () => {
     const setMuted = vi.fn()
-    let cb: Parameters<typeof mockConnect>[2]
-    mockConnect.mockImplementation((_l, _i, callbacks) => {
+    let cb: Parameters<typeof mockConnect>[1]
+    mockConnect.mockImplementation((_l, callbacks) => {
       cb = callbacks
       return Promise.resolve({ setMuted, disconnect: vi.fn() })
     })
