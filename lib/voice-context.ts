@@ -63,7 +63,7 @@ export function buildSessionContext(
 
   // Expand each annotated position ±1, bounded to segments that exist.
   const expandedPositions = new Set<number>()
-  for (const pos of annotatedPositions) {
+  for (const pos of Array.from(annotatedPositions)) {
     if (segByPos.has(pos - 1)) expandedPositions.add(pos - 1)
     expandedPositions.add(pos)
     if (segByPos.has(pos + 1)) expandedPositions.add(pos + 1)
@@ -72,7 +72,7 @@ export function buildSessionContext(
   const userLabels = session.user_speaker_labels
 
   function makeExcerpts(positions: Set<number>, annotated: Set<number>): SessionExcerpt[] {
-    return [...positions]
+    return Array.from(positions)
       .sort((a, b) => a - b)
       .map(pos => {
         const s = segByPos.get(pos)!
@@ -122,7 +122,7 @@ export function buildSessionContext(
     // Recompute expanded positions from remaining annotations.
     const remainingPositions = new Set(kept.map(a => a.segmentPosition))
     const reExpanded = new Set<number>()
-    for (const pos of remainingPositions) {
+    for (const pos of Array.from(remainingPositions)) {
       if (segByPos.has(pos - 1)) reExpanded.add(pos - 1)
       reExpanded.add(pos)
       if (segByPos.has(pos + 1)) reExpanded.add(pos + 1)
