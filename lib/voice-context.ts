@@ -1,4 +1,5 @@
 // lib/voice-context.ts
+import { log } from '@/lib/logger'
 import type { TranscriptSegment, Annotation, PracticeItem } from '@/lib/types'
 
 export interface SessionExcerpt {
@@ -44,11 +45,105 @@ export type VoicePageContext =
 const CAP_CHARS = 8000
 
 export function buildSessionContext(
-  _session: { title: string; user_speaker_labels: string[] | null },
-  _segments: TranscriptSegment[],
-  _annotations: Annotation[]
+  session: { title: string; user_speaker_labels: string[] | null },
+  segments: TranscriptSegment[],
+  annotations: Annotation[]
 ): VoicePageContext | null {
-  throw new Error('not implemented')
+  if (segments.length === 0) return null
+
+  const segById = new Map(segments.map(s => [s.id, s]))
+  const segByPos = new Map(segments.map(s => [s.position, s]))
+
+  // Resolve which positions have at least one annotation.
+  const annotatedPositions = new Set<number>()
+  for (const a of annotations) {
+    const s = segById.get(a.segment_id)
+    if (s) annotatedPositions.add(s.position)
+  }
+
+  // Expand each annotated position ±1, bounded to segments that exist.
+  const expandedPositions = new Set<number>()
+  for (const pos of annotatedPositions) {
+    if (segByPos.has(pos - 1)) expandedPositions.add(pos - 1)
+    expandedPositions.add(pos)
+    if (segByPos.has(pos + 1)) expandedPositions.add(pos + 1)
+  }
+
+  const userLabels = session.user_speaker_labels
+
+  function makeExcerpts(positions: Set<number>): SessionExcerpt[] {
+    return [...positions]
+      .sort((a, b) => a - b)
+      .map(pos => {
+        const s = segByPos.get(pos)!
+        return {
+          position: pos,
+          speaker: userLabels === null || userLabels.includes(s.speaker) ? 'user' : 'other',
+          text: s.text,
+          isAnnotated: annotatedPositions.has(pos),
+        }
+      })
+  }
+
+  // Build the full annotation list sorted by segment position.
+  const allAnnotations: SessionAnnotation[] = annotations
+    .map(a => {
+      const s = segById.get(a.segment_id)
+      return {
+        segmentPosition: s?.position ?? 0,
+        type: a.type as 'grammar' | 'naturalness',
+        original: a.original,
+        correction: a.correction,
+        explanation: a.explanation,
+      }
+    })
+    .sort((a, b) => a.segmentPosition - b.segmentPosition)
+
+  // Apply the 8000-char cap: drop annotations from the end until under cap.
+  function renderBlock(excerpts: SessionExcerpt[], anns: SessionAnnotation[]): string {
+    if (excerpts.length === 0) return `The user is reviewing the conversation titled '${session.title}'.`
+    const excerptLines = excerpts
+      .map(e => `[${e.speaker}, position ${e.position}]: ${e.text}${e.isAnnotated ? '  ← annotated' : ''}`)
+      .join('\n')
+    const annotationLines = anns
+      .map((a, i) => {
+        const corrPart = a.correction ? ` → "${a.correction}"` : ''
+        return `${i + 1}. On the ${a.type} at position ${a.segmentPosition}: "${a.original}"${corrPart} — ${a.explanation}`
+      })
+      .join('\n')
+    return `The user is reviewing this conversation excerpt:\n${excerptLines}\n\nAnnotations on this excerpt:\n${annotationLines}`
+  }
+
+  let kept = allAnnotations
+  let keptExcerpts = makeExcerpts(expandedPositions)
+
+  while (kept.length > 0 && renderBlock(keptExcerpts, kept).length > CAP_CHARS) {
+    kept = kept.slice(0, -1)
+    // Recompute expanded positions from remaining annotations.
+    const remainingPositions = new Set(kept.map(a => a.segmentPosition))
+    const reExpanded = new Set<number>()
+    for (const pos of remainingPositions) {
+      if (segByPos.has(pos - 1)) reExpanded.add(pos - 1)
+      reExpanded.add(pos)
+      if (segByPos.has(pos + 1)) reExpanded.add(pos + 1)
+    }
+    keptExcerpts = makeExcerpts(reExpanded)
+  }
+
+  if (kept.length < allAnnotations.length) {
+    log.warn('voice-context cap hit', {
+      kind: 'session',
+      originalCount: allAnnotations.length,
+      keptCount: kept.length,
+    })
+  }
+
+  return {
+    kind: 'session',
+    sessionTitle: session.title,
+    excerpts: keptExcerpts,
+    annotations: kept,
+  }
 }
 
 export function buildWriteContext(
