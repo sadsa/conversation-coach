@@ -27,7 +27,7 @@
 import type { JSX } from 'react'
 
 /** How much surrounding sentence to show on either side of the error span. */
-const SNIPPET_CONTEXT = 30
+const SNIPPET_CONTEXT = 15
 
 interface Props {
   segmentText: string

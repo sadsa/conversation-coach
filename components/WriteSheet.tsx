@@ -3,11 +3,10 @@
 // Docked review panel for items in the Write surface. After the design
 // alignment pass this sheet is the structural twin of `AnnotationSheet`:
 //
-//   • Header: small status dot + h2 title + position pill (mirrors the
-//     transcript sheet — title is the lead, position is the eyebrow).
-//   • Body: shared `<NavHint>` chip on first open, then the correction,
-//     explanation, sub-category chip, importance pill, and source-sentence
-//     context snippet (the sheet's surface-specific bit).
+//   • Header: position pill + prev/next/close buttons.
+//   • Body: shared `<NavHint>` chip on first open, then session source link,
+//     correction-in-context, explanation, and importance pill (expandable
+//     note when present).
 //   • Footer: full-width primary `<button>` styled via `buttonStyles()` for
 //     pixel-parity with AnnotationCard, plus a quiet "more actions" overflow
 //     menu carrying the destructive Delete (kept undoable for 5 seconds via
@@ -152,59 +151,6 @@ function OverflowMenu({ isOpen, onOpenChange, onDelete, busy }: OverflowMenuProp
   )
 }
 
-interface SheetHeaderLeadProps {
-  item: PracticeItem
-  isWritten: boolean
-  position: { current: number; total: number } | null
-  t: (key: string, replacements?: Record<string, string | number>) => string
-}
-
-/**
- * Header eyebrow for the WriteSheet. Two elements, no decoration:
- *
- *   • Title — bare session name, linked back to the transcript. No
- *     "From" prefix, no surrounding quotes; the link semantics and the
- *     `/sessions/...` href carry the meaning. Falls back to the static
- *     "To write" / "Written" caption when the source session is gone.
- *   • Position pill — nav feedback, animates on prev/next.
- *
- * The to-write/written state is intentionally NOT signalled here. It's
- * already said three times: the surface the user came from (Write list
- * vs Written archive), the primary footer action ("Mark as written" vs
- * "Move back to Write list"), and the muted styling on Written rows.
- * A fourth, color-only dot was decoration without signal.
- */
-function SheetHeaderLead({ item, isWritten, position, t }: SheetHeaderLeadProps) {
-  const hasSession = item.session_title !== null && item.session_title.trim() !== ''
-
-  return (
-    <>
-      {hasSession ? (
-        <h2 className="font-semibold text-text-primary truncate min-w-0">
-          <Link
-            href={`/sessions/${item.session_id}`}
-            className="hover:underline focus-visible:underline"
-            data-testid="sheet-source-link"
-          >
-            {item.session_title}
-          </Link>
-        </h2>
-      ) : (
-        <h2 className="font-semibold text-text-primary truncate">
-          {isWritten ? t('writeSheet.statusWritten') : t('writeSheet.statusToWrite')}
-        </h2>
-      )}
-      {position && (
-        <span
-          key={position.current}
-          className="text-xs text-text-tertiary tabular-nums motion-safe:animate-[fadein_180ms_ease-out_both]"
-        >
-          {t('sheet.position', { n: position.current, total: position.total })}
-        </span>
-      )}
-    </>
-  )
-}
 
 export function WriteSheet({
   item,
@@ -220,8 +166,10 @@ export function WriteSheet({
 }: Props) {
   const { t } = useTranslation()
   const [busyAction, setBusyAction] = useState<'toggle' | 'delete' | null>(null)
-  const [importanceExpanded, setImportanceExpanded] = useState(false)
   const [overflowOpen, setOverflowOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [lastFailedAction, setLastFailedAction] = useState<'toggle' | 'delete' | null>(null)
+  const [noteExpanded, setNoteExpanded] = useState(false)
 
   const isOpen = item !== null
 
@@ -230,28 +178,47 @@ export function WriteSheet({
   // an item swap — it would dangle over an unrelated card.
   useEffect(() => {
     if (!isOpen) return
-    setImportanceExpanded(false)
     setBusyAction(null)
     setOverflowOpen(false)
+    setErrorMessage(null)
+    setLastFailedAction(null)
+    setNoteExpanded(false)
   }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
 
   async function handleToggle() {
     if (!item || busyAction) return
+    setErrorMessage(null)
+    setLastFailedAction(null)
     setBusyAction('toggle')
-    await onToggleWritten(item)
+    const ok = await onToggleWritten(item)
     // Parent re-renders us with either the next item (auto-advance) or
     // null (sheet closes). Either way our local `item.id` change resets
     // busyAction via the effect above.
+    if (!ok) {
+      setErrorMessage(t('writeList.markWrittenError'))
+      setLastFailedAction('toggle')
+    }
     setBusyAction(null)
   }
 
   async function handleDelete() {
     if (!item || busyAction) return
+    setErrorMessage(null)
+    setLastFailedAction(null)
     setBusyAction('delete')
-    await onDelete(item)
+    const ok = await onDelete(item)
+    if (!ok) {
+      setErrorMessage(t('writeList.deleteError'))
+      setLastFailedAction('delete')
+    }
     setBusyAction(null)
+  }
+
+  function handleRetry() {
+    if (lastFailedAction === 'toggle') void handleToggle()
+    else if (lastFailedAction === 'delete') void handleDelete()
   }
 
   const primaryLabelKey = isWritten ? 'writeSheet.moveBack' : 'writeSheet.markWritten'
@@ -298,12 +265,14 @@ export function WriteSheet({
       mobileMaxHeight="75vh"
       contentKey={item.id}
       headerLead={
-        <SheetHeaderLead
-          item={item}
-          isWritten={isWritten}
-          position={position}
-          t={t}
-        />
+        position && (
+          <span
+            key={position.current}
+            className="text-xs text-text-tertiary tabular-nums motion-safe:animate-[fadein_180ms_ease-out_both]"
+          >
+            {t('sheet.position', { n: position.current, total: position.total })}
+          </span>
+        )
       }
       footer={
         <div className="flex items-center gap-2">
@@ -334,22 +303,17 @@ export function WriteSheet({
     >
       <NavHint />
       <div className="space-y-6">
-        {/* Hero: the source sentence with the correction inserted inline.
-            We wrap it in a blockquote-style left rule so it reads as "the
-            line being discussed" — without that framing the sentence and
-            the explanation paragraph below blur into one block of muted
-            prose with a bright correction word floating in the middle. The
-            frame stays surface-specific (sheet only, not list rows) so the
-            list stays compact. */}
-        <div
-          // `[&>p]:text-text-primary` brightens the sentence body inside
-          // the quoted scope so the framed block reads as the focal point;
-          // outside this scope the explanation in text-text-secondary then
-          // naturally steps down to commentary. Targeting the inner <p>
-          // (rather than threading another prop through CorrectionInContext)
-          // keeps the component oblivious to its container's framing.
-          className="border-l-2 border-border pl-4 py-0.5 [&>p]:text-text-primary"
-        >
+        {/* Session title + correction grouped tightly: WHERE → WHAT */}
+        <div className="space-y-2">
+          {item.session_title && item.session_title.trim() !== '' && (
+            <Link
+              href={`/sessions/${item.session_id}`}
+              data-testid="sheet-source-link"
+              className="block text-xs text-text-tertiary hover:text-text-secondary transition-colors truncate"
+            >
+              {item.session_title}
+            </Link>
+          )}
           {item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
             <CorrectionInContext
               segmentText={item.segment_text}
@@ -373,31 +337,40 @@ export function WriteSheet({
           {item.explanation}
         </p>
 
-        {/* Metadata row. Sub-category is intentionally a quiet eyebrow
-            label (uppercase, tertiary text) — it's classification context,
-            not an action. The importance pill is the only chip-tier
-            element here so it owns the call-out and the user's eye lands
-            on the meaningful signal. */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span
-            data-testid="sheet-sub-category"
-            className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary"
-          >
-            {t(`subCat.${item.sub_category}`)}
-          </span>
+        <div className="space-y-2">
           <ImportancePill
             score={item.importance_score}
             note={item.importance_note}
-            expanded={importanceExpanded}
-            onToggle={() => setImportanceExpanded(e => !e)}
+            expanded={noteExpanded}
+            onToggle={() => setNoteExpanded(v => !v)}
             toggleAriaKey="writeList.importanceToggleAria"
           />
+          {noteExpanded && item.importance_note && (
+            <p className="text-text-secondary text-sm leading-relaxed pl-1">
+              {item.importance_note}
+            </p>
+          )}
         </div>
+      </div>
 
-        {importanceExpanded && item.importance_note && (
-          <p className="text-text-secondary text-sm leading-relaxed -mt-3">
-            {item.importance_note}
-          </p>
+      <div role="status" aria-live="polite" className="mt-4 min-h-[1rem]">
+        {errorMessage && (
+          <div className="rounded-lg border border-status-error/30 bg-error-container px-3 py-2 space-y-1.5">
+            <p className="text-status-error text-sm leading-snug">{errorMessage}</p>
+            {typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine && (
+              <p className="text-text-tertiary text-xs leading-snug">{t('annotation.offlineNote')}</p>
+            )}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleRetry}
+                disabled={busyAction !== null}
+                className="text-status-error text-sm font-medium hover:underline disabled:opacity-50 px-1 py-0.5 rounded"
+              >
+                {t('annotation.retry')}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </DockedSheet>

@@ -327,8 +327,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
-    'writeSheet.titleWrite': 'To write',
-    'writeSheet.titleWritten': 'Written',
     // Primary action — verb-first, with destination spelled out so the user
     // knows where the item is going. Busy variant keeps focus while the
     // network is in flight.
@@ -343,13 +341,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.moreActionsAria': 'More actions',
     'writeSheet.deleteLabel': 'Delete',
     'writeSheet.deleteAria': 'Delete this item (you can undo for 5 seconds)',
-    // Header eyebrow — when the source session is known, the title slot
-    // renders the bare session name as a link back to the transcript so
-    // the user can re-anchor in the conversation it came from. The status
-    // dot carries the to-write / written semantic, so the status text is
-    // fallback-only (legacy items / deleted sessions).
-    'writeSheet.statusToWrite': 'To write',
-    'writeSheet.statusWritten': 'Written',
 
     // Settings page
     'settings.title': 'Settings',
@@ -757,8 +748,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',
-    'writeSheet.titleWrite': 'Para anotar',
-    'writeSheet.titleWritten': 'Escritos',
     // Acción principal — verbo primero, con destino explícito. La variante
     // "ocupada" mantiene el foco mientras la red responde.
     'writeSheet.markWritten': 'Marcar como escrito',
@@ -771,12 +760,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.moreActionsAria': 'Más acciones',
     'writeSheet.deleteLabel': 'Eliminar',
     'writeSheet.deleteAria': 'Eliminar este ítem (podés deshacer 5 segundos)',
-    // Eyebrow del header — cuando conocemos la sesión origen, el slot del
-    // título muestra el nombre de la sesión como link al transcripto. El
-    // punto de estado sigue cargando la semántica anotar/escrito; el
-    // texto es fallback para ítems sin sesión vinculada.
-    'writeSheet.statusToWrite': 'Para anotar',
-    'writeSheet.statusWritten': 'Escrita',
 
     // Settings page
     'settings.title': 'Configuración',

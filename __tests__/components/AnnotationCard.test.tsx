@@ -271,32 +271,3 @@ describe('AnnotationCard — Retry on error', () => {
   })
 })
 
-describe('AnnotationCard — importance pill', () => {
-  it('renders nothing for score 1', () => {
-    render(<AnnotationCard annotation={{ ...annotation, importance_score: 1 }} {...defaultProps} />)
-    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
-  })
-
-  it('renders the standard pill for score 2', () => {
-    render(<AnnotationCard annotation={{ ...annotation, importance_score: 2 }} {...defaultProps} />)
-    expect(screen.getByText(/worth remembering/i)).toBeInTheDocument()
-  })
-
-  it('renders the high-priority pill for score 3', () => {
-    render(<AnnotationCard annotation={{ ...annotation, importance_score: 3 }} {...defaultProps} />)
-    expect(screen.getByText(/high priority/i)).toBeInTheDocument()
-  })
-
-  it('expands the importance note when the pill is tapped', async () => {
-    render(
-      <AnnotationCard
-        annotation={{ ...annotation, importance_score: 3, importance_note: 'Common voseo confusion.' }}
-        {...defaultProps}
-      />,
-    )
-    expect(screen.queryByText('Common voseo confusion.')).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /show why this correction matters/i }))
-    expect(screen.getByText('Common voseo confusion.')).toBeInTheDocument()
-  })
-})

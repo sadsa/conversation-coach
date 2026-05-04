@@ -40,47 +40,30 @@ const noopProps = {
 }
 
 describe('WriteSheet — header structure', () => {
-  it('renders the bare session title as an h2 linking back to the source session', () => {
+  it('renders the session title as a small source link in the body, not an h2 in the header', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
-    const heading = screen.getByRole('heading', { level: 2 })
-    // The eyebrow surfaces the source session as the item's identity.
-    // Distilled to the bare title — no "From " prefix, no surrounding
-    // quotes, no relative date — those were noise crowding the row.
-    expect(heading).toHaveTextContent(/cafe with maría/i)
-    expect(heading.textContent ?? '').not.toMatch(/^from /i)
-    expect(heading.textContent ?? '').not.toMatch(/[“"]/)
-    const link = within(heading).getByTestId('sheet-source-link')
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument()
+    const link = screen.getByTestId('sheet-source-link')
+    expect(link).toHaveTextContent(/cafe with maría/i)
     expect(link).toHaveAttribute('href', `/sessions/${baseItem.session_id}`)
+    expect(link.textContent ?? '').not.toMatch(/^from /i)
+    expect(link.textContent ?? '').not.toMatch(/["\u201C\u201D]/)
   })
 
-  it('does not render a decorative status dot in the header', () => {
-    // The state (to-write vs written) is already conveyed by the surface
-    // the user came from, the primary action label, and the row muting in
-    // the Written view. A color-only dot was decoration repeating signal.
+  it('does not render a decorative status dot anywhere in the sheet', () => {
     const { container } = render(<WriteSheet item={baseItem} {...noopProps} />)
-    const sheet = screen.getByRole('complementary')
-    // No <span> sized like the old dot (`w-2 h-2 rounded-full`) — match
-    // by class so the check is shape-based rather than tied to a testid
-    // we never added.
     const dots = container.querySelectorAll(
       'aside span.w-2.h-2.rounded-full, aside span[class*="w-2"][class*="h-2"][class*="rounded-full"]',
     )
     expect(dots.length).toBe(0)
-    // And belt-and-braces: nothing ahead of the heading inside the
-    // header lead row.
-    const heading = within(sheet).getByRole('heading', { level: 2 })
-    expect(heading.previousElementSibling).toBeNull()
   })
 
-  it('falls back to the status caption when the item has no session title', () => {
+  it('omits the source link when the item has no session title', () => {
     render(<WriteSheet item={itemWithoutSession} {...noopProps} />)
-    const heading = screen.getByRole('heading', { level: 2 })
-    expect(heading).toHaveTextContent(/to write/i)
-    // No source link rendered when there's nothing to point at.
     expect(screen.queryByTestId('sheet-source-link')).not.toBeInTheDocument()
   })
 
-  it('switches the fallback caption and primary action in the Written variant', () => {
+  it('switches the primary action label in the Written variant', () => {
     render(
       <WriteSheet
         item={{ ...itemWithoutSession, written_down: true }}
@@ -88,16 +71,15 @@ describe('WriteSheet — header structure', () => {
         isWritten
       />,
     )
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/written/i)
-    // Primary now reads "Move back to Write list"
     expect(screen.getByRole('button', { name: /move.+correction back/i })).toBeInTheDocument()
   })
 
-  it('renders the position pill in the header lead', () => {
+  it('renders the position pill in the header', () => {
     render(<WriteSheet item={baseItem} {...noopProps} position={{ current: 3, total: 7 }} />)
     expect(screen.getByText('3 of 7')).toBeInTheDocument()
   })
 })
+
 
 describe('WriteSheet — primary action focus + label flip', () => {
   it('marks the primary button with data-initial-focus', () => {
@@ -137,23 +119,6 @@ describe('WriteSheet — primary action focus + label flip', () => {
   })
 })
 
-describe('WriteSheet — importance pill', () => {
-  it('renders nothing when score is 1 (suppressed signal)', () => {
-    render(<WriteSheet item={{ ...baseItem, importance_score: 1 }} {...noopProps} />)
-    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
-  })
-
-  it('renders the standard pill for score 2', () => {
-    render(<WriteSheet item={{ ...baseItem, importance_score: 2 }} {...noopProps} />)
-    expect(screen.getByText(/worth remembering/i)).toBeInTheDocument()
-  })
-
-  it('renders the high-priority pill for score 3', () => {
-    render(<WriteSheet item={{ ...baseItem, importance_score: 3 }} {...noopProps} />)
-    expect(screen.getByText(/high priority/i)).toBeInTheDocument()
-  })
-})
 
 describe('WriteSheet — overflow menu', () => {
   it('does not show the destructive Delete by default', () => {
@@ -241,17 +206,13 @@ describe('WriteSheet — correction in context (combined block)', () => {
     expect(within(block).getByText('Fui')).toBeInTheDocument()
   })
 
-  it('frames the correction block with a left rule so it does not blur into the explanation paragraph', () => {
+  it('renders the correction in context without a border frame', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
-    // Walk up from the inner <p> to the framing wrapper. This is the layout
-    // pin: without the wrapper the sentence and the explanation read as one
-    // continuous block of muted prose with a bright correction word
-    // floating in the middle (the squint test fails).
+    // The left-border wrapper was removed (Option C layout pass) — the
+    // correction block now relies on spacing + weight contrast alone.
     const inner = screen.getByTestId(`correction-in-context-sheet-${baseItem.id}`)
-    const frame = inner.parentElement!
-    expect(frame.className).toMatch(/border-l/)
-    expect(frame.className).toMatch(/border-border\b/)
-    expect(frame.className).toMatch(/pl-/)
+    expect(inner).toBeInTheDocument()
+    expect(inner.parentElement!.className).not.toMatch(/border-l/)
   })
 
   it('falls back to the bare strike pair when segment data is null', () => {
@@ -277,20 +238,6 @@ describe('WriteSheet — closed state', () => {
   })
 })
 
-describe('WriteSheet — header inversion (regression)', () => {
-  it('places the position counter in a smaller, quieter visual class than the title', () => {
-    render(<WriteSheet item={baseItem} {...noopProps} position={{ current: 2, total: 5 }} />)
-    const heading = screen.getByRole('heading', { level: 2 })
-    expect(heading).toHaveClass('font-semibold')
-    expect(heading).toHaveClass('text-text-primary')
-    const position = screen.getByText('2 of 5')
-    // Position is text-xs; title is the louder element. Together this
-    // catches the inverted-hierarchy regression flagged in the critique.
-    expect(position).toHaveClass('text-xs')
-    expect(position).toHaveClass('text-text-tertiary')
-  })
-})
-
 describe('WriteSheet — explanation', () => {
   it('renders the explanation in the body', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
@@ -298,18 +245,133 @@ describe('WriteSheet — explanation', () => {
   })
 })
 
-describe('WriteSheet — sub-category label', () => {
-  it('renders the human-readable sub-category as a quiet eyebrow (not a chip)', () => {
+
+describe('WriteSheet — ImportancePill', () => {
+  it('renders nothing when importance_score is null', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
-    const label = screen.getByTestId('sheet-sub-category')
-    expect(label).toHaveTextContent('Subjunctive')
-    // Pin the visual demotion: the sub-category is metadata, not an
-    // accent chip competing with the framed correction. Uppercase
-    // tertiary text is the shape we want it to land in.
-    expect(label.className).toMatch(/uppercase/)
-    expect(label.className).toMatch(/text-text-tertiary/)
-    // And explicitly NOT the loud chip background it had previously.
-    expect(label.className).not.toMatch(/bg-accent-chip/)
-    expect(label.className).not.toMatch(/border/)
+    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
+  })
+
+  it('renders nothing when importance_score is 1 (suppressed)', () => {
+    render(<WriteSheet item={{ ...baseItem, importance_score: 1 }} {...noopProps} />)
+    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
+  })
+
+  it('renders "Worth remembering" pill for score 2', () => {
+    render(<WriteSheet item={{ ...baseItem, importance_score: 2 }} {...noopProps} />)
+    expect(screen.getByText(/worth remembering/i)).toBeInTheDocument()
+  })
+
+  it('renders "High priority" pill for score 3', () => {
+    render(<WriteSheet item={{ ...baseItem, importance_score: 3 }} {...noopProps} />)
+    expect(screen.getByText(/high priority/i)).toBeInTheDocument()
+  })
+
+  it('renders a static span (not a button) when note is null', () => {
+    render(<WriteSheet item={{ ...baseItem, importance_score: 2, importance_note: null }} {...noopProps} />)
+    const pill = screen.getByText(/worth remembering/i).closest('span')
+    expect(pill).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /toggle importance/i })).not.toBeInTheDocument()
+  })
+
+  it('renders a toggle button when note is present, expands note on click', async () => {
+    const note = 'Dropping subject pronouns is standard in Rioplatense.'
+    render(
+      <WriteSheet
+        item={{ ...baseItem, importance_score: 2, importance_note: note }}
+        {...noopProps}
+      />,
+    )
+    const toggle = screen.getByRole('button', { name: /toggle importance/i })
+    expect(toggle).toBeInTheDocument()
+    expect(screen.queryByText(note)).not.toBeInTheDocument()
+
+    await act(async () => { await userEvent.click(toggle) })
+    expect(screen.getByText(note)).toBeInTheDocument()
+
+    await act(async () => { await userEvent.click(toggle) })
+    expect(screen.queryByText(note)).not.toBeInTheDocument()
+  })
+
+  it('resets note expansion when navigating to a new item', async () => {
+    const note = 'Important note.'
+    const itemWithNote = { ...baseItem, importance_score: 2, importance_note: note }
+    const { rerender } = render(<WriteSheet item={itemWithNote} {...noopProps} />)
+
+    const toggle = screen.getByRole('button', { name: /toggle importance/i })
+    await act(async () => { await userEvent.click(toggle) })
+    expect(screen.getByText(note)).toBeInTheDocument()
+
+    const item2 = { ...baseItem, id: 'item-2', importance_score: 2, importance_note: note }
+    rerender(<WriteSheet item={item2} {...noopProps} />)
+    expect(screen.queryByText(note)).not.toBeInTheDocument()
   })
 })
+
+
+describe('WriteSheet — error recovery', () => {
+  it('shows an error message and retry button when toggle fails', async () => {
+    const onToggleWritten = vi.fn().mockResolvedValue(false)
+    render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    })
+
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getByText(/couldn't update/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+  })
+
+  it('shows an error message when delete fails', async () => {
+    const onDelete = vi.fn().mockResolvedValue(false)
+    render(<WriteSheet item={baseItem} {...noopProps} onDelete={onDelete} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-delete'))
+    })
+
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getByText(/couldn't/i)).toBeInTheDocument()
+  })
+
+  it('retry button re-runs the failed action', async () => {
+    const onToggleWritten = vi.fn().mockResolvedValue(false)
+    render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    })
+
+    expect(onToggleWritten).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+    })
+
+    expect(onToggleWritten).toHaveBeenCalledTimes(2)
+  })
+
+  it('clears the error message on a subsequent successful toggle', async () => {
+    const onToggleWritten = vi.fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+    render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    })
+    expect(screen.getByText(/couldn't update/i)).toBeInTheDocument()
+
+    await act(async () => {
+      await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+    })
+    expect(screen.queryByText(/couldn't update/i)).not.toBeInTheDocument()
+  })
+})
+

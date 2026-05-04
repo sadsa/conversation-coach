@@ -11,11 +11,9 @@
 // a row's read state would optimistically drop it from the visible array
 // before its slide-out animation could play.
 //
-// Within the visible window we group rows under date buckets — Today,
-// Yesterday, This week, Earlier — so the list reads as something curated
-// rather than a flat scroll of identical-looking rows. The bucket header
-// carries the date context, so each row's date label only needs to add
-// the time or weekday (see formatRowDate in SessionList).
+// Date context lives on each row (top-right, Drive/Gmail pattern) — no
+// bucket header groups, so the list is denser and the date is always
+// directly adjacent to the title it describes.
 
 'use client'
 import { useState, useMemo } from 'react'
@@ -24,31 +22,6 @@ import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem } from '@/lib/types'
 
 const DEFAULT_VISIBLE = 5
-
-type Bucket = 'today' | 'yesterday' | 'thisWeek' | 'earlier'
-
-const BUCKET_ORDER: Bucket[] = ['today', 'yesterday', 'thisWeek', 'earlier']
-
-const BUCKET_LABEL_KEY: Record<Bucket, string> = {
-  today: 'home.recentBucketToday',
-  yesterday: 'home.recentBucketYesterday',
-  thisWeek: 'home.recentBucketThisWeek',
-  earlier: 'home.recentBucketEarlier',
-}
-
-function bucketFor(createdAt: string, now: Date): Bucket {
-  const date = new Date(createdAt)
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfYesterday = new Date(startOfToday)
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1)
-  const startOfWeek = new Date(startOfToday)
-  startOfWeek.setDate(startOfWeek.getDate() - 6)
-
-  if (date >= startOfToday) return 'today'
-  if (date >= startOfYesterday) return 'yesterday'
-  if (date >= startOfWeek) return 'thisWeek'
-  return 'earlier'
-}
 
 interface Props {
   sessions: SessionListItem[]
@@ -70,23 +43,6 @@ export function DashboardRecentSessions({ sessions, onDeleted, onToggleRead }: P
     [sessions, expanded],
   )
 
-  // Group the visible sessions by bucket. We compute `now` once per render so
-  // every row sees a consistent reference point, and we preserve the original
-  // (newest-first) ordering inside each bucket.
-  const groups = useMemo(() => {
-    const now = new Date()
-    const map = new Map<Bucket, SessionListItem[]>()
-    for (const s of visible) {
-      const b = bucketFor(s.created_at, now)
-      const list = map.get(b)
-      if (list) list.push(s)
-      else map.set(b, [s])
-    }
-    return BUCKET_ORDER
-      .map(b => ({ bucket: b, items: map.get(b) ?? [] }))
-      .filter(g => g.items.length > 0)
-  }, [visible])
-
   const hiddenCount = Math.max(0, sessions.length - DEFAULT_VISIBLE)
 
   return (
@@ -100,31 +56,11 @@ export function DashboardRecentSessions({ sessions, onDeleted, onToggleRead }: P
         </h2>
       </header>
 
-      {/*
-        Generous gap *between* buckets, tight gap *inside* a bucket. This is
-        the rhythm trick: relatedness compresses, separation expands. The
-        SessionList itself uses divide-y to keep rows snug.
-      */}
-      <div className="space-y-6">
-        {groups.map(group => (
-          <div key={group.bucket} className="space-y-2">
-            {/* Hide the bucket label when there's only one group — the
-                section header above already tells you these are recent
-                conversations, and a lone "EARLIER" stripe just adds
-                visual noise. */}
-            {groups.length > 1 && (
-              <h3 className="text-xs font-medium text-text-tertiary uppercase tracking-wider">
-                {t(BUCKET_LABEL_KEY[group.bucket])}
-              </h3>
-            )}
-            <SessionList
-              sessions={group.items}
-              onDeleted={onDeleted}
-              onToggleRead={onToggleRead}
-            />
-          </div>
-        ))}
-      </div>
+      <SessionList
+        sessions={visible}
+        onDeleted={onDeleted}
+        onToggleRead={onToggleRead}
+      />
 
       {hiddenCount > 0 && (
         <div className="flex justify-center pt-1">

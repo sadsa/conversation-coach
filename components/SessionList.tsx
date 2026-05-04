@@ -95,14 +95,13 @@ function formatDuration(seconds: number): string {
   return `${m}m ${s}s`
 }
 
-// The date label sits next to the title and is the primary way the user
-// distinguishes one row from another within a bucket. Because the parent
-// (DashboardRecentSessions) groups rows under "Today / Yesterday / This week
-// / Earlier" headers, the per-row label only needs to add what the header
-// can't say:
-//   • Today / Yesterday rows → time-of-day (HH:MM)
-//   • This week rows         → weekday + time (e.g. "Tue 14:32")
-//   • Earlier rows           → short date (e.g. "15 Mar")
+// The date label is pinned top-right on each row (Drive/Gmail pattern).
+// Without bucket headers for context, the label must be self-sufficient:
+//   • Today            → time only  (e.g. "14:32")
+//   • Yesterday        → "Yesterday"
+//   • Earlier this week → weekday short (e.g. "Tue")
+//   • Older, same year  → short date (e.g. "15 Mar")
+//   • Older, past year  → date + year (e.g. "15 Mar 2024")
 function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date()): string {
   const locale = uiLanguage === 'es' ? 'es-AR' : 'en-GB'
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -111,15 +110,15 @@ function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date(
   const startOfWeek = new Date(startOfToday)
   startOfWeek.setDate(startOfWeek.getDate() - 6)
 
-  const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-  if (date >= startOfYesterday) return time
-  if (date >= startOfWeek) {
-    const day = date.toLocaleDateString(locale, { weekday: 'short' })
-    return `${day} ${time}`
+  if (date >= startOfToday) {
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   }
-  // Older than a week: short date. Include the year only when it differs from
-  // the current year — otherwise "15 Mar" alone would silently mean different
-  // things in January vs December across a year boundary.
+  if (date >= startOfYesterday) {
+    return uiLanguage === 'es' ? 'Ayer' : 'Yesterday'
+  }
+  if (date >= startOfWeek) {
+    return date.toLocaleDateString(locale, { weekday: 'short' })
+  }
   const sameYear = date.getFullYear() === now.getFullYear()
   return date.toLocaleDateString(
     locale,
@@ -350,15 +349,13 @@ function SwipeableSessionItem({
           className="block py-4 px-5 min-w-0 hover:bg-surface-elevated transition-colors"
         >
           {/*
-            Title row. Read state lives on weight + tone alone — no dot, no
-            border stripe (banned per impeccable rules). Read rows recede to
-            `font-normal` + secondary tone; unread rows hold the assertive
-            default. Two compatible signals, both achromatic. The Unread
-            filter pill above already grades between them at the section level.
+            Title row. Date is pinned top-right (Drive/Gmail pattern) so it's
+            always adjacent to the title without consuming a second line.
+            Read state lives on weight + tone alone — no dot, no border stripe.
           */}
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-baseline justify-between gap-3 min-w-0">
             <p
-              className={`text-lg truncate ${
+              className={`text-lg truncate min-w-0 ${
                 isUnread
                   ? 'font-semibold text-text-primary'
                   : 'font-normal text-text-secondary'
@@ -369,16 +366,13 @@ function SwipeableSessionItem({
                 <span className="sr-only"> — {t('home.recentSessionUnreadAria')}</span>
               )}
             </p>
+            <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel}</span>
           </div>
           {/*
-            Metadata row: no bullet separators. Whitespace + a softer (tertiary)
-            tone for duration carries the visual hierarchy — date is the
-            primary fact, duration is supporting. Status only appears when it
-            adds information (processing or error); for "Ready" the bare row
-            is enough. `tabular-nums` keeps digit columns aligned as the eye
-            scans down the list.
+            Metadata row: status and duration. Date moved to title row.
+            Status only appears when it adds information (processing or error).
           */}
-          <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1.5 flex-wrap tabular-nums">
+          <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1 flex-wrap tabular-nums">
             {showStatus && (
               <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
                 {isProcessing && (
@@ -396,7 +390,6 @@ function SwipeableSessionItem({
                 {statusLabel(session.status, t)}
               </span>
             )}
-            <span>{dateLabel}</span>
             {session.duration_seconds != null && (
               <span className="text-text-tertiary">{formatDuration(session.duration_seconds)}</span>
             )}

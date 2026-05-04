@@ -38,7 +38,6 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { buttonStyles } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { ImportancePill } from '@/components/ImportancePill'
-
 interface Props {
   annotation: Annotation
   sessionId: string
@@ -67,7 +66,6 @@ export function AnnotationCard({
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
   const [isUnhelpful, setIsUnhelpful] = useState<boolean>(annotation.is_unhelpful)
   const [busy, setBusy] = useState<'helpful' | 'unhelpful' | null>(null)
-  const [importanceExpanded, setImportanceExpanded] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   /** Which action failed last — drives the Retry button so it knows which
    *  handler to re-run without the user having to find the original control. */
@@ -77,14 +75,15 @@ export function AnnotationCard({
    *  happened" without needing a toast. */
   const [justSaved, setJustSaved] = useState(false)
   const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   useEffect(() => {
     setPracticeItemId(initialPracticeItemId)
     setIsUnhelpful(annotation.is_unhelpful)
-    setImportanceExpanded(false)
     setErrorMessage(null)
     setLastFailedAction(null)
     setJustSaved(false)
+    setImportanceExpanded(false)
     if (justSavedTimer.current) {
       clearTimeout(justSavedTimer.current)
       justSavedTimer.current = null
@@ -265,18 +264,19 @@ export function AnnotationCard({
         {annotation.explanation}
       </p>
 
-      <ImportancePill
-        score={annotation.importance_score}
-        note={annotation.importance_note}
-        expanded={importanceExpanded}
-        onToggle={() => setImportanceExpanded(e => !e)}
-      />
-
-      {importanceExpanded && annotation.importance_note && (
-        <p className="text-text-secondary text-sm leading-relaxed -mt-3">
-          {annotation.importance_note}
-        </p>
-      )}
+      <div className="space-y-2">
+        <ImportancePill
+          score={annotation.importance_score}
+          note={annotation.importance_note}
+          expanded={importanceExpanded}
+          onToggle={() => setImportanceExpanded(v => !v)}
+        />
+        {importanceExpanded && annotation.importance_note && (
+          <p className="text-text-secondary text-sm leading-relaxed pl-1">
+            {annotation.importance_note}
+          </p>
+        )}
+      </div>
 
       {/* Action region — primary verb above, quiet secondary below. The
           primary carries `data-initial-focus` so DockedSheet's open lifecycle

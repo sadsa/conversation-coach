@@ -157,17 +157,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   }
 
   const { session, segments, annotations } = detail
-  const counts = { grammar: 0, naturalness: 0 }
-  annotations.forEach(a => counts[a.type as keyof typeof counts]++)
-  // Reviewed = saved OR dismissed. We split the count so the user can see
-  // the shape of their decisions (not just "you've touched 7 of 11"). Saved
-  // and dismissed are mutually exclusive on the card, so summing them is
-  // safe — no double-counting.
-  const savedCount = addedAnnotations.size
-  const dismissedCount = unhelpfulAnnotations.size
-  const reviewedCount = savedCount + dismissedCount
-  const totalCount = annotations.length
-  const remainingCount = Math.max(0, totalCount - reviewedCount)
 
   const durationLabel = session.duration_seconds
     ? `${Math.floor(session.duration_seconds / 60)} ${t('transcript.min')}`
@@ -227,49 +216,8 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
           </div>
         </div>
 
-        {/* Metadata row — duration + counts. Smaller and quieter; the title
-            is the hero, not the stats. */}
-        <p className="text-sm text-text-secondary">
-          {durationLabel && <span>{durationLabel}</span>}
-          {durationLabel && totalCount > 0 && <span className="mx-2 text-text-tertiary">·</span>}
-          {counts.grammar > 0 && (
-            <span>{counts.grammar} {t('transcript.grammar')}</span>
-          )}
-          {counts.grammar > 0 && counts.naturalness > 0 && <span className="mx-2 text-text-tertiary">·</span>}
-          {counts.naturalness > 0 && (
-            <span>{counts.naturalness} {t('transcript.naturalness')}</span>
-          )}
-        </p>
-
-        {/* Progress strip — broken into saved / dismissed / to-go so the
-            user sees the *shape* of their review, not just an opaque counter.
-            When everything's reviewed we collapse to a single calm line so
-            the strip doesn't keep nagging at zero remaining. */}
-        {totalCount > 0 && (
-          <div className="space-y-1.5" aria-live="polite">
-            <p className="text-xs text-text-tertiary tabular-nums">
-              {remainingCount === 0
-                ? t('transcript.progressAllReviewed', { total: totalCount })
-                : t('transcript.progress', {
-                    saved: savedCount,
-                    dismissed: dismissedCount,
-                    remaining: remainingCount,
-                  })}
-            </p>
-            <div
-              className="h-1 rounded-full bg-border-subtle overflow-hidden"
-              role="progressbar"
-              aria-valuenow={reviewedCount}
-              aria-valuemin={0}
-              aria-valuemax={totalCount}
-              aria-valuetext={t('transcript.progressAria', { n: reviewedCount, total: totalCount })}
-            >
-              <div
-                className="h-full bg-accent-primary transition-[width] duration-300 ease-out"
-                style={{ width: `${(reviewedCount / totalCount) * 100}%` }}
-              />
-            </div>
-          </div>
+        {durationLabel && (
+          <p className="text-sm text-text-secondary">{durationLabel}</p>
         )}
       </header>
 

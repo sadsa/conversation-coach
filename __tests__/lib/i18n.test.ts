@@ -109,12 +109,7 @@ describe('annotation action i18n keys', () => {
     expect(t('writeSheet.deleteAria', 'en')).toMatch(/undo/i)
     expect(t('writeSheet.deleteAria', 'es')).toMatch(/deshacer/i)
   })
-  it('writeSheet status caption keys exist in both langs', () => {
-    expect(t('writeSheet.statusToWrite', 'en')).not.toBe('writeSheet.statusToWrite')
-    expect(t('writeSheet.statusWritten', 'en')).not.toBe('writeSheet.statusWritten')
-    expect(t('writeSheet.statusToWrite', 'es')).not.toBe('writeSheet.statusToWrite')
-    expect(t('writeSheet.statusWritten', 'es')).not.toBe('writeSheet.statusWritten')
-  })
+
   it('writeList.markRowAria substitutes {original} in en', () => {
     expect(t('writeList.markRowAria', 'en', { original: 'Yo fui' })).toContain('Yo fui')
   })
