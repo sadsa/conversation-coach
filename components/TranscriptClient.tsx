@@ -36,6 +36,9 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [confirmReanalyse, setConfirmReanalyse] = useState(false)
   const [reanalyseError, setReanalyseError] = useState<string | null>(null)
   const [reanalysing, setReanalysing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -135,6 +138,22 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     }
   }
 
+  async function handleDelete() {
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
+      if (res.ok) {
+        router.push('/')
+        return
+      }
+      setDeleteError(t('session.deleteError'))
+    } catch {
+      setDeleteError(t('session.deleteError'))
+    }
+    setDeleting(false)
+  }
+
   async function handleReanalyse() {
     setReanalyseError(null)
     setReanalysing(true)
@@ -211,6 +230,16 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
                   <Icon name="refresh" className="w-4 h-4 text-text-tertiary" />
                   {t('transcript.reanalyse')}
                 </button>
+                <div className="border-t border-border mx-3" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setMenuOpen(false); setConfirmDelete(true); setDeleteError(null) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-status-error hover:bg-error-surface transition-colors"
+                >
+                  <Icon name="trash" className="w-4 h-4" />
+                  {t('session.delete')}
+                </button>
               </div>
             )}
           </div>
@@ -271,6 +300,46 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
           </div>
           {reanalyseError && (
             <p role="alert" className="text-status-error text-sm">{reanalyseError}</p>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={confirmDelete}
+        title={
+          <div className="flex items-center gap-2 text-status-error">
+            <Icon name="alert" className="w-5 h-5" />
+            <span>{t('session.deleteTitle')}</span>
+          </div>
+        }
+        onClose={() => { if (!deleting) setConfirmDelete(false) }}
+      >
+        <div className="space-y-5">
+          <p className="text-text-secondary leading-relaxed">
+            <strong className="text-text-primary">{title}</strong>{' '}
+            {t('session.deleteWarning')}
+          </p>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+              className="px-4 py-2 rounded-lg border border-border text-text-secondary hover:bg-bg disabled:opacity-50 transition-colors"
+            >
+              {t('session.cancelButton')}
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 py-2 rounded-lg bg-status-error text-white hover:opacity-90 disabled:opacity-50 transition-opacity inline-flex items-center justify-center gap-2"
+            >
+              {deleting && <Icon name="spinner" className="w-4 h-4" />}
+              {t('session.deleteButton')}
+            </button>
+          </div>
+          {deleteError && (
+            <p role="alert" className="text-status-error text-sm">{deleteError}</p>
           )}
         </div>
       </Modal>

@@ -125,7 +125,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Delete',
     'session.deleteTitle': 'Delete session?',
-    'session.deleteWarning': 'will be permanently deleted, along with all its annotations and any saved corrections from it. This can\'t be undone.',
+    'session.deleteWarning': 'will be permanently deleted, along with all its annotations and any saved corrections from it.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
     'session.noSessions': 'No sessions yet — tap Upload to add your first conversation.',
@@ -546,7 +546,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Eliminar',
     'session.deleteTitle': '¿Eliminar sesión?',
-    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus anotaciones y las correcciones guardadas de esta sesión. Esta acción no se puede deshacer.',
+    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus anotaciones y las correcciones guardadas de esta sesión.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
     'session.noSessions': 'Todavía no hay sesiones — tocá Subir para agregar tu primera conversación.',
