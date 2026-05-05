@@ -219,9 +219,7 @@ export async function connect(
     const dest = safeCtx.createMediaStreamDestination()
     const el = document.createElement('audio')
     el.autoplay = true
-    // playsInline as an attribute (boolean property is set later for type safety).
     el.setAttribute('playsinline', '')
-    el.playsInline = true
     el.style.display = 'none'
     el.srcObject = dest.stream
     document.body.appendChild(el)
