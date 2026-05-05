@@ -83,10 +83,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const segmentsWithBreaks = mapParagraphsToSegments(parsed.segments, paragraphs)
+  let segmentsWithBreaks
+  try {
+    segmentsWithBreaks = mapParagraphsToSegments(parsed.segments, paragraphs)
+  } catch (err) {
+    log.error('mapParagraphsToSegments failed', { sessionId: session.id, jobId, err })
+    await db.from('sessions').update({
+      status: 'error',
+      error_stage: 'transcribing',
+    }).eq('id', session.id)
+    return NextResponse.json({ ok: true })
+  }
 
   const { error: insertError } = await db.from('transcript_segments').insert(
-    segmentsWithBreaks.map(s => ({
+    segmentsWithBreaks!.map(s => ({
       session_id: session.id,
       speaker: s.speaker,
       text: s.text,

@@ -171,6 +171,42 @@ describe('POST /api/webhooks/assemblyai', () => {
     ])
   })
 
+  it('marks session as transcribing-error when mapParagraphsToSegments throws', async () => {
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+          }),
+        }),
+        update: updateMock,
+        insert: insertMock,
+      })),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(parseWebhookBody).mockReturnValue({
+      speakerCount: 1,
+      segments: [{ speaker: 'A', text: 'Hola.', start_ms: 0, end_ms: 1000, position: 0, paragraph_breaks: [] }],
+    })
+    vi.mocked(getParagraphs).mockResolvedValue([])
+    vi.mocked(mapParagraphsToSegments).mockImplementation(() => {
+      throw new Error('mapParagraphsToSegments: non-monotonic break')
+    })
+
+    const { POST } = await import('@/app/api/webhooks/assemblyai/route')
+    const req = requestWithSecret({ transcript_id: 'mapper-throws-job', status: 'completed', utterances: [] })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error',
+      error_stage: 'transcribing',
+    }))
+    expect(insertMock).not.toHaveBeenCalled()
+  })
+
   it('marks session as transcribing-error when getParagraphs throws', async () => {
     const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     const insertMock = vi.fn().mockResolvedValue({ error: null })
