@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
 import { useTranslation } from '@/components/LanguageProvider'
+import { log } from '@/lib/logger'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
 /** Pure helper: split a segment's text on paragraph_breaks offsets into
@@ -200,12 +201,11 @@ export function TranscriptView({
           // In practice Claude annotates phrases short enough that this always
           // holds (paragraph breaks land on sentence boundaries); the rare case
           // where end_char crosses a break is logged so we'd see it in production.
-          if (isUser && process.env.NODE_ENV !== 'production') {
+          if (isUser) {
             for (const a of segAnns) {
               const owningPara = paragraphs.find(p => a.start_char >= p.offset && a.start_char < p.offset + p.text.length)
               if (owningPara && a.end_char > owningPara.offset + owningPara.text.length) {
-                // eslint-disable-next-line no-console
-                console.warn('[TranscriptView] Annotation spans paragraph break, will not render', {
+                log.warn('Annotation spans paragraph break, will not render', {
                   segmentId: seg.id, annotationId: a.id,
                 })
               }
