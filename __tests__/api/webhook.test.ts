@@ -3,11 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
-vi.mock('@/lib/assemblyai', () => ({ parseWebhookBody: vi.fn(), getTranscript: vi.fn(), WEBHOOK_AUTH_HEADER_NAME: 'X-Webhook-Secret' }))
+vi.mock('@/lib/assemblyai', () => ({
+  parseWebhookBody: vi.fn(),
+  getTranscript: vi.fn(),
+  getParagraphs: vi.fn(),
+  mapParagraphsToSegments: vi.fn(),
+  WEBHOOK_AUTH_HEADER_NAME: 'X-Webhook-Secret',
+}))
 vi.mock('@/lib/pipeline', () => ({ runClaudeAnalysis: vi.fn() }))
 
 import { createServerClient } from '@/lib/supabase-server'
-import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
+import { parseWebhookBody, getTranscript, getParagraphs, mapParagraphsToSegments } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 
 const WEBHOOK_SECRET = 'test-secret'
@@ -25,8 +31,11 @@ function requestWithSecret(body: object, secret = WEBHOOK_SECRET) {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   process.env.ASSEMBLYAI_WEBHOOK_SECRET = WEBHOOK_SECRET
   vi.mocked(getTranscript).mockResolvedValue({} as Record<string, unknown>)
+  vi.mocked(getParagraphs).mockResolvedValue([])
+  vi.mocked(mapParagraphsToSegments).mockImplementation((segs) => segs)
 })
 
 describe('POST /api/webhooks/assemblyai', () => {
@@ -119,5 +128,80 @@ describe('POST /api/webhooks/assemblyai', () => {
     await POST(req)
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ user_speaker_labels: ['A'] }))
     expect(vi.mocked(runClaudeAnalysis)).toHaveBeenCalledWith('session-1', 'es-AR')
+  })
+
+  it('persists paragraph_breaks from mapParagraphsToSegments in the segment insert', async () => {
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+          }),
+        }),
+        update: updateMock,
+        insert: insertMock,
+      })),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(parseWebhookBody).mockReturnValue({
+      speakerCount: 2,
+      segments: [
+        { speaker: 'A', text: 'Una larga monólogo. Con dos partes.', start_ms: 0, end_ms: 5000, position: 0, paragraph_breaks: [] },
+      ],
+    })
+    vi.mocked(getParagraphs).mockResolvedValue([
+      { text: 'Una larga monólogo.', start: 0, end: 2000, confidence: 0.95, words: [] },
+      { text: 'Con dos partes.',     start: 2500, end: 5000, confidence: 0.95, words: [] },
+    ])
+    vi.mocked(mapParagraphsToSegments).mockReturnValue([
+      { speaker: 'A', text: 'Una larga monólogo. Con dos partes.', start_ms: 0, end_ms: 5000, position: 0, paragraph_breaks: [20] },
+    ])
+
+    const { POST } = await import('@/app/api/webhooks/assemblyai/route')
+    const req = requestWithSecret({ transcript_id: 'job-with-paragraphs', status: 'completed', utterances: [] })
+    await POST(req)
+
+    expect(insertMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        session_id: 'session-1',
+        paragraph_breaks: [20],
+      }),
+    ])
+  })
+
+  it('marks session as transcribing-error when getParagraphs throws', async () => {
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+          }),
+        }),
+        update: updateMock,
+        insert: insertMock,
+      })),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(parseWebhookBody).mockReturnValue({
+      speakerCount: 1,
+      segments: [{ speaker: 'A', text: 'Hola.', start_ms: 0, end_ms: 1000, position: 0, paragraph_breaks: [] }],
+    })
+    vi.mocked(getParagraphs).mockRejectedValue(new Error('AssemblyAI 503'))
+
+    const { POST } = await import('@/app/api/webhooks/assemblyai/route')
+    const req = requestWithSecret({ transcript_id: 'failing-job', status: 'completed', utterances: [] })
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error',
+      error_stage: 'transcribing',
+    }))
+    expect(insertMock).not.toHaveBeenCalled()
+    expect(vi.mocked(runClaudeAnalysis)).not.toHaveBeenCalled()
   })
 })

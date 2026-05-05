@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { waitUntil } from '@vercel/functions'
 import { createServerClient } from '@/lib/supabase-server'
-import { parseWebhookBody, getTranscript } from '@/lib/assemblyai'
+import { parseWebhookBody, getTranscript, getParagraphs, mapParagraphsToSegments } from '@/lib/assemblyai'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
 import type { TargetLanguage } from '@/lib/types'
@@ -71,14 +71,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  let paragraphs
+  try {
+    paragraphs = await getParagraphs(jobId)
+  } catch (err) {
+    log.error('getParagraphs failed', { sessionId: session.id, jobId, err })
+    await db.from('sessions').update({
+      status: 'error',
+      error_stage: 'transcribing',
+    }).eq('id', session.id)
+    return NextResponse.json({ ok: true })
+  }
+
+  const segmentsWithBreaks = mapParagraphsToSegments(parsed.segments, paragraphs)
+
   const { error: insertError } = await db.from('transcript_segments').insert(
-    parsed.segments.map(s => ({
+    segmentsWithBreaks.map(s => ({
       session_id: session.id,
       speaker: s.speaker,
       text: s.text,
       start_ms: s.start_ms,
       end_ms: s.end_ms,
       position: s.position,
+      paragraph_breaks: s.paragraph_breaks,
     }))
   )
   if (insertError) log.error('Segment insert failed', { sessionId: session.id, error: insertError.message })
