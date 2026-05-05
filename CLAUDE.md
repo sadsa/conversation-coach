@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## What This Is
 
 A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to write down. Multi-user with Supabase Auth (email magic link) and an email allowlist.
@@ -55,10 +53,11 @@ app/
   api/                            # All API routes (Next.js route handlers)
 components/
   AppHeader.tsx                   # Top nav bar with hamburger + theme toggle
-  NavDrawer.tsx                   # Slide-out nav drawer (TABS array here)
+  NavDrawer.tsx                   # Slide-out nav drawer — pulls from NAV_TABS in nav-tabs.tsx
   BottomNav.tsx                   # Mobile bottom tab bar (Home/Write/Settings)
   ConditionalNav.tsx              # Composes AppHeader + NavDrawer + BottomNav
   NavProgress.tsx                 # Top-of-page hairline progress bar during RSC nav (no nprogress dep)
+  nav-tabs.tsx                    # NAV_TABS array — shared by NavDrawer + BottomNav
   OnboardingStep.tsx              # Shared wizard chrome (back / wordmark+dots / skip-or-close + CTA row)
   UploadIllustration.tsx          # Animated phone-frame mock for tutorial step 1 — shares oa-* keyframes
   WhatsAppShareIllustration.tsx   # Animated phone-frame mock for tutorial step 2 — shares oa-* keyframes
@@ -70,11 +69,18 @@ components/
   HomeClient.tsx                  # Client island for /: upload, polling, dashboard composition
   HomeUploadFab.tsx               # Labelled mobile FAB ("Upload audio") + desktop inline button
   UploadCoachmark.tsx             # First-run spotlight on the mobile FAB — mobile-only (`md:hidden`); FAB lives outside so tap → file-picker works unchanged
+  SessionList.tsx                 # Session rows — swipe left=delete (5s undo), swipe right=toggle read; react-swipeable
   DashboardOnboarding.tsx         # First-time empty state on home
   DashboardInProgress.tsx         # In-flight sessions strip
   DashboardReminders.tsx          # Write-down count widget
   DashboardRecentSessions.tsx     # Recent sessions list with delete + read toggle
   TranscriptClient.tsx            # Client island for /sessions/[id] — annotation review state
+  TranscriptView.tsx              # Paragraph-aware transcript renderer — splits segments on paragraph_breaks, filters + re-bases annotations per paragraph
+  AnnotatedText.tsx               # Renders a text slice with inline annotation highlights; accepts offsetBase to re-base char offsets
+  ExplainSheet.tsx                # Docked sheet showing flashcard-style explanation (original, correction, note)
+  InlineEdit.tsx                  # Tap-to-rename input with save/cancel; used for session titles
+  PipelineStatus.tsx              # Processing status rail (upload→transcribe→identify→analyse) — patient, encouraging
+  ScrollToTopOnNavigate.tsx       # Resets scroll position on route change
   WriteClient.tsx                 # Client island for /write — wraps WriteList
   AnnotationCard.tsx              # Single annotation row in the transcript — triggers AnnotationSheet, Add to Write button
   AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps `DockedSheet`
@@ -93,6 +99,10 @@ components/
   Toast.tsx                       # Floating bottom-anchored alert pill with optional action — uses --toast-bottom
   DockedSheet.tsx                 # Sheet shell (bottom on mobile, right on desktop) — chrome, animation, focus, swipe, keys
   Modal.tsx                       # Centered dialog with scrim — only use when an action is genuinely modal
+  VoiceController.tsx             # `useVoiceController` hook host — WebSocket/mic/AudioContext survive navigation (mounted in ConditionalNav)
+  VoiceTrigger.tsx                # Trigger button in AppHeader right cluster (accent-tinted `bg-accent-chip`)
+  VoiceStrip.tsx                  # Fixed strip under header while voice session active; owns mute/end/audio indicator; writes --voice-strip-height
+  VoiceCoachmark.tsx              # First-run mobile-only coachmark anchored to VoiceTrigger; dismissed via cc:voice-trigger-coachmark:v1
   ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
@@ -107,9 +117,11 @@ lib/
   theme-meta.ts                   # PWA/browser status-bar color constants (theme-color + apple-mobile-web-app-status-bar-style)
   r2.ts                           # presignedUploadUrl, deleteObject
   pipeline.ts                     # orchestrates status transitions and DB writes
-  assemblyai.ts                   # createJob, cancelJob, parseWebhook
+  assemblyai.ts                   # createJob, cancelJob, parseWebhook, getParagraphs, mapParagraphsToSegments
   claude.ts                       # analyseUserTurns — prompt + JSON parse
   voice-agent.ts                  # Gemini Live WebSocket: connect(targetLanguage, items, callbacks), buildSystemPrompt()
+  logger.ts                       # `log` structured logger — JSON lines; log.error → stderr, others → stdout. Use instead of console.*
+  voice-context.ts                # buildSessionContext, buildWriteContext — bridge page context to voice coach via window.__ccVoiceContext
 middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist + identity-header passthrough
 supabase/migrations/              # SQL migrations
 __tests__/                        # Vitest tests mirroring src structure
@@ -154,6 +166,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the
 - **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
 - **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
 - **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
+- **Paragraph grouping on transcript segments**: `transcript_segments.paragraph_breaks` (`int[]`, default `{}`) stores character offsets where new paragraphs begin within a segment's `text` (first paragraph is implicit — offset 0 is never stored). Populated from AssemblyAI's `/v2/transcript/:id/paragraphs` in the webhook handler for new sessions; empty for legacy rows (backward compatible — renders as one block). `TranscriptView.tsx` splits each segment on these offsets and renders one `<p>` per paragraph with `space-y-3 md:space-y-4`. `AnnotatedText.tsx` accepts `offsetBase` to re-base annotation `start_char`/`end_char` relative to the current paragraph slice. Annotations that span a paragraph break are filtered out with a `log.warn`. Failure to fetch paragraphs blocks transcription (session → `error`, `error_stage: transcribing`).
 - **Gemini Live binary frame protocol**: Gemini sends ALL WebSocket frames as binary (ArrayBuffer) — both control messages (e.g. `setupComplete`, errors) and raw PCM16 audio. The message handler in `lib/voice-agent.ts` tries UTF-8 JSON decode first; if that fails it treats the frame as a PCM16 audio chunk. Do not set `ws.binaryType = 'arraybuffer'` and then blindly `JSON.parse` — you'll get `"[object ArrayBuffer] is not valid JSON"`. Also: `realtime_input.media_chunks` is deprecated; use `realtime_input.audio` instead.
 - **Voice coach is global**: `useVoiceController` (in `components/VoiceController.tsx`) is mounted inside `ConditionalNav`, so the WebSocket / mic / AudioContext survive in-app navigation. `VoiceTrigger` (in `AppHeader`'s right cluster, accent-tinted `bg-accent-chip` so it reads as a primary affordance instead of grouping with the theme toggle) opens a session; `VoiceStrip` (fixed under the header while active, writes `--voice-strip-height` so `<main>` shifts down 44px in lockstep with the strip's `voice-strip-anim` slide-down) owns mute / end / audio-flow indicator. The strip is intentionally distilled to indicator + controls — no static title, no language pill — because the dot + tinted background already say "session active". End uses `text-on-error-surface` so the X reads as destructive, not as a sheet-dismiss. Mute's pressed state uses neutral `bg-text-tertiary/15`, NOT `bg-error-surface` — muting is a deliberate choice, not an error. Desktop strip surfaces the keyboard shortcut hint inline; the strip exposes `aria-keyshortcuts="Escape Space"`. Connecting state shows a visible "Connecting…" label on desktop and a polite aria-live announcement everywhere. System prompt gets a single-sentence route hint via `VoiceRouteContext` — `/write` and `/sessions/[id]` only; other routes get no hint. Page context is bridged through `window.__ccVoiceContext?: VoicePageContext` (declared in `types/window.d.ts`) — `TranscriptClient` publishes `kind:'session'` (via `buildSessionContext`), `WriteClient` publishes `kind:'write'` (via `buildWriteContext`); both clear on unmount. `VoiceController.start()` reads and pins this once at connect time. Builder functions live in `lib/voice-context.ts`. First-run `VoiceCoachmark` (mobile-only) is rendered inside `AppHeader`'s right cluster (anchored to the trigger via `relative` parent + `absolute top-full right-0`) so it survives any future header layout changes; `cc:voice-trigger-coachmark:v1` localStorage flag dismisses it once. The controller's toast model (`VoiceToast`) carries a `retryable` flag — transport failures surface a "Try again" action that calls `start()` again, but permission denials don't (the user has to fix browser settings, not loop the same denial).
 - **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`, used to render inline highlights.

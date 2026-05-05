@@ -39,6 +39,12 @@ export interface TranscriptSegment {
   start_ms: number
   end_ms: number
   position: number
+  /**
+   * Character offsets into `text` where each new paragraph begins after
+   * the first. Empty = single paragraph. See migration
+   * 20260505000000_add_paragraph_breaks.sql for full semantics.
+   */
+  paragraph_breaks: number[]
 }
 
 export const SUB_CATEGORIES = [

@@ -37,11 +37,11 @@ function pcm16Rms(samples: Int16Array): number {
  * Synthesised on the fly so we ship no audio asset. Each note has a smooth
  * attack/release envelope to avoid the click that bare `start`/`stop` cause.
  */
-function playStartTone(ctx: AudioContext) {
+function playStartTone(ctx: AudioContext, dest: AudioNode) {
   const now = ctx.currentTime
   const master = ctx.createGain()
   master.gain.value = 0.18
-  master.connect(ctx.destination)
+  master.connect(dest)
 
   function note(freq: number, startOffset: number, duration: number) {
     const osc = ctx.createOscillator()
@@ -60,6 +60,28 @@ function playStartTone(ctx: AudioContext) {
 
   note(523.25, 0, 0.1)     // C5
   note(783.99, 0.06, 0.14)  // G5
+}
+
+/**
+ * iOS Safari WebKit bug (#230902 / #231421): once `getUserMedia` activates
+ * the mic, the AVAudioSession category becomes `PlayAndRecord` with output
+ * routed to the receiver (earpiece), not the loudspeaker. ALL output via
+ * `AudioContext.destination` plays through the earpiece — quietly — until
+ * the mic is released. Desktop Safari and Android Chrome do not share this
+ * bug; their audio session keeps media output on the main speaker
+ * independently of mic capture.
+ *
+ * Workaround: pipe agent playback through a `MediaStreamAudioDestinationNode`
+ * fed into a hidden `<audio playsInline autoplay>` element. Media element
+ * playback runs in a different audio session category that keeps using the
+ * loudspeaker, even with a live mic. Documented fix in Twilio / LiveKit /
+ * Daily.co. iOS-only — non-iOS keeps the simpler `ctx.destination` path.
+ */
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true
+  // iPadOS 13+ reports as Mac; disambiguate via touch support.
+  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
 }
 
 export interface VoiceAgent {
@@ -185,7 +207,29 @@ export async function connect(
   const worklet = new AudioWorkletNode(safeCtx, 'pcm-processor')
   source.connect(worklet)
   // Connect to destination to keep AudioContext active in background tabs.
+  // (The worklet emits no output samples, so this is silent — see pcm-processor.js.)
   worklet.connect(safeCtx.destination)
+
+  // Set up the agent-playback sink. On iOS we must NOT play via
+  // `safeCtx.destination` (earpiece routing — see isIOS comment above);
+  // bridge through a MediaStream + <audio> element instead.
+  let agentSink: AudioNode = safeCtx.destination
+  let bridgeAudioEl: HTMLAudioElement | null = null
+  if (isIOS() && typeof document !== 'undefined') {
+    const dest = safeCtx.createMediaStreamDestination()
+    const el = document.createElement('audio')
+    el.autoplay = true
+    el.setAttribute('playsinline', '')
+    el.style.display = 'none'
+    el.srcObject = dest.stream
+    document.body.appendChild(el)
+    // play() may reject if user gesture context is lost; non-fatal — autoplay
+    // attribute will retry, and the WebSocket connect itself ran inside the
+    // user gesture that opened the session.
+    el.play().catch(() => { /* non-fatal */ })
+    agentSink = dest
+    bridgeAudioEl = el
+  }
 
   // 3. Open WebSocket — API key in query param.
   const wsUrl = new URL(WS_ENDPOINT)
@@ -223,7 +267,7 @@ export async function connect(
     buffer.getChannelData(0).set(float32)
     const src = safeCtx.createBufferSource()
     src.buffer = buffer
-    src.connect(safeCtx.destination)
+    src.connect(agentSink)
     src.onended = () => { activeAgentSources.delete(src) }
     const now = safeCtx.currentTime
     playbackTime = Math.max(playbackTime, now)
@@ -310,7 +354,7 @@ export async function connect(
       // active. Wrapped in try/catch so an audio glitch (e.g. context
       // suspended on background tab) never blocks the session going live.
       try {
-        playStartTone(safeCtx)
+        playStartTone(safeCtx, agentSink)
       } catch {
         /* non-fatal — the session is up, the chime is a nice-to-have */
       }
@@ -355,6 +399,12 @@ export async function connect(
     callbacks.onStateChange('ended')
     safeCtx.close()
     safeStream.getTracks().forEach(t => t.stop())
+    if (bridgeAudioEl) {
+      bridgeAudioEl.pause()
+      bridgeAudioEl.srcObject = null
+      bridgeAudioEl.remove()
+      bridgeAudioEl = null
+    }
   })
 
   ws.addEventListener('error', () => {

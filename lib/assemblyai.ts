@@ -12,6 +12,8 @@ export interface ParsedSegment {
   start_ms: number
   end_ms: number
   position: number
+  /** Populated by mapParagraphsToSegments; '[]' for legacy or short utterances. */
+  paragraph_breaks: number[]
 }
 
 export interface ParsedWebhook {
@@ -69,6 +71,95 @@ export async function getTranscript(jobId: string): Promise<Record<string, unkno
   return transcript as unknown as Record<string, unknown>
 }
 
+/** Fetch the speech-aware paragraph grouping for a completed job. */
+export async function getParagraphs(jobId: string): Promise<TranscriptParagraph[]> {
+  const client = getClient()
+  const { paragraphs } = await client.transcripts.paragraphs(jobId)
+  return paragraphs as TranscriptParagraph[]
+}
+
+/** Subset of AssemblyAI's TranscriptParagraph response we actually use.
+ *  Source: https://www.assemblyai.com/docs/api-reference/transcripts/get-paragraphs */
+export interface TranscriptParagraph {
+  text: string
+  start: number
+  end: number
+  confidence: number
+  words: Array<{ start: number; end: number; text: string }>
+}
+
+/**
+ * Map AssemblyAI's transcript-level paragraphs back to per-segment character
+ * offsets. Returns a NEW array of segments with `paragraph_breaks` populated
+ * based on each paragraph's timestamp + text match within its containing
+ * segment.
+ *
+ * Algorithm (per paragraph, in order):
+ *   1. Find the first segment whose [start_ms, end_ms] (inclusive) contains
+ *      paragraph.start. Boundary ties go to the earlier segment.
+ *   2. If none, skip + warn ('Paragraph timestamp outside all segment ranges').
+ *   3. Within that segment's text, indexOf(paragraph.text) starting from a
+ *      per-segment cursor that advances past each successful match.
+ *   4. If indexOf returns -1, skip + warn ('Paragraph text not found in
+ *      segment text'); do NOT advance the cursor.
+ *   5. If offset > 0, append to that segment's paragraph_breaks. Offset 0 is
+ *      the implicit first paragraph and is not stored.
+ *   6. Validate per segment after processing: offsets must be strictly > 0,
+ *      < text.length, and strictly monotonically increasing. Throws otherwise.
+ */
+export function mapParagraphsToSegments(
+  segments: ParsedSegment[],
+  paragraphs: TranscriptParagraph[],
+): ParsedSegment[] {
+  const out: ParsedSegment[] = segments.map(s => ({ ...s, paragraph_breaks: [] }))
+  const cursors = new Array<number>(out.length).fill(0)
+
+  for (const p of paragraphs) {
+    const segIndex = out.findIndex(s => s.start_ms <= p.start && p.start <= s.end_ms)
+    if (segIndex === -1) {
+      log.warn('Paragraph timestamp outside all segment ranges', {
+        paragraphStart: p.start,
+        paragraphTextSample: p.text.slice(0, 40),
+      })
+      continue
+    }
+
+    const segment = out[segIndex]
+    const offset = segment.text.indexOf(p.text, cursors[segIndex])
+    if (offset === -1) {
+      log.warn('Paragraph text not found in segment text', {
+        segmentPosition: segment.position,
+        paragraphTextSample: p.text.slice(0, 40),
+      })
+      continue
+    }
+
+    if (offset > 0) {
+      segment.paragraph_breaks.push(offset)
+    }
+    cursors[segIndex] = offset + p.text.length
+  }
+
+  for (const s of out) {
+    let last = 0
+    for (const b of s.paragraph_breaks) {
+      if (b <= 0 || b >= s.text.length) {
+        throw new Error(
+          `mapParagraphsToSegments: break ${b} out of range for segment text length ${s.text.length} (position ${s.position})`,
+        )
+      }
+      if (b <= last) {
+        throw new Error(
+          `mapParagraphsToSegments: non-monotonic break ${b} after ${last} (position ${s.position})`,
+        )
+      }
+      last = b
+    }
+  }
+
+  return out
+}
+
 /** Parse the raw AssemblyAI webhook body into typed segments. */
 export function parseWebhookBody(body: Record<string, unknown>): ParsedWebhook {
   if (body.status === 'error') {
@@ -88,6 +179,7 @@ export function parseWebhookBody(body: Record<string, unknown>): ParsedWebhook {
     start_ms: u.start,
     end_ms: u.end,
     position: i,
+    paragraph_breaks: [],
   }))
 
   const uniqueSpeakers = new Set(segments.map(s => s.speaker))

@@ -10,8 +10,8 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response)
 
 const segments: TranscriptSegment[] = [
-  { id: 'seg-1', session_id: 's1', speaker: 'A', text: 'Yo fui al mercado.', start_ms: 0, end_ms: 2000, position: 0 },
-  { id: 'seg-2', session_id: 's1', speaker: 'B', text: '¿Qué compraste?', start_ms: 2500, end_ms: 4000, position: 1 },
+  { id: 'seg-1', session_id: 's1', speaker: 'A', text: 'Yo fui al mercado.', start_ms: 0, end_ms: 2000, position: 0, paragraph_breaks: [] },
+  { id: 'seg-2', session_id: 's1', speaker: 'B', text: '¿Qué compraste?', start_ms: 2500, end_ms: 4000, position: 1, paragraph_breaks: [] },
 ]
 const annotations: Annotation[] = [
   { id: 'ann-1', session_id: 's1', segment_id: 'seg-1', type: 'grammar',
@@ -98,5 +98,71 @@ describe('TranscriptView', () => {
     )
     const mark = container.querySelector('mark')
     expect(mark).toHaveClass('annotation-written')
+  })
+})
+
+describe('TranscriptView paragraph rendering', () => {
+  it('renders a single <p> when paragraph_breaks is empty (legacy)', () => {
+    const { container } = render(
+      <TranscriptView segments={segments} annotations={[]} userSpeakerLabels={['A']} {...defaultProps} />,
+    )
+    // Speaker label is also a <p>, so we filter to ones that contain segment text.
+    const paragraphs = Array.from(container.querySelectorAll('p')).filter(p =>
+      p.textContent?.includes('Yo fui al mercado.'),
+    )
+    expect(paragraphs).toHaveLength(1)
+  })
+
+  it('renders one <p> per paragraph when paragraph_breaks is populated', () => {
+    const longText = 'Primera parte aquí. Segunda parte aquí. Tercera parte aquí.'
+    // 'Segunda parte aquí.' starts at index 20.
+    // 'Tercera parte aquí.' starts at index 40.
+    const longSegments: TranscriptSegment[] = [
+      { id: 'seg-long', session_id: 's1', speaker: 'A', text: longText,
+        start_ms: 0, end_ms: 5000, position: 0, paragraph_breaks: [20, 40] },
+    ]
+    const { container } = render(
+      <TranscriptView segments={longSegments} annotations={[]} userSpeakerLabels={['A']} {...defaultProps} />,
+    )
+    const paragraphs = Array.from(container.querySelectorAll('p')).filter(p => {
+      const text = p.textContent ?? ''
+      return text.includes('parte aquí.') && !text.includes('You')
+    })
+    expect(paragraphs).toHaveLength(3)
+    expect(paragraphs[0].textContent).toContain('Primera parte aquí.')
+    expect(paragraphs[1].textContent).toContain('Segunda parte aquí.')
+    expect(paragraphs[2].textContent).toContain('Tercera parte aquí.')
+  })
+
+  it('renders an annotation that lives in the second paragraph with rebased offsets', async () => {
+    const longText = 'Primera parte aquí. Yo fui al mercado.'
+    // 'Yo fui al mercado.' starts at index 20.
+    // The "Yo fui" annotation has segment-relative offsets 20..26.
+    const longSegments: TranscriptSegment[] = [
+      { id: 'seg-2p', session_id: 's1', speaker: 'A', text: longText,
+        start_ms: 0, end_ms: 4000, position: 0, paragraph_breaks: [20] },
+    ]
+    const para2Annotations: Annotation[] = [
+      { id: 'ann-p2', session_id: 's1', segment_id: 'seg-2p', type: 'grammar',
+        original: 'Yo fui', start_char: 20, end_char: 26, correction: 'Fui',
+        explanation: 'Drop pronoun.', sub_category: 'other',
+        flashcard_front: null, flashcard_back: null, flashcard_note: null,
+        importance_score: null, importance_note: null,
+        is_unhelpful: false, unhelpful_at: null },
+    ]
+    render(
+      <TranscriptView
+        segments={longSegments}
+        annotations={para2Annotations}
+        userSpeakerLabels={['A']}
+        {...defaultProps}
+      />,
+    )
+    // The annotated phrase still renders as a <mark>, and clicking it still
+    // opens the AnnotationSheet (proves the rebasing didn't break navigation).
+    const mark = screen.getByText('Yo fui')
+    expect(mark.tagName).toBe('MARK')
+    await userEvent.click(mark)
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
   })
 })

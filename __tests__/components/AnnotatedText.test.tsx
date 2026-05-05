@@ -146,3 +146,44 @@ describe('AnnotatedText', () => {
     expect(onClick).toHaveBeenCalledWith(annotation)
   })
 })
+
+describe('AnnotatedText offsetBase', () => {
+  it('rebases annotation offsets when rendering a paragraph slice', () => {
+    // Imagine the full segment is "Saludo. Yo fui al mercado." (length 26).
+    // The second paragraph "Yo fui al mercado." starts at offset 8 in the segment.
+    // The annotation on "Yo fui" has segment-relative offsets 8..14.
+    // When rendering ONLY the second paragraph, AnnotatedText receives:
+    //   text = "Yo fui al mercado."
+    //   offsetBase = 8
+    // It must subtract offsetBase to highlight chars 0..6 of the paragraph slice.
+    const paragraphAnnotation: Annotation = {
+      ...annotation,
+      original: 'Yo fui',
+      start_char: 8,
+      end_char: 14,
+    }
+    render(
+      <AnnotatedText
+        text="Yo fui al mercado."
+        annotations={[paragraphAnnotation]}
+        offsetBase={8}
+        onAnnotationClick={() => {}}
+      />,
+    )
+    expect(screen.getByText('Yo fui').tagName).toBe('MARK')
+    expect(screen.getByText(' al mercado.')).toBeInTheDocument()
+  })
+
+  it('treats offsetBase as 0 when the prop is omitted', () => {
+    // Sanity check: existing call sites pass no offsetBase and must continue
+    // to render correctly (regression guard for the legacy code path).
+    render(
+      <AnnotatedText
+        text="Yo fui al mercado."
+        annotations={[annotation]}
+        onAnnotationClick={() => {}}
+      />,
+    )
+    expect(screen.getByText('Yo fui').tagName).toBe('MARK')
+  })
+})

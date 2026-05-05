@@ -20,6 +20,13 @@ interface Props {
    * language.
    */
   stateLabels?: { written: string; saved: string; unreviewed: string }
+  /**
+   * Subtract this from each annotation's start_char/end_char before indexing
+   * into `text`. Used when rendering a paragraph slice of a larger segment;
+   * the parent has already filtered annotations to those that fall within
+   * the slice. Defaults to 0 (legacy whole-segment rendering).
+   */
+  offsetBase?: number
 }
 
 const DEFAULT_STATE_LABELS = {
@@ -34,14 +41,16 @@ interface Span {
   annotation?: Annotation
 }
 
-function buildSpans(text: string, annotations: Annotation[]): Span[] {
+function buildSpans(text: string, annotations: Annotation[], offsetBase: number): Span[] {
   const sorted = [...annotations].sort((a, b) => a.start_char - b.start_char)
   const spans: Span[] = []
   let cursor = 0
   for (const ann of sorted) {
-    if (ann.start_char > cursor) spans.push({ start: cursor, end: ann.start_char })
-    spans.push({ start: ann.start_char, end: ann.end_char, annotation: ann })
-    cursor = ann.end_char
+    const localStart = ann.start_char - offsetBase
+    const localEnd = ann.end_char - offsetBase
+    if (localStart > cursor) spans.push({ start: cursor, end: localStart })
+    spans.push({ start: localStart, end: localEnd, annotation: ann })
+    cursor = localEnd
   }
   if (cursor < text.length) spans.push({ start: cursor, end: text.length })
   return spans
@@ -87,8 +96,9 @@ export function AnnotatedText({
   activeAnnotationId = null,
   openLabel = 'Open correction',
   stateLabels = DEFAULT_STATE_LABELS,
+  offsetBase = 0,
 }: Props) {
-  const spans = buildSpans(text, annotations)
+  const spans = buildSpans(text, annotations, offsetBase)
 
   return (
     <span>
