@@ -6,6 +6,18 @@ import { AnnotationSheet } from '@/components/AnnotationSheet'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
 
+/** Pure helper: split a segment's text on paragraph_breaks offsets into
+ *  blocks each carrying their starting offset for annotation rebasing.
+ *  splitIntoParagraphs(text, []) === [{ text, offset: 0 }] — i.e. legacy
+ *  single-block render. */
+function splitIntoParagraphs(text: string, breaks: number[]): Array<{ text: string; offset: number }> {
+  const bounds = [0, ...breaks, text.length]
+  return bounds.slice(0, -1).map((start, i) => ({
+    text: text.slice(start, bounds[i + 1]),
+    offset: start,
+  }))
+}
+
 // One-shot localStorage flag: once the user has actually opened an
 // annotation in this session (clicked any mark), we treat the legend as
 // "learned" and stop rendering it on future sessions. Bumping the suffix
@@ -181,6 +193,24 @@ export function TranscriptView({
       >
         {segments.map(seg => {
           const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
+          const paragraphs = splitIntoParagraphs(seg.text, seg.paragraph_breaks)
+          const segAnns = annotationsBySegment[seg.id] ?? []
+          // An annotation belongs to whichever paragraph contains its start char,
+          // and is rendered only when its full range fits inside that paragraph.
+          // In practice Claude annotates phrases short enough that this always
+          // holds (paragraph breaks land on sentence boundaries); the rare case
+          // where end_char crosses a break is logged so we'd see it in production.
+          if (isUser && process.env.NODE_ENV !== 'production') {
+            for (const a of segAnns) {
+              const owningPara = paragraphs.find(p => a.start_char >= p.offset && a.start_char < p.offset + p.text.length)
+              if (owningPara && a.end_char > owningPara.offset + owningPara.text.length) {
+                // eslint-disable-next-line no-console
+                console.warn('[TranscriptView] Annotation spans paragraph break, will not render', {
+                  segmentId: seg.id, annotationId: a.id,
+                })
+              }
+            }
+          }
           return (
             <div key={seg.id}>
               <div
@@ -190,27 +220,37 @@ export function TranscriptView({
                 <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1.5 font-medium">
                   {isUser ? userLabel : themLabel}
                 </p>
-                <span className="text-base md:text-lg leading-[1.8] break-words text-text-primary">
-                  {isUser && (annotationsBySegment[seg.id] ?? []).length > 0 ? (
-                    <AnnotatedText
-                      text={seg.text}
-                      annotations={annotationsBySegment[seg.id] ?? []}
-                      onAnnotationClick={handleClick}
-                      savedAnnotationIds={savedAnnotationIds}
-                      writtenAnnotationIds={writtenAnnotations}
-                      unhelpfulAnnotationIds={unhelpfulAnnotations}
-                      activeAnnotationId={activeAnnotationId}
-                      openLabel={t('transcript.openCorrection')}
-                      stateLabels={{
-                        written: t('transcript.markState.written'),
-                        saved: t('transcript.markState.saved'),
-                        unreviewed: t('transcript.markState.unreviewed'),
-                      }}
-                    />
-                  ) : (
-                    seg.text
-                  )}
-                </span>
+                <div className="space-y-3 md:space-y-4 text-base md:text-lg leading-[1.8] break-words text-text-primary">
+                  {paragraphs.map((para, i) => {
+                    const paraAnns = isUser
+                      ? segAnns.filter(a => a.start_char >= para.offset && a.end_char <= para.offset + para.text.length)
+                      : []
+                    return (
+                      <p key={i}>
+                        {paraAnns.length > 0 ? (
+                          <AnnotatedText
+                            text={para.text}
+                            annotations={paraAnns}
+                            offsetBase={para.offset}
+                            onAnnotationClick={handleClick}
+                            savedAnnotationIds={savedAnnotationIds}
+                            writtenAnnotationIds={writtenAnnotations}
+                            unhelpfulAnnotationIds={unhelpfulAnnotations}
+                            activeAnnotationId={activeAnnotationId}
+                            openLabel={t('transcript.openCorrection')}
+                            stateLabels={{
+                              written: t('transcript.markState.written'),
+                              saved: t('transcript.markState.saved'),
+                              unreviewed: t('transcript.markState.unreviewed'),
+                            }}
+                          />
+                        ) : (
+                          para.text
+                        )}
+                      </p>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )
