@@ -71,6 +71,13 @@ export async function getTranscript(jobId: string): Promise<Record<string, unkno
   return transcript as unknown as Record<string, unknown>
 }
 
+/** Fetch the speech-aware paragraph grouping for a completed job. */
+export async function getParagraphs(jobId: string): Promise<TranscriptParagraph[]> {
+  const client = getClient()
+  const { paragraphs } = await client.transcripts.paragraphs(jobId)
+  return paragraphs as TranscriptParagraph[]
+}
+
 /** Subset of AssemblyAI's TranscriptParagraph response we actually use.
  *  Source: https://www.assemblyai.com/docs/api-reference/transcripts/get-paragraphs */
 export interface TranscriptParagraph {
