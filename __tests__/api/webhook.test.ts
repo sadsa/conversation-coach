@@ -73,8 +73,8 @@ describe('POST /api/webhooks/assemblyai', () => {
     vi.mocked(parseWebhookBody).mockReturnValue({
       speakerCount: 2,
       segments: [
-        { speaker: 'A', text: 'Hola', start_ms: 0, end_ms: 500, position: 0 },
-        { speaker: 'B', text: 'Buenos días', start_ms: 600, end_ms: 1200, position: 1 },
+        { speaker: 'A', text: 'Hola', start_ms: 0, end_ms: 500, position: 0, paragraph_breaks: [] },
+        { speaker: 'B', text: 'Buenos días', start_ms: 600, end_ms: 1200, position: 1, paragraph_breaks: [] },
       ],
     })
 
@@ -111,7 +111,7 @@ describe('POST /api/webhooks/assemblyai', () => {
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
     vi.mocked(parseWebhookBody).mockReturnValue({
       speakerCount: 1,
-      segments: [{ speaker: 'A', text: 'Solo yo.', start_ms: 0, end_ms: 1000, position: 0 }],
+      segments: [{ speaker: 'A', text: 'Solo yo.', start_ms: 0, end_ms: 1000, position: 0, paragraph_breaks: [] }],
     })
 
     const { POST } = await import('@/app/api/webhooks/assemblyai/route')

@@ -22,6 +22,7 @@ describe('parseWebhookBody', () => {
       start_ms: 0,
       end_ms: 2000,
       position: 0,
+      paragraph_breaks: [],
     })
   })
 

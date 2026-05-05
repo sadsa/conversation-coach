@@ -12,6 +12,8 @@ export interface ParsedSegment {
   start_ms: number
   end_ms: number
   position: number
+  /** Populated by mapParagraphsToSegments; '[]' for legacy or short utterances. */
+  paragraph_breaks: number[]
 }
 
 export interface ParsedWebhook {
@@ -88,6 +90,7 @@ export function parseWebhookBody(body: Record<string, unknown>): ParsedWebhook {
     start_ms: u.start,
     end_ms: u.end,
     position: i,
+    paragraph_breaks: [],
   }))
 
   const uniqueSpeakers = new Set(segments.map(s => s.speaker))

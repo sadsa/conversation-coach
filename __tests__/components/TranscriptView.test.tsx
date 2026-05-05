@@ -10,8 +10,8 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response)
 
 const segments: TranscriptSegment[] = [
-  { id: 'seg-1', session_id: 's1', speaker: 'A', text: 'Yo fui al mercado.', start_ms: 0, end_ms: 2000, position: 0 },
-  { id: 'seg-2', session_id: 's1', speaker: 'B', text: '¿Qué compraste?', start_ms: 2500, end_ms: 4000, position: 1 },
+  { id: 'seg-1', session_id: 's1', speaker: 'A', text: 'Yo fui al mercado.', start_ms: 0, end_ms: 2000, position: 0, paragraph_breaks: [] },
+  { id: 'seg-2', session_id: 's1', speaker: 'B', text: '¿Qué compraste?', start_ms: 2500, end_ms: 4000, position: 1, paragraph_breaks: [] },
 ]
 const annotations: Annotation[] = [
   { id: 'ann-1', session_id: 's1', segment_id: 'seg-1', type: 'grammar',
