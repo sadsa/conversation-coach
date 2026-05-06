@@ -33,6 +33,9 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
   const { t } = useTranslation()
 
   useEffect(() => {
+    // Only shift <main> on desktop — on mobile the BottomBar handles session
+    // controls and this strip is hidden (md:block), so no offset is needed.
+    if (!window.matchMedia('(min-width: 768px)').matches) return
     document.documentElement.style.setProperty('--voice-strip-height', '2.75rem')
     return () => {
       document.documentElement.style.removeProperty('--voice-strip-height')
@@ -46,6 +49,7 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
       aria-keyshortcuts="Escape Space"
       className="
         voice-strip-anim
+        hidden md:block
         fixed left-0 right-0 z-30
         h-11
         border-b border-border-subtle

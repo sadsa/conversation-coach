@@ -24,6 +24,7 @@ export interface VoiceController {
   toast: VoiceToast | null
   toastKey: number
   indicatorRef: React.RefObject<HTMLDivElement>
+  mobileIndicatorRef: React.RefObject<HTMLDivElement>
   start: () => void
   toggleMute: () => void
   end: () => void
@@ -49,6 +50,7 @@ export function useVoiceController(): VoiceController {
   const userRmsRef = useRef(0)
   const agentRmsRef = useRef(0)
   const indicatorRef = useRef<HTMLDivElement>(null)
+  const mobileIndicatorRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const toastTimerRef = useRef<number | null>(null)
   const isMountedRef = useRef(true)
@@ -211,22 +213,25 @@ export function useVoiceController(): VoiceController {
       userRmsRef.current = u * RMS_DECAY
       agentRmsRef.current = a * RMS_DECAY
 
-      const el = indicatorRef.current
-      if (el) {
-        let speaker: 'idle' | 'user' | 'agent' = 'idle'
-        if (state !== 'muted') {
-          if (a > u && a > RMS_FLOOR) speaker = 'agent'
-          else if (u > RMS_FLOOR) speaker = 'user'
-        }
-        el.dataset.speaker = speaker
-        el.dataset.muted = state === 'muted' ? 'true' : 'false'
+      let speaker: 'idle' | 'user' | 'agent' = 'idle'
+      if (state !== 'muted') {
+        if (a > u && a > RMS_FLOOR) speaker = 'agent'
+        else if (u > RMS_FLOOR) speaker = 'user'
+      }
+      const mutedStr = state === 'muted' ? 'true' : 'false'
 
+      function applyIndicator(el: HTMLDivElement | null) {
+        if (!el) return
+        el.dataset.speaker = speaker
+        el.dataset.muted = mutedStr
         if (!reducedMotion) {
           const peak = Math.max(u, a)
           const scale = 1 + Math.min(SCALE_MAX, peak * SCALE_GAIN)
           el.style.transform = `scale(${scale.toFixed(3)})`
         }
       }
+      applyIndicator(indicatorRef.current)
+      applyIndicator(mobileIndicatorRef.current)
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -248,5 +253,5 @@ export function useVoiceController(): VoiceController {
     }
   }, [])
 
-  return { state, toast, toastKey, indicatorRef, start, toggleMute, end }
+  return { state, toast, toastKey, indicatorRef, mobileIndicatorRef, start, toggleMute, end }
 }

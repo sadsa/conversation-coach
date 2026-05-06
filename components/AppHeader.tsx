@@ -124,12 +124,16 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
           </div>
 
           <div className="relative flex items-center gap-1 -mr-1">
-            {voice && <VoiceTrigger state={voice.state} onStart={voice.onStart} />}
-            {/* Coachmark anchors to this cluster (`relative` parent), so
-                its position derives from where the trigger actually is —
-                survives any future right-cluster reshuffles. Renders
-                nothing once dismissed or while a session is active. */}
-            {voice && <VoiceCoachmark visible={voice.state === 'idle'} />}
+            {/* Voice trigger + coachmark are desktop-only in the header.
+                On mobile they live in BottomBar where they're thumb-reachable. */}
+            {voice && (
+              <div className="hidden md:flex items-center gap-1">
+                <VoiceTrigger state={voice.state} onStart={voice.onStart} />
+                {/* Coachmark anchors to this cluster (`relative` parent on the
+                    outer div), so its position survives right-cluster changes. */}
+                <VoiceCoachmark visible={voice.state === 'idle'} />
+              </div>
+            )}
             {/* Theme toggle — 44x44 hit area for AAA touch-target compliance,
                 with a smaller 32px visual circle inside so the chrome stays
                 quiet. */}

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
-import { BottomNav } from '@/components/BottomNav'
+import { BottomBar } from '@/components/BottomBar'
 import { VoiceStrip } from '@/components/VoiceStrip'
 import { useVoiceController } from '@/components/VoiceController'
 import { useTranslation } from '@/components/LanguageProvider'
@@ -30,7 +30,15 @@ export function ConditionalNav() {
         voice={{ state: voice.state, onStart: voice.start }}
       />
       <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      <BottomNav />
+      <BottomBar
+        voice={{
+          state: voice.state,
+          mobileIndicatorRef: voice.mobileIndicatorRef,
+          onStart: voice.start,
+          onMute: voice.toggleMute,
+          onEnd: voice.end,
+        }}
+      />
       {voiceActive && (
         <VoiceStrip
           muted={voice.state === 'muted'}

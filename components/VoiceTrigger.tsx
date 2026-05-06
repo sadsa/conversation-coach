@@ -54,6 +54,8 @@ export function VoiceTrigger({ state, onStart }: Props) {
           {isConnecting ? (
             <Icon name="spinner" className="w-4 h-4" />
           ) : (
+            /* Waveform — matches the mobile BottomBar FAB icon so the
+               same affordance reads consistently across viewports. */
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -63,19 +65,13 @@ export function VoiceTrigger({ state, onStart }: Props) {
               stroke="currentColor"
               strokeWidth={2}
               strokeLinecap="round"
-              strokeLinejoin="round"
               aria-hidden="true"
             >
-              {/* Antenna stem + dot */}
-              <line x1="12" y1="4" x2="12" y2="7" />
-              <circle cx="12" cy="3" r="1.5" fill="currentColor" stroke="none" />
-              {/* Head / body */}
-              <rect x="3" y="7" width="18" height="14" rx="4" />
-              {/* Eyes */}
-              <circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none" />
-              {/* Smile */}
-              <path d="M9 17 Q12 19.5 15 17" strokeWidth={1.5} />
+              <line x1="4"  y1="11" x2="4"  y2="13" />
+              <line x1="8"  y1="8"  x2="8"  y2="16" />
+              <line x1="12" y1="5"  x2="12" y2="19" />
+              <line x1="16" y1="8"  x2="16" y2="16" />
+              <line x1="20" y1="11" x2="20" y2="13" />
             </svg>
           )}
         </span>

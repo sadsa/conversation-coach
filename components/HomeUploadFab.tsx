@@ -1,8 +1,8 @@
 // components/HomeUploadFab.tsx
 //
-// Gmail-style floating compose control: one obvious tap target for starting
-// a new upload without dedicating vertical space to a drop zone on the home
-// screen. Desktop keeps a compact text button in the header row instead.
+// Inline header control for starting a new upload. Renders the same compact
+// outlined button on all viewport sizes — the mobile floating FAB was
+// replaced by the voice coach FAB (BottomBar). Desktop never changed.
 
 'use client'
 import { useRef } from 'react'
@@ -14,20 +14,9 @@ interface Props {
   onFile: (file: File) => void
   onPickInvalid?: (message: string) => void
   disabled?: boolean
-  /**
-   * When true, the mobile FAB lifts above the first-run coachmark backdrop
-   * and grows a soft white halo, so it reads as the lit-up subject of the
-   * spotlight. The coachmark itself is rendered separately by HomeClient as
-   * a sibling overlay; this prop just makes sure the FAB pierces through it
-   * instead of being dimmed along with the rest of the page. Always tap
-   * target — never disables interaction. Has no effect on the desktop
-   * inline button (the desktop FAB lives in the header where a coachmark
-   * would be heavyweight).
-   */
-  highlight?: boolean
 }
 
-export function HomeUploadFab({ onFile, onPickInvalid, disabled, highlight }: Props) {
+export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
   const busy = !!disabled
@@ -59,37 +48,16 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled, highlight }: Pr
           onFile(f)
         }}
       />
-      {/* Mobile: extended FAB above bottom nav — labelled so the action is unambiguous.
-          min-w prevents the pill from jiggling between "Upload audio" and "Uploading…".
-          z-index swaps from the resting z-40 to z-50 when the coachmark is
-          visible, so the FAB pierces through the dim backdrop (UploadCoachmark,
-          rendered at z-30) and reads as the spotlight subject. */}
-      <div
-        data-testid="upload-fab-mobile-wrapper"
-        className={`md:hidden fixed right-4 ${highlight ? 'z-50' : 'z-40'}`}
-        style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
-      >
-        <button
-          type="button"
-          onClick={pick}
-          disabled={busy}
-          aria-busy={busy}
-          aria-live="polite"
-          className={`flex h-14 min-w-[10.5rem] items-center justify-center gap-2 rounded-full bg-accent-primary pl-4 pr-5 text-white shadow-lg transition-[box-shadow,transform] hover:bg-accent-primary-hover active:scale-95 disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${highlight ? 'ring-4 ring-white/30 shadow-2xl' : ''}`}
-        >
-          {busy
-            ? <Icon name="spinner" className="w-5 h-5" aria-hidden />
-            : <Icon name="plus" className="w-6 h-6" aria-hidden />}
-          <span className="text-base font-medium">{label}</span>
-        </button>
-      </div>
-      {/* Desktop: inline control in the page header */}
+      {/* Inline header button — same style on all viewport sizes.
+          Touch-friendly height (h-11) on mobile; the home header's
+          flex-wrap layout keeps it beside the greeting on wide screens
+          and stacks it below on narrow ones. */}
       <button
         type="button"
         onClick={pick}
         disabled={busy}
         aria-busy={busy}
-        className="hidden md:inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-colors hover:border-accent-primary hover:text-accent-primary disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
+        className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 h-11 text-sm font-medium text-text-primary shadow-sm transition-colors hover:border-accent-primary hover:text-accent-primary disabled:cursor-wait focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary"
       >
         {busy
           ? <Icon name="spinner" className="w-4 h-4" aria-hidden />
