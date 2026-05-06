@@ -1,8 +1,14 @@
 // components/Icon.tsx
 //
 // Small inline SVG set so we don't pull in an icon dep just for this surface.
-// Keep stroke-width consistent (1.75) and currentColor so we can theme via
-// text-color utilities. Add new icons by appending to ICONS.
+// Most icons are stroke-based (strokeWidth 1.75, currentColor). Filled icons
+// (e.g. waveform from Material Symbols) use a { node, viewBox } entry — the
+// node itself carries fill/stroke overrides so the wrapper defaults don't win.
+// Add new icons by appending to ICONS.
+
+type IconDef =
+  | React.ReactNode
+  | { node: React.ReactNode; viewBox: string }
 
 interface Props {
   name: keyof typeof ICONS
@@ -12,11 +18,15 @@ interface Props {
 }
 
 export function Icon({ name, className = 'w-5 h-5', title, ...rest }: Props) {
-  const path = ICONS[name]
+  const entry = ICONS[name] as IconDef
+  const isComplex = entry !== null && typeof entry === 'object' && 'node' in (entry as object)
+  const node = isComplex ? (entry as { node: React.ReactNode; viewBox: string }).node : entry as React.ReactNode
+  const viewBox = isComplex ? (entry as { node: React.ReactNode; viewBox: string }).viewBox : '0 0 24 24'
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
+      viewBox={viewBox}
       fill="none"
       stroke="currentColor"
       strokeWidth={1.75}
@@ -27,7 +37,7 @@ export function Icon({ name, className = 'w-5 h-5', title, ...rest }: Props) {
       aria-label={title}
       aria-hidden={title ? undefined : (rest['aria-hidden'] ?? true)}
     >
-      {path}
+      {node}
     </svg>
   )
 }
@@ -105,4 +115,10 @@ const ICONS = {
     <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
     <line x1="12" y1="19" x2="12" y2="22" />
   </>,
-} as const
+  // Material Symbols `audio_wave` — filled bars, non-standard viewBox.
+  // fill/stroke overrides on the path win over the SVG wrapper defaults.
+  waveform: {
+    viewBox: '0 -960 960 960',
+    node: <path d="M280-240v-480h80v480h-80ZM440-80v-800h80v800h-80ZM120-400v-160h80v160h-80Zm480 160v-480h80v480h-80Zm160-160v-160h80v160h-80Z" fill="currentColor" stroke="none" />,
+  },
+}
