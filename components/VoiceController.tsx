@@ -53,6 +53,7 @@ export function useVoiceController(): VoiceController {
   const toastTimerRef = useRef<number | null>(null)
   const isMountedRef = useRef(true)
   const startingRef = useRef(false)
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null)
 
   const tRef = useRef(t)
   useEffect(() => { tRef.current = t }, [t])
@@ -166,6 +167,35 @@ export function useVoiceController(): VoiceController {
   }, [state])
 
   useEffect(() => {
+    const sessionActive = state === 'active' || state === 'muted'
+
+    async function acquireWakeLock() {
+      if (!sessionActive || typeof navigator === 'undefined' || !('wakeLock' in navigator)) return
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen')
+      } catch {
+        // Wake lock denied (low battery, etc.) — silent, not critical
+      }
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') acquireWakeLock()
+    }
+
+    if (sessionActive) {
+      acquireWakeLock()
+      document.addEventListener('visibilitychange', onVisibilityChange)
+    } else {
+      wakeLockRef.current?.release()
+      wakeLockRef.current = null
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [state])
+
+  useEffect(() => {
     if (state !== 'active' && state !== 'muted') {
       userRmsRef.current = 0
       agentRmsRef.current = 0
@@ -213,6 +243,8 @@ export function useVoiceController(): VoiceController {
       agentRef.current?.disconnect()
       agentRef.current = null
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+      wakeLockRef.current?.release()
+      wakeLockRef.current = null
     }
   }, [])
 
