@@ -27,9 +27,10 @@ interface Props {
   indicatorRef: React.RefObject<HTMLDivElement>
   onMute: () => void
   onEnd: () => void
+  exiting?: boolean
 }
 
-export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
+export function VoiceStrip({ muted, indicatorRef, onMute, onEnd, exiting }: Props) {
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -47,19 +48,16 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
       role="region"
       aria-label={t('voice.regionAria')}
       aria-keyshortcuts="Escape Space"
-      className="
-        voice-strip-anim
+      className={`
+        voice-strip--solid ${exiting ? 'voice-strip-exit' : 'voice-strip-anim'}
         hidden md:block
         fixed left-0 right-0 z-30
         h-11
-        border-b border-border-subtle
-      "
+        border-b border-white/20
+      `}
       style={{
         top: 'calc(var(--header-height) + env(safe-area-inset-top))',
-        // Bumped from 8% to 12% so the "session is live" cue holds up in
-        // bright sunlight on cheap displays without shouting indoors.
-        background:
-          'color-mix(in oklch, var(--color-surface-elevated) 88%, var(--color-accent-primary) 12%)',
+        background: 'var(--color-accent-primary)',
       }}
     >
       <div
@@ -68,8 +66,8 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
         className="h-full max-w-2xl mx-auto px-4 md:px-10 flex items-center gap-2"
       >
         {/* Indicator: outer div provides 32px hit-area spacing; inner div is
-            the CSS-driven status dot (.voice-indicator handles its own size,
-            background, and box-shadow — no SVG needed here). */}
+            the CSS-driven status dot. voice-strip--solid overrides the dot
+            colours so it remains legible on the solid accent background. */}
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
           <div
             ref={indicatorRef}
@@ -80,19 +78,16 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
           />
         </div>
 
-        {/* Status label — confirms the session is live and its current state.
-            Replaces the empty flex-1 spacer so the middle carries meaning. */}
+        {/* Status label */}
         <div className="flex-1 min-w-0">
-          <span className="text-[11px] text-text-tertiary select-none">
+          <span className="text-[11px] text-white/70 select-none">
             {muted ? t('voice.statusMuted') : t('voice.statusListening')}
           </span>
         </div>
 
-        {/* Keyboard shortcut hint — desktop only because the strip is roomy
-            there. Mobile users don't have a keyboard so the chrome cost
-            isn't worth the signal. Tertiary tone keeps it as a sidenote
-            rather than a competing element. */}
-        <span className="hidden md:inline text-[11px] text-text-tertiary mr-1 select-none whitespace-nowrap">
+        {/* Keyboard shortcut hint — desktop only. Kept quiet so it reads
+            as a footnote, not a competing element. */}
+        <span className="hidden md:inline text-[11px] text-white/40 mr-1 select-none whitespace-nowrap">
           {t('voice.shortcutHint')}
         </span>
 
@@ -103,27 +98,26 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
           aria-pressed={muted}
           className="
             w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-            text-text-secondary hover:text-text-primary
-            aria-pressed:bg-text-tertiary/15 aria-pressed:text-text-tertiary
+            text-white/80 hover:text-white hover:bg-white/15
+            aria-pressed:bg-white/20 aria-pressed:text-white/50
             transition-colors
-            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
+            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white
           "
         >
           <Icon name={muted ? 'mic-off' : 'mic'} className="w-4 h-4" />
         </button>
 
-        {/* End — ml-2 adds 8px on top of gap-2 = 16px total separation from
-            Mute, reducing accidental taps on mobile. Destructive tint signals
-            intent without requiring a confirmation dialog. */}
+        {/* End — ml-2 = 16px total separation from Mute. Red hover tint
+            confirms destructive intent on interaction. */}
         <button
           type="button"
           onClick={onEnd}
           aria-label={t('voice.endAria')}
           className="
             ml-2 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-            text-on-error-surface hover:bg-error-surface
+            text-white/80 hover:text-white hover:bg-white/15 active:bg-rose-500/25
             transition-colors
-            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
+            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white
           "
         >
           <Icon name="close" className="w-4 h-4" />
@@ -134,10 +128,10 @@ export function VoiceStrip({ muted, indicatorRef, onMute, onEnd }: Props) {
       <span aria-live="polite" className="sr-only">
         {t('voice.connectedAnnouncement')}
       </span>
-      {/* Mute-state announcement — fires on toggle only (empty string when
-          unmuted so screen readers don't announce on mount or on unmute). */}
+      {/* Mute-state announcement — announce both directions so SR users
+          hear confirmation when unmuting as well as muting. */}
       <span aria-live="polite" className="sr-only">
-        {muted ? t('voice.indicatorMuted') : ''}
+        {muted ? t('voice.indicatorMuted') : t('voice.statusListening')}
       </span>
     </div>
   )

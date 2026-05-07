@@ -26,6 +26,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
     'nav.back': 'Back',
+    'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
 
     // Auth — login page
@@ -447,6 +448,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
     'nav.back': 'Atrás',
+    'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
 
     // Auth — login page

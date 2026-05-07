@@ -148,6 +148,7 @@
     /* Filled by VoiceStrip on mount; 0px when no voice session is active.
        Keeps `<main>`'s top spacing in lockstep with the strip's slide. */
     --voice-strip-height: 0px;
+    --voice-bottom-height: 0px;
   }
 
   /* Browser-driven scroll-into-view (anchor links, focus(), scrollIntoView)
@@ -374,6 +375,34 @@
     animation: voice-strip-enter 180ms var(--ease-out-quart) both;
   }
 
+  /* Entrance for the bottom-anchored wave mode — fades in rather than
+     sliding so the large gradient bleed doesn't look like a curtain drop. */
+  @keyframes voice-wave-enter {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  .voice-wave-anim {
+    animation: voice-wave-enter 350ms ease-out both;
+  }
+
+  /* Exit for the mobile wave mode — mirrors the entrance duration. */
+  @keyframes voice-wave-exit {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .voice-wave-exit {
+    animation: voice-wave-exit 280ms ease-in both;
+  }
+
+  /* Exit for the desktop strip — slides back up toward the header. */
+  @keyframes voice-strip-exit {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-100%); }
+  }
+  .voice-strip-exit {
+    animation: voice-strip-exit 220ms ease-in both;
+  }
+
   /* Voice widget — audio-flow indicator dot.
      ───────────────────────────────────────────────────────────────────────
      One non-interactive circle that swaps colour based on who's speaking
@@ -407,6 +436,25 @@
     background: var(--color-text-tertiary);
     box-shadow: none;
   }
+  /* When the strip sits on a solid accent background the default token-based
+     dot colours blend in. Override to white-family so the indicator stays
+     legible regardless of theme hue. Used by desktop VoiceStrip. */
+  .voice-strip--solid .voice-indicator {
+    background: rgba(255, 255, 255, 0.45);
+  }
+  .voice-strip--solid .voice-indicator[data-speaker="user"] {
+    background: white;
+    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.22);
+  }
+  .voice-strip--solid .voice-indicator[data-speaker="agent"] {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.15);
+  }
+  .voice-strip--solid .voice-indicator[data-muted="true"] {
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .voice-indicator { transform: none !important; }
   }

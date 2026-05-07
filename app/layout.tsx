@@ -119,27 +119,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               style={{
                 marginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
                 scrollMarginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
-                // Pairs with .voice-strip-anim's slide-down so when the
-                // strip mounts and writes --voice-strip-height: 2.75rem the
-                // page content slides down with it instead of popping. The
-                // global prefers-reduced-motion rule clamps this to 0.01ms.
-                transition: 'margin-top 180ms var(--ease-out-quart)',
+                // paddingBottom grows when the mobile voice controls are
+                // active so bottom content isn't hidden under the wave
+                // surface. --voice-bottom-height is written by VoiceWaveMode.
+                // max() keeps at least 5rem (≈ pb-20) even with no session.
+                paddingBottom: 'max(5rem, calc(var(--voice-bottom-height, 0px) + 0.75rem))',
+                transition: 'margin-top 180ms var(--ease-out-quart), padding-bottom 300ms var(--ease-out-quart)',
               }}
-              // Single, intentional reading column. The app is a reading
-              // surface — transcripts, corrections, written-down queue —
-              // so we commit to a 672px max-width centered on the viewport,
-              // matching the column tradition of newspaper feature pages
-              // and the references in .impeccable.md (Google Recorder,
-              // Gmail mobile). Wider would push line-length past comfort
-              // for body text; a side-rail "dashboard" widget column
-              // would betray the "spacious / patient" brand. Owning the
-              // empty space as a frame is the design decision.
-              //
-              // Bumped horizontal padding on `md:` so the column reads as
-              // intentionally inset on desktop rather than slumped against
-              // a narrower max-width by accident. Top padding also breathes
-              // a notch more on desktop where vertical real-estate is cheap.
-              className="max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 pb-20 focus:outline-none"
+              className="max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none"
             >
               {children}
             </main>

@@ -1,27 +1,37 @@
 // components/BottomBar.tsx
 //
 // Mobile-only bottom chrome: navigation tabs + voice session controls.
-// Replaces the separate BottomNav + header-anchored voice trigger pattern —
-// both surfaces live here where they're thumb-reachable.
 //
-// Voice FAB: accent-tinted pill, same right-4 bottom-right position as the
-// former Upload FAB, so returning users find a familiar affordance in a
-// familiar place. Replaced by an inline session-controls strip (above the
-// nav bar) when a voice session is live — the FAB disappears and mute/end
-// take its slot visually, leaving the nav tabs always accessible below.
+// State machine for the bottom zone:
+//   idle       — Voice FAB (bottom-right) + nav tabs
+//   connecting — VoiceWaveMode (connecting variant: gradient + spinner) +
+//                nav tabs slide away
+//   active     — VoiceWaveMode (wave canvas + mute/end controls) +
+//                nav tabs slide away
+//   muted      — same as active
+//   [exiting]  — VoiceWaveMode plays voice-wave-exit (280ms), then unmounts;
+//                nav tabs slide back in once wave is gone
+//
+// VoiceWaveMode mounts for all non-idle states so the gradient bleed appears
+// immediately on connect — eliminating the jarring idle→immersive jump that
+// occurred when it only mounted on active/muted.
 'use client'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
 import { VoiceCoachmark } from '@/components/VoiceCoachmark'
+import { VoiceWaveMode } from '@/components/VoiceWaveMode'
 import { Icon } from '@/components/Icon'
 import type { VoiceTriggerState } from '@/components/VoiceTrigger'
+import type React from 'react'
 
 interface Props {
   voice: {
     state: VoiceTriggerState
     mobileIndicatorRef: React.RefObject<HTMLDivElement>
+    audioTickCallbackRef: React.MutableRefObject<((u: number, a: number, muted: boolean) => void) | null>
     onStart: () => void
     onMute: () => void
     onEnd: () => void
@@ -32,122 +42,89 @@ export function BottomBar({ voice }: Props) {
   const pathname = usePathname() ?? ''
   const { t } = useTranslation()
 
-  const voiceActive = voice.state === 'active' || voice.state === 'muted'
-  const isConnecting = voice.state === 'connecting'
+  const showWaveModeNow = voice.state !== 'idle'
+
+  // Delayed unmount — keep VoiceWaveMode mounted for the exit animation
+  // duration (280ms) after the session returns to idle.
+  const [showWave, setShowWave] = useState(false)
+  const [waveExiting, setWaveExiting] = useState(false)
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevShowWave = useRef(false)
+
+  useEffect(() => {
+    if (showWaveModeNow && !prevShowWave.current) {
+      // Session started — mount immediately, cancel any pending exit.
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current)
+      setWaveExiting(false)
+      setShowWave(true)
+    } else if (!showWaveModeNow && prevShowWave.current) {
+      // Session ended — play exit animation then unmount.
+      setWaveExiting(true)
+      exitTimerRef.current = setTimeout(() => {
+        setShowWave(false)
+        setWaveExiting(false)
+        exitTimerRef.current = null
+      }, 300)
+    }
+    prevShowWave.current = showWaveModeNow
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current)
+    }
+  }, [showWaveModeNow])
+
+  const voiceState = voice.state === 'idle' ? 'active' : voice.state // fallback unused (showWave guards render)
 
   return (
     <>
-      {/* Session controls strip — slides in above the nav bar when a voice
-          session is live. Mirrors the desktop VoiceStrip visually (same
-          accent-tinted background, same mute/end controls) but lives at
-          the bottom instead of below the header. The voice FAB is hidden
-          while this strip is shown so there's never two concurrent
-          "manage session" surfaces on screen. */}
-      {voiceActive && (
-        <div
-          role="region"
-          aria-label={t('voice.regionAria')}
-          className="md:hidden fixed left-0 right-0 z-30 h-11 flex items-center gap-2 px-4 border-t border-border-subtle voice-strip-anim"
-          style={{
-            bottom: 'calc(4rem + env(safe-area-inset-bottom))',
-            background:
-              'color-mix(in oklch, var(--color-surface-elevated) 88%, var(--color-accent-primary) 12%)',
-          }}
-        >
-          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-            <div
-              ref={voice.mobileIndicatorRef}
-              className="voice-indicator"
-              data-speaker="idle"
-              data-muted={voice.state === 'muted' ? 'true' : 'false'}
-              aria-hidden="true"
-            />
-          </div>
-
-          <span className="flex-1 text-[11px] text-text-tertiary select-none">
-            {voice.state === 'muted' ? t('voice.statusMuted') : t('voice.statusListening')}
-          </span>
-
-          <button
-            type="button"
-            onClick={voice.onMute}
-            aria-label={voice.state === 'muted' ? t('voice.unmuteAria') : t('voice.muteAria')}
-            aria-pressed={voice.state === 'muted'}
-            className="
-              w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-              text-text-secondary hover:text-text-primary
-              aria-pressed:bg-text-tertiary/15 aria-pressed:text-text-tertiary
-              transition-colors
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-            "
-          >
-            <Icon name={voice.state === 'muted' ? 'mic-off' : 'mic'} className="w-4 h-4" />
-          </button>
-
-          {/* ml-2 adds 8px on top of gap-2 = 16px total separation from
-              Mute, reducing accidental taps. Destructive tint signals intent. */}
-          <button
-            type="button"
-            onClick={voice.onEnd}
-            aria-label={t('voice.endAria')}
-            className="
-              ml-2 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-              text-on-error-surface hover:bg-error-surface
-              transition-colors
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-            "
-          >
-            <Icon name="close" className="w-4 h-4" />
-          </button>
-
-          <span aria-live="polite" className="sr-only">
-            {voice.state === 'muted' ? t('voice.indicatorMuted') : ''}
-          </span>
-        </div>
+      {/* Wave mode — mounts on first non-idle state, exits with animation. */}
+      {showWave && (
+        <VoiceWaveMode
+          voiceState={voiceState as 'connecting' | 'active' | 'muted'}
+          audioTickCallbackRef={voice.audioTickCallbackRef}
+          onMute={voice.onMute}
+          onEnd={voice.onEnd}
+          exiting={waveExiting}
+        />
       )}
 
-      {/* Voice FAB — accent-tinted circle above the bottom-right of the nav
-          bar, same position the Upload FAB held. Hidden when a session is
-          active (the strip above takes over). The `fixed` wrapper is the
-          containing block for VoiceCoachmark's `absolute` positioning, so
-          the bubble appears anchored to this button. */}
-      {!voiceActive && (
+      {/* Voice FAB — only while fully idle (guard both the direct state and
+          the delayed showWave flag to avoid a one-render flash during the
+          idle→connecting transition before the effect has fired). */}
+      {voice.state === 'idle' && !showWave && (
         <div
           className="md:hidden fixed right-4 z-40"
           style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
         >
           <button
             type="button"
-            onClick={isConnecting ? undefined : voice.onStart}
-            disabled={isConnecting}
+            onClick={voice.onStart}
             aria-label={t('voice.startAria')}
-            aria-busy={isConnecting || undefined}
             className="
               w-14 h-14 rounded-full flex items-center justify-center
               bg-accent-primary text-white shadow-lg
               transition-[box-shadow,transform] hover:bg-accent-primary-hover active:scale-95
-              disabled:cursor-wait
               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white
             "
           >
-            {isConnecting ? (
-              <Icon name="spinner" className="w-5 h-5" aria-hidden />
-            ) : (
-              <Icon name="waveform" className="w-6 h-6" aria-hidden />
-            )}
+            <Icon name="waveform" className="w-6 h-6" aria-hidden />
           </button>
 
-          {/* Coachmark — direction='up' positions the bubble above this
-              button, right-aligned so it doesn't clip the right viewport edge. */}
           <VoiceCoachmark visible={voice.state === 'idle'} direction="up" />
         </div>
       )}
 
-      {/* Navigation tabs — always visible on mobile regardless of voice state. */}
+      {/* Navigation tabs — slide off-screen while wave mode is showing
+          (including during exit animation) so they don't peek behind the
+          fading gradient. Slide back in once the wave is fully gone. */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-border-subtle"
+        className={`
+          md:hidden fixed bottom-0 left-0 right-0 z-30
+          bg-surface border-t border-border-subtle
+          transition-transform duration-200 ease-in-out
+          ${showWave ? 'translate-y-full' : 'translate-y-0'}
+        `}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        aria-label="Quick navigation"
+        aria-label={t('nav.quickNavAria')}
       >
         <div className="flex h-16 max-w-2xl mx-auto">
           {NAV_TABS.map(tab => {
@@ -168,6 +145,16 @@ export function BottomBar({ voice }: Props) {
           })}
         </div>
       </nav>
+
+      {/* Hidden div keeps mobileIndicatorRef valid for the controller's
+          applyIndicator() call. The dot is invisible but the ref is live. */}
+      <div
+        ref={voice.mobileIndicatorRef}
+        className="sr-only"
+        aria-hidden
+        data-speaker="idle"
+        data-muted="false"
+      />
     </>
   )
 }

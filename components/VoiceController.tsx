@@ -25,6 +25,7 @@ export interface VoiceController {
   toastKey: number
   indicatorRef: React.RefObject<HTMLDivElement>
   mobileIndicatorRef: React.RefObject<HTMLDivElement>
+  audioTickCallbackRef: React.MutableRefObject<((u: number, a: number, muted: boolean) => void) | null>
   start: () => void
   toggleMute: () => void
   end: () => void
@@ -51,6 +52,7 @@ export function useVoiceController(): VoiceController {
   const agentRmsRef = useRef(0)
   const indicatorRef = useRef<HTMLDivElement>(null)
   const mobileIndicatorRef = useRef<HTMLDivElement>(null)
+  const audioTickCallbackRef = useRef<((u: number, a: number, muted: boolean) => void) | null>(null)
   const rafRef = useRef<number | null>(null)
   const toastTimerRef = useRef<number | null>(null)
   const isMountedRef = useRef(true)
@@ -232,6 +234,7 @@ export function useVoiceController(): VoiceController {
       }
       applyIndicator(indicatorRef.current)
       applyIndicator(mobileIndicatorRef.current)
+      audioTickCallbackRef.current?.(u, a, state === 'muted')
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -253,5 +256,5 @@ export function useVoiceController(): VoiceController {
     }
   }, [])
 
-  return { state, toast, toastKey, indicatorRef, mobileIndicatorRef, start, toggleMute, end }
+  return { state, toast, toastKey, indicatorRef, mobileIndicatorRef, audioTickCallbackRef, start, toggleMute, end }
 }
