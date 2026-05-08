@@ -28,6 +28,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.back': 'Back',
     'nav.openMenu': 'Open menu',
     'nav.closeMenu': 'Close menu',
+    'nav.switchToLight': 'Switch to light mode',
+    'nav.switchToDark': 'Switch to dark mode',
     'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
 
@@ -452,6 +454,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.back': 'Atrás',
     'nav.openMenu': 'Abrir menú',
     'nav.closeMenu': 'Cerrar menú',
+    'nav.switchToLight': 'Cambiar a modo claro',
+    'nav.switchToDark': 'Cambiar a modo oscuro',
     'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
 

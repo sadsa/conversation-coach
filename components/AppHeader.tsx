@@ -103,11 +103,14 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
               </svg>
             </button>
 
+            {/* Back arrow — mobile only on sub-routes. Desktop already shows
+                the full inline nav, so the back arrow is redundant there —
+                the "Recordings" tab is the return affordance. */}
             {backHref && (
               <Link
                 href={backHref}
                 aria-label={t('nav.back')}
-                className="p-2 md:-ml-2 text-text-secondary hover:text-text-primary transition-colors"
+                className="md:hidden p-2.5 -ml-1 text-text-secondary hover:text-text-primary transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -166,7 +169,7 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
                 quiet. */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              aria-label={theme === 'dark' ? t('nav.switchToLight') : t('nav.switchToDark')}
               className="w-11 h-11 flex items-center justify-center flex-shrink-0 group"
             >
               <span className="w-8 h-8 rounded-full border border-border-subtle flex items-center justify-center text-text-secondary group-hover:text-text-primary group-hover:border-border transition-colors">

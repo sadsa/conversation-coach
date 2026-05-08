@@ -92,7 +92,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
           warm-cream surface underneath. */}
       <div
         data-testid="nav-backdrop"
-        className={`fixed inset-0 z-40 bg-scrim transition-opacity duration-300 ${
+        className={`fixed inset-0 z-30 bg-scrim transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
