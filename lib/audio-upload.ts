@@ -11,9 +11,10 @@ export const ACCEPTED_TYPES = [
   'audio/x-m4a',
   'audio/ogg',
   'audio/opus',
+  'audio/aac',
 ] as const
 
-export const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.opus'] as const
+export const ACCEPTED_EXTENSIONS = ['.mp3', '.m4a', '.wav', '.ogg', '.opus', '.aac'] as const
 
 export const MAX_BYTES = 500 * 1024 * 1024
 

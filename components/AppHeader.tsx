@@ -6,6 +6,7 @@ import { useTheme } from '@/components/ThemeProvider'
 import { useTranslation } from '@/components/LanguageProvider'
 import { VoiceTrigger, type VoiceTriggerState } from '@/components/VoiceTrigger'
 import { VoiceCoachmark } from '@/components/VoiceCoachmark'
+import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
 
 interface AppHeaderProps {
   isOpen: boolean
@@ -85,12 +86,13 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
           className="max-w-2xl mx-auto px-4 md:px-10 flex items-center justify-between gap-2"
         >
           <div className="flex items-center gap-1 min-w-0">
+            {/* Hamburger — mobile only; desktop uses inline nav links below */}
             <button
               onClick={onOpen}
-              aria-label="Open menu"
+              aria-label={t('nav.openMenu')}
               aria-expanded={isOpen}
               aria-controls="nav-drawer"
-              className="p-2.5 -ml-2.5 text-text-secondary hover:text-text-primary transition-colors"
+              className="md:hidden p-2.5 -ml-2.5 text-text-secondary hover:text-text-primary transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -105,7 +107,7 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
               <Link
                 href={backHref}
                 aria-label={t('nav.back')}
-                className="p-2 text-text-secondary hover:text-text-primary transition-colors"
+                className="p-2 md:-ml-2 text-text-secondary hover:text-text-primary transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
@@ -116,11 +118,36 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
               </Link>
             )}
 
+            {/* Section label — mobile only; desktop shows the inline nav */}
             {showSectionLabel && (
-              <span className="ml-1 text-sm font-medium text-text-primary truncate">
+              <span className="md:hidden ml-1 text-sm font-medium text-text-primary truncate">
                 {sectionLabel}
               </span>
             )}
+
+            {/* Inline nav links — desktop only */}
+            <nav
+              className="hidden md:flex items-center gap-0.5 -ml-1"
+              aria-label={t('nav.quickNavAria')}
+            >
+              {NAV_TABS.map(tab => {
+                const active = isTabActive(tab, pathname ?? '')
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-accent-chip text-accent-primary'
+                        : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-elevated'
+                    }`}
+                  >
+                    {t(tab.labelKey)}
+                  </Link>
+                )
+              })}
+            </nav>
           </div>
 
           <div className="relative flex items-center gap-1 -mr-1">

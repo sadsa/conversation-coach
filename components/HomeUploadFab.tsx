@@ -32,7 +32,7 @@ export function HomeUploadFab({ onFile, onPickInvalid, disabled }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".mp3,.m4a,.wav,.opus"
+        accept=".mp3,.m4a,.wav,.ogg,.opus,.aac"
         className="hidden"
         aria-hidden
         tabIndex={-1}

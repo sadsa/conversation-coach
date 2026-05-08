@@ -117,6 +117,18 @@ export function TranscriptView({
     }
   }
 
+  // Auto-advance after saving to the Write list — mirrors the Write page's
+  // "archive-and-next" pattern. Advance to the next annotation; close the
+  // sheet if this was the last one.
+  function handleAnnotationSaved(annotationId: string, practiceItemId: string) {
+    onAnnotationAdded(annotationId, practiceItemId)
+    if (activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1) {
+      setActiveAnnotationId(orderedAnnotations[activeIndex + 1].id)
+    } else {
+      setActiveAnnotationId(null)
+    }
+  }
+
   // When the active annotation changes, scroll the corresponding mark into a
   // visible band so the user keeps their place. On mobile the sheet covers
   // the bottom ~55%, so we aim for the upper third. On desktop the sheet is
@@ -272,7 +284,7 @@ export function TranscriptView({
         sessionId={sessionId}
         practiceItemId={activeAnnotation ? (addedAnnotations.get(activeAnnotation.id) ?? null) : null}
         isWrittenDown={activeAnnotation ? writtenAnnotations.has(activeAnnotation.id) : false}
-        onAnnotationAdded={onAnnotationAdded}
+        onAnnotationAdded={handleAnnotationSaved}
         onAnnotationRemoved={onAnnotationRemoved}
         onAnnotationWritten={onAnnotationWritten}
         onAnnotationUnwritten={onAnnotationUnwritten}

@@ -26,6 +26,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
     'nav.back': 'Back',
+    'nav.openMenu': 'Open menu',
+    'nav.closeMenu': 'Close menu',
     'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
 
@@ -101,10 +103,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Drop zone
     'dropzone.title': 'Upload conversation',
-    'dropzone.formats': 'MP3, M4A, WAV, OPUS',
+    'dropzone.formats': 'MP3, M4A, WAV, OGG, OPUS, AAC',
     'dropzone.browse': 'Browse',
     'dropzone.ariaLabel': 'Upload audio file',
-    'dropzone.errorFormat': 'Unsupported format. Use MP3, M4A, WAV, or OPUS.',
+    'dropzone.errorFormat': 'Unsupported format. Use MP3, M4A, WAV, OGG, OPUS, or AAC.',
     'dropzone.errorSize': 'File too large. Maximum is 500 MB.',
 
     // Pending upload card
@@ -126,7 +128,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Delete',
     'session.deleteTitle': 'Delete session?',
-    'session.deleteWarning': 'will be permanently deleted, along with all its annotations and any saved corrections from it.',
+    'session.deleteWarning': 'will be permanently deleted, along with all its corrections and any you\'ve saved to your Write list.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
     'session.noSessions': 'No sessions yet — tap Upload to add your first conversation.',
@@ -255,7 +257,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // pair it with a separate "Added to your Write list" hint paragraph
     // underneath, which was redundant.
     'annotation.savePrimary': 'Save to my Write list',
-    'annotation.savedPrimary': 'Added to write list',
+    'annotation.savedPrimary': 'Added to my Write list',
     'annotation.savePrimaryAria': 'Save this correction to your Write list',
     'annotation.savedPrimaryAria': 'Remove this correction from your Write list',
     // Quiet secondary "this correction wasn't useful" affordance
@@ -448,6 +450,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
     'nav.back': 'Atrás',
+    'nav.openMenu': 'Abrir menú',
+    'nav.closeMenu': 'Cerrar menú',
     'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
 
@@ -506,7 +510,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.coachmarkDismiss': 'Cerrar consejo',
     'home.revisitTutorial': 'Ver el tutorial otra vez',
     'home.remindersAria': 'Correcciones guardadas',
-    'home.allCaughtUp': 'Todo al día — nada para anotar por ahora.',
+    'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Conversaciones recientes',
     'home.recentShowAll': 'Mostrar las {n}',
     'home.recentShowFewer': 'Mostrar menos',
@@ -523,10 +527,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Drop zone
     'dropzone.title': 'Subir conversación',
-    'dropzone.formats': 'MP3, M4A, WAV, OPUS',
+    'dropzone.formats': 'MP3, M4A, WAV, OGG, OPUS, AAC',
     'dropzone.browse': 'Explorar',
     'dropzone.ariaLabel': 'Subir archivo de audio',
-    'dropzone.errorFormat': 'Formato no compatible. Usá MP3, M4A, WAV, u OPUS.',
+    'dropzone.errorFormat': 'Formato no compatible. Usá MP3, M4A, WAV, OGG, OPUS, o AAC.',
     'dropzone.errorSize': 'Archivo demasiado grande. El máximo es 500 MB.',
 
     // Pending upload card
@@ -548,7 +552,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Eliminar',
     'session.deleteTitle': '¿Eliminar sesión?',
-    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus anotaciones y las correcciones guardadas de esta sesión.',
+    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus correcciones y las que guardaste en tu lista de Anotar.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
     'session.noSessions': 'Todavía no hay sesiones — tocá Subir para agregar tu primera conversación.',
@@ -645,7 +649,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.legend.green': 'escritas',
     'transcript.openCorrection': 'Abrir corrección',
     'transcript.themRevealHint': 'Tocá para leer',
-    'transcript.markState.written': 'anotado',
+    'transcript.markState.written': 'escrito',
     'transcript.markState.saved': 'guardado',
     'transcript.markState.unreviewed': 'pendiente',
 
@@ -678,7 +682,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // confirmación por sí solo y eliminamos el cartel separado que decía
     // "Agregada a tu lista".
     'annotation.savePrimary': 'Guardar en mi lista',
-    'annotation.savedPrimary': 'Agregada a tu lista',
+    'annotation.savedPrimary': 'Agregada a mi lista',
     'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Anotar',
     'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Anotar',
     // Quiet secondary "this correction wasn't useful" affordance

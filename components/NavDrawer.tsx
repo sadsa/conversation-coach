@@ -119,7 +119,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
           <button
             ref={closeButtonRef}
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t('nav.closeMenu')}
             className="p-2.5 -ml-2.5 text-text-secondary hover:text-text-primary transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
