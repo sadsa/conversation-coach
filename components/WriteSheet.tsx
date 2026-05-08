@@ -26,7 +26,6 @@ import { Icon } from '@/components/Icon'
 import { DockedSheet } from '@/components/DockedSheet'
 import { IconButton } from '@/components/IconButton'
 import { NavHint } from '@/components/NavHint'
-import { ImportancePill } from '@/components/ImportancePill'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
 import { CorrectionInContext } from '@/components/CorrectionInContext'
 import { buttonStyles } from '@/components/Button'
@@ -169,7 +168,6 @@ export function WriteSheet({
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lastFailedAction, setLastFailedAction] = useState<'toggle' | 'delete' | null>(null)
-  const [noteExpanded, setNoteExpanded] = useState(false)
 
   const isOpen = item !== null
 
@@ -182,7 +180,6 @@ export function WriteSheet({
     setOverflowOpen(false)
     setErrorMessage(null)
     setLastFailedAction(null)
-    setNoteExpanded(false)
   }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
@@ -337,20 +334,6 @@ export function WriteSheet({
           {item.explanation}
         </p>
 
-        <div className="space-y-2">
-          <ImportancePill
-            score={item.importance_score}
-            note={item.importance_note}
-            expanded={noteExpanded}
-            onToggle={() => setNoteExpanded(v => !v)}
-            toggleAriaKey="writeList.importanceToggleAria"
-          />
-          {noteExpanded && item.importance_note && (
-            <p className="text-text-secondary text-sm leading-relaxed pl-1">
-              {item.importance_note}
-            </p>
-          )}
-        </div>
       </div>
 
       <div role="status" aria-live="polite" className="mt-4 min-h-[1rem]">

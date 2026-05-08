@@ -37,7 +37,6 @@ import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { buttonStyles } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { ImportancePill } from '@/components/ImportancePill'
 interface Props {
   annotation: Annotation
   sessionId: string
@@ -75,7 +74,6 @@ export function AnnotationCard({
    *  happened" without needing a toast. */
   const [justSaved, setJustSaved] = useState(false)
   const justSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   useEffect(() => {
     setPracticeItemId(initialPracticeItemId)
@@ -83,7 +81,6 @@ export function AnnotationCard({
     setErrorMessage(null)
     setLastFailedAction(null)
     setJustSaved(false)
-    setImportanceExpanded(false)
     if (justSavedTimer.current) {
       clearTimeout(justSavedTimer.current)
       justSavedTimer.current = null
@@ -264,19 +261,6 @@ export function AnnotationCard({
         {annotation.explanation}
       </p>
 
-      <div className="space-y-2">
-        <ImportancePill
-          score={annotation.importance_score}
-          note={annotation.importance_note}
-          expanded={importanceExpanded}
-          onToggle={() => setImportanceExpanded(v => !v)}
-        />
-        {importanceExpanded && annotation.importance_note && (
-          <p className="text-text-secondary text-sm leading-relaxed pl-1">
-            {annotation.importance_note}
-          </p>
-        )}
-      </div>
 
       {/* Action region — primary verb above, quiet secondary below. The
           primary carries `data-initial-focus` so DockedSheet's open lifecycle
