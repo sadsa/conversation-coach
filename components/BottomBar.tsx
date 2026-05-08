@@ -25,13 +25,14 @@ import { VoiceCoachmark } from '@/components/VoiceCoachmark'
 import { VoiceWaveMode } from '@/components/VoiceWaveMode'
 import { Icon } from '@/components/Icon'
 import type { VoiceTriggerState } from '@/components/VoiceTrigger'
+import type { VoiceTickCallback } from '@/components/VoiceController'
 import type React from 'react'
 
 interface Props {
   voice: {
     state: VoiceTriggerState
     mobileIndicatorRef: React.RefObject<HTMLDivElement>
-    audioTickCallbackRef: React.MutableRefObject<((u: number, a: number, muted: boolean) => void) | null>
+    audioTickCallbacksRef: React.MutableRefObject<Set<VoiceTickCallback>>
     onStart: () => void
     onMute: () => void
     onEnd: () => void
@@ -80,7 +81,7 @@ export function BottomBar({ voice }: Props) {
       {showWave && (
         <VoiceWaveMode
           voiceState={voiceState as 'connecting' | 'active' | 'muted'}
-          audioTickCallbackRef={voice.audioTickCallbackRef}
+          audioTickCallbacksRef={voice.audioTickCallbacksRef}
           onMute={voice.onMute}
           onEnd={voice.onEnd}
           exiting={waveExiting}

@@ -60,7 +60,7 @@ export function ConditionalNav() {
         voice={{
           state: voice.state,
           mobileIndicatorRef: voice.mobileIndicatorRef,
-          audioTickCallbackRef: voice.audioTickCallbackRef,
+          audioTickCallbacksRef: voice.audioTickCallbacksRef,
           onStart: voice.start,
           onMute: voice.toggleMute,
           onEnd: voice.end,
@@ -69,7 +69,7 @@ export function ConditionalNav() {
       {showStrip && (
         <VoiceStrip
           muted={voice.state === 'muted'}
-          indicatorRef={voice.indicatorRef}
+          audioTickCallbacksRef={voice.audioTickCallbacksRef}
           onMute={voice.toggleMute}
           onEnd={voice.end}
           exiting={stripExiting}

@@ -19,13 +19,18 @@ export interface VoiceToast {
   retryable?: boolean
 }
 
+export type VoiceTickCallback = (u: number, a: number, muted: boolean) => void
+
 export interface VoiceController {
   state: VoiceControllerState
   toast: VoiceToast | null
   toastKey: number
   indicatorRef: React.RefObject<HTMLDivElement>
   mobileIndicatorRef: React.RefObject<HTMLDivElement>
-  audioTickCallbackRef: React.MutableRefObject<((u: number, a: number, muted: boolean) => void) | null>
+  // A Set of tick subscribers, so mobile and desktop voice surfaces can
+  // both register their own audio-reactive bars without overwriting each
+  // other (was a single-callback ref previously).
+  audioTickCallbacksRef: React.MutableRefObject<Set<VoiceTickCallback>>
   start: () => void
   toggleMute: () => void
   end: () => void
@@ -52,7 +57,7 @@ export function useVoiceController(): VoiceController {
   const agentRmsRef = useRef(0)
   const indicatorRef = useRef<HTMLDivElement>(null)
   const mobileIndicatorRef = useRef<HTMLDivElement>(null)
-  const audioTickCallbackRef = useRef<((u: number, a: number, muted: boolean) => void) | null>(null)
+  const audioTickCallbacksRef = useRef<Set<VoiceTickCallback>>(new Set())
   const rafRef = useRef<number | null>(null)
   const toastTimerRef = useRef<number | null>(null)
   const isMountedRef = useRef(true)
@@ -234,7 +239,10 @@ export function useVoiceController(): VoiceController {
       }
       applyIndicator(indicatorRef.current)
       applyIndicator(mobileIndicatorRef.current)
-      audioTickCallbackRef.current?.(u, a, state === 'muted')
+      // Fan out to every subscriber. Set iteration is stable in JS and
+      // safe against subscribers added/removed during iteration; the
+      // controller calls them all once per RAF tick.
+      audioTickCallbacksRef.current.forEach((cb) => cb(u, a, state === 'muted'))
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -256,5 +264,5 @@ export function useVoiceController(): VoiceController {
     }
   }, [])
 
-  return { state, toast, toastKey, indicatorRef, mobileIndicatorRef, audioTickCallbackRef, start, toggleMute, end }
+  return { state, toast, toastKey, indicatorRef, mobileIndicatorRef, audioTickCallbacksRef, start, toggleMute, end }
 }
