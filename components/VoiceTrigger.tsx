@@ -5,12 +5,9 @@
 // active — the VoiceStrip below the header is the affordance during a
 // session; having both creates a "two mic buttons" problem.
 //
-// 2026-05 bolder pass: on `lg:` breakpoints (≥1024px) the trigger
-// expands into a labelled pill — chip on the left, "Talk it through"
-// label on the right, both wrapped in a single accent-tinted pill. This
-// gives the desktop trigger the visual weight it deserves: it's the
-// product's headline feature ("Ask the coach anything"), not a settings
-// utility. Below `lg` the chip-only treatment stays.
+// 2026-05 bolder pass: chip bumped from 32×32 to 36×36 so it reads as
+// a primary affordance rather than a settings utility next to the theme
+// toggle. Chip-only — no label.
 //
 // Inner chip uses an accent-tinted fill (bg-accent-chip) so it reads as
 // a *primary affordance* rather than a passive utility icon — otherwise
@@ -44,7 +41,7 @@ export function VoiceTrigger({ state, onStart }: Props) {
         disabled={isConnecting}
         className="
           group h-11 flex items-center flex-shrink-0 -mr-1
-          pl-0.5 pr-0.5 lg:pr-3 gap-2
+          pl-0.5 pr-0.5 gap-2
           rounded-full
           disabled:opacity-60
           transition-colors
@@ -69,13 +66,6 @@ export function VoiceTrigger({ state, onStart }: Props) {
           )}
         </span>
 
-        {/* Label — `lg:` and up. The pill's expanded state. Below lg the
-            chip stands alone (mobile is hidden via the AppHeader wrapper).
-            During connecting, swap the label to "Connecting…" so the
-            spinner has matching copy. */}
-        <span className="hidden lg:inline text-sm font-medium text-text-primary select-none whitespace-nowrap">
-          {isConnecting ? t('voice.connecting') : t('voice.startLabel')}
-        </span>
       </button>
 
       {/* Polite live region — fires whenever connecting flips on so
