@@ -35,6 +35,7 @@ export function VoiceTrigger({ state, onStart }: Props) {
     <>
       <button
         type="button"
+        data-sheet-preserve
         onClick={isConnecting ? undefined : onStart}
         aria-label={t('voice.startAria')}
         aria-busy={isConnecting || undefined}

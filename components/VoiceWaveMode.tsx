@@ -51,8 +51,8 @@ export function VoiceWaveMode({ voiceState, audioTickCallbacksRef, onMute, onEnd
   return (
     <div
       aria-hidden={connecting ? true : undefined}
-      className={`md:hidden fixed left-0 right-0 bottom-0 ${animClass}`}
-      style={{ height: TOTAL_HEIGHT, zIndex: 28 }}
+      className={`md:hidden fixed left-0 right-0 bottom-0 z-[28] ${animClass}`}
+      style={{ height: TOTAL_HEIGHT }}
     >
       {/* Surface + top border to define the strip edge against page content. */}
       <div aria-hidden className="absolute inset-0 bg-surface border-t border-border-subtle" />

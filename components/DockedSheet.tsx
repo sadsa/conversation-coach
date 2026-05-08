@@ -118,6 +118,9 @@ export function DockedSheet({
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
+        // Stop propagation so concurrent listeners (e.g. the voice controller's
+        // Escape handler) don't also fire — the innermost layer wins.
+        e.stopPropagation()
         onClose()
       } else if (e.key === 'ArrowLeft' && hasPrev) {
         onPrev?.()
@@ -131,8 +134,11 @@ export function DockedSheet({
         insidePointerRef.current = false
         return
       }
+      const target = e.target as Element | null
+      // Always preserve clicks on elements that have opted out of
+      // closing the sheet (e.g. the voice trigger FAB).
+      if (target?.closest('[data-sheet-preserve]')) return
       if (preserveOutsideSelector) {
-        const target = e.target as Element | null
         if (target?.closest(preserveOutsideSelector)) return
       }
       onClose()
@@ -239,8 +245,10 @@ export function DockedSheet({
       // (interpolating into the className string would not get picked up).
       style={{ '--sheet-mobile-max-h': mobileMaxHeight } as React.CSSProperties}
       className={`
-        fixed left-0 right-0 bottom-0 z-40
-        md:left-auto md:top-11 md:right-0 md:bottom-0 md:w-[400px]
+        fixed left-0 right-0 z-20
+        bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0
+        md:left-auto md:right-0 md:w-[400px]
+        md:top-[calc(var(--header-height)+var(--voice-strip-height,0px)+env(safe-area-inset-top))]
         bg-surface-elevated border-t border-border md:border-t-0 md:border-l
         shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.18)] md:shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.12)]
         rounded-t-2xl md:rounded-none

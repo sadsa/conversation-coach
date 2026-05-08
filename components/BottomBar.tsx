@@ -93,11 +93,12 @@ export function BottomBar({ voice }: Props) {
           idle→connecting transition before the effect has fired). */}
       {voice.state === 'idle' && !showWave && (
         <div
-          className="md:hidden fixed right-4 z-40"
+          className="md:hidden fixed right-4 z-10"
           style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
         >
           <button
             type="button"
+            data-sheet-preserve
             onClick={voice.onStart}
             aria-label={t('voice.startAria')}
             className="
