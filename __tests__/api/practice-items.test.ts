@@ -204,6 +204,45 @@ describe('PATCH /api/practice-items/:id', () => {
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ written_down: true }))
   })
 
+  it('supports async route params (Next dynamic context)', async () => {
+    vi.resetModules()
+    const updateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'practice_items') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { session_id: 'session-1' }, error: null }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({ eq: updateEq }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+              }),
+            }),
+          }),
+        }
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const { PATCH } = await import('@/app/api/practice-items/[id]/route')
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ written_down: true }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'item-1' }) } as any)
+    expect(res.status).toBe(200)
+    expect(updateEq).toHaveBeenCalledWith('id', 'item-1')
+  })
+
   it('returns 400 when no fields provided', async () => {
     vi.resetModules()
     const mockDb = {
@@ -274,5 +313,39 @@ describe('DELETE /api/practice-items/:id', () => {
     const req = new NextRequest('http://localhost', { method: 'DELETE' })
     const res = await DELETE(req, { params: { id: 'item-1' } })
     expect(res.status).toBe(200)
+  })
+
+  it('supports async route params (Next dynamic context)', async () => {
+    const deleteEq = vi.fn().mockResolvedValue({ error: null })
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'practice_items') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { session_id: 'session-1' }, error: null }),
+              }),
+            }),
+            delete: vi.fn().mockReturnValue({ eq: deleteEq }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
+              }),
+            }),
+          }),
+        }
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const { DELETE } = await import('@/app/api/practice-items/[id]/route')
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: Promise.resolve({ id: 'item-1' }) } as any)
+    expect(res.status).toBe(200)
+    expect(deleteEq).toHaveBeenCalledWith('id', 'item-1')
   })
 })
