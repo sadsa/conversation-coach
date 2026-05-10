@@ -16,6 +16,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Button } from '@/components/Button'
+import { IconButton } from '@/components/IconButton'
+import { Modal } from '@/components/Modal'
+import { Icon } from '@/components/Icon'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { SessionStatus, ErrorStage } from '@/lib/types'
 
@@ -85,9 +88,14 @@ export function PipelineStatus({
   const [showAnalysisRetry, setShowAnalysisRetry] = useState(false)
   const [retryingAnalysis, setRetryingAnalysis] = useState(false)
   const [notifyDismissed, setNotifyDismissed] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
+  const [cancellingSession, setCancellingSession] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
   const statusRef = useRef(initialStatus)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const analysisRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   // Per-stage elapsed timer. Resets whenever the active stage changes so the
   // user can see "how long has this current step been running" rather than a
@@ -164,6 +172,20 @@ export function PipelineStatus({
     return () => { if (analysisRetryTimerRef.current) clearTimeout(analysisRetryTimerRef.current) }
   }, [currentStatus])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setMenuOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
   async function handleRetryAnalysis() {
     setRetryingAnalysis(true)
     setShowAnalysisRetry(false)
@@ -181,6 +203,24 @@ export function PipelineStatus({
       } else {
         router.push(`/sessions/${sessionId}/status`)
       }
+    }
+  }
+
+  async function handleCancelSession() {
+    setCancelError(null)
+    setCancellingSession(true)
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        setCancelError(t('pipeline.cancelSessionError'))
+        return
+      }
+      setConfirmCancelOpen(false)
+      router.push('/')
+    } catch {
+      setCancelError(t('pipeline.cancelSessionError'))
+    } finally {
+      setCancellingSession(false)
     }
   }
 
@@ -220,10 +260,49 @@ export function PipelineStatus({
       : t('pipeline.leaveBreak')
   const activeHints = STAGE_HINTS[currentStatus] ?? []
   const activeHint = activeHints[hintIndex] ?? ''
+  const canCancelSession = currentStatus === 'uploading' || currentStatus === 'transcribing'
+
+  useEffect(() => {
+    if (!canCancelSession) setMenuOpen(false)
+  }, [canCancelSession])
 
   return (
     <div className="space-y-8">
-      <Meta createdAt={createdAt} durationSeconds={durationSeconds} t={t} uiLanguage={uiLanguage} />
+      <div className="flex items-start justify-between gap-3">
+        <Meta createdAt={createdAt} durationSeconds={durationSeconds} t={t} uiLanguage={uiLanguage} />
+        {canCancelSession && (
+          <div className="relative shrink-0" ref={menuRef}>
+            <IconButton
+              icon="more"
+              size="lg"
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label={t('pipeline.moreActions')}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            />
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-1 z-30 min-w-[14rem] bg-surface-elevated border border-border rounded-lg shadow-lg overflow-hidden"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setCancelError(null)
+                    setConfirmCancelOpen(true)
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-status-error hover:bg-bg transition-colors"
+                >
+                  <Icon name="trash" className="w-4 h-4" />
+                  {t('pipeline.cancelSession')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Inline notification opt-in. Only appears when permission is `default`,
           contextual to the wait so it lands as helpful rather than nagging. */}
@@ -338,6 +417,43 @@ export function PipelineStatus({
           </Button>
         </div>
       )}
+
+      <Modal
+        isOpen={confirmCancelOpen}
+        title={
+          <div className="flex items-center gap-2 text-status-error">
+            <Icon name="alert" className="w-5 h-5" />
+            <span>{t('pipeline.cancelSessionTitle')}</span>
+          </div>
+        }
+        onClose={() => { if (!cancellingSession) setConfirmCancelOpen(false) }}
+      >
+        <div className="space-y-5">
+          <p className="text-text-secondary leading-relaxed">{t('pipeline.cancelSessionBody')}</p>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmCancelOpen(false)}
+              disabled={cancellingSession}
+              className="px-4 py-2 rounded-lg border border-border text-text-secondary hover:bg-bg disabled:opacity-50 transition-colors"
+            >
+              {t('reanalyse.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSession}
+              disabled={cancellingSession}
+              className="px-4 py-2 rounded-lg bg-status-error text-white hover:opacity-90 disabled:opacity-50 transition-opacity inline-flex items-center justify-center gap-2"
+            >
+              {cancellingSession && <Icon name="spinner" className="w-4 h-4" />}
+              {t('pipeline.cancelSessionConfirm')}
+            </button>
+          </div>
+          {cancelError && (
+            <p role="alert" className="text-status-error text-sm">{cancelError}</p>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

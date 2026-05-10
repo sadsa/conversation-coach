@@ -112,4 +112,5 @@ describe('HomeClient — share pickup', () => {
     await new Promise(r => setTimeout(r, 100))
     expect(queryAllByText('PTT-20260327.opus')).toHaveLength(0)
   })
+
 })

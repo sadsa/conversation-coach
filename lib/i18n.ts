@@ -164,6 +164,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorGenericDetail':
       'Your recording is safe. Try again in a moment, or come back later.',
     'pipeline.retry': 'Try again',
+    'pipeline.moreActions': 'More actions',
+    'pipeline.cancelSession': 'Cancel session',
+    'pipeline.cancelSessionTitle': 'Cancel this session?',
+    'pipeline.cancelSessionBody': 'This will stop processing and delete this session and its audio. This action can\'t be undone.',
+    'pipeline.cancelSessionConfirm': 'Cancel session',
+    'pipeline.cancelSessionError': 'Couldn\'t cancel the session — try again.',
     'pipeline.estimatedTime': 'Usually ready in ~{n} min',
     'pipeline.takingLong':
       'Taking longer than expected — longer recordings can take a few minutes.',
@@ -591,6 +597,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorGenericDetail':
       'Tu grabación está a salvo. Probá de nuevo en un momento o volvé más tarde.',
     'pipeline.retry': 'Probar de nuevo',
+    'pipeline.moreActions': 'Más acciones',
+    'pipeline.cancelSession': 'Cancelar sesión',
+    'pipeline.cancelSessionTitle': '¿Cancelar esta sesión?',
+    'pipeline.cancelSessionBody': 'Esto detendrá el procesamiento y eliminará esta sesión y su audio. Esta acción no se puede deshacer.',
+    'pipeline.cancelSessionConfirm': 'Cancelar sesión',
+    'pipeline.cancelSessionError': 'No se pudo cancelar la sesión — intentá de nuevo.',
     'pipeline.estimatedTime': 'Suele estar listo en ~{n} min',
     'pipeline.takingLong':
       'Está tardando más de lo esperado — las grabaciones largas pueden llevar unos minutos.',
@@ -629,6 +641,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.stageDone': '{label} (terminado)',
     'pipeline.stageActive': '{label} (en curso)',
     'pipeline.stagePending': '{label} (pendiente)',
+    'pipeline.cancelConfirm': 'Cancelar subida',
+    'pipeline.cancelError': 'No se pudo cancelar la subida — intentá de nuevo.',
 
     // Transcript page
     'transcript.loading': 'Cargando transcripción…',
