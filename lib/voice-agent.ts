@@ -15,6 +15,12 @@ export interface VoiceAgentCallbacks {
   onError: (message: string) => void
   onUserAudio?: (rms: number) => void
   onAgentAudio?: (rms: number) => void
+  onTranscript?: (role: 'user' | 'model', text: string) => void
+}
+
+export interface ConnectOptions {
+  /** When true, enables Gemini Live input + output transcription callbacks. */
+  transcription?: boolean
 }
 
 /** Compute normalised RMS (0..1) over a PCM16 sample buffer. */
@@ -165,6 +171,23 @@ export function buildSystemPrompt(
   return `${languageBlock}${routeHint}${pageContextBlock}${openingGuidance}`
 }
 
+/** System prompt for practice sessions — Gemini acts as a conversation partner, not a coach. */
+export function buildPracticeSystemPrompt(targetLanguage: TargetLanguage): string {
+  if (targetLanguage === 'en-NZ') {
+    return `You are a friendly native New Zealand English speaker having a casual conversation with a language learner.
+Keep your responses natural and concise — 1–3 sentences per turn so the learner gets plenty of speaking time.
+Do NOT correct the learner's English mid-conversation. Do NOT give grammar explanations or coaching tips.
+Respond only in English. React naturally to what the learner says — ask follow-up questions, share opinions, keep the conversation flowing.
+If the learner seems to struggle, respond naturally as any conversationalist would — do not switch to a teaching mode.`
+  }
+  // Default: es-AR Rioplatense
+  return `Sos un hablante nativo de español rioplatense teniendo una charla cotidiana con alguien que está aprendiendo el idioma.
+Respondé de forma natural y breve — 1 a 3 oraciones por turno para que el otro tenga bastante tiempo para hablar.
+NO corrijas los errores del aprendiz durante la conversación. NO des explicaciones de gramática ni consejos de coaching.
+Respondé únicamente en español. Reaccioná de forma natural — hacé preguntas de seguimiento, compartí opiniones, mantené la charla fluyendo.
+Usá el voseo y el vocabulario típico del Río de la Plata (ché, dale, bárbaro, etc.) de manera natural, no exagerada.`
+}
+
 /**
  * Opens a real-time voice session with the Gemini Multimodal Live API.
  * Fetches the Google API key from /api/voice-token, opens a WebSocket,
@@ -176,7 +199,8 @@ export async function connect(
   targetLanguage: TargetLanguage,
   callbacks: VoiceAgentCallbacks,
   routeContext: VoiceRouteContext = { kind: 'other' },
-  pageContext?: VoicePageContext
+  pageContext?: VoicePageContext,
+  options: ConnectOptions = {},
 ): Promise<VoiceAgent> {
   // 1. Get Google API key from our auth-gated server route.
   const tokenRes = await fetch('/api/voice-token')
@@ -308,26 +332,32 @@ export async function connect(
     )
   }
 
+  let userTranscriptBuffer = ''
+  let modelTranscriptBuffer = ''
+
   ws.addEventListener('open', () => {
     callbacks.onStateChange('connecting')
-    ws.send(
-      JSON.stringify({
-        setup: {
-          model: 'models/gemini-3.1-flash-live-preview',
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName },
-              },
+    const setupMsg: Record<string, unknown> = {
+      setup: {
+        model: 'models/gemini-3.1-flash-live-preview',
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
             },
           },
-          systemInstruction: {
-            parts: [{ text: buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
-          },
+          ...(options.transcription ? {
+            inputTranscription: { enabled: true },
+            outputTranscription: { enabled: true },
+          } : {}),
         },
-      })
-    )
+        systemInstruction: {
+          parts: [{ text: buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
+        },
+      },
+    }
+    ws.send(JSON.stringify(setupMsg))
   })
 
   ws.addEventListener('message', (event: MessageEvent) => {
@@ -386,6 +416,31 @@ export async function connect(
         }
         scheduleAgentPcm(pcm16)
       }
+    }
+
+    // Input transcription — user's speech (top-level message)
+    const inputTranscription = (msg as { inputTranscription?: { text?: string; finished?: boolean } }).inputTranscription
+    if (options.transcription && inputTranscription?.text) {
+      userTranscriptBuffer += inputTranscription.text
+      if (inputTranscription.finished) {
+        if (userTranscriptBuffer.trim()) {
+          callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
+        }
+        userTranscriptBuffer = ''
+      }
+    }
+
+    // Output transcription — model's speech (inside serverContent)
+    const outputTranscription = (msg as { serverContent?: { outputTranscription?: { text?: string } } }).serverContent?.outputTranscription
+    if (options.transcription && outputTranscription?.text) {
+      modelTranscriptBuffer += outputTranscription.text
+    }
+
+    // turnComplete — model's turn done; flush model transcript buffer
+    const turnComplete = (msg as { serverContent?: { turnComplete?: boolean } }).serverContent?.turnComplete
+    if (options.transcription && turnComplete && modelTranscriptBuffer.trim()) {
+      callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
+      modelTranscriptBuffer = ''
     }
 
     const error = (msg as { error?: { message?: string } }).error
