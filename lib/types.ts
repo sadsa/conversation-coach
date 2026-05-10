@@ -47,6 +47,13 @@ export interface TranscriptSegment {
   paragraph_breaks: number[]
 }
 
+/** A single completed turn collected from a Gemini Live practice session. */
+export interface TranscriptTurn {
+  role: 'user' | 'model'
+  text: string
+  wallMs: number  // Date.now() when the turn completed — used for segment timestamps
+}
+
 export const SUB_CATEGORIES = [
   'verb-conjugation', 'subjunctive', 'gender-agreement', 'number-agreement',
   'ser-estar', 'por-para', 'tense-selection', 'article-usage', 'word-order',

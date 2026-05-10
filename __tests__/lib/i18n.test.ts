@@ -38,7 +38,7 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista')
   })
   it('annotation.savedPrimary names the destination so the button itself is the receipt', () => {
-    expect(t('annotation.savedPrimary', 'en')).toMatch(/added to write list/i)
+    expect(t('annotation.savedPrimary', 'en')).toMatch(/added to (my )?write list/i)
     expect(t('annotation.savedPrimary', 'es')).toMatch(/agregada/i)
   })
   it('annotation.notUseful is the quiet secondary action label', () => {
@@ -126,9 +126,10 @@ describe('annotation action i18n keys', () => {
     expect(t('writeList.emptyWriteCaption', 'es')).not.toBe('writeList.emptyWriteCaption')
     expect(t('writeList.emptyWriteCta', 'es')).not.toBe('writeList.emptyWriteCta')
   })
-  it('nav.write replaces nav.practice (which now falls back to key)', () => {
+  it('nav.write and nav.practice exist for navigation', () => {
     expect(t('nav.write', 'en')).toBe('Write')
-    expect(t('nav.practice', 'en')).toBe('nav.practice')
+    expect(t('nav.practice', 'en')).toBe('Practice')
+    expect(t('nav.practice', 'es')).toBe('Práctica')
   })
   it('practice.title and practiceList.* keys are retired (fall back to key)', () => {
     expect(t('practice.title', 'en')).toBe('practice.title')

@@ -33,6 +33,22 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
 
+    // Practice
+    'nav.practice': 'Practice',
+    'practice.description': 'Speak Spanish for up to 5 minutes. Your mistakes will be reviewed afterwards.',
+    'practice.timeLimit': 'Up to 5 minutes',
+    'practice.start': 'Start session',
+    'practice.end': 'End session',
+    'practice.warningToast': '1 minute left',
+    'practice.analysing': 'Reviewing your conversation…',
+    'practice.errorConnect': "Couldn't connect — check your connection",
+    'practice.errorMic': 'Microphone access required',
+    'practice.errorNoSpeech': 'No speech detected',
+    'practice.errorAnalysis': 'Review failed',
+    'practice.tryAgain': 'Try again',
+    'practice.navAway': 'Your conversation is being reviewed. Leave anyway?',
+    'practice.timerAria': 'Session timer: {time}',
+
     // Auth — login page
     'auth.signInTitle': 'Sign in with your email',
     'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
@@ -458,6 +474,22 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.switchToDark': 'Cambiar a modo oscuro',
     'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
+
+    // Practice
+    'nav.practice': 'Práctica',
+    'practice.description': 'Hablá español hasta 5 minutos. Tus errores se revisan después.',
+    'practice.timeLimit': 'Hasta 5 minutos',
+    'practice.start': 'Iniciar sesión',
+    'practice.end': 'Terminar sesión',
+    'practice.warningToast': '1 minuto restante',
+    'practice.analysing': 'Revisando tu conversación…',
+    'practice.errorConnect': 'No se pudo conectar — revisá tu conexión',
+    'practice.errorMic': 'Se necesita acceso al micrófono',
+    'practice.errorNoSpeech': 'No se detectó ninguna voz',
+    'practice.errorAnalysis': 'Error en la revisión',
+    'practice.tryAgain': 'Intentar de nuevo',
+    'practice.navAway': 'Tu conversación se está revisando. ¿Salir de todos modos?',
+    'practice.timerAria': 'Temporizador: {time}',
 
     // Auth — login page
     'auth.signInTitle': 'Iniciá sesión con tu correo',
