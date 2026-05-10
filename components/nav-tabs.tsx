@@ -40,6 +40,27 @@ export const NAV_TABS: NavTab[] = [
     ),
   },
   {
+    href: '/practice',
+    labelKey: 'nav.practice',
+    exact: false,
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
+        className="w-5 h-5 flex-shrink-0" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <path d="M9 10h.01M12 10h.01M15 10h.01" strokeWidth={2} strokeLinecap="round" />
+      </svg>
+    ),
+    iconLg: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
+        className="w-6 h-6" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <path d="M9 10h.01M12 10h.01M15 10h.01" strokeWidth={2} strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     href: '/write',
     labelKey: 'nav.write',
     exact: false,

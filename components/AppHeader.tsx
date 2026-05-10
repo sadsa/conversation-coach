@@ -28,6 +28,7 @@ interface AppHeaderProps {
 function sectionKeyFor(pathname: string | null): string {
   if (!pathname) return ''
   if (pathname === '/') return 'nav.recordings'
+  if (pathname.startsWith('/practice')) return 'nav.practice'
   if (pathname.startsWith('/write')) return 'nav.write'
   if (pathname.startsWith('/settings')) return 'nav.settings'
   return ''
@@ -156,7 +157,7 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
           <div className="relative flex items-center gap-1 -mr-1">
             {/* Voice trigger + coachmark are desktop-only in the header.
                 On mobile they live in BottomBar where they're thumb-reachable. */}
-            {voice && (
+            {voice && !pathname?.startsWith('/practice') && (
               <div className="hidden md:flex items-center gap-1">
                 <VoiceTrigger state={voice.state} onStart={voice.onStart} />
                 {/* Coachmark anchors to this cluster (`relative` parent on the
