@@ -19,6 +19,7 @@ export interface Session {
   id: string
   title: string
   status: SessionStatus
+  session_type: 'upload' | 'voice_practice'
   error_stage: ErrorStage | null
   duration_seconds: number | null
   audio_r2_key: string | null

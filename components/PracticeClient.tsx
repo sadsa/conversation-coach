@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
-import { connect } from '@/lib/voice-agent'
+import { connect, buildPracticeSystemPrompt } from '@/lib/voice-agent'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
@@ -151,7 +151,7 @@ export function PracticeClient({ targetLanguage }: Props) {
         },
         { kind: 'other' },
         undefined,
-        { transcription: true },
+        { transcription: true, systemPrompt: buildPracticeSystemPrompt(targetLanguage) },
       )
       agentRef.current = agent
     } catch (err) {

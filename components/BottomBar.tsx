@@ -91,7 +91,7 @@ export function BottomBar({ voice }: Props) {
       {/* Voice FAB — only while fully idle (guard both the direct state and
           the delayed showWave flag to avoid a one-render flash during the
           idle→connecting transition before the effect has fired). */}
-      {voice.state === 'idle' && !showWave && (
+      {voice.state === 'idle' && !showWave && !pathname?.startsWith('/practice') && (
         <div
           className="md:hidden fixed right-4 z-10"
           style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}

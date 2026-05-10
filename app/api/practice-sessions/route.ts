@@ -124,13 +124,13 @@ export async function POST(req: NextRequest) {
           flashcard_back: a.flashcard_back ?? null,
           flashcard_note: a.flashcard_note ?? null,
           importance_score: a.importance_score ?? null,
-          importance_note: null,
+          importance_note: a.importance_note ?? null,
         }))
       )
       if (annError) throw new Error(`Annotation insert failed: ${annError.message}`)
     }
 
-    await db.from('sessions').update({ status: 'ready', title }).eq('id', sessionId)
+    await db.from('sessions').update({ status: 'ready', title, processing_completed_at: new Date().toISOString() }).eq('id', sessionId)
     log.info('Practice session analysis complete', { sessionId, annotationCount: correctedAnnotations.length })
 
     return NextResponse.json({ session_id: sessionId }, { status: 201 })

@@ -21,6 +21,8 @@ export interface VoiceAgentCallbacks {
 export interface ConnectOptions {
   /** When true, enables Gemini Live input + output transcription callbacks. */
   transcription?: boolean
+  /** Override the system prompt sent to Gemini on connect. */
+  systemPrompt?: string
 }
 
 /** Compute normalised RMS (0..1) over a PCM16 sample buffer. */
@@ -347,14 +349,14 @@ export async function connect(
               prebuiltVoiceConfig: { voiceName },
             },
           },
-          ...(options.transcription ? {
-            inputTranscription: { enabled: true },
-            outputTranscription: { enabled: true },
-          } : {}),
         },
         systemInstruction: {
-          parts: [{ text: buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
+          parts: [{ text: options.systemPrompt ?? buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
         },
+        ...(options.transcription ? {
+          inputTranscription: { enabled: true },
+          outputTranscription: { enabled: true },
+        } : {}),
       },
     }
     ws.send(JSON.stringify(setupMsg))
