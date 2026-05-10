@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
-import { connect, buildPracticeSystemPrompt } from '@/lib/voice-agent'
+import { connect } from '@/lib/voice-agent'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
@@ -18,16 +18,12 @@ interface Props {
 const WARN_SECONDS = 240  // 4 minutes
 const END_SECONDS = 300   // 5 minutes
 
-// Suppress unused import lint warning — buildPracticeSystemPrompt is used in Task 7
-void buildPracticeSystemPrompt
-
 export function PracticeClient({ targetLanguage }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
   const [practiceState, setPracticeState] = useState<PracticeState>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
-  const [analysisError, setAnalysisError] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
   const turnsRef = useRef<TranscriptTurn[]>([])
@@ -95,7 +91,6 @@ export function PracticeClient({ targetLanguage }: Props) {
       return
     }
     setPracticeState('analysing')
-    setAnalysisError(false)
     try {
       const res = await fetch('/api/practice-sessions', {
         method: 'POST',
@@ -107,7 +102,6 @@ export function PracticeClient({ targetLanguage }: Props) {
       if (isMountedRef.current) router.push(`/sessions/${session_id}`)
     } catch {
       if (isMountedRef.current) {
-        setAnalysisError(true)
         setPracticeState('error')
       }
     }
@@ -190,10 +184,43 @@ export function PracticeClient({ targetLanguage }: Props) {
     )
   }
 
-  // Remaining states (active, warning, ending, analysing, error) implemented in Task 7
-  // Expose formatTime, elapsed, analysisError to silence unused-variable lint
-  void formatTime
-  void elapsed
-  void analysisError
-  return null
+  if (practiceState === 'analysing') {
+    return (
+      <main id="main-content" className="flex flex-col items-center justify-center min-h-[70vh] px-6 gap-4 text-center">
+        <Icon name="spinner" className="w-8 h-8 text-accent-primary" />
+        <p className="text-text-secondary text-sm">{t('practice.analysing')}</p>
+      </main>
+    )
+  }
+
+  if (practiceState === 'error') {
+    return (
+      <main id="main-content" className="flex flex-col items-center justify-center min-h-[70vh] px-6 gap-4 text-center">
+        <p className="text-text-secondary text-sm">{t('practice.errorAnalysis')}</p>
+        <Button onClick={() => submitTurns([...turnsRef.current])}>{t('practice.tryAgain')}</Button>
+      </main>
+    )
+  }
+
+  // active | warning | ending
+  return (
+    <main id="main-content" className="flex flex-col items-center min-h-[70vh] px-6 pt-12 gap-8">
+      <div
+        className="text-4xl font-mono tabular-nums text-foreground"
+        aria-label={t('practice.timerAria', { time: formatTime(elapsed) })}
+        aria-live="off"
+      >
+        {formatTime(elapsed)}
+      </div>
+      <div className="flex items-center gap-1">
+        <Icon name="waveform" className="w-6 h-6 text-accent-primary" />
+      </div>
+      <Button variant="secondary" onClick={endSession}>
+        {t('practice.end')}
+      </Button>
+      {toast && (
+        <Toast message={toast} />
+      )}
+    </main>
+  )
 }
