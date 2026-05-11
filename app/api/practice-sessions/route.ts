@@ -27,6 +27,14 @@ export async function POST(req: NextRequest) {
 
   const db = createServerClient()
 
+  // Derive duration from wall-clock turn timestamps so the row carries the
+  // same "5m 30s" affordance in SessionList that uploaded recordings do.
+  // First → last turn span, plus a 3s tail to match how we extend the final
+  // segment's end_ms below. Floor to whole seconds (the formatter expects int).
+  const firstTurnMs = turns[0].wallMs
+  const lastTurnMs = turns[turns.length - 1].wallMs
+  const durationSeconds = Math.max(1, Math.floor((lastTurnMs - firstTurnMs + 3000) / 1000))
+
   // Create session row
   const { data: session, error: sessionError } = await db
     .from('sessions')
@@ -36,6 +44,7 @@ export async function POST(req: NextRequest) {
       session_type: 'voice_practice',
       user_id: user.id,
       user_speaker_labels: ['A'],
+      duration_seconds: durationSeconds,
     })
     .select('id')
     .single()

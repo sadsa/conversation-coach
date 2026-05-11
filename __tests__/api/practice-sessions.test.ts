@@ -115,6 +115,22 @@ describe('POST /api/practice-sessions', () => {
     )
   })
 
+  it('records duration_seconds derived from turn timestamps so SessionList renders the "5m 30s" label', async () => {
+    const { db, insertSessionMock } = makeDb()
+    vi.mocked(createServerClient).mockReturnValue(db)
+    const { POST } = await import('@/app/api/practice-sessions/route')
+    const req = new NextRequest('http://localhost/api/practice-sessions', {
+      method: 'POST',
+      body: JSON.stringify({ turns: sampleTurns, targetLanguage: 'es-AR' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    await POST(req)
+    // sampleTurns: first wallMs=1000, last wallMs=6000 → (6000-1000+3000)/1000 = 8s.
+    expect(insertSessionMock).toHaveBeenCalledWith(
+      expect.objectContaining({ duration_seconds: 8 })
+    )
+  })
+
   it('inserts segments with correct speaker mapping', async () => {
     const { db, insertSegmentsWithSelectMock } = makeDb()
     vi.mocked(createServerClient).mockReturnValue(db)
