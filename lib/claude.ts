@@ -165,7 +165,7 @@ export async function analyseUserTurns(
       let validatedScore: number | null = null
       if (a.importance_score != null) {
         const score = Number(a.importance_score)
-        if (Number.isFinite(score) && score >= 2 && score <= 3) {
+        if (Number.isFinite(score) && score >= 1 && score <= 3) {
           validatedScore = score
         }
       }
