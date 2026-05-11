@@ -80,6 +80,10 @@ const ICONS = {
     <circle cx="19" cy="12" r="1.5" />
   </>,
   spinner: <circle cx="12" cy="12" r="9" strokeDasharray="40 20" className="origin-center animate-spin" />,
+  clock: <>
+    <circle cx="12" cy="12" r="9" />
+    <polyline points="12 7 12 12 15 14" />
+  </>,
   trash: <>
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />

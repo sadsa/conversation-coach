@@ -94,6 +94,8 @@ function isIOS(): boolean {
 
 export interface VoiceAgent {
   setMuted: (muted: boolean) => void
+  /** Flush any buffered transcript text immediately (call before disconnect to capture final turn). */
+  flush: () => void
   disconnect: () => void
 }
 
@@ -354,8 +356,8 @@ export async function connect(
           parts: [{ text: options.systemPrompt ?? buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
         },
         ...(options.transcription ? {
-          inputTranscription: { enabled: true },
-          outputTranscription: { enabled: true },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
         } : {}),
       },
     }
@@ -420,29 +422,29 @@ export async function connect(
       }
     }
 
-    // Input transcription — user's speech (top-level message)
-    const inputTranscription = (msg as { inputTranscription?: { text?: string; finished?: boolean } }).inputTranscription
+    // Input transcription — user's speech (inside serverContent.inputTranscription)
+    const inputTranscription = (msg as { serverContent?: { inputTranscription?: { text?: string } } }).serverContent?.inputTranscription
     if (options.transcription && inputTranscription?.text) {
       userTranscriptBuffer += inputTranscription.text
-      if (inputTranscription.finished) {
-        if (userTranscriptBuffer.trim()) {
-          callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
-        }
-        userTranscriptBuffer = ''
-      }
     }
 
-    // Output transcription — model's speech (inside serverContent)
+    // Output transcription — model's speech (inside serverContent.outputTranscription)
     const outputTranscription = (msg as { serverContent?: { outputTranscription?: { text?: string } } }).serverContent?.outputTranscription
     if (options.transcription && outputTranscription?.text) {
       modelTranscriptBuffer += outputTranscription.text
     }
 
-    // turnComplete — model's turn done; flush model transcript buffer
+    // turnComplete — model's turn done; flush both transcript buffers
     const turnComplete = (msg as { serverContent?: { turnComplete?: boolean } }).serverContent?.turnComplete
-    if (options.transcription && turnComplete && modelTranscriptBuffer.trim()) {
-      callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
-      modelTranscriptBuffer = ''
+    if (options.transcription && turnComplete) {
+      if (userTranscriptBuffer.trim()) {
+        callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
+        userTranscriptBuffer = ''
+      }
+      if (modelTranscriptBuffer.trim()) {
+        callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
+        modelTranscriptBuffer = ''
+      }
     }
 
     const error = (msg as { error?: { message?: string } }).error
@@ -472,6 +474,17 @@ export async function connect(
   return {
     setMuted(muted) {
       audioTrack.enabled = !muted
+    },
+    flush() {
+      if (!options.transcription) return
+      if (userTranscriptBuffer.trim()) {
+        callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
+        userTranscriptBuffer = ''
+      }
+      if (modelTranscriptBuffer.trim()) {
+        callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
+        modelTranscriptBuffer = ''
+      }
     },
     disconnect() {
       if (ws.readyState !== WebSocket.CLOSED) ws.close()

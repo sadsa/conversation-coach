@@ -38,7 +38,7 @@ For the title:
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title (e.g. "WhatsApp: Football con Kevin").
 - Otherwise use the topic only.
 
-Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note", "importance_score" }] }. No other text.`
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note", "importance_score" }] }. If there are no errors or unnatural phrases worth annotating, return an empty annotations array. No other text — no explanations, no prose.`
 
 const SYSTEM_PROMPT_EN_NZ = `You are an expert English language coach specialising in New Zealand English. Analyse the speech turns provided and identify:
 
@@ -71,7 +71,7 @@ For the title:
 - If the original filename matches a WhatsApp audio pattern (starts with "PTT-" or contains "WhatsApp Audio"), prepend "WhatsApp: " to the title.
 - Otherwise use the topic only.
 
-Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note", "importance_score" }] }. No other text.`
+Respond ONLY with a JSON object with this exact shape: { "title": string, "annotations": [{ "segment_id", "type", "sub_category", "original", "start_char", "end_char", "correction", "explanation", "flashcard_front", "flashcard_back", "flashcard_note", "importance_score" }] }. If there are no errors or unnatural phrases worth annotating, return an empty annotations array. No other text — no explanations, no prose.`
 
 const PROMPTS: Record<TargetLanguage, string> = {
   'es-AR': SYSTEM_PROMPT_ES_AR,
@@ -132,7 +132,13 @@ export async function analyseUserTurns(
 
   log.info('Claude raw response received', { sessionId, preview: text.slice(0, 500) })
 
-  const parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
+  let parsed: { title: string; annotations: ClaudeAnnotation[] }
+  try {
+    parsed = JSON.parse(text) as { title: string; annotations: ClaudeAnnotation[] }
+  } catch {
+    log.warn('Claude returned non-JSON, falling back to empty annotations', { sessionId, preview: text.slice(0, 200) })
+    parsed = { title: 'Practice session', annotations: [] }
+  }
   return {
     title: parsed.title?.trim() || 'Untitled',
     annotations: (parsed.annotations ?? []).map(a => {
