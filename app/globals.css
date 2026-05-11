@@ -344,6 +344,55 @@
   .oa-sheet    { animation: oa-sheet    4s var(--ease-out-expo)  both; }
   .oa-pulse    { animation: oa-pulse    4s var(--ease-out-quart) both; }
 
+  /* Processing graphic — the consolidated "we're working on it" visual
+     ───────────────────────────────────────────────────────────────────────
+     Used by both the audio-upload pipeline and the practice-conversation
+     analysing screen. One visual, one motion vocabulary across all
+     long-running async surfaces. See `components/ProcessingGraphic.tsx`.
+
+     The cycle: each bar holds at its varied --peak height (forming a
+     waveform silhouette), all bars dip slightly together (subtle breath),
+     return to peak, then collapse together to a short uniform line (the
+     "transcript line" — audio gathered into written text), hold there,
+     and breathe back out. ~3.6s loop.
+
+     `transform: scaleY` keeps the animation on the GPU; pairing it with
+     `transform-origin: 50% 50%` makes the collapse converge to the
+     vertical centre of each bar so the resulting line floats mid-graphic
+     rather than sinking to a baseline. */
+  .processing-graphic {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 56px;
+  }
+  .processing-graphic__bar {
+    display: block;
+    width: 4px;
+    height: 56px;
+    border-radius: 9999px;
+    background: var(--color-accent-primary);
+    transform-origin: 50% 50%;
+    transform: scaleY(var(--peak));
+    animation: processing-graphic-pulse 3.6s var(--ease-out-quart) infinite;
+  }
+  .processing-graphic--compact {
+    gap: 4px;
+    height: 40px;
+  }
+  .processing-graphic--compact .processing-graphic__bar {
+    width: 3px;
+    height: 40px;
+  }
+  @keyframes processing-graphic-pulse {
+    0%, 6%    { transform: scaleY(var(--peak)); }
+    20%       { transform: scaleY(calc(var(--peak) * 0.65 + 0.08)); }
+    34%, 40%  { transform: scaleY(var(--peak)); }
+    56%, 64%  { transform: scaleY(0.10); }
+    80%       { transform: scaleY(calc(var(--peak) * 0.65 + 0.08)); }
+    92%, 100% { transform: scaleY(var(--peak)); }
+  }
+
   /* Coachmark fade-in — used by the first-run upload spotlight to settle in
      instead of snapping. Reduced-motion users still get the structure, the
      global rule above clamps this to ~0ms. */
