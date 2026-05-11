@@ -127,7 +127,7 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     await db.from('sessions').update({ audio_r2_key: null }).eq('id', sessionId)
   }
 
-  log.info('Claude analysis complete', { sessionId, annotationCount: correctedAnnotations.length })
+  log.info('Claude analysis complete', { sessionId, annotationCount: filteredAnnotations.length, claudeAnnotationCount: correctedAnnotations.length })
   await db.from('sessions').update({
     status: 'ready',
     title,
