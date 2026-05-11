@@ -63,11 +63,13 @@ describe('analyseUserTurns', () => {
     expect(result.title).toBe('Untitled')
   })
 
-  it('throws when Claude response is not valid JSON', async () => {
+  it('returns a fallback when Claude response is not valid JSON', async () => {
     mockCreate.mockResolvedValueOnce({
       content: [{ type: 'text', text: 'Sorry, I cannot help with that.' }],
     })
-    await expect(analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null)).rejects.toThrow()
+    const result = await analyseUserTurns([{ id: 'seg-1', text: 'Test.' }], null)
+    expect(result.title).toBe('Practice session')
+    expect(result.annotations).toEqual([])
   })
 
   it('returns sub_category field on each annotation', async () => {
