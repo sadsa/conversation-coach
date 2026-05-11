@@ -250,7 +250,21 @@ function SwipeableSessionItem({
   const isProcessing = !TERMINAL_STATUSES.has(session.status)
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
-  const dateLabel = formatRowDate(new Date(session.created_at), uiLanguage)
+  // Defer date formatting to the client. `Intl.DateTimeFormat` emits a
+  // different whitespace character between time and AM/PM in Node ICU vs
+  // Chromium ICU (regular space vs U+202F narrow no-break), which produces
+  // visually-identical but byte-different strings — enough to trip a
+  // hydration mismatch on this SSR'd client component and force React to
+  // re-render the whole boundary on the client (perf hit). Computing the
+  // label after mount also bullet-proofs against server/client clock drift
+  // (e.g. a row crossing midnight between SSR and hydration). The nbsp
+  // placeholder during SSR preserves line height; horizontal shift on
+  // hydrate is one tick and visually equivalent to the label appearing
+  // alongside the rest of the row content.
+  const [dateLabel, setDateLabel] = useState<string>('')
+  useEffect(() => {
+    setDateLabel(formatRowDate(new Date(session.created_at), uiLanguage))
+  }, [session.created_at, uiLanguage])
   // Unread is meaningful only for ready conversations — in-progress rows
   // already carry a spinner + status, and errors get a red status. Showing
   // any unread treatment on those would just add noise.
@@ -366,7 +380,7 @@ function SwipeableSessionItem({
                 <span className="sr-only"> — {t('home.recentSessionUnreadAria')}</span>
               )}
             </p>
-            <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel}</span>
+            <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel || '\u00A0'}</span>
           </div>
           {/*
             Metadata row: status and duration. Date moved to title row.
