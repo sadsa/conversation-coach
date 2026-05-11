@@ -149,6 +149,11 @@
        Keeps `<main>`'s top spacing in lockstep with the strip's slide. */
     --voice-strip-height: 0px;
     --voice-bottom-height: 0px;
+    /* Mobile bottom nav height including the iOS home-indicator safe area.
+       Used by full-bleed surfaces (e.g. PracticeClient active state) that
+       need to size themselves to exactly the visible viewport without
+       scrolling into the nav. Zeroed out on md+ where BottomNav is hidden. */
+    --bottom-nav-h: calc(4rem + env(safe-area-inset-bottom));
   }
 
   /* Browser-driven scroll-into-view (anchor links, focus(), scrollIntoView)
@@ -161,6 +166,7 @@
   @media (min-width: 768px) {
     :root {
       --toast-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+      --bottom-nav-h: 0px;
     }
   }
 

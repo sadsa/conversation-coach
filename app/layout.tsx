@@ -100,7 +100,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ` }} />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>
-      <body className="min-h-screen bg-bg text-text-primary">
+      <body className="min-h-[100dvh] bg-bg text-text-primary flex flex-col">
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
           <ThemeProvider>
             <FontSizeProvider />
@@ -126,7 +126,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 paddingBottom: 'max(5rem, calc(var(--voice-bottom-height, 0px) + 0.75rem))',
                 transition: 'margin-top 180ms var(--ease-out-quart), padding-bottom 300ms var(--ease-out-quart)',
               }}
-              className="max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none"
+              className="w-full max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none flex-1 flex flex-col"
             >
               {children}
             </main>

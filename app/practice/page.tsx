@@ -2,6 +2,11 @@ import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { PracticeClient } from '@/components/PracticeClient'
 import type { TargetLanguage } from '@/lib/types'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Practice — Conversation Coach',
+}
 
 export default async function PracticePage() {
   const user = await getAuthenticatedUser()

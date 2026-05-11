@@ -36,7 +36,7 @@ export default function AccessDeniedPage() {
   const body = encodeURIComponent(t('accessDenied.requestBody'))
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-6">
+    <div className="flex items-center justify-center flex-1 px-6">
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="space-y-2">
           <h1 className="font-display text-3xl font-medium text-text-primary">
