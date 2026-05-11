@@ -46,6 +46,7 @@ import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 import { AudioReactiveDots } from '@/components/AudioReactiveDots'
+import { ProcessingGraphic } from '@/components/ProcessingGraphic'
 import type { TargetLanguage, TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
 import type { VoiceTickCallback } from '@/components/VoiceController'
@@ -450,39 +451,48 @@ export function PracticeClient({ targetLanguage }: Props) {
   }
 
   // ─── Connecting ────────────────────────────────────────────────────────
+  // Brief pre-flight — uses the compact processing graphic so the visual
+  // language matches the analysing screen (and the upload pipeline) without
+  // dominating a near-instant transition.
   if (practiceState === 'connecting') {
     return (
       <div
         className="
           mx-auto w-full max-w-md px-6
           flex flex-col items-center justify-center flex-1
-          gap-4 text-center
+          gap-5 text-center
         "
         role="status"
         aria-live="polite"
       >
-        <Icon name="spinner" className="w-8 h-8 text-accent-primary" />
-        <p className="text-base text-foreground">{t('practice.connecting')}</p>
+        <ProcessingGraphic compact label={t('practice.connecting')} />
+        <p className="text-base text-text-primary">{t('practice.connecting')}</p>
       </div>
     )
   }
 
   // ─── Analysing ─────────────────────────────────────────────────────────
+  // Same consolidated processing layout as the upload pipeline's status
+  // screen — one shared visual for "we're working on it" across the app.
   if (practiceState === 'analysing') {
     return (
       <div
         className="
           mx-auto w-full max-w-md px-6
           flex flex-col items-center justify-center flex-1
-          gap-4 text-center
+          gap-7 text-center
         "
         role="status"
         aria-live="polite"
       >
-        <Icon name="spinner" className="w-8 h-8 text-accent-primary" />
-        <div className="flex flex-col gap-1">
-          <p className="text-base text-foreground">{t('practice.analysing')}</p>
-          <p className="text-sm text-text-tertiary">{t('practice.analysingHint')}</p>
+        <ProcessingGraphic label={t('practice.analysing')} />
+        <div className="space-y-1.5">
+          <p className="text-base sm:text-lg font-medium text-text-primary">
+            {t('practice.analysing')}
+          </p>
+          <p className="text-sm text-text-tertiary">
+            {t('practice.analysingHint')}
+          </p>
         </div>
       </div>
     )
@@ -540,7 +550,6 @@ export function PracticeClient({ targetLanguage }: Props) {
 
   return (
     <div
-      aria-keyshortcuts="Escape Space"
       className="
         mx-auto w-full max-w-md px-6 pt-6 pb-6
         flex flex-col gap-8 overflow-hidden flex-1 min-h-0
@@ -595,7 +604,7 @@ export function PracticeClient({ targetLanguage }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="text-sm font-medium text-text-secondary select-none"
+            className={`text-sm font-medium select-none ${voiceStatus === 'muted' ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
           >
             {statusLabel}
           </motion.span>
@@ -634,56 +643,62 @@ export function PracticeClient({ targetLanguage }: Props) {
         })}
       </div>
 
-      {/* Controls — two buttons. Mobile: icon-only 44px circles. Desktop:
-          pill with icon + label so intent is readable without recall.
-          End uses a destructive hover cue (rose tint) so the action's
-          intent reads correctly without alarming at rest. Mute's pressed
-          state is neutral text-tertiary/15 — muting is deliberate, not
-          a fault. Keyboard shortcut hint surfaces on md+ to mirror
-          VoiceStrip's pattern. Disabled while ending so the wrap-up
-          beat is uninterrupted. */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex items-center justify-center gap-3">
+      {/* Controls — two labelled buttons. Labels are always visible (even
+          on mobile) so first-time users don't have to guess what the
+          circles do. Mute goes amber when pressed — "you're silenced" is
+          a state worth noticing, not hiding. End reads rose at rest —
+          destructive intent is clear before any hover. Disabled while
+          ending so the wrap-up beat is uninterrupted. */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex items-center justify-center gap-6">
+          {/* Mute — labelled pill. Amber pressed state signals "the coach
+              can't hear you" without implying an error. */}
           <button
             type="button"
             onClick={toggleMute}
             disabled={isEnding}
-            title={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
             aria-label={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
             aria-pressed={muted}
+            aria-keyshortcuts="Space"
             className="
-              inline-flex items-center justify-center gap-2
-              h-11 w-11 rounded-full md:w-auto md:px-4 md:rounded-xl flex-shrink-0
-              text-text-primary hover:bg-surface-elevated
-              aria-pressed:bg-text-tertiary/15 aria-pressed:text-text-tertiary
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent
+              inline-flex flex-col items-center justify-center gap-1
+              min-w-[4rem] px-3 py-2 rounded-2xl flex-shrink-0
+              text-text-secondary hover:bg-surface-elevated hover:text-text-primary
+              active:opacity-75
+              aria-pressed:bg-amber-500/15 aria-pressed:text-amber-600
+              dark:aria-pressed:text-amber-400
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-secondary
               transition-colors
               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
             "
           >
             <Icon name={muted ? 'mic-off' : 'mic'} className="h-5 w-5" />
-            <span className="hidden md:inline text-sm font-medium">
+            <span className="text-xs font-medium select-none">
               {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
             </span>
           </button>
+
+          {/* End — rose at rest so the destructive intent is legible at a
+              glance, not discovered on hover for the first time. */}
           <button
             type="button"
             onClick={endSession}
             disabled={isEnding}
-            title={t('practice.endAria')}
             aria-label={t('practice.endAria')}
+            aria-keyshortcuts="Escape"
             className="
-              inline-flex items-center justify-center gap-2
-              h-11 w-11 rounded-full md:w-auto md:px-4 md:rounded-xl flex-shrink-0
-              text-text-primary hover:bg-rose-500/10 hover:text-rose-600
-              active:bg-rose-500/15
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-primary
+              inline-flex flex-col items-center justify-center gap-1
+              min-w-[4rem] px-3 py-2 rounded-2xl flex-shrink-0
+              text-rose-600 dark:text-rose-400
+              hover:bg-rose-500/20
+              active:bg-rose-500/30
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent
               transition-colors
               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
             "
           >
-            <Icon name="close" className="h-5 w-5" />
-            <span className="hidden md:inline text-sm font-medium">
+            <Icon name="phone-hangup" className="h-5 w-5" />
+            <span className="text-xs font-medium select-none">
               {t('practice.end')}
             </span>
           </button>

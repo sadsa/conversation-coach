@@ -99,7 +99,7 @@ export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exitin
         />
 
         <div className="flex-1 min-w-0">
-          <span className="text-xs text-text-secondary select-none">
+          <span className={`text-xs select-none transition-colors duration-200 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}>
             {muted ? t('voice.statusMuted') : t('voice.statusListening')}
           </span>
         </div>
@@ -112,38 +112,52 @@ export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exitin
           </span>
         )}
 
+        {/* Mute — amber when muted so the silenced state is immediately
+            legible ("you're muted, the coach can't hear you"), not just a
+            slightly dimmed icon that blends into the toolbar at a glance. */}
         <button
           type="button"
           onClick={onMute}
           aria-label={muted ? t('voice.unmuteAria') : t('voice.muteAria')}
           aria-pressed={muted}
           className="
-            w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-            text-text-primary hover:bg-surface-elevated
-            aria-pressed:bg-text-tertiary/15 aria-pressed:text-text-tertiary
+            inline-flex items-center justify-center gap-1.5
+            h-8 px-2.5 rounded-full flex-shrink-0
+            text-text-secondary hover:bg-surface-elevated hover:text-text-primary
+            active:opacity-75
+            aria-pressed:bg-amber-500/15 aria-pressed:text-amber-600
+            dark:aria-pressed:text-amber-400
             transition-colors
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
           "
         >
-          <Icon name={muted ? 'mic-off' : 'mic'} className="w-4 h-4" />
+          <Icon name={muted ? 'mic-off' : 'mic'} className="w-4 h-4 flex-shrink-0" />
+          <span className="text-xs font-medium select-none">
+            {muted ? t('voice.unmuteLabel') : t('voice.muteLabel')}
+          </span>
         </button>
 
-        {/* End — pre-press destructive cue (faint rose on hover, deeper on
-            active). Now that the strip lives on cream rather than violet,
-            the warm-cool clash that prevented this earlier is gone. */}
+        {/* End — phone-hangup icon (not X/close, which reads as "dismiss
+            this strip") with rose at rest so the destructive intent is
+            clear before hover, not discovered on hover. */}
         <button
           type="button"
           onClick={onEnd}
           aria-label={t('voice.endAria')}
           className="
-            ml-2 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-            text-text-primary hover:bg-rose-500/8 hover:text-rose-600
-            active:bg-rose-500/15
+            ml-1 inline-flex items-center justify-center gap-1.5
+            h-8 px-2.5 rounded-full flex-shrink-0
+            text-rose-600 dark:text-rose-400
+            hover:bg-rose-500/20
+            active:bg-rose-500/30
             transition-colors
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
           "
         >
-          <Icon name="close" className="w-4 h-4" />
+          <Icon name="phone-hangup" className="w-4 h-4 flex-shrink-0" />
+          <span className="text-xs font-medium select-none">
+            {t('voice.endLabel')}
+          </span>
         </button>
       </div>
 

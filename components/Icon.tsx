@@ -125,4 +125,13 @@ const ICONS = {
     viewBox: '0 -960 960 960',
     node: <path d="M280-240v-480h80v480h-80ZM440-80v-800h80v800h-80ZM120-400v-160h80v160h-80Zm480 160v-480h80v480h-80Zm160-160v-160h80v160h-80Z" fill="currentColor" stroke="none" />,
   },
+  // Phone handset tilted 135° — the universal "end call" pictogram.
+  // Uses a padded viewBox (-4 -4 32 32) so the rotated path corners
+  // don't get clipped by the default 0 0 24 24 boundary.
+  'phone-hangup': {
+    node: <g transform="rotate(135 12 12)">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </g>,
+    viewBox: '-4 -4 32 32',
+  },
 }
