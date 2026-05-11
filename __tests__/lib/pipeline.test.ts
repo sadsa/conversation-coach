@@ -370,6 +370,77 @@ describe('runClaudeAnalysis', () => {
     expect(insertedRows[0].flashcard_note).toBe('Subject pronouns are dropped in Rioplatense.')
   })
 
+  it('drops annotations with importance_score=1 before insert', async () => {
+    const insertAnnotationsMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+
+    const mockDb = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { user_speaker_labels: ['A'], audio_r2_key: 'audio/test.mp3', original_filename: null },
+                  error: null,
+                }),
+              }),
+            }),
+            update: updateMock,
+          }
+        }
+        if (table === 'transcript_segments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [{ id: 'seg-1', speaker: 'A', text: 'Yo fui al mercado y tuvo una charla.' }],
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'annotations') return { insert: insertAnnotationsMock }
+        return {}
+      }),
+    }
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(analyseUserTurns).mockResolvedValue({
+      title: 'Test Session',
+      annotations: [
+        // High-value annotation — should be inserted
+        {
+          segment_id: 'seg-1', type: 'grammar', sub_category: 'verb-conjugation',
+          original: 'Yo fui', start_char: 0, end_char: 6,
+          correction: 'Fui', explanation: 'Drop pronoun.',
+          flashcard_front: null, flashcard_back: null, flashcard_note: null,
+          importance_score: 3, importance_note: null,
+        },
+        // Low-value annotation — should be DROPPED by the filter
+        {
+          segment_id: 'seg-1', type: 'naturalness', sub_category: 'phrasing',
+          original: 'tuvo una charla', start_char: 21, end_char: 36,
+          correction: 'tuvo una conversación', explanation: 'Stylistic preference only.',
+          flashcard_front: null, flashcard_back: null, flashcard_note: null,
+          importance_score: 1, importance_note: null,
+        },
+      ],
+    })
+    vi.mocked(deleteObject).mockResolvedValue(undefined)
+
+    await runClaudeAnalysis('session-filter-test')
+
+    // The insert should have been called with exactly one row — the score=3 annotation only.
+    expect(insertAnnotationsMock).toHaveBeenCalledTimes(1)
+    const insertedRows = insertAnnotationsMock.mock.calls[0][0]
+    expect(insertedRows).toHaveLength(1)
+    expect(insertedRows[0]).toMatchObject({
+      original: 'Yo fui',
+      importance_score: 3,
+    })
+  })
+
   it('calls sendPushNotification with sessionId and title on success', async () => {
     const updateEqMock = vi.fn().mockResolvedValue({ error: null })
     const updateMock = vi.fn().mockReturnValue({ eq: updateEqMock })

@@ -75,9 +75,23 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     return { ...corrected, sub_category: subCategory }
   })
 
-  if (correctedAnnotations.length > 0) {
+  // Safety net: drop any annotation Claude rated importance_score === 1.
+  // The prompt forbids score=1 and the claude.ts validator now coerces it
+  // to null, but enforce it here too so nothing slips through.
+  // null scores are kept (no judgement available — rare case).
+  const filteredAnnotations = correctedAnnotations.filter(a => a.importance_score !== 1)
+
+  if (filteredAnnotations.length < correctedAnnotations.length) {
+    log.info('Dropped low-importance annotations', {
+      sessionId,
+      dropped: correctedAnnotations.length - filteredAnnotations.length,
+      kept: filteredAnnotations.length,
+    })
+  }
+
+  if (filteredAnnotations.length > 0) {
     const { error: annotationError } = await db.from('annotations').insert(
-      correctedAnnotations.map(a => ({
+      filteredAnnotations.map(a => ({
         session_id: sessionId,
         segment_id: a.segment_id,
         type: a.type,
