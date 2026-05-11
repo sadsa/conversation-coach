@@ -211,6 +211,15 @@ describe('analyseUserTurns', () => {
     const callArgs = mockCreate.mock.calls[0][0]
     expect(callArgs.system).toContain('Rioplatense')
     expect(callArgs.system).not.toContain('New Zealand English')
+    // New guardrails (shared across both languages):
+    expect(callArgs.system).toContain('Skip self-corrections')
+    expect(callArgs.system).toContain('Do not upsell regional flair')
+    expect(callArgs.system).toContain('De-duplicate recurring patterns')
+    expect(callArgs.system).toContain('Favour quality over quantity')
+    // ES-AR-specific negative example:
+    expect(callArgs.system).toContain('pego un mordisco')
+    // Recalibrated importance bands (no score=1):
+    expect(callArgs.system).toContain('do not assign 1')
   })
 
   it('uses the EN-NZ system prompt when targetLanguage is en-NZ', async () => {
@@ -225,5 +234,14 @@ describe('analyseUserTurns', () => {
       'An invented Spanish sentence (in everyday Rioplatense register)',
     )
     expect(callArgs.system).toContain('The equivalent NZ English sentence')
+    // Parity with ES-AR — EN-NZ now has the same quality guardrails:
+    expect(callArgs.system).toContain('Skip self-corrections')
+    expect(callArgs.system).toContain('Do not upsell regional flair')
+    expect(callArgs.system).toContain('De-duplicate recurring patterns')
+    expect(callArgs.system).toContain('Favour quality over quantity')
+    // EN-NZ-specific negative example (the user's original complaint):
+    expect(callArgs.system).toContain('have a yarn')
+    // Recalibrated importance bands (no score=1):
+    expect(callArgs.system).toContain('do not assign 1')
   })
 })
