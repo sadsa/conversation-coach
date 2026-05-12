@@ -117,6 +117,7 @@ export function PracticeClient({ targetLanguage }: Props) {
   }, [])
 
   useEffect(() => {
+    if (!window.matchMedia('(min-width: 768px)').matches) return
     try {
       const seen = parseInt(window.localStorage.getItem(SHORTCUT_HINT_KEY) || '0', 10)
       setShowShortcutHint(seen < SHORTCUT_HINT_LIMIT)
