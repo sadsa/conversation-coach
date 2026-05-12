@@ -126,7 +126,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 paddingBottom: 'max(5rem, calc(var(--voice-bottom-height, 0px) + 0.75rem))',
                 transition: 'margin-top 180ms var(--ease-out-quart), padding-bottom 300ms var(--ease-out-quart)',
               }}
-              className="w-full max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none flex-1 flex flex-col"
+              className="w-full max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none flex-1 min-h-0 flex flex-col"
             >
               {children}
             </main>
