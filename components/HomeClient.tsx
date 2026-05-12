@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { HomeUploadFab } from '@/components/HomeUploadFab'
+import Link from 'next/link'
 import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 import { DashboardReminders } from '@/components/DashboardReminders'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
+import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 import type { DashboardSummary } from '@/lib/dashboard-summary'
@@ -44,7 +45,6 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   const pollAttempts = useRef<Map<string, number>>(new Map())
 
   const greetingKey = useMemo(() => pickGreetingKey(new Date()), [])
-
 
   const stopPolling = useCallback((sessionId: string) => {
     const id = pollTimeouts.current.get(sessionId)
@@ -122,8 +122,6 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   }, [])
 
   // Pause polling when the tab is hidden, resume when it comes back.
-  // We re-scan `sessions` on resume because the user may have navigated
-  // away and back, and the list of in-flight items can have changed.
   useEffect(() => {
     function onVisibilityChange() {
       if (document.hidden) {
@@ -209,10 +207,6 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   }, [])
 
   const isFirstTime = sessions.length === 0
-  // First-run users haven't recorded anything yet, so the default
-  // "quiet place to review what you've recorded" subtitle would be
-  // a small lie. Swap to a welcoming variant that fits the empty state.
-  const subtitleKey = isFirstTime ? 'home.firstRunSubtitle' : 'home.dashboardSubtitle'
 
   const inProgressSessions = useMemo(
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
@@ -224,50 +218,82 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-12 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 space-y-2 flex-1">
-            <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
-              {t(greetingKey)}
-            </h1>
-            <p className="text-text-secondary leading-relaxed">
-              {t(subtitleKey)}
-            </p>
-          </div>
-          <HomeUploadFab
-            onFile={handleFile}
-            onPickInvalid={msg => setError(msg)}
-            disabled={uploading}
-          />
-        </div>
+    <div className="max-w-2xl mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+      {/* Greeting */}
+      <header className="space-y-1.5">
+        <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+          {t(greetingKey)}
+        </h1>
+        {isFirstTime && (
+          <p className="text-text-secondary leading-relaxed">
+            {t('home.firstRunSubtitle')}
+          </p>
+        )}
       </header>
 
-      {isFirstTime ? (
-        <>
-          <DashboardOnboarding />
-          {error && (
-            <p className="text-sm text-status-error" aria-live="polite">{error}</p>
-          )}
-        </>
-      ) : (
-        <>
-          <DashboardInProgress sessions={inProgressSessions} />
+      {/* Practice CTA — primary action, close to the greeting */}
+      <section aria-label={t('home.practiceCTATitle')} className="mt-8">
+        <Link
+          href="/practice"
+          className="group flex items-center gap-5 rounded-2xl border border-accent-primary/25 bg-accent-primary/[0.04] px-6 py-5 hover:bg-accent-primary/[0.08] hover:border-accent-primary/35 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+        >
+          <span className="flex-shrink-0 w-11 h-11 rounded-full bg-accent-chip flex items-center justify-center text-on-accent-chip">
+            <Icon name="waveform" className="w-5 h-5" aria-hidden />
+          </span>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <p className="text-lg font-semibold text-text-primary">
+              {t('home.practiceCTATitle')}
+            </p>
+            <p className="text-sm text-text-secondary">
+              {t('home.practiceCTASubtitle')}
+            </p>
+          </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+            className="w-5 h-5 flex-shrink-0 text-text-tertiary transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+      </section>
 
+      {/* Corrections reminder — secondary action, below the invite */}
+      {!isFirstTime && (
+        <div className="mt-8">
           <DashboardReminders summary={summary} />
+        </div>
+      )}
 
-          {recentSessions.length > 0 && (
-            <DashboardRecentSessions
-              sessions={recentSessions}
-              onDeleted={handleSessionDeleted}
-              onToggleRead={handleToggleRead}
-            />
-          )}
+      {/* In-progress processing strip */}
+      {inProgressSessions.length > 0 && (
+        <div className="mt-8">
+          <DashboardInProgress sessions={inProgressSessions} />
+        </div>
+      )}
 
-          {error && (
-            <p className="text-sm text-status-error" aria-live="polite">{error}</p>
-          )}
-        </>
+      {/* Conversations — always present so the upload trigger is reachable */}
+      <div className="mt-10">
+        <DashboardRecentSessions
+          sessions={recentSessions}
+          onDeleted={handleSessionDeleted}
+          onToggleRead={handleToggleRead}
+          uploadProps={{
+            onFile: handleFile,
+            onPickInvalid: msg => setError(msg),
+            disabled: uploading,
+          }}
+          showEmptyMessage={!isFirstTime}
+          uploadError={error}
+        />
+      </div>
+
+      {/* First-run: tutorial entry point, visually quiet */}
+      {isFirstTime && (
+        <div className="mt-6">
+          <DashboardOnboarding />
+        </div>
       )}
     </div>
   )
