@@ -4,6 +4,7 @@
 // surface. Full state machine:
 //
 //   idle → connecting → active/warning/ending → review → analysing → ready
+//                                                      ↗ connecting (resume)
 //                                                      ↘ idle (discard)
 //                                                               ↘ error
 //
@@ -258,8 +259,8 @@ export function PracticeClient({ targetLanguage }: Props) {
   const progress = Math.min(1, elapsed / TOTAL_SECONDS)
   const inFinalStretch = elapsed >= COLOR_SHIFT_SECONDS
 
-  const startTimer = useCallback(() => {
-    let count = 0
+  const startTimer = useCallback((fromSecs = 0) => {
+    let count = fromSecs
     timerRef.current = setInterval(() => {
       count++
       if (!isMountedRef.current) return
@@ -352,6 +353,62 @@ export function PracticeClient({ targetLanguage }: Props) {
   }, [])
 
   useEffect(() => { endSessionRef.current = endSession }, [endSession])
+
+  // Reconnects from the review state without losing any turns or elapsed time.
+  // Restores turnsRef from the frozen snapshot so onTranscript appends correctly.
+  const resumeSession = useCallback(async () => {
+    if (practiceState !== 'review') return
+    const restoredTurns = [...frozenTurnsRef.current]
+    const restoredElapsed = elapsed
+    turnsRef.current = restoredTurns
+    frozenTurnsRef.current = []
+    setPracticeState('connecting')
+    setMuted(false)
+    try {
+      const agent = await connect(
+        targetLanguage,
+        {
+          onStateChange: (s) => {
+            if (!isMountedRef.current) return
+            if (s === 'active') {
+              setPracticeState('active')
+              startTimer(restoredElapsed)
+            } else if (s === 'ended') {
+              if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+              agentRef.current = null
+            }
+          },
+          onError: (msg) => {
+            if (!isMountedRef.current) return
+            const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
+            setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+            // Restore review state so the user can still save what they had.
+            frozenTurnsRef.current = restoredTurns
+            setPracticeState('review')
+          },
+          onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
+          onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
+          onTranscript: (role, text) => {
+            if (!isMountedRef.current) return
+            const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
+            turnsRef.current.push(turn)
+            setLiveTurns(prev => [...prev, turn])
+          },
+        },
+        { kind: 'other' },
+        undefined,
+        { transcription: true, systemPrompt: buildPracticeSystemPrompt(targetLanguage) },
+      )
+      agentRef.current = agent
+    } catch (err) {
+      if (!isMountedRef.current) return
+      const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
+      setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+      // Restore review state so the user can still save what they had.
+      frozenTurnsRef.current = restoredTurns
+      setPracticeState('review')
+    }
+  }, [practiceState, elapsed, targetLanguage, t, startTimer])
 
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
@@ -699,6 +756,13 @@ export function PracticeClient({ targetLanguage }: Props) {
               <Button size="md" onClick={confirmSave}>{t('practice.reviewSave')}</Button>
               <Button size="md" variant="secondary" onClick={discardSession}>{t('practice.reviewDiscard')}</Button>
             </div>
+            <button
+              type="button"
+              onClick={resumeSession}
+              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded"
+            >
+              {t('practice.reviewResume')}
+            </button>
           </motion.div>
         ) : (
           <motion.div
