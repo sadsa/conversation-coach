@@ -557,12 +557,23 @@ export function PracticeClient({ targetLanguage }: Props) {
       : voiceStatus === 'speaking' ? t('practice.statusSpeaking')
       : t('practice.statusListening')
 
+  // Lock the active surface to the visible viewport (minus header,
+  // optional voice-strip, iOS safe areas, and main's own pt/pb). Without
+  // an explicit height the flex-1 / min-h-0 chain quietly fails — main
+  // grows with content, the captions box never gets a finite height, and
+  // the page itself scrolls instead of the captions container, hiding
+  // the mute/end controls below the BottomNav. Explicit dvh calc keeps
+  // the timer and controls fixed in view; only the captions scroll.
   return (
     <div
       className="
         mx-auto w-full max-w-md px-6 pt-6 pb-6
-        flex flex-col gap-8 overflow-hidden flex-1 min-h-0
+        flex flex-col gap-8 overflow-hidden
       "
+      style={{
+        height:
+          'calc(100dvh - var(--header-height) - var(--voice-strip-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem - 5rem)',
+      }}
     >
       {/* Progress meter — quiet rail with accent-primary fill that shifts
           to a warmer pill-amber tone in the final 30 seconds. The fill
