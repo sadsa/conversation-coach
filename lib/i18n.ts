@@ -21,7 +21,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'common.close': 'Dismiss',
 
     // Navigation
-    'nav.recordings': 'Recordings',
+    'nav.recordings': 'Conversations',
     'nav.write': 'Write',
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
@@ -125,7 +125,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.uploadFabAria': 'Upload audio',
     'home.uploadFabLabel': 'Upload audio',
     'home.dashboardSubtitle': '',
-    'home.firstRunSubtitle': 'Practice by chatting — or share a recording from WhatsApp.',
+    'home.firstRunSubtitle': 'Practice by chatting — or share a conversation from WhatsApp.',
     'home.coachmarkCaption': 'Tap here to upload your first recording.',
     'home.coachmarkDismiss': 'Dismiss tip',
     'home.revisitTutorial': 'Revisit the tutorial',
@@ -146,8 +146,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountMany': '{n} in progress',
     'home.practiceCTATitle': 'Practice with your coach',
     'home.practiceCTASubtitle': 'Start a 5-minute voice session in Spanish',
-    'home.uploadRecording': 'Upload recording',
-    'home.noRecordingsYet': 'No recordings yet — share audio from WhatsApp to get started.',
+    'home.uploadRecording': 'Upload conversation',
+    'home.noRecordingsYet': 'No conversations yet — share audio from WhatsApp to get started.',
 
     // Drop zone
     'dropzone.title': 'Upload conversation',
@@ -175,12 +175,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Session list
     'session.delete': 'Delete',
-    'session.deleteTitle': 'Delete session?',
+    'session.deleteTitle': 'Delete conversation?',
     'session.deleteWarning': 'will be permanently deleted, along with all its corrections and any you\'ve saved to your Write list.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
-    'session.noSessions': 'No sessions yet — tap Upload to add your first conversation.',
-    'session.deleteError': 'Couldn\'t delete session — try again.',
+    'session.noSessions': 'No conversations yet.',
+    'session.deleteError': 'Couldn\'t delete conversation — try again.',
     // Optimistic delete + 5s Undo (parity with /write). Replaces the old
     // confirmation modal: the swipe is the commit, the toast is the safety net.
     'session.movedToTrash': 'Conversation moved to trash.',
@@ -209,30 +209,30 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorAnalysing': 'Analysis failed.',
     'pipeline.errorGeneric': 'Something went wrong.',
     'pipeline.errorUploadingDetail':
-      "We couldn't send your recording. This is usually a connection issue — your audio is safe.",
+      "We couldn't upload your conversation. This is usually a connection issue — your audio is safe.",
     'pipeline.errorTranscribingDetail':
       "The transcription service didn't respond. Most of the time another try is all it takes.",
     'pipeline.errorAnalysingDetail':
       "The analysis didn't finish. Your transcript is saved — we just need another pass over it.",
     'pipeline.errorGenericDetail':
-      'Your recording is safe. Try again in a moment, or come back later.',
+      'Your conversation is safe. Try again in a moment, or come back later.',
     'pipeline.retry': 'Try again',
     'pipeline.estimatedTime': 'Usually ready in ~{n} min',
     'pipeline.takingLong':
-      'Taking longer than expected — longer recordings can take a few minutes.',
+      'Taking longer than expected — longer conversations can take a few minutes.',
     'pipeline.retryAnalysis': 'Retry analysis',
     'pipeline.retrying': 'Retrying…',
     'pipeline.moreActions': 'More actions',
-    'pipeline.deleteSession': 'Delete session',
-    'pipeline.deleteTitle': 'Delete this session?',
-    'pipeline.deleteBody': 'This will stop processing and permanently remove the session and its audio. This can\'t be undone.',
+    'pipeline.deleteSession': 'Delete conversation',
+    'pipeline.deleteTitle': 'Delete this conversation?',
+    'pipeline.deleteBody': 'This will stop processing and permanently remove the conversation and its audio. This can\'t be undone.',
     'pipeline.deleteConfirm': 'Delete',
     'pipeline.deleteCancel': 'Keep processing',
     'pipeline.deleteError': 'Couldn\'t delete — try again.',
     // Reassurance + meta
     'pipeline.recordedOn': 'Recorded {date}',
-    'pipeline.audioLength': '{n} min recording',
-    'pipeline.audioLengthShort': '{n} sec recording',
+    'pipeline.audioLength': '{n} min conversation',
+    'pipeline.audioLengthShort': '{n} sec conversation',
     'pipeline.leaveBreak':
       "Feel free to close this page — we'll keep working in the background.",
     'pipeline.leaveBreakNotify':
@@ -258,19 +258,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Transcript page
     'transcript.loading': 'Loading transcript…',
-    'transcript.loadError': 'We couldn\'t load this session. Check your connection and try again.',
+    'transcript.loadError': 'We couldn\'t load this conversation. Check your connection and try again.',
     'transcript.retry': 'Retry',
     'transcript.grammar': 'grammar',
     'transcript.naturalness': 'naturalness',
     'transcript.min': 'min',
     'transcript.you': 'You',
     'transcript.them': 'Them',
-    'transcript.reanalyse': 'Re-analyse session',
+    'transcript.reanalyse': 'Re-analyse conversation',
     'transcript.markUnread': 'Mark as unread',
     'transcript.markedUnreadToast': 'Marked as unread.',
     'transcript.markUnreadError': 'Couldn\'t mark as unread — try again.',
     'transcript.moreActions': 'More actions',
-    'transcript.editTitle': 'Rename session',
+    'transcript.editTitle': 'Rename conversation',
     'transcript.progress': '{saved} saved · {dismissed} dismissed · {remaining} to go',
     'transcript.progressAria': '{n} of {total} reviewed',
     'transcript.progressAllReviewed': 'All {total} reviewed',
@@ -284,8 +284,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.markState.unreviewed': 'needs review',
 
     // Re-analyse confirmation
-    'reanalyse.title': 'Replace this session\'s corrections?',
-    'reanalyse.body': 'Re-analysing rewrites every correction for this session. Saved corrections keep their flashcards — only the corrections shown here are replaced.',
+    'reanalyse.title': 'Replace this conversation\'s corrections?',
+    'reanalyse.body': 'Re-analysing rewrites every correction for this conversation. Saved corrections keep their flashcards — only the corrections shown here are replaced.',
     'reanalyse.confirm': 'Replace corrections',
     'reanalyse.cancel': 'Keep current',
     'reanalyse.error': 'Couldn\'t start re-analysis — try again.',
@@ -368,11 +368,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeList.backToWrite': 'Back to Write',
     'writeList.markDoneShort': 'Done',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
-    'writeList.emptyWriteCta': 'Start a session to save more →',
+    'writeList.emptyWriteCta': 'Open a conversation to save more →',
     'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as written.',
     'writeList.emptyWrittenCaption': 'Items you\'ve written down land here, faded so they don\'t crowd the queue.',
     'writeList.emptyWrittenCta': '← Back to Write ({count})',
-    'writeList.emptyWrittenNoQueue': 'Nothing in your Write queue either — start a session to save your first correction.',
+    'writeList.emptyWrittenNoQueue': 'Nothing in your Write queue either — open a conversation to save your first correction.',
     'writeList.markRowAria': 'Mark "{original}" as written',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
@@ -425,7 +425,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.englishVariant': 'New Zealand English',
     'onboarding.languageSelect.cta': 'Get started →',
     // Onboarding — tutorial steps (semantic keys; URL ?step=1 → upload, ?step=2 → share)
-    'onboarding.upload.heading': 'Upload a recording',
+    'onboarding.upload.heading': 'Upload a conversation',
     'onboarding.upload.body':
       'Tap Upload audio and pick a file. It transcribes automatically.',
     'onboarding.share.heading': 'Share straight from WhatsApp',
@@ -503,7 +503,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'common.close': 'Cerrar',
 
     // Navigation
-    'nav.recordings': 'Grabaciones',
+    'nav.recordings': 'Conversaciones',
     'nav.write': 'Anotar',
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
@@ -607,7 +607,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.uploadFabAria': 'Subir audio',
     'home.uploadFabLabel': 'Subir audio',
     'home.dashboardSubtitle': '',
-    'home.firstRunSubtitle': 'Practicá chateando — o compartí una grabación desde WhatsApp.',
+    'home.firstRunSubtitle': 'Practicá chateando — o compartí una conversación desde WhatsApp.',
     'home.coachmarkCaption': 'Tocá acá para subir tu primera grabación.',
     'home.coachmarkDismiss': 'Cerrar consejo',
     'home.revisitTutorial': 'Ver el tutorial otra vez',
@@ -628,8 +628,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountMany': '{n} en proceso',
     'home.practiceCTATitle': 'Practicá con tu coach',
     'home.practiceCTASubtitle': 'Empezá una sesión de voz de 5 minutos en español',
-    'home.uploadRecording': 'Subir grabación',
-    'home.noRecordingsYet': 'Aún no hay grabaciones — compartí audio desde WhatsApp para empezar.',
+    'home.uploadRecording': 'Subir conversación',
+    'home.noRecordingsYet': 'Aún no hay conversaciones — compartí audio desde WhatsApp para empezar.',
 
     // Drop zone
     'dropzone.title': 'Subir conversación',
@@ -657,12 +657,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Session list
     'session.delete': 'Eliminar',
-    'session.deleteTitle': '¿Eliminar sesión?',
+    'session.deleteTitle': '¿Eliminar conversación?',
     'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus correcciones y las que guardaste en tu lista de Anotar.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
-    'session.noSessions': 'Todavía no hay sesiones — tocá Subir para agregar tu primera conversación.',
-    'session.deleteError': 'No se pudo eliminar la sesión — intentá de nuevo.',
+    'session.noSessions': 'Todavía no hay conversaciones.',
+    'session.deleteError': 'No se pudo eliminar la conversación — intentá de nuevo.',
     // Eliminado optimista con 5s para deshacer (mismo patrón que /write).
     // El gesto deslizar ya es la confirmación; el toast es la red de seguridad.
     'session.movedToTrash': 'Conversación enviada a la papelera.',
@@ -689,30 +689,30 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorAnalysing': 'Error en el análisis.',
     'pipeline.errorGeneric': 'Algo salió mal.',
     'pipeline.errorUploadingDetail':
-      'No pudimos enviar la grabación. Suele ser un problema de conexión — tu audio está a salvo.',
+      'No pudimos subir la conversación. Suele ser un problema de conexión — tu audio está a salvo.',
     'pipeline.errorTranscribingDetail':
       'El servicio de transcripción no respondió. Casi siempre se resuelve con otro intento.',
     'pipeline.errorAnalysingDetail':
       'El análisis no terminó. Tu transcripción está guardada — solo necesitamos pasarla de nuevo.',
     'pipeline.errorGenericDetail':
-      'Tu grabación está a salvo. Probá de nuevo en un momento o volvé más tarde.',
+      'Tu conversación está a salvo. Probá de nuevo en un momento o volvé más tarde.',
     'pipeline.retry': 'Probar de nuevo',
     'pipeline.estimatedTime': 'Suele estar listo en ~{n} min',
     'pipeline.takingLong':
-      'Está tardando más de lo esperado — las grabaciones largas pueden llevar unos minutos.',
+      'Está tardando más de lo esperado — las conversaciones largas pueden llevar unos minutos.',
     'pipeline.retryAnalysis': 'Reintentar análisis',
     'pipeline.retrying': 'Reintentando…',
     'pipeline.moreActions': 'Más acciones',
-    'pipeline.deleteSession': 'Eliminar sesión',
-    'pipeline.deleteTitle': '¿Eliminar esta sesión?',
-    'pipeline.deleteBody': 'Esto detendrá el procesamiento y eliminará la sesión y su audio de forma permanente. Esta acción no se puede deshacer.',
+    'pipeline.deleteSession': 'Eliminar conversación',
+    'pipeline.deleteTitle': '¿Eliminar esta conversación?',
+    'pipeline.deleteBody': 'Esto detendrá el procesamiento y eliminará la conversación y su audio de forma permanente. Esta acción no se puede deshacer.',
     'pipeline.deleteConfirm': 'Eliminar',
     'pipeline.deleteCancel': 'Seguir procesando',
     'pipeline.deleteError': 'No se pudo eliminar — intentá de nuevo.',
     // Reassurance + meta
     'pipeline.recordedOn': 'Grabado {date}',
-    'pipeline.audioLength': 'grabación de {n} min',
-    'pipeline.audioLengthShort': 'grabación de {n} seg',
+    'pipeline.audioLength': 'conversación de {n} min',
+    'pipeline.audioLengthShort': 'conversación de {n} seg',
     'pipeline.leaveBreak':
       'Podés cerrar esta página — seguimos trabajando en segundo plano.',
     'pipeline.leaveBreakNotify':
@@ -738,19 +738,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Transcript page
     'transcript.loading': 'Cargando transcripción…',
-    'transcript.loadError': 'No pudimos cargar esta sesión. Revisá tu conexión e intentá de nuevo.',
+    'transcript.loadError': 'No pudimos cargar esta conversación. Revisá tu conexión e intentá de nuevo.',
     'transcript.retry': 'Reintentar',
     'transcript.grammar': 'gramática',
     'transcript.naturalness': 'naturalidad',
     'transcript.min': 'min',
     'transcript.you': 'Vos',
     'transcript.them': 'Ellos',
-    'transcript.reanalyse': 'Re-analizar sesión',
+    'transcript.reanalyse': 'Re-analizar conversación',
     'transcript.markUnread': 'Marcar como sin leer',
     'transcript.markedUnreadToast': 'Marcada como sin leer.',
     'transcript.markUnreadError': 'No se pudo marcar como sin leer — intentá de nuevo.',
     'transcript.moreActions': 'Más acciones',
-    'transcript.editTitle': 'Renombrar sesión',
+    'transcript.editTitle': 'Renombrar conversación',
     'transcript.progress': '{saved} guardadas · {dismissed} descartadas · faltan {remaining}',
     'transcript.progressAria': '{n} de {total} revisadas',
     'transcript.progressAllReviewed': '{total} revisadas',
@@ -764,8 +764,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.markState.unreviewed': 'pendiente',
 
     // Re-analyse confirmation
-    'reanalyse.title': '¿Reemplazar las correcciones de esta sesión?',
-    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta sesión. Las correcciones guardadas conservan sus tarjetas — solo se reemplazan las correcciones que ves acá.',
+    'reanalyse.title': '¿Reemplazar las correcciones de esta conversación?',
+    'reanalyse.body': 'Re-analizar reescribe todas las correcciones de esta conversación. Las correcciones guardadas conservan sus tarjetas — solo se reemplazan las correcciones que ves acá.',
     'reanalyse.confirm': 'Reemplazar correcciones',
     'reanalyse.cancel': 'Mantener',
     'reanalyse.error': 'No se pudo iniciar el re-análisis — intentá de nuevo.',
@@ -847,11 +847,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeList.backToWrite': 'Volver a Anotar',
     'writeList.markDoneShort': 'Listo',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
-    'writeList.emptyWriteCta': 'Empezá una sesión para guardar más →',
+    'writeList.emptyWriteCta': 'Abrí una conversación para guardar más →',
     'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
     'writeList.emptyWrittenCaption': 'Lo que ya anotaste cae acá, atenuado para que no llene la cola.',
     'writeList.emptyWrittenCta': '← Volver a Anotar ({count})',
-    'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Anotar — empezá una sesión para guardar tu primera corrección.',
+    'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Anotar — abrí una conversación para guardar tu primera corrección.',
     'writeList.markRowAria': 'Marcar "{original}" como escrito',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
@@ -902,7 +902,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.englishVariant': 'Inglés de Nueva Zelanda',
     'onboarding.languageSelect.cta': 'Empezar →',
     // Onboarding — pasos del tutorial
-    'onboarding.upload.heading': 'Subí una grabación',
+    'onboarding.upload.heading': 'Subí una conversación',
     'onboarding.upload.body':
       'Tocá Subir audio y elegí un archivo. Se transcribe automáticamente.',
     'onboarding.share.heading': 'Compartí desde WhatsApp',
