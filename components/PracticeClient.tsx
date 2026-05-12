@@ -310,6 +310,14 @@ export function PracticeClient({ targetLanguage }: Props) {
     agentRef.current?.flush()
     agentRef.current?.disconnect()
     agentRef.current = null
+    // Nothing was said — skip the save/discard prompt and return to idle.
+    if (turnsRef.current.length === 0) {
+      turnsRef.current = []
+      setElapsed(0)
+      setLiveTurns([])
+      setPracticeState('idle')
+      return
+    }
     frozenTurnsRef.current = [...turnsRef.current]
     setPracticeState('review')
   }, [])
