@@ -98,11 +98,12 @@ export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exitin
           compact
         />
 
-        <div className="flex-1 min-w-0">
-          <span className={`text-xs select-none transition-colors duration-200 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}>
-            {muted ? t('voice.statusMuted') : t('voice.statusListening')}
+        {muted && (
+          <span className="flex-1 min-w-0 text-xs font-medium select-none text-amber-600 dark:text-amber-400">
+            {t('voice.statusMuted')}
           </span>
-        </div>
+        )}
+        {!muted && <div className="flex-1" />}
 
         {/* Keyboard shortcut hint — first-N-sessions only. Quieter token
             than before so it reads as a footnote, not a competing element. */}

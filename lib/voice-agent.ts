@@ -338,6 +338,10 @@ export async function connect(
 
   let userTranscriptBuffer = ''
   let modelTranscriptBuffer = ''
+  // Tracks whether the user buffer was already emitted for the current turn.
+  // Set to true the first time we see model output so the user bubble appears
+  // before the agent starts speaking, not after it finishes.
+  let userFlushedForTurn = false
 
   ws.addEventListener('open', () => {
     callbacks.onStateChange('connecting')
@@ -419,6 +423,13 @@ export async function connect(
           pcm16[i] = raw.charCodeAt(i * 2) | (raw.charCodeAt(i * 2 + 1) << 8)
         }
         scheduleAgentPcm(pcm16)
+        // Model audio starting means the user has finished their turn — emit
+        // the user bubble now so it appears before the agent starts speaking.
+        if (options.transcription && !userFlushedForTurn && userTranscriptBuffer.trim()) {
+          callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
+          userTranscriptBuffer = ''
+          userFlushedForTurn = true
+        }
       }
     }
 
@@ -431,10 +442,18 @@ export async function connect(
     // Output transcription — model's speech (inside serverContent.outputTranscription)
     const outputTranscription = (msg as { serverContent?: { outputTranscription?: { text?: string } } }).serverContent?.outputTranscription
     if (options.transcription && outputTranscription?.text) {
+      // First output token signals user turn ended — emit user bubble now if
+      // model audio didn't already trigger it (e.g. transcription-only mode).
+      if (!userFlushedForTurn && userTranscriptBuffer.trim()) {
+        callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
+        userTranscriptBuffer = ''
+        userFlushedForTurn = true
+      }
       modelTranscriptBuffer += outputTranscription.text
     }
 
-    // turnComplete — model's turn done; flush both transcript buffers
+    // turnComplete — model's turn done; flush remaining buffers and reset
+    // the per-turn flush flag so the next exchange starts fresh.
     const turnComplete = (msg as { serverContent?: { turnComplete?: boolean } }).serverContent?.turnComplete
     if (options.transcription && turnComplete) {
       if (userTranscriptBuffer.trim()) {
@@ -445,6 +464,7 @@ export async function connect(
         callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
         modelTranscriptBuffer = ''
       }
+      userFlushedForTurn = false
     }
 
     const error = (msg as { error?: { message?: string } }).error
@@ -485,6 +505,7 @@ export async function connect(
         callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
         modelTranscriptBuffer = ''
       }
+      userFlushedForTurn = false
     },
     disconnect() {
       if (ws.readyState !== WebSocket.CLOSED) ws.close()

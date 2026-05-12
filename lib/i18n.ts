@@ -36,14 +36,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice
     'nav.practice': 'Practice',
     'practice.heading': 'Have a conversation',
-    'practice.description': "Chat in Spanish for a few minutes — the coach starts, just respond naturally. Afterwards we'll go over the moments worth practising.",
-    'practice.topicPrimer': 'The coach will start the conversation — just respond as you would to a friend.', // unused in UI; kept for reference
+    'practice.description': "Chat in {language} for a few minutes — the coach starts, just respond naturally. Afterwards we'll go over the moments worth practising.",
+    'lang.es-AR': 'Spanish',
+    'lang.en-NZ': 'English',
     'practice.idleMeta': 'Uses your microphone · 5-minute session · reviewed for corrections after',
     'practice.start': 'Start chatting',
     'practice.connecting': 'Connecting to the coach…',
     'practice.endingState': 'Hanging up…',
-    'practice.statusListening': 'Listening',
-    'practice.statusSpeaking': 'Coach is speaking',
     'practice.statusMuted': 'Muted',
     'practice.muteAria': 'Mute microphone',
     'practice.unmuteAria': 'Unmute microphone',
@@ -64,14 +63,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.startOver': 'Start over',
     'practice.navAway': "We're still reviewing your conversation. Leave anyway?", // unused — beforeunload shows the browser's own dialog
     'practice.timerAria': 'Time remaining: {time}',
+    'practice.timerAriaElapsed': 'Session length: {time}',
     'practice.reviewHeading': 'Save this conversation?',
+    'practice.reviewEncouragement': "We'll highlight the moments worth practising.",
     'practice.reviewMeta': 'Session length: {time}',
     'practice.reviewSave': 'Save and review',
     'practice.reviewDiscard': 'Discard',
     'practice.discardToast': 'Session discarded',
     'practice.discardUndo': 'Undo',
-    'practice.youLabel': 'You', // unused in UI; kept for reference
-    'practice.coachLabel': 'Coach', // unused in UI; kept for reference
+    'practice.youLabel': 'You',
+    'practice.coachLabel': 'Coach',
 
     // Auth — login page
     'auth.signInTitle': 'Sign in with your email',
@@ -512,14 +513,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice
     'nav.practice': 'Práctica',
     'practice.heading': 'Tener una charla',
-    'practice.description': 'Charlá en español unos minutos — el coach empieza, respondé naturalmente. Después repasamos juntos los momentos que vale la pena practicar.',
-    'practice.topicPrimer': 'El coach va a empezar la charla — respondé como le responderías a un amigo.', // unused en UI; kept para referencia
+    'practice.description': 'Charlá en {language} unos minutos — el coach empieza, respondé naturalmente. Después repasamos juntos los momentos que vale la pena practicar.',
+    'lang.es-AR': 'español',
+    'lang.en-NZ': 'inglés',
     'practice.idleMeta': 'Usa tu micrófono · sesión de 5 minutos · revisión de errores después',
     'practice.start': 'Empezar a charlar',
     'practice.connecting': 'Conectando con el coach…',
     'practice.endingState': 'Colgando…',
-    'practice.statusListening': 'Escuchando',
-    'practice.statusSpeaking': 'El coach está hablando',
     'practice.statusMuted': 'Silenciado',
     'practice.muteAria': 'Silenciar micrófono',
     'practice.unmuteAria': 'Activar micrófono',
@@ -540,14 +540,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.startOver': 'Empezar de nuevo',
     'practice.navAway': 'Todavía estamos repasando tu conversación. ¿Salir igual?', // unused — beforeunload muestra el diálogo nativo del browser
     'practice.timerAria': 'Tiempo restante: {time}',
+    'practice.timerAriaElapsed': 'Duración de la charla: {time}',
     'practice.reviewHeading': '¿Guardar esta charla?',
+    'practice.reviewEncouragement': 'Vamos a marcar los momentos que vale la pena practicar.',
     'practice.reviewMeta': 'Charla de {time}',
     'practice.reviewSave': 'Guardar y revisar',
     'practice.reviewDiscard': 'Descartar',
     'practice.discardToast': 'Charla descartada',
     'practice.discardUndo': 'Deshacer',
-    'practice.youLabel': 'Vos', // unused en UI; kept para referencia
-    'practice.coachLabel': 'Coach', // unused en UI; kept para referencia
+    'practice.youLabel': 'Vos',
+    'practice.coachLabel': 'Coach',
 
     // Auth — login page
     'auth.signInTitle': 'Iniciá sesión con tu correo',

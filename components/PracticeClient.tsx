@@ -39,7 +39,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
 import { connect, buildPracticeSystemPrompt } from '@/lib/voice-agent'
 import { Button } from '@/components/Button'
@@ -52,6 +52,9 @@ import type { VoiceAgent } from '@/lib/voice-agent'
 import type { VoiceTickCallback } from '@/components/VoiceController'
 
 type PracticeState = 'idle' | 'connecting' | 'active' | 'warning' | 'ending' | 'review' | 'analysing' | 'error'
+
+const SHORTCUT_HINT_KEY = 'cc:practice-shortcut-hint-seen'
+const SHORTCUT_HINT_LIMIT = 3
 
 interface Props {
   targetLanguage: TargetLanguage
@@ -66,8 +69,9 @@ const RMS_FLOOR = 0.004
 // LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
 export function PracticeClient({ targetLanguage }: Props) {
-  const { t } = useTranslation()
+  const { t, targetLanguage: ctxTargetLanguage } = useTranslation()
   const router = useRouter()
+  const reducedMotion = useReducedMotion()
   const [practiceState, setPracticeState] = useState<PracticeState>('idle')
   const [muted, setMuted] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -75,6 +79,7 @@ export function PracticeClient({ targetLanguage }: Props) {
   const [liveTurns, setLiveTurns] = useState<TranscriptTurn[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [discardToast, setDiscardToast] = useState<{ key: number } | null>(null)
+  const [showShortcutHint, setShowShortcutHint] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
   const turnsRef = useRef<TranscriptTurn[]>([])
@@ -111,6 +116,16 @@ export function PracticeClient({ targetLanguage }: Props) {
     }
   }, [])
 
+  useEffect(() => {
+    try {
+      const seen = parseInt(window.localStorage.getItem(SHORTCUT_HINT_KEY) || '0', 10)
+      setShowShortcutHint(seen < SHORTCUT_HINT_LIMIT)
+      window.localStorage.setItem(SHORTCUT_HINT_KEY, String(seen + 1))
+    } catch {
+      setShowShortcutHint(true)
+    }
+  }, [])
+
   // Block the global voice coach trigger while practice is active so the
   // header chip can't open a second WebSocket on top of this one.
   useEffect(() => {
@@ -130,7 +145,8 @@ export function PracticeClient({ targetLanguage }: Props) {
     const isLive =
       practiceState === 'active' ||
       practiceState === 'warning' ||
-      practiceState === 'ending'
+      practiceState === 'ending' ||
+      practiceState === 'review'
     if (isLive) {
       document.body.style.overflow = 'hidden'
     } else {
@@ -453,7 +469,7 @@ export function PracticeClient({ targetLanguage }: Props) {
             {t('practice.heading')}
           </h1>
           <p className="text-base md:text-lg text-text-secondary leading-relaxed">
-            {t('practice.description')}
+            {t('practice.description', { language: t(`lang.${ctxTargetLanguage}`) })}
           </p>
         </div>
 
@@ -491,7 +507,6 @@ export function PracticeClient({ targetLanguage }: Props) {
         aria-live="polite"
       >
         <ProcessingGraphic compact label={t('practice.connecting')} />
-        <p className="text-base text-text-primary">{t('practice.connecting')}</p>
       </div>
     )
   }
@@ -542,36 +557,13 @@ export function PracticeClient({ targetLanguage }: Props) {
     )
   }
 
-  // ─── Review ────────────────────────────────────────────────────────────
-  if (practiceState === 'review') {
-    return (
-      <div
-        className="
-          mx-auto w-full max-w-md px-6
-          flex flex-col items-center justify-center flex-1
-          gap-6 text-center
-        "
-      >
-        <div className="flex flex-col gap-2">
-          <p className="text-lg font-medium text-foreground">{t('practice.reviewHeading')}</p>
-          <p className="text-sm text-text-tertiary">{t('practice.reviewMeta', { time: formatTime(elapsed) })}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button size="md" onClick={confirmSave}>{t('practice.reviewSave')}</Button>
-          <Button size="md" variant="secondary" onClick={discardSession}>{t('practice.reviewDiscard')}</Button>
-        </div>
-        {toast && <Toast message={toast} />}
-      </div>
-    )
-  }
-
-  // ─── Active / Warning / Ending ─────────────────────────────────────────
+  // ─── Active / Warning / Ending / Review ────────────────────────────────
   const isEnding = practiceState === 'ending'
+  const isReview = practiceState === 'review'
   const statusLabel = isEnding
     ? t('practice.endingState')
     : voiceStatus === 'muted' ? t('practice.statusMuted')
-      : voiceStatus === 'speaking' ? t('practice.statusSpeaking')
-      : t('practice.statusListening')
+    : null
 
   return (
     // position:fixed anchors us to the real viewport regardless of the flex
@@ -591,29 +583,35 @@ export function PracticeClient({ targetLanguage }: Props) {
       {/* ── Top bar: progress rail + countdown ──────────────────────────────
           Anchored. ScaleX on the fill is GPU-accelerated (no layout thrash).
           Colour shifts from accent-primary → pill-amber in the final 30s —
-          a deliberate emotional cue, not a flicker. */}
+          a deliberate emotional cue, not a flicker. In review the bar
+          freezes at full (scaleX 1) and the timer shows session duration. */}
       <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border-subtle flex-shrink-0">
         <div
           className="h-1 flex-1 rounded-full bg-border-subtle overflow-hidden"
           role="progressbar"
-          aria-valuenow={Math.round(progress * 100)}
+          aria-valuenow={isReview ? 100 : Math.round(progress * 100)}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={t('practice.timerAria', { time: formatTime(remainingSecs) })}
+          aria-label={isReview
+            ? t('practice.timerAriaElapsed', { time: formatTime(elapsed) })
+            : t('practice.timerAria', { time: formatTime(remainingSecs) })
+          }
         >
           <div
-            className={`h-full w-full origin-left ${inFinalStretch ? 'bg-pill-amber' : 'bg-accent-primary'}`}
+            className="h-full w-full origin-left bg-accent-primary"
             style={{
-              transform: `scaleX(${progress})`,
-              transition: 'transform 1000ms linear, background-color 700ms var(--ease-out-quart)',
+              transform: isReview ? 'scaleX(1)' : `scaleX(${progress})`,
+              transition: isReview
+                ? 'transform 600ms var(--ease-out-quart)'
+                : 'transform 1000ms linear, background-color 700ms var(--ease-out-quart)',
             }}
           />
         </div>
         <span
-          className={`text-sm tabular-nums font-medium select-none transition-colors duration-700 ${inFinalStretch ? 'text-pill-amber' : 'text-text-secondary'}`}
+          className={`text-sm tabular-nums font-medium select-none transition-colors duration-700 ${!isReview && inFinalStretch ? 'text-pill-amber' : 'text-text-secondary'}`}
           aria-hidden="true"
         >
-          {t('practice.timeRemaining', { time: formatTime(remainingSecs) })}
+          {isReview ? formatTime(elapsed) : t('practice.timeRemaining', { time: formatTime(remainingSecs) })}
         </span>
       </div>
 
@@ -636,122 +634,163 @@ export function PracticeClient({ targetLanguage }: Props) {
             justify-end + overflow-y:auto across browsers. */}
         <div className="flex-1" aria-hidden="true" />
 
-        {liveTurns.map((turn, i) => (
+        {liveTurns.map((turn, i) => {
+          // Show a role label above the very first bubble for each speaker so
+          // first-time users immediately understand the side convention.
+          const isFirstOfRole = liveTurns.findIndex(t => t.role === turn.role) === i
+          return (
+            <motion.div
+              key={`${turn.wallMs}-${i}`}
+              initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              className={`flex flex-col gap-1 ${turn.role === 'user' ? 'items-end' : 'items-start'}`}
+            >
+              {isFirstOfRole && (
+                <span className="text-xs text-text-tertiary select-none px-1">
+                  {turn.role === 'user' ? t('practice.youLabel') : t('practice.coachLabel')}
+                </span>
+              )}
+              <p
+                className={`
+                  px-4 py-2.5 text-sm leading-relaxed max-w-[78%]
+                  ${turn.role === 'user'
+                    ? 'rounded-2xl bg-accent-chip text-on-accent-chip'
+                    : 'rounded-2xl bg-surface-elevated text-text-primary ring-1 ring-border-subtle'}
+                `}
+              >
+                {turn.text}
+              </p>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      {/* ── Bottom bar: call controls ↔ review prompt ────────────────────────
+          AnimatePresence cross-fades between the live call controls and the
+          save/discard prompt when the session ends. The transcript above
+          stays visible throughout — the user never loses their conversational
+          context. */}
+      <AnimatePresence mode="wait">
+        {isReview ? (
           <motion.div
-            key={`${turn.wallMs}-${i}`}
-            initial={{ opacity: 0, y: 6 }}
+            key="review"
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-            className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}
+            className="flex-shrink-0 border-t border-border-subtle px-6 pt-5 pb-5 flex flex-col items-center gap-4"
           >
-            <p
-              className={`
-                px-4 py-2.5 text-sm leading-relaxed max-w-[78%]
-                ${turn.role === 'user'
-                  ? 'rounded-2xl bg-accent-chip text-on-accent-chip'
-                  : 'rounded-2xl bg-surface-elevated text-text-primary ring-1 ring-border-subtle'}
-              `}
-            >
-              {turn.text}
-            </p>
+            <div className="text-center">
+              <p className="text-base font-medium text-foreground">{t('practice.reviewHeading')}</p>
+              <p className="text-sm text-text-secondary mt-1">{t('practice.reviewEncouragement')}</p>
+              <p className="text-xs text-text-tertiary mt-1">{t('practice.reviewMeta', { time: formatTime(elapsed) })}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="md" onClick={confirmSave}>{t('practice.reviewSave')}</Button>
+              <Button size="md" variant="secondary" onClick={discardSession}>{t('practice.reviewDiscard')}</Button>
+            </div>
           </motion.div>
-        ))}
-      </div>
-
-      {/* ── Bottom bar: status indicator + call controls ─────────────────────
-          Anchored. AudioReactiveDots (compact) inline with the live status
-          label — together they signal mic liveness without taking vertical
-          space. The two action buttons use the round-circle phone-call
-          pattern: neutral circle for mute, filled rose circle for end.
-          Controls are disabled (and opacity-reduced via :disabled) during
-          the 1.5s 'ending' wrap-up beat. */}
-      <div className="flex-shrink-0 border-t border-border-subtle px-6 pt-3 pb-3 flex flex-col items-center gap-3">
-
-        {/* Status row: dots + animated label */}
-        <div className="flex items-center gap-2 h-5">
-          <AudioReactiveDots
-            audioTickCallbacksRef={audioTickCallbacksRef}
-            compact
-            className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
-          />
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={statusLabel}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className={`text-xs font-medium select-none ${voiceStatus === 'muted' ? 'text-amber-600 dark:text-amber-400' : 'text-text-tertiary'}`}
-            >
-              {statusLabel}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-
-        {/* Call action buttons */}
-        <div className="flex items-end justify-center gap-16">
-
-          {/* Mute — neutral circle, amber fill when pressed */}
-          <button
-            type="button"
-            onClick={toggleMute}
-            disabled={isEnding}
-            aria-label={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
-            aria-pressed={muted}
-            aria-keyshortcuts="Space"
-            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
+        ) : (
+          <motion.div
+            key="controls"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="flex-shrink-0 border-t border-border-subtle px-6 pt-3 pb-3 flex flex-col items-center gap-3"
           >
-            <div
-              className={`
-                w-14 h-14 rounded-full flex items-center justify-center
-                transition-colors duration-150
-                group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
-                group-disabled:opacity-40
-                ${muted
-                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                  : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
-              `}
-            >
-              <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
+            {/* Status row: dots + label only when state is notable (muted / ending) */}
+            <div className="flex items-center gap-2 h-5">
+              <AudioReactiveDots
+                audioTickCallbacksRef={audioTickCallbacksRef}
+                compact
+                className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
+              />
+              <AnimatePresence mode="wait">
+                {statusLabel && (
+                  <motion.span
+                    key={statusLabel}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    className={`text-xs font-medium select-none ${isEnding ? 'text-text-tertiary' : 'text-amber-600 dark:text-amber-400'}`}
+                  >
+                    {statusLabel}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
-            <span
-              className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
-            >
-              {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
-            </span>
-          </button>
 
-          {/* End call — filled rose circle, always reads as destructive */}
-          <button
-            type="button"
-            onClick={endSession}
-            disabled={isEnding}
-            aria-label={t('practice.endAria')}
-            aria-keyshortcuts="Escape"
-            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
-          >
-            <div
-              className="
-                w-14 h-14 rounded-full flex items-center justify-center
-                bg-rose-500 text-white
-                group-hover:bg-rose-600 group-active:bg-rose-700
-                group-disabled:opacity-40
-                group-focus-visible:ring-2 group-focus-visible:ring-rose-500 group-focus-visible:ring-offset-2
-                transition-colors duration-150
-              "
-            >
-              <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
+            {/* Call action buttons */}
+            <div className="flex items-end justify-center gap-16">
+
+              {/* Mute — neutral circle, amber fill when pressed */}
+              <button
+                type="button"
+                onClick={toggleMute}
+                disabled={isEnding}
+                aria-label={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
+                aria-pressed={muted}
+                aria-keyshortcuts="Space"
+                className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
+              >
+                <div
+                  className={`
+                    w-14 h-14 rounded-full flex items-center justify-center
+                    transition-colors duration-150
+                    group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
+                    group-disabled:opacity-40
+                    ${muted
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
+                  `}
+                >
+                  <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
+                </div>
+                <span
+                  className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
+                >
+                  {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
+                </span>
+              </button>
+
+              {/* End call — filled rose circle, always reads as destructive */}
+              <button
+                type="button"
+                onClick={endSession}
+                disabled={isEnding}
+                aria-label={t('practice.endAria')}
+                aria-keyshortcuts="Escape"
+                className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
+              >
+                <div
+                  className="
+                    w-14 h-14 rounded-full flex items-center justify-center
+                    bg-rose-500 text-white
+                    group-hover:bg-rose-600 group-active:bg-rose-700
+                    group-disabled:opacity-40
+                    group-focus-visible:ring-2 group-focus-visible:ring-rose-500 group-focus-visible:ring-offset-2
+                    transition-colors duration-150
+                  "
+                >
+                  <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
+                </div>
+                <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
+                  {t('practice.end')}
+                </span>
+              </button>
             </div>
-            <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
-              {t('practice.end')}
-            </span>
-          </button>
-        </div>
 
-        <p className="hidden md:block text-xs text-text-tertiary select-none" aria-hidden="true">
-          {t('practice.shortcutHint')}
-        </p>
-      </div>
+            {showShortcutHint && (
+              <p className="text-xs text-text-tertiary select-none" aria-hidden="true">
+                {t('practice.shortcutHint')}
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {toast && <Toast message={toast} />}
     </div>

@@ -87,9 +87,13 @@ export function VoiceWaveMode({ voiceState, audioTickCallbacksRef, onMute, onEnd
                   so the eye sees the animation before reading the status text. */}
               <AudioReactiveDots audioTickCallbacksRef={audioTickCallbacksRef} />
 
-              <span className="flex-1 text-sm text-text-secondary select-none">
-                {muted ? t('voice.statusMuted') : t('voice.statusListening')}
-              </span>
+              {muted ? (
+                <span className="flex-1 text-sm font-medium select-none text-amber-600 dark:text-amber-400">
+                  {t('voice.statusMuted')}
+                </span>
+              ) : (
+                <div className="flex-1" />
+              )}
 
               <button
                 type="button"
