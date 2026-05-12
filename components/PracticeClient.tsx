@@ -63,7 +63,7 @@ const COLOR_SHIFT_SECONDS = 270  // meter colour shift at T-30s
 const ENDING_HOLD_MS = 1500      // wrap-up beat duration before auto-end
 const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
-const LIVE_CAPTION_TURNS = 3
+// LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
 export function PracticeClient({ targetLanguage }: Props) {
   const { t } = useTranslation()
@@ -95,6 +95,7 @@ export function PracticeClient({ targetLanguage }: Props) {
   const lastSpeakerRef = useRef<'user' | 'agent' | 'idle'>('idle')
 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -119,6 +120,23 @@ export function PracticeClient({ targetLanguage }: Props) {
       delete document.body.dataset.practiceActive
     }
     return () => { delete document.body.dataset.practiceActive }
+  }, [practiceState])
+
+  // Lock body scroll while a live session is running. Body uses
+  // min-h-[100dvh] which lets it grow with content — without this lock
+  // the flex chain never gets a definite height and the chat can push the
+  // controls off-screen. Mirrors the pattern used by modals/overlays.
+  useEffect(() => {
+    const isLive =
+      practiceState === 'active' ||
+      practiceState === 'warning' ||
+      practiceState === 'ending'
+    if (isLive) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
   }, [practiceState])
 
   // Warn on browser navigation while unsaved turns exist or analysis is running.
@@ -196,6 +214,13 @@ export function PracticeClient({ targetLanguage }: Props) {
       rafRef.current = null
     }
   }, [practiceState, muted])
+
+  // Scroll chat to bottom whenever a new turn lands.
+  useEffect(() => {
+    const el = chatScrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [liveTurns])
 
   // Reflect mute toggles in the status row immediately — RAF tick alone
   // won't update if the user is silent at the moment of toggling.
@@ -385,7 +410,7 @@ export function PracticeClient({ targetLanguage }: Props) {
             if (!isMountedRef.current) return
             const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
             turnsRef.current.push(turn)
-            setLiveTurns(prev => [...prev, turn].slice(-LIVE_CAPTION_TURNS))
+            setLiveTurns(prev => [...prev, turn])
           },
         },
         { kind: 'other' },
@@ -432,11 +457,11 @@ export function PracticeClient({ targetLanguage }: Props) {
           </p>
         </div>
 
+        <p className="text-sm text-text-secondary">{t('practice.idleMeta')}</p>
+
         <Button onClick={start} size="md">
           {t('practice.start')}
         </Button>
-
-        <p className="text-sm text-text-tertiary">{t('practice.idleMeta')}</p>
 
         {toast && <Toast message={toast} />}
         {discardToast && (
@@ -549,19 +574,25 @@ export function PracticeClient({ targetLanguage }: Props) {
       : t('practice.statusListening')
 
   return (
+    // position:fixed anchors us to the real viewport regardless of the flex
+    // chain. body uses min-h-[100dvh] (not a definite height), so flex-1 +
+    // min-h-0 inside main never gets a bounded size to scroll within.
+    // Fixed positioning with CSS-variable coordinates is the reliable escape.
     <div
-      className="
-        mx-auto w-full max-w-md px-6 pt-6 pb-6
-        flex flex-col gap-8 overflow-hidden flex-1 min-h-0
-      "
+      className="fixed flex flex-col bg-bg overflow-hidden z-10"
+      style={{
+        top: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
+        left: 0,
+        right: 0,
+        bottom: 'var(--bottom-nav-h)',
+      }}
     >
-      {/* Progress meter — quiet rail with accent-primary fill that shifts
-          to a warmer pill-amber tone in the final 30 seconds. The fill
-          uses scaleX from a left origin (cheaper than animating width —
-          GPU-accelerated, no layout thrash). The transition list runs
-          width-via-scale linearly with the timer; colour eases out so
-          the shift reads as a deliberate emotional cue, not a flicker. */}
-      <div className="flex items-center gap-3">
+
+      {/* ── Top bar: progress rail + countdown ──────────────────────────────
+          Anchored. ScaleX on the fill is GPU-accelerated (no layout thrash).
+          Colour shifts from accent-primary → pill-amber in the final 30s —
+          a deliberate emotional cue, not a flicker. */}
+      <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border-subtle flex-shrink-0">
         <div
           className="h-1 flex-1 rounded-full bg-border-subtle overflow-hidden"
           role="progressbar"
@@ -579,80 +610,88 @@ export function PracticeClient({ targetLanguage }: Props) {
           />
         </div>
         <span
-          className="text-sm tabular-nums text-text-secondary select-none"
+          className={`text-sm tabular-nums font-medium select-none transition-colors duration-700 ${inFinalStretch ? 'text-pill-amber' : 'text-text-secondary'}`}
           aria-hidden="true"
         >
           {t('practice.timeRemaining', { time: formatTime(remainingSecs) })}
         </span>
       </div>
 
-      {/* Status row — audio-reactive dots + role text. The dots are the
-          loudest element in this view: they tell the user the mic is alive
-          and the agent is heard. Mirrors VoiceStrip's vocabulary. The
-          status span is NOT aria-live — captions below carry the polite
-          announcements; the status string is a state label, not a
-          notification. Avoids two competing live regions. */}
-      <div className="flex flex-col items-center gap-4">
-        <AudioReactiveDots
-          audioTickCallbacksRef={audioTickCallbacksRef}
-          className={isEnding ? 'opacity-50 transition-opacity duration-300' : 'transition-opacity duration-300'}
-        />
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={statusLabel}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className={`text-sm font-medium select-none ${voiceStatus === 'muted' ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
-          >
-            {statusLabel}
-          </motion.span>
-        </AnimatePresence>
-      </div>
-
-      {/* Live captions — last 3 turns. Side alignment + colour tint carry
-          the speaker; uppercase YOU/COACH labels were dropped in the
-          polish pass (they were doubling the visual signal). Captions
-          held at max-w-[70%] so the side alignment reads visually rather
-          than two near-full-width blocks stacked. role="log" gives screen
-          readers the right semantic for a stream of new entries. */}
+      {/* ── Scrollable transcript ────────────────────────────────────────────
+          All turns. Auto-scrolls to bottom on each new entry (via
+          chatScrollRef + useEffect). role="log" + aria-atomic="false" lets
+          screen readers announce each new bubble without re-reading the
+          entire thread. Bubbles are side-aligned: user right, agent left.
+          No opacity fade — the full thread is equally readable in a scroll. */}
       <div
-        className="flex-1 flex flex-col justify-end gap-3 min-h-0 overflow-hidden"
+        ref={chatScrollRef}
+        className="flex-1 overflow-y-auto min-h-0 px-4 pt-5 pb-4 flex flex-col gap-3"
         role="log"
         aria-live="polite"
         aria-atomic="false"
       >
-        {liveTurns.map((turn, i) => {
-          const isLatest = i === liveTurns.length - 1
-          return (
+        {/* Spacer pushes messages to the bottom when the conversation is
+            short. Collapses to zero once messages overflow the container,
+            at which point the scroll area takes over. More reliable than
+            justify-end + overflow-y:auto across browsers. */}
+        <div className="flex-1" aria-hidden="true" />
+
+        {liveTurns.map((turn, i) => (
+          <motion.div
+            key={`${turn.wallMs}-${i}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
             <p
-              key={`${turn.wallMs}-${i}`}
               className={`
-                rounded-2xl px-4 py-3 text-sm leading-snug max-w-[70%]
-                transition-opacity duration-300
-                ${isLatest ? 'opacity-100' : 'opacity-50'}
+                px-4 py-2.5 text-sm leading-relaxed max-w-[78%]
                 ${turn.role === 'user'
-                  ? 'self-end bg-accent-chip text-accent-primary'
-                  : 'self-start bg-surface-elevated text-text-primary'}
+                  ? 'rounded-2xl bg-accent-chip text-on-accent-chip'
+                  : 'rounded-2xl bg-surface-elevated text-text-primary ring-1 ring-border-subtle'}
               `}
             >
               {turn.text}
             </p>
-          )
-        })}
+          </motion.div>
+        ))}
       </div>
 
-      {/* Controls — two labelled buttons. Labels are always visible (even
-          on mobile) so first-time users don't have to guess what the
-          circles do. Mute goes amber when pressed — "you're silenced" is
-          a state worth noticing, not hiding. End reads rose at rest —
-          destructive intent is clear before any hover. Disabled while
-          ending so the wrap-up beat is uninterrupted. */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center justify-center gap-6">
-          {/* Mute — labelled pill. Amber pressed state signals "the coach
-              can't hear you" without implying an error. */}
+      {/* ── Bottom bar: status indicator + call controls ─────────────────────
+          Anchored. AudioReactiveDots (compact) inline with the live status
+          label — together they signal mic liveness without taking vertical
+          space. The two action buttons use the round-circle phone-call
+          pattern: neutral circle for mute, filled rose circle for end.
+          Controls are disabled (and opacity-reduced via :disabled) during
+          the 1.5s 'ending' wrap-up beat. */}
+      <div className="flex-shrink-0 border-t border-border-subtle px-6 pt-3 pb-3 flex flex-col items-center gap-3">
+
+        {/* Status row: dots + animated label */}
+        <div className="flex items-center gap-2 h-5">
+          <AudioReactiveDots
+            audioTickCallbacksRef={audioTickCallbacksRef}
+            compact
+            className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
+          />
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={statusLabel}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className={`text-xs font-medium select-none ${voiceStatus === 'muted' ? 'text-amber-600 dark:text-amber-400' : 'text-text-tertiary'}`}
+            >
+              {statusLabel}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+
+        {/* Call action buttons */}
+        <div className="flex items-end justify-center gap-16">
+
+          {/* Mute — neutral circle, amber fill when pressed */}
           <button
             type="button"
             onClick={toggleMute}
@@ -660,49 +699,55 @@ export function PracticeClient({ targetLanguage }: Props) {
             aria-label={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
             aria-pressed={muted}
             aria-keyshortcuts="Space"
-            className="
-              inline-flex flex-col items-center justify-center gap-1
-              min-w-[4rem] px-3 py-2 rounded-2xl flex-shrink-0
-              text-text-secondary hover:bg-surface-elevated hover:text-text-primary
-              active:opacity-75
-              aria-pressed:bg-amber-500/15 aria-pressed:text-amber-600
-              dark:aria-pressed:text-amber-400
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-secondary
-              transition-colors
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-            "
+            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
           >
-            <Icon name={muted ? 'mic-off' : 'mic'} className="h-5 w-5" />
-            <span className="text-xs font-medium select-none">
+            <div
+              className={`
+                w-14 h-14 rounded-full flex items-center justify-center
+                transition-colors duration-150
+                group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
+                group-disabled:opacity-40
+                ${muted
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                  : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
+              `}
+            >
+              <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
+            </div>
+            <span
+              className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
+            >
               {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
             </span>
           </button>
 
-          {/* End — rose at rest so the destructive intent is legible at a
-              glance, not discovered on hover for the first time. */}
+          {/* End call — filled rose circle, always reads as destructive */}
           <button
             type="button"
             onClick={endSession}
             disabled={isEnding}
             aria-label={t('practice.endAria')}
             aria-keyshortcuts="Escape"
-            className="
-              inline-flex flex-col items-center justify-center gap-1
-              min-w-[4rem] px-3 py-2 rounded-2xl flex-shrink-0
-              text-rose-600 dark:text-rose-400
-              hover:bg-rose-500/20
-              active:bg-rose-500/30
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent
-              transition-colors
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-            "
+            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
           >
-            <Icon name="phone-hangup" className="h-5 w-5" />
-            <span className="text-xs font-medium select-none">
+            <div
+              className="
+                w-14 h-14 rounded-full flex items-center justify-center
+                bg-rose-500 text-white
+                group-hover:bg-rose-600 group-active:bg-rose-700
+                group-disabled:opacity-40
+                group-focus-visible:ring-2 group-focus-visible:ring-rose-500 group-focus-visible:ring-offset-2
+                transition-colors duration-150
+              "
+            >
+              <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
+            </div>
+            <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
               {t('practice.end')}
             </span>
           </button>
         </div>
+
         <p className="hidden md:block text-xs text-text-tertiary select-none" aria-hidden="true">
           {t('practice.shortcutHint')}
         </p>
