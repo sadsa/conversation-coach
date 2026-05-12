@@ -63,6 +63,7 @@ const COLOR_SHIFT_SECONDS = 270  // meter colour shift at T-30s
 const ENDING_HOLD_MS = 1500      // wrap-up beat duration before auto-end
 const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
+const LIVE_CAPTION_TURNS = 3
 
 export function PracticeClient({ targetLanguage }: Props) {
   const { t } = useTranslation()
@@ -94,7 +95,6 @@ export function PracticeClient({ targetLanguage }: Props) {
   const lastSpeakerRef = useRef<'user' | 'agent' | 'idle'>('idle')
 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
-  const captionsScrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -205,15 +205,6 @@ export function PracticeClient({ targetLanguage }: Props) {
       lastSpeakerRef.current = 'idle'
     }
   }, [muted, practiceState])
-
-  // Auto-scroll the captions area to the latest turn whenever a new one
-  // arrives. Without this the conversation pushes off the bottom of the
-  // captions box and the user has to scroll manually mid-session.
-  useEffect(() => {
-    const el = captionsScrollRef.current
-    if (!el) return
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-  }, [liveTurns])
 
   function formatTime(secs: number) {
     const m = Math.floor(secs / 60).toString()
@@ -394,7 +385,7 @@ export function PracticeClient({ targetLanguage }: Props) {
             if (!isMountedRef.current) return
             const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
             turnsRef.current.push(turn)
-            setLiveTurns(prev => [...prev, turn])
+            setLiveTurns(prev => [...prev, turn].slice(-LIVE_CAPTION_TURNS))
           },
         },
         { kind: 'other' },
@@ -557,23 +548,12 @@ export function PracticeClient({ targetLanguage }: Props) {
       : voiceStatus === 'speaking' ? t('practice.statusSpeaking')
       : t('practice.statusListening')
 
-  // Lock the active surface to the visible viewport (minus header,
-  // optional voice-strip, iOS safe areas, and main's own pt/pb). Without
-  // an explicit height the flex-1 / min-h-0 chain quietly fails — main
-  // grows with content, the captions box never gets a finite height, and
-  // the page itself scrolls instead of the captions container, hiding
-  // the mute/end controls below the BottomNav. Explicit dvh calc keeps
-  // the timer and controls fixed in view; only the captions scroll.
   return (
     <div
       className="
         mx-auto w-full max-w-md px-6 pt-6 pb-6
-        flex flex-col gap-8 overflow-hidden
+        flex flex-col gap-8 overflow-hidden flex-1 min-h-0
       "
-      style={{
-        height:
-          'calc(100dvh - var(--header-height) - var(--voice-strip-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem - 5rem)',
-      }}
     >
       {/* Progress meter — quiet rail with accent-primary fill that shifts
           to a warmer pill-amber tone in the final 30 seconds. The fill
@@ -631,32 +611,27 @@ export function PracticeClient({ targetLanguage }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Live captions — full conversation history. Side alignment +
-          colour tint carry the speaker; uppercase YOU/COACH labels were
-          dropped in the polish pass (they were doubling the visual
-          signal). Captions held at max-w-[70%] so the side alignment
-          reads visually rather than two near-full-width blocks stacked.
-          role="log" gives screen readers the right semantic for a stream
-          of new entries.
-
-          Scroll model: outer is the scroll container, inner uses
-          min-h-full + justify-end so a sparse conversation sits at the
-          bottom (caption-style); once content overflows, the outer
-          scrolls and an effect pins it to the bottom on every new turn
-          so the latest message is always visible without manual scroll. */}
+      {/* Live captions — last 3 turns. Side alignment + colour tint carry
+          the speaker; uppercase YOU/COACH labels were dropped in the
+          polish pass (they were doubling the visual signal). Captions
+          held at max-w-[70%] so the side alignment reads visually rather
+          than two near-full-width blocks stacked. role="log" gives screen
+          readers the right semantic for a stream of new entries. */}
       <div
-        ref={captionsScrollRef}
-        className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1"
+        className="flex-1 flex flex-col justify-end gap-3 min-h-0 overflow-hidden"
         role="log"
         aria-live="polite"
         aria-atomic="false"
       >
-        <div className="min-h-full flex flex-col justify-end gap-3">
-          {liveTurns.map((turn, i) => (
+        {liveTurns.map((turn, i) => {
+          const isLatest = i === liveTurns.length - 1
+          return (
             <p
               key={`${turn.wallMs}-${i}`}
               className={`
                 rounded-2xl px-4 py-3 text-sm leading-snug max-w-[70%]
+                transition-opacity duration-300
+                ${isLatest ? 'opacity-100' : 'opacity-50'}
                 ${turn.role === 'user'
                   ? 'self-end bg-accent-chip text-accent-primary'
                   : 'self-start bg-surface-elevated text-text-primary'}
@@ -664,8 +639,8 @@ export function PracticeClient({ targetLanguage }: Props) {
             >
               {turn.text}
             </p>
-          ))}
-        </div>
+          )
+        })}
       </div>
 
       {/* Controls — two labelled buttons. Labels are always visible (even
