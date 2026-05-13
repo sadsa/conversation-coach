@@ -2,12 +2,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 
-// Mock next/navigation
+// ── Router mock — capture push calls ─────────────────────────────────────────
+const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }))
 
-// Mock Audio so getAudioDuration resolves immediately
+// Mock Audio so getAudioDuration resolves immediately with duration=30
 global.URL.createObjectURL = vi.fn(() => 'blob:mock')
 global.URL.revokeObjectURL = vi.fn()
 class MockAudio {
@@ -23,15 +24,15 @@ class MockAudio {
 }
 Object.defineProperty(global, 'Audio', { value: MockAudio, writable: true })
 
-// Mock fetch for sessions list and session creation
+// Mock fetch for session creation and downstream calls
 global.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
-  if (url === '/api/sessions' && (!options?.method || options.method === 'GET')) {
-    return Promise.resolve({ json: () => Promise.resolve([]) })
-  }
   if (url === '/api/sessions' && options?.method === 'POST') {
     return Promise.resolve({ ok: true, json: () => Promise.resolve({ session_id: 's1', upload_url: 'http://r2/put' }) })
   }
-  // R2 PUT, upload-complete, etc.
+  // R2 PUT hangs — we want to verify router.push fires before it resolves
+  if (typeof url === 'string' && url.includes('r2')) {
+    return new Promise(() => { /* intentionally never resolves */ })
+  }
   return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
 })
 
@@ -74,42 +75,33 @@ function setupIDB(file: File | null) {
   Object.defineProperty(global, 'indexedDB', { value: mockIDB, writable: true })
 }
 
-// The share-pickup behaviour now lives in <HomeClient> — the page-level
-// Server Component just hands it the initial sessions list. We render
-// the client directly with an empty list so the only thing that can put
-// a session card on screen is the IndexedDB share pickup -> upload path.
+// The share-pickup behaviour lives in <HomeClient>. The new flow navigates
+// straight to the status page instead of adding the session to the dashboard.
 describe('HomeClient — share pickup', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
   })
 
-  it('shows the pending upload card when a share is pending', async () => {
+  it('navigates to the status page when a share is pending', async () => {
     const sharedFile = new File(['audio'], 'PTT-20260327.opus', { type: 'audio/ogg' })
     setupIDB(sharedFile)
 
     const { HomeClient } = await import('@/components/HomeClient')
-    const { getAllByText } = render(
-      <HomeClient initialSessions={[]} initialSummary={null} />
-    )
+    render(<HomeClient initialSessions={[]} initialSummary={null} />)
 
-    // The shared `.opus` file is auto-uploaded. The new session is still
-    // processing, so it appears in the in-progress callout at the top of the
-    // dashboard — and ONLY there. It pops into the recent-conversations list
-    // once it reaches a terminal status. We assert exactly one occurrence to
-    // lock in the no-duplication contract.
+    // Session is created and router.push fires immediately — before the R2 PUT
+    // (which never resolves in this test) has a chance to complete.
     await waitFor(() => {
-      expect(getAllByText('PTT-20260327.opus')).toHaveLength(1)
+      expect(mockPush).toHaveBeenCalledWith('/sessions/s1/status')
     }, { timeout: 2000 })
   })
 
   it('does nothing if no share is pending', async () => {
     setupIDB(null)
     const { HomeClient } = await import('@/components/HomeClient')
-    const { queryAllByText } = render(
-      <HomeClient initialSessions={[]} initialSummary={null} />
-    )
+    render(<HomeClient initialSessions={[]} initialSummary={null} />)
     await new Promise(r => setTimeout(r, 100))
-    expect(queryAllByText('PTT-20260327.opus')).toHaveLength(0)
+    expect(mockPush).not.toHaveBeenCalled()
   })
 })
