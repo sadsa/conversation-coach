@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 import { DashboardReminders } from '@/components/DashboardReminders'
@@ -34,9 +35,8 @@ interface Props {
 
 export function HomeClient({ initialSessions, initialSummary }: Props) {
   const { t } = useTranslation()
+  const router = useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions)
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<DashboardSummary | null>(initialSummary)
   // One pending timeout per polled session, plus per-session attempt
   // count for exponential backoff. Refs so the polling loop can read its
@@ -116,8 +116,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
     })
     return () => stopAllPolling()
     // We deliberately depend only on the initial list — re-firing this
-    // effect when `sessions` changes would double-poll. New sessions
-    // added via `doUpload` start their own polling explicitly.
+    // effect when `sessions` changes would double-poll.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -137,8 +136,6 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   }, [sessions, startPolling, stopAllPolling])
 
   const doUpload = useCallback(async (file: File) => {
-    setUploading(true)
-    setError(null)
     const ext = file.name.split('.').pop() ?? 'mp3'
     const duration_seconds = await getAudioDuration(file)
 
@@ -147,49 +144,37 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ title: 'Untitled', extension: ext, original_filename: file.name }),
     })
-    if (!createRes.ok) { setError('Failed to create session'); setUploading(false); return }
+    if (!createRes.ok) return
     const { session_id, upload_url } = await createRes.json() as { session_id: string; upload_url: string }
 
-    try {
-      const uploadRes = await fetch(upload_url, { method: 'PUT', body: file })
-      if (!uploadRes.ok) throw new Error('Upload failed')
-    } catch {
-      await fetch(`/api/sessions/${session_id}/upload-failed`, { method: 'POST' })
-      setError(t('home.uploadFailed'))
-      setUploading(false)
-      return
-    }
+    // Navigate immediately — PipelineStatus polls and shows the uploading state.
+    // The actual R2 PUT runs in the background; upload-failed is called on error
+    // so the status page surfaces it via the error state.
+    router.push(`/sessions/${session_id}/status`)
 
-    await fetch(`/api/sessions/${session_id}/upload-complete`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ duration_seconds }),
-    })
-
-    const newSession: SessionListItem = {
-      id: session_id,
-      title: file.name,
-      status: 'transcribing',
-      duration_seconds,
-      created_at: new Date().toISOString(),
-      processing_completed_at: null,
-      last_viewed_at: null,
-    }
-    setSessions(prev => [newSession, ...prev])
-    startPolling(session_id)
-    setUploading(false)
-  }, [t, startPolling])
-
-  const handleFile = useCallback((file: File) => {
-    void doUpload(file)
-  }, [doUpload])
+    void (async () => {
+      try {
+        const uploadRes = await fetch(upload_url, { method: 'PUT', body: file })
+        if (!uploadRes.ok) throw new Error('Upload failed')
+        await fetch(`/api/sessions/${session_id}/upload-complete`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ duration_seconds }),
+        })
+      } catch {
+        await fetch(`/api/sessions/${session_id}/upload-failed`, { method: 'POST' })
+      }
+    })()
+  }, [router])
 
   useEffect(() => {
     if (typeof indexedDB === 'undefined') return
     readPendingShare().then(file => {
-      if (file) handleFile(file)
+      if (file) void doUpload(file)
     })
-  }, [handleFile])
+    // Only run on mount — doUpload is stable (router dep is stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleSessionDeleted(id: string) {
     stopPolling(id)
@@ -273,19 +258,12 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
         </div>
       )}
 
-      {/* Conversations — always present so the upload trigger is reachable */}
+      {/* Conversations */}
       <div className="mt-10">
         <DashboardRecentSessions
           sessions={recentSessions}
           onDeleted={handleSessionDeleted}
           onToggleRead={handleToggleRead}
-          uploadProps={{
-            onFile: handleFile,
-            onPickInvalid: msg => setError(msg),
-            disabled: uploading,
-          }}
-          showEmptyMessage={!isFirstTime}
-          uploadError={error}
         />
       </div>
 

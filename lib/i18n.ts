@@ -122,12 +122,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.greetingMorning': 'Good morning',
     'home.greetingAfternoon': 'Good afternoon',
     'home.greetingEvening': 'Good evening',
-    'home.uploadFabAria': 'Upload audio',
-    'home.uploadFabLabel': 'Upload audio',
     'home.dashboardSubtitle': '',
     'home.firstRunSubtitle': 'Practice by chatting — or share a conversation from WhatsApp.',
-    'home.coachmarkCaption': 'Tap here to upload your first recording.',
-    'home.coachmarkDismiss': 'Dismiss tip',
     'home.revisitTutorial': 'Revisit the tutorial',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to write down right now.',
@@ -146,7 +142,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountMany': '{n} in progress',
     'home.practiceCTATitle': 'Practice with your coach',
     'home.practiceCTASubtitle': 'Start a 5-minute voice session in Spanish',
-    'home.uploadRecording': 'Upload conversation',
     'home.noRecordingsYet': 'No conversations yet — share audio from WhatsApp to get started.',
 
     // Drop zone
@@ -209,7 +204,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorAnalysing': 'Analysis failed.',
     'pipeline.errorGeneric': 'Something went wrong.',
     'pipeline.errorUploadingDetail':
-      "We couldn't upload your conversation. This is usually a connection issue — your audio is safe.",
+      "We couldn't upload your conversation. Share the audio from WhatsApp again to retry.",
+    'pipeline.errorUploadingRetryAction': 'Go to home',
     'pipeline.errorTranscribingDetail':
       "The transcription service didn't respond. Most of the time another try is all it takes.",
     'pipeline.errorAnalysingDetail':
@@ -604,12 +600,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.greetingMorning': 'Buenos días',
     'home.greetingAfternoon': 'Buenas tardes',
     'home.greetingEvening': 'Buenas noches',
-    'home.uploadFabAria': 'Subir audio',
-    'home.uploadFabLabel': 'Subir audio',
     'home.dashboardSubtitle': '',
     'home.firstRunSubtitle': 'Practicá chateando — o compartí una conversación desde WhatsApp.',
-    'home.coachmarkCaption': 'Tocá acá para subir tu primera grabación.',
-    'home.coachmarkDismiss': 'Cerrar consejo',
     'home.revisitTutorial': 'Ver el tutorial otra vez',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
@@ -628,7 +620,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountMany': '{n} en proceso',
     'home.practiceCTATitle': 'Practicá con tu coach',
     'home.practiceCTASubtitle': 'Empezá una sesión de voz de 5 minutos en español',
-    'home.uploadRecording': 'Subir conversación',
     'home.noRecordingsYet': 'Aún no hay conversaciones — compartí audio desde WhatsApp para empezar.',
 
     // Drop zone
@@ -689,7 +680,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorAnalysing': 'Error en el análisis.',
     'pipeline.errorGeneric': 'Algo salió mal.',
     'pipeline.errorUploadingDetail':
-      'No pudimos subir la conversación. Suele ser un problema de conexión — tu audio está a salvo.',
+      'No pudimos subir la conversación. Compartí el audio desde WhatsApp de nuevo para reintentar.',
+    'pipeline.errorUploadingRetryAction': 'Ir al inicio',
     'pipeline.errorTranscribingDetail':
       'El servicio de transcripción no respondió. Casi siempre se resuelve con otro intento.',
     'pipeline.errorAnalysingDetail':

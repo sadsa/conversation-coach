@@ -1,8 +1,7 @@
 // lib/audio-upload.ts
 //
-// Shared file-picker constants + validation for audio uploads. Used by the
-// always-on `HomeUploadFab` (and any future picker) so validation rules
-// don't drift across entry points.
+// Shared file-picker constants + validation for audio uploads. Used to
+// validate files received via the share-target flow.
 
 export const ACCEPTED_TYPES = [
   'audio/mpeg',

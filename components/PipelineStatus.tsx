@@ -130,12 +130,7 @@ export function PipelineStatus({
   async function handleRetry() {
     const res = await fetch(`/api/sessions/${sessionId}/retry`, { method: 'POST' })
     if (res.ok) {
-      const data = await res.json()
-      if (data.upload_url) {
-        router.push('/?retry=upload')
-      } else {
-        router.push(`/sessions/${sessionId}/status`)
-      }
+      router.push(`/sessions/${sessionId}/status`)
     }
   }
 
@@ -154,9 +149,16 @@ export function PipelineStatus({
           <p className="text-on-error-surface font-medium">{headline}</p>
           <p className="text-text-secondary leading-relaxed">{detail}</p>
           <div className="pt-2">
-            <Button size="md" onClick={handleRetry}>
-              {t('pipeline.retry')}
-            </Button>
+            {currentErrorStage === 'uploading' ? (
+              // No in-app picker — user must share the audio from WhatsApp again.
+              <Button size="md" variant="secondary" onClick={() => router.push('/')}>
+                {t('pipeline.errorUploadingRetryAction')}
+              </Button>
+            ) : (
+              <Button size="md" onClick={handleRetry}>
+                {t('pipeline.retry')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
