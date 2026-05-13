@@ -73,7 +73,8 @@ describe('useVoiceController', () => {
       'es-AR',
       expect.any(Object),
       { kind: 'write' },
-      undefined
+      undefined,
+      expect.any(Object)
     )
   })
 
@@ -96,7 +97,8 @@ describe('useVoiceController', () => {
       'es-AR',
       expect.any(Object),
       { kind: 'session', sessionTitle: 'Café con Mati' },
-      ctx
+      ctx,
+      expect.any(Object)
     )
   })
 
@@ -117,7 +119,8 @@ describe('useVoiceController', () => {
       'es-AR',
       expect.any(Object),
       { kind: 'write' },
-      ctx
+      ctx,
+      expect.any(Object)
     )
   })
 
