@@ -8,7 +8,6 @@ import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
 import { IconButton } from '@/components/IconButton'
 import { useTranslation } from '@/components/LanguageProvider'
-import { buildSessionContext } from '@/lib/voice-context'
 import type { SessionDetail } from '@/lib/types'
 
 interface Props {
@@ -50,23 +49,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     autoReadFiredRef.current = true
     fetch(`/api/sessions/${sessionId}/view`, { method: 'POST' }).catch(() => { /* non-critical */ })
   }, [sessionId])
-
-  // Publish rich page context for the global voice controller. The
-  // controller reads this lazily inside `start()` so opening voice while
-  // here gives the agent the conversation excerpt and annotations without
-  // prop-drilling through the layout. Cleared on unmount so navigating
-  // elsewhere never leaves stale context behind.
-  useEffect(() => {
-    const ctx = buildSessionContext(
-      { title, user_speaker_labels: detail.session.user_speaker_labels },
-      detail.segments,
-      detail.annotations
-    )
-    window.__ccVoiceContext = ctx ?? undefined
-    return () => {
-      delete window.__ccVoiceContext
-    }
-  }, [title, detail.session.user_speaker_labels, detail.segments, detail.annotations])
 
   useEffect(() => {
     if (!toastMessage) return

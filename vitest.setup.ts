@@ -11,10 +11,9 @@ matchesModule.makeNormalizer = function (opts: { trim?: boolean; collapseWhitesp
 }
 
 // JSDOM ships without `window.matchMedia`. Components that branch on viewport
-// size or `prefers-reduced-motion` (VoiceStrip, AudioReactiveBar, etc.) crash
-// without this stub. Default to "desktop, motion enabled" — individual tests
-// can override per-file (see VoiceController.test.tsx) if they need the
-// opposite.
+// size or `prefers-reduced-motion` crash without this stub. Default to
+// "desktop, motion enabled" — individual tests can override per-file if
+// they need the opposite.
 if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,

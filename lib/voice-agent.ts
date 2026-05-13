@@ -1,12 +1,6 @@
 // lib/voice-agent.ts
 
 import type { TargetLanguage } from '@/lib/types'
-import type { VoicePageContext } from '@/lib/voice-context'
-
-export type VoiceRouteContext =
-  | { kind: 'write' }
-  | { kind: 'session'; sessionTitle: string }
-  | { kind: 'other' }
 
 export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 
@@ -104,77 +98,6 @@ const WS_ENDPOINT =
 
 const DEFAULT_VOICE = 'Aoede'
 
-/** Pure function — builds the system prompt injected on connect. */
-export function buildSystemPrompt(
-  targetLanguage: TargetLanguage,
-  routeContext: VoiceRouteContext = { kind: 'other' },
-  pageContext?: VoicePageContext
-): string {
-  const isEsAR = targetLanguage === 'es-AR'
-
-  const languageBlock = isEsAR
-    ? `You are a Rioplatense Argentine Spanish coach.\nSpeak exclusively in Argentine Spanish with a Rioplatense accent.\nUse voseo verb forms and natural everyday Rioplatense vocabulary.`
-    : `You are a New Zealand English coach.\nSpeak exclusively in New Zealand English with a Kiwi accent and idioms.`
-
-  const routeHint = (() => {
-    if (routeContext.kind === 'write') {
-      return isEsAR
-        ? `\n\nEl usuario está mirando su lista de cosas para escribir — correcciones que quiere internalizar.`
-        : `\n\nThe user is currently looking at their Write list — saved corrections they want to internalise.`
-    }
-    if (routeContext.kind === 'session') {
-      const safeTitle = routeContext.sessionTitle.replace(/'/g, '')
-      return isEsAR
-        ? `\n\nEl usuario está repasando la conversación titulada '${safeTitle}'.`
-        : `\n\nThe user is currently reviewing the conversation titled '${safeTitle}'.`
-    }
-    return ''
-  })()
-
-  const pageContextBlock = (() => {
-    if (!pageContext) return ''
-
-    if (pageContext.kind === 'write') {
-      // segmentText is not included in the prompt — the correction + explanation is sufficient context.
-      const lines = pageContext.items
-        .map((item, i) => {
-          const corrPart = item.correction ? ` → "${item.correction}"` : ''
-          const fromPart = item.sessionTitle ? ` (from "${item.sessionTitle}")` : ''
-          return `${i + 1}. "${item.original}"${corrPart} — ${item.explanation}${fromPart}`
-        })
-        .join('\n')
-      return `\n\nPending corrections the user has saved:\n${lines}`
-    }
-
-    if (pageContext.kind === 'session') {
-      if (pageContext.excerpts.length === 0) {
-        const safeTitle = pageContext.sessionTitle.replace(/'/g, '')
-        return `\n\nThe user is reviewing the conversation titled '${safeTitle}'.`
-      }
-      const excerptLines = pageContext.excerpts
-        .map(e => `[${e.speaker}, position ${e.position}]: ${e.text}${e.isAnnotated ? '  ← annotated' : ''}`)
-        .join('\n')
-      const annotationLines = pageContext.annotations.length > 0
-        ? `\n\nAnnotations on this excerpt:\n${pageContext.annotations
-            .map((a, i) => {
-              const corrPart = a.correction ? ` → "${a.correction}"` : ''
-              return `${i + 1}. On the ${a.type} at position ${a.segmentPosition}: "${a.original}"${corrPart} — ${a.explanation}`
-            })
-            .join('\n')}`
-        : ''
-      return `\n\nThe user is reviewing this conversation excerpt:\n${excerptLines}${annotationLines}`
-    }
-
-    return ''
-  })()
-
-  const openingGuidance = pageContext
-    ? `\n\nThe user may refer to these by deixis ("this one", "the third", "the part about …"). When they do, anchor your answer to the specific item. Otherwise stay free-form. Be brief — one or two sentences, then wait for the user to respond.`
-    : `\n\nThe user has not given you a specific topic. Greet them briefly and ask how you can help.`
-
-  return `${languageBlock}${routeHint}${pageContextBlock}${openingGuidance}`
-}
-
 /** System prompt for practice sessions — Gemini acts as a conversation partner, not a coach. */
 export function buildPracticeSystemPrompt(targetLanguage: TargetLanguage): string {
   if (targetLanguage === 'en-NZ') {
@@ -202,8 +125,6 @@ Usá el voseo y el vocabulario típico del Río de la Plata (ché, dale, bárbar
 export async function connect(
   targetLanguage: TargetLanguage,
   callbacks: VoiceAgentCallbacks,
-  routeContext: VoiceRouteContext = { kind: 'other' },
-  pageContext?: VoicePageContext,
   options: ConnectOptions = {},
 ): Promise<VoiceAgent> {
   // 1. Get Google API key from our auth-gated server route.
@@ -357,7 +278,7 @@ export async function connect(
           },
         },
         systemInstruction: {
-          parts: [{ text: options.systemPrompt ?? buildSystemPrompt(targetLanguage, routeContext, pageContext) }],
+          parts: [{ text: options.systemPrompt ?? buildPracticeSystemPrompt(targetLanguage) }],
         },
         ...(options.transcription ? {
           inputAudioTranscription: {},

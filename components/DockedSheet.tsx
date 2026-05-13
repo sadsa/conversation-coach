@@ -248,7 +248,7 @@ export function DockedSheet({
         fixed left-0 right-0 z-20
         bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0
         md:left-auto md:right-0 md:w-[400px]
-        md:top-[calc(var(--header-height)+var(--voice-strip-height,0px)+env(safe-area-inset-top))]
+        md:top-[calc(var(--header-height)+env(safe-area-inset-top))]
         bg-surface-elevated border-t border-border md:border-t-0 md:border-l
         shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.18)] md:shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.12)]
         rounded-t-2xl md:rounded-none

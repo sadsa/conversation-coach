@@ -19,7 +19,8 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import type React from 'react'
-import type { VoiceTickCallback } from '@/components/VoiceController'
+
+export type VoiceTickCallback = (u: number, a: number, muted: boolean) => void
 
 const NUM_DOTS   = 7
 const SCALE_GAIN = 5
@@ -36,7 +37,7 @@ interface DotConfig {
 }
 
 const CONFIG_NORMAL: DotConfig = { dotW: 3,   restH: 3,  maxH: 20, gap: 4, wrapH: 24 }
-const CONFIG_COMPACT: DotConfig = { dotW: 2.5, restH: 2,  maxH: 14, gap: 3, wrapH: 18 }
+const CONFIG_COMPACT: DotConfig = { dotW: 2.5, restH: 3,  maxH: 14, gap: 3, wrapH: 18 }
 
 interface Props {
   audioTickCallbacksRef: React.MutableRefObject<Set<VoiceTickCallback>>

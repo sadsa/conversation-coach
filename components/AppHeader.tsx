@@ -4,17 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 import { useTranslation } from '@/components/LanguageProvider'
-import { VoiceTrigger, type VoiceTriggerState } from '@/components/VoiceTrigger'
-import { VoiceCoachmark } from '@/components/VoiceCoachmark'
 import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
 
 interface AppHeaderProps {
   isOpen: boolean
   onOpen: () => void
-  voice?: {
-    state: VoiceTriggerState
-    onStart: () => void
-  }
 }
 
 /**
@@ -45,7 +39,7 @@ function backHrefFor(pathname: string | null): string | null {
   return null
 }
 
-export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
+export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const { t } = useTranslation()
@@ -53,8 +47,7 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
   const sectionKey = sectionKeyFor(pathname)
   const sectionLabel = sectionKey ? t(sectionKey) : ''
   const backHref = backHrefFor(pathname)
-  const voiceActive = voice?.state === 'active' || voice?.state === 'muted'
-  const showSectionLabel = !!sectionLabel && !voiceActive
+  const showSectionLabel = !!sectionLabel
 
   return (
     <>
@@ -155,16 +148,6 @@ export function AppHeader({ isOpen, onOpen, voice }: AppHeaderProps) {
           </div>
 
           <div className="relative flex items-center gap-1 -mr-1">
-            {/* Voice trigger + coachmark are desktop-only in the header.
-                On mobile they live in BottomBar where they're thumb-reachable. */}
-            {voice && !pathname?.startsWith('/practice') && (
-              <div className="hidden md:flex items-center gap-1">
-                <VoiceTrigger state={voice.state} onStart={voice.onStart} />
-                {/* Coachmark anchors to this cluster (`relative` parent on the
-                    outer div), so its position survives right-cluster changes. */}
-                <VoiceCoachmark visible={voice.state === 'idle'} />
-              </div>
-            )}
             {/* Theme toggle — 44x44 hit area for AAA touch-target compliance,
                 with a smaller 32px visual circle inside so the chrome stays
                 quiet. */}

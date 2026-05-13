@@ -5,15 +5,6 @@ import { ConditionalNav } from '@/components/ConditionalNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { LanguageProvider } from '@/components/LanguageProvider'
 
-// Stub out the voice agent module so the controller's start() never tries
-// to mint a real token / open a WebSocket. The hook itself is exercised in
-// VoiceController.test.tsx — here we just want ConditionalNav to mount
-// cleanly and render the trigger inside the header.
-vi.mock('@/lib/voice-agent', () => ({
-  connect: vi.fn(),
-  buildSystemPrompt: vi.fn(() => 'mock prompt'),
-}))
-
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
   useRouter: vi.fn(),
@@ -91,11 +82,5 @@ describe('ConditionalNav', () => {
     mockPathname.mockReturnValue('/login')
     const { container } = wrap()
     expect(container.firstChild).toBeNull()
-  })
-
-  it('renders the voice trigger inside the header', () => {
-    mockPathname.mockReturnValue('/')
-    wrap()
-    expect(screen.getByRole('button', { name: /start voice/i })).toBeInTheDocument()
   })
 })

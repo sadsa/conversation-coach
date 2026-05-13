@@ -145,10 +145,6 @@
        hidden, so the toast can sit closer to the edge (still respecting
        the safe area on iPad / landscape iPhone). */
     --toast-bottom: calc(5rem + env(safe-area-inset-bottom));
-    /* Filled by VoiceStrip on mount; 0px when no voice session is active.
-       Keeps `<main>`'s top spacing in lockstep with the strip's slide. */
-    --voice-strip-height: 0px;
-    --voice-bottom-height: 0px;
     /* Mobile bottom nav height including the iOS home-indicator safe area.
        Used by full-bleed surfaces (e.g. PracticeClient active state) that
        need to size themselves to exactly the visible viewport without
@@ -404,118 +400,9 @@
     animation: coachmark-fade-in 240ms var(--ease-out-quart) both;
   }
 
-  /* Voice coachmark entrance — slight drop from trigger + fade. Paired
-     with the coachmark's absolute positioning below the header mic button. */
-  @keyframes voice-coachmark-enter {
-    0%   { opacity: 0; transform: translateY(-6px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-  .animate-voice-coachmark-in {
-    animation: voice-coachmark-enter 240ms var(--ease-out-quart) both;
-  }
-
-  /* Voice strip — entrance animation
-     ───────────────────────────────────────────────────────────────────────
-     Slide-down + fade. Pairs with the `margin-top` transition on `<main>`
-     in app/layout.tsx so the strip and the content it pushes share one
-     180ms ease-out. Without this, the strip pops into existence and `<main>`
-     jumps 44px — the most important "I'm live" moment of a voice session
-     ends up reading as a layout glitch. Reduced-motion users get an instant
-     snap via the global rule above. */
-  @keyframes voice-strip-enter {
-    0%   { opacity: 0; transform: translateY(-100%); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-  .voice-strip-anim {
-    animation: voice-strip-enter 180ms var(--ease-out-quart) both;
-  }
-
-  /* Entrance for the bottom-anchored wave mode — fades in rather than
-     sliding so the large gradient bleed doesn't look like a curtain drop. */
-  @keyframes voice-wave-enter {
-    0%   { opacity: 0; }
-    100% { opacity: 1; }
-  }
-  .voice-wave-anim {
-    animation: voice-wave-enter 350ms ease-out both;
-  }
-
-  /* Exit for the mobile wave mode — mirrors the entrance duration. */
-  @keyframes voice-wave-exit {
-    0%   { opacity: 1; }
-    100% { opacity: 0; }
-  }
-  .voice-wave-exit {
-    animation: voice-wave-exit 280ms ease-in both;
-  }
-
-  /* Exit for the desktop strip — slides back up toward the header. */
-  @keyframes voice-strip-exit {
-    0%   { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(-100%); }
-  }
-  .voice-strip-exit {
-    animation: voice-strip-exit 220ms ease-in both;
-  }
-
   @keyframes fadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
 
-  /* Voice widget — audio-flow indicator dot.
-     ───────────────────────────────────────────────────────────────────────
-     One non-interactive circle that swaps colour based on who's speaking
-     (data-speaker = "user" | "agent" | "idle") and scales via inline
-     transform driven by RMS in the component. The colour halo communicates
-     who's audible without competing for attention; the scale change is
-     subtle so reading the rest of the page isn't pulled at.
-     Reduced-motion users get the colour swap but no scaling — the indicator
-     still tells the truth about state, it just doesn't move. */
-  .voice-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 9999px;
-    background: var(--color-text-tertiary);
-    transition:
-      background-color 220ms var(--ease-out-quart),
-      box-shadow 220ms var(--ease-out-quart);
-    will-change: transform;
-  }
-  .voice-indicator[data-speaker="user"] {
-    background: var(--color-accent-primary);
-    /* Halo derived from the same brand token via color-mix so any future
-       brand-hue shift carries through without re-tuning literals. */
-    box-shadow: 0 0 0 5px color-mix(in oklch, var(--color-accent-primary) 18%, transparent);
-  }
-  .voice-indicator[data-speaker="agent"] {
-    background: var(--color-correction-text);
-    box-shadow: 0 0 0 5px color-mix(in oklch, var(--color-correction-text) 18%, transparent);
-  }
-  .voice-indicator[data-muted="true"] {
-    background: var(--color-text-tertiary);
-    box-shadow: none;
-  }
-  /* When the strip sits on a solid accent background the default token-based
-     dot colours blend in. Override to white-family so the indicator stays
-     legible regardless of theme hue. Used by desktop VoiceStrip. */
-  .voice-strip--solid .voice-indicator {
-    background: rgba(255, 255, 255, 0.45);
-  }
-  .voice-strip--solid .voice-indicator[data-speaker="user"] {
-    background: white;
-    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.22);
-  }
-  .voice-strip--solid .voice-indicator[data-speaker="agent"] {
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.15);
-  }
-  .voice-strip--solid .voice-indicator[data-muted="true"] {
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .voice-indicator { transform: none !important; }
-  }
 }

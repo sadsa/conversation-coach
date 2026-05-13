@@ -117,14 +117,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               // status-bar safe area, since the fixed AppHeader now extends
               // its own background up under the status bar.
               style={{
-                marginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
-                scrollMarginTop: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
-                // paddingBottom grows when the mobile voice controls are
-                // active so bottom content isn't hidden under the wave
-                // surface. --voice-bottom-height is written by VoiceWaveMode.
-                // max() keeps at least 5rem (≈ pb-20) even with no session.
-                paddingBottom: 'max(5rem, calc(var(--voice-bottom-height, 0px) + 0.75rem))',
-                transition: 'margin-top 180ms var(--ease-out-quart), padding-bottom 300ms var(--ease-out-quart)',
+                marginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
+                scrollMarginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
+                paddingBottom: '5rem',
               }}
               className="w-full max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none flex-1 flex flex-col"
             >

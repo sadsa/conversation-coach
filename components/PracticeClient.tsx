@@ -8,9 +8,8 @@
 //                                                      ↘ idle (discard)
 //                                                               ↘ error
 //
-// Mirrors VoiceController's audio-reactive feedback pattern (RAF tick, RMS
-// decay, AudioReactiveDots) so the two voice surfaces speak one visual
-// language for the same data signal.
+// Audio-reactive feedback uses a RAF tick + RMS decay loop feeding
+// AudioReactiveDots.
 //
 // Active-state choreography (timer-driven):
 //   T-60s: 4-min warning toast — "1 minute left"
@@ -25,13 +24,7 @@
 // whether to save (→ analysing) or discard (→ idle after 5s undo window).
 // beforeunload guard covers review + analysing so navigating away warns.
 //
-// Global voice coach suppression: document.body.dataset.practiceActive is set
-// while any non-idle state is active. The actual UI suppression (hiding the
-// VoiceTrigger chip and mobile FAB on /practice) is implemented via pathname
-// checks in AppHeader.tsx and BottomNav.tsx — the dataset attribute is a
-// belt-and-suspenders guard for any future consumer that may read it.
-//
-// Keyboard shortcuts (mirroring VoiceController):
+// Keyboard shortcuts:
 //   Escape → endSession
 //   Space  → toggleMute
 //
@@ -50,7 +43,7 @@ import { AudioReactiveDots } from '@/components/AudioReactiveDots'
 import { ProcessingGraphic } from '@/components/ProcessingGraphic'
 import type { TargetLanguage, TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
-import type { VoiceTickCallback } from '@/components/VoiceController'
+import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 
 type PracticeState = 'idle' | 'connecting' | 'active' | 'warning' | 'ending' | 'review' | 'analysing' | 'error'
 
@@ -92,8 +85,7 @@ export function PracticeClient({ targetLanguage }: Props) {
   // Break circular dep: startTimer → endSession → startTimer
   const endSessionRef = useRef<() => void>(() => {})
 
-  // Audio-reactive plumbing — mirrors VoiceController so AudioReactiveDots
-  // can subscribe via the same callback set the rest of the app uses.
+  // Audio-reactive plumbing — AudioReactiveDots subscribes to this callback set.
   const userRmsRef = useRef(0)
   const agentRmsRef = useRef(0)
   const audioTickCallbacksRef = useRef<Set<VoiceTickCallback>>(new Set())
@@ -128,17 +120,6 @@ export function PracticeClient({ targetLanguage }: Props) {
     }
   }, [])
 
-  // Block the global voice coach trigger while practice is active so the
-  // header chip can't open a second WebSocket on top of this one.
-  useEffect(() => {
-    if (practiceState !== 'idle') {
-      document.body.dataset.practiceActive = 'true'
-    } else {
-      delete document.body.dataset.practiceActive
-    }
-    return () => { delete document.body.dataset.practiceActive }
-  }, [practiceState])
-
   // Lock body scroll while a live session is running. Body uses
   // min-h-[100dvh] which lets it grow with content — without this lock
   // the flex chain never gets a definite height and the chat can push the
@@ -167,7 +148,7 @@ export function PracticeClient({ targetLanguage }: Props) {
 
   // Keep the screen awake during a 5-minute session — without this the
   // lockscreen kicks in mid-conversation and the mic worklet streams into
-  // a closed device. Mirrors VoiceController's wake-lock handling.
+  // a closed device.
   useEffect(() => {
     const sessionLive =
       practiceState === 'active' || practiceState === 'warning' || practiceState === 'ending'
@@ -395,8 +376,6 @@ export function PracticeClient({ targetLanguage }: Props) {
             setLiveTurns(prev => [...prev, turn])
           },
         },
-        { kind: 'other' },
-        undefined,
         { transcription: true, systemPrompt: buildPracticeSystemPrompt(targetLanguage) },
       )
       agentRef.current = agent
@@ -420,8 +399,7 @@ export function PracticeClient({ targetLanguage }: Props) {
   }, [])
 
   // Keyboard shortcuts — Escape ends the session, Space toggles mute.
-  // Same pattern as VoiceController so muscle memory carries between
-  // surfaces. Skip when focus is in any text-entry field.
+  // Skip when focus is in any text-entry field.
   const endSessionStableRef = useRef(endSession)
   const toggleMuteStableRef = useRef(toggleMute)
   useEffect(() => { endSessionStableRef.current = endSession }, [endSession])
@@ -495,8 +473,6 @@ export function PracticeClient({ targetLanguage }: Props) {
             setLiveTurns(prev => [...prev, turn])
           },
         },
-        { kind: 'other' },
-        undefined,
         { transcription: true, systemPrompt: buildPracticeSystemPrompt(targetLanguage) },
       )
       agentRef.current = agent
@@ -639,7 +615,7 @@ export function PracticeClient({ targetLanguage }: Props) {
     <div
       className="fixed flex flex-col bg-bg overflow-hidden z-10"
       style={{
-        top: 'calc(var(--header-height) + var(--voice-strip-height) + env(safe-area-inset-top))',
+        top: 'calc(var(--header-height) + env(safe-area-inset-top))',
         left: 0,
         right: 0,
         bottom: 'var(--bottom-nav-h)',
