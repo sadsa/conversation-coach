@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useVoiceController, type VoiceController, type TranscriptConfig } from '@/components/VoiceController'
 import { useTranslation } from '@/components/LanguageProvider'
+import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
 
@@ -222,60 +223,51 @@ export function VoiceReviewStrip({
       role="region"
       aria-label={t('voiceSave.heading')}
       className={`md:hidden fixed left-0 right-0 bottom-0 z-40 ${exiting ? 'voice-wave-exit' : 'voice-wave-anim'}`}
-      style={{ height: 'calc(7rem + env(safe-area-inset-bottom))' }}
+      style={{ height: 'calc(8rem + env(safe-area-inset-bottom))' }}
     >
       {/* Opaque surface — covers bottom nav tabs beneath */}
       <div aria-hidden className="absolute inset-0 bg-surface border-t border-border-subtle" />
 
-      {/* Content — two rows stacked vertically */}
+      {/* Content — three rows centered, mirroring the Practice page review prompt */}
       <div
-        className="absolute left-0 right-0 bottom-0 px-5 flex flex-col justify-center gap-2"
+        className="absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center gap-2"
         style={{
-          height: 'calc(7rem + env(safe-area-inset-bottom))',
+          height: 'calc(8rem + env(safe-area-inset-bottom))',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         {/* Row 1: heading + duration */}
-        <div>
+        <div className="text-center">
           <p className="text-sm font-semibold text-foreground">{t('voiceSave.heading')}</p>
           <p className="text-xs text-text-tertiary tabular-nums mt-0.5">{formatDuration(durationSecs)}</p>
         </div>
 
-        {/* Row 2: Resume (left), Discard + Save (right) */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onResume}
-            disabled={saving}
-            className="min-h-[44px] flex items-center min-w-0 whitespace-nowrap text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
-          >
-            {t('voiceSave.resume')}
-          </button>
-          <div className="flex-1" />
-          <button
-            type="button"
-            onClick={onDiscard}
-            disabled={saving}
-            className="min-h-[44px] px-4 flex items-center flex-shrink-0 rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-text-tertiary/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
-          >
-            {t('voiceSave.discard')}
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="min-h-[44px] px-4 flex items-center flex-shrink-0 gap-1.5 whitespace-nowrap rounded-full text-xs font-semibold text-on-accent bg-accent-primary hover:bg-accent-primary-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
-          >
+        {/* Row 2: Save (primary) + Discard (secondary) — same as Practice page */}
+        <div className="flex items-center gap-3">
+          <Button size="sm" onClick={onSave} disabled={saving} className="min-h-[44px]">
             {saving ? (
-              <>
-                <Icon name="spinner" className="w-3 h-3" />
+              <span className="flex items-center gap-1.5">
+                <Icon name="spinner" className="w-3.5 h-3.5" />
                 {t('practice.analysing')}
-              </>
+              </span>
             ) : (
               t('voiceSave.save')
             )}
-          </button>
+          </Button>
+          <Button size="sm" variant="secondary" onClick={onDiscard} disabled={saving} className="min-h-[44px]">
+            {t('voiceSave.discard')}
+          </Button>
         </div>
+
+        {/* Row 3: Resume — tertiary text link, same as Practice page */}
+        <button
+          type="button"
+          onClick={onResume}
+          disabled={saving}
+          className="min-h-[44px] flex items-center text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
+        >
+          {t('voiceSave.resume')}
+        </button>
       </div>
     </div>
   )

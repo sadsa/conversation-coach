@@ -37,7 +37,7 @@ export function ConditionalNav() {
       return
     }
     const h = isReviewActive
-      ? 'calc(7rem + env(safe-area-inset-bottom))'
+      ? 'calc(8rem + env(safe-area-inset-bottom))'
       : 'calc(4rem + env(safe-area-inset-bottom))'
     document.documentElement.style.setProperty('--voice-bottom-height', h)
     return () => {
