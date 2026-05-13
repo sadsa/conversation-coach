@@ -227,7 +227,7 @@ export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exitin
                   type="button"
                   onClick={reviewMode.onDiscard}
                   disabled={reviewMode.saving}
-                  className="h-8 px-3 rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-border-subtle transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+                  className="h-8 px-3 rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-text-tertiary/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
                 >
                   {t('voiceSave.discard')}
                 </button>

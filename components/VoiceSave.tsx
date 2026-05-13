@@ -218,7 +218,7 @@ export function VoiceReviewSheet({
             type="button"
             onClick={onResume}
             disabled={saving}
-            className="text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
+            className="py-3 min-h-[44px] inline-flex items-center text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
           >
             {t('voiceSave.resume')}
           </button>
