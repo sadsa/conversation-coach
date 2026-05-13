@@ -89,6 +89,13 @@ export function useVoiceSave(): VoiceSaveController {
     }
   }, [controller.state])
 
+  useEffect(() => {
+    if (reviewState !== 'analysing') return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [reviewState])
+
   const save = useCallback(async () => {
     setSaveError(false)
     setReviewState('analysing')

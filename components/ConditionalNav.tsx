@@ -22,7 +22,8 @@ export function ConditionalNav() {
     voice.state === 'active' ||
     voice.state === 'muted' ||
     voice.reviewState === 'review' ||
-    voice.reviewState === 'analysing'
+    voice.reviewState === 'analysing' ||
+    voice.reviewState === 'error'
 
   // Delayed unmount for the desktop strip — keeps it mounted for the
   // voice-strip-exit animation (220ms) before removing from the DOM.
@@ -78,7 +79,7 @@ export function ConditionalNav() {
           onEnd={voice.end}
           exiting={stripExiting}
           reviewMode={
-            voice.reviewState === 'review' || voice.reviewState === 'analysing'
+            voice.reviewState === 'review' || voice.reviewState === 'analysing' || voice.reviewState === 'error'
               ? {
                   durationSecs: voice.durationSecs,
                   saving: voice.reviewState === 'analysing',
@@ -91,7 +92,7 @@ export function ConditionalNav() {
         />
       )}
       <VoiceReviewSheet
-        open={voice.reviewState === 'review' || voice.reviewState === 'analysing'}
+        open={voice.reviewState === 'review' || voice.reviewState === 'analysing' || voice.reviewState === 'error'}
         durationSecs={voice.durationSecs}
         saving={voice.reviewState === 'analysing'}
         onSave={voice.save}
