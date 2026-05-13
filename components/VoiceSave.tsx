@@ -18,6 +18,9 @@ export interface VoiceSaveController extends VoiceController {
   undoDiscard: () => void
   resume: () => void
   discardToast: { key: number } | null
+  saveError: boolean
+  saveErrorKey: number
+  clearSaveError: () => void
 }
 
 export function useVoiceSave(): VoiceSaveController {
@@ -26,6 +29,8 @@ export function useVoiceSave(): VoiceSaveController {
   const [reviewState, setReviewState] = useState<ReviewState>('idle')
   const [durationSecs, setDurationSecs] = useState(0)
   const [discardToast, setDiscardToast] = useState<{ key: number } | null>(null)
+  const [saveError, setSaveError] = useState(false)
+  const [saveErrorKey, setSaveErrorKey] = useState(0)
 
   const turnsRef = useRef<TranscriptTurn[]>([])
   const frozenTurnsRef = useRef<TranscriptTurn[]>([])
@@ -85,6 +90,7 @@ export function useVoiceSave(): VoiceSaveController {
   }, [controller.state])
 
   const save = useCallback(async () => {
+    setSaveError(false)
     setReviewState('analysing')
     try {
       const res = await fetch('/api/practice-sessions', {
@@ -99,7 +105,11 @@ export function useVoiceSave(): VoiceSaveController {
       const { session_id } = await res.json() as { session_id: string }
       if (isMountedRef.current) router.push(`/sessions/${session_id}`)
     } catch {
-      if (isMountedRef.current) setReviewState('error')
+      if (isMountedRef.current) {
+        setReviewState('error')
+        setSaveError(true)
+        setSaveErrorKey(k => k + 1)
+      }
     }
   }, [router])
 
@@ -138,6 +148,9 @@ export function useVoiceSave(): VoiceSaveController {
     undoDiscard,
     resume,
     discardToast,
+    saveError,
+    saveErrorKey,
+    clearSaveError: () => setSaveError(false),
   }
 }
 
