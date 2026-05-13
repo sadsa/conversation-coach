@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useVoiceController, type VoiceController, type TranscriptConfig } from '@/components/VoiceController'
 import { useTranslation } from '@/components/LanguageProvider'
+import { DockedSheet } from '@/components/DockedSheet'
+import { Button } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
 
 export type ReviewState = 'idle' | 'review' | 'analysing' | 'error'
@@ -136,4 +139,89 @@ export function useVoiceSave(): VoiceSaveController {
     resume,
     discardToast,
   }
+}
+
+interface VoiceReviewSheetProps {
+  open: boolean
+  durationSecs: number
+  saving: boolean
+  onSave: () => void
+  onDiscard: () => void
+  onResume: () => void
+}
+
+function formatDuration(secs: number): string {
+  const m = Math.floor(secs / 60)
+  const s = (secs % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+export function VoiceReviewSheet({
+  open,
+  durationSecs,
+  saving,
+  onSave,
+  onDiscard,
+  onResume,
+}: VoiceReviewSheetProps) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="md:hidden">
+      <DockedSheet
+        isOpen={open}
+        ariaLabel={t('voiceSave.heading')}
+        onClose={onDiscard}
+        headerLead={
+          <span className="text-base font-semibold text-foreground">
+            {t('voiceSave.heading')}
+          </span>
+        }
+        footer={
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <Button
+                onClick={onSave}
+                disabled={saving}
+                size="md"
+                className="flex-1"
+              >
+                {saving ? (
+                  <span className="flex items-center gap-2">
+                    <Icon name="spinner" className="w-4 h-4" />
+                    {t('practice.analysing')}
+                  </span>
+                ) : (
+                  t('voiceSave.save')
+                )}
+              </Button>
+              <Button
+                onClick={onDiscard}
+                disabled={saving}
+                variant="secondary"
+                size="md"
+                className="flex-1"
+              >
+                {t('voiceSave.discard')}
+              </Button>
+            </div>
+            <button
+              type="button"
+              onClick={onResume}
+              disabled={saving}
+              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors mx-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
+            >
+              {t('voiceSave.resume')}
+            </button>
+          </div>
+        }
+      >
+        <div className="px-5 pb-2">
+          <p className="text-xs text-text-tertiary tabular-nums">
+            {formatDuration(durationSecs)}
+          </p>
+        </div>
+      </DockedSheet>
+    </div>
+  )
 }
