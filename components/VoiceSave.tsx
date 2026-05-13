@@ -247,7 +247,7 @@ export function VoiceReviewStrip({
             type="button"
             onClick={onResume}
             disabled={saving}
-            className="min-h-[44px] flex items-center text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+            className="min-h-[44px] flex items-center min-w-0 whitespace-nowrap text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
           >
             {t('voiceSave.resume')}
           </button>
@@ -256,7 +256,7 @@ export function VoiceReviewStrip({
             type="button"
             onClick={onDiscard}
             disabled={saving}
-            className="min-h-[44px] px-4 flex items-center rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-text-tertiary/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+            className="min-h-[44px] px-4 flex items-center flex-shrink-0 rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-text-tertiary/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
           >
             {t('voiceSave.discard')}
           </button>
@@ -264,7 +264,7 @@ export function VoiceReviewStrip({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="min-h-[44px] px-4 flex items-center gap-1.5 rounded-full text-xs font-semibold text-on-accent bg-accent-primary hover:bg-accent-primary-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+            className="min-h-[44px] px-4 flex items-center flex-shrink-0 gap-1.5 whitespace-nowrap rounded-full text-xs font-semibold text-on-accent bg-accent-primary hover:bg-accent-primary-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
           >
             {saving ? (
               <>
