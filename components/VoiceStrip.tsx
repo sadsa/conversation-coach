@@ -33,25 +33,41 @@ import type { VoiceTickCallback } from '@/components/VoiceController'
 const SHORTCUT_HINT_LIMIT_KEY = 'cc:voice-shortcut-hint-seen'
 const SHORTCUT_HINT_LIMIT = 3
 
+export interface ReviewMode {
+  durationSecs: number
+  saving: boolean
+  onSave: () => void
+  onDiscard: () => void
+  onResume: () => void
+}
+
 interface Props {
   muted: boolean
   audioTickCallbacksRef: React.MutableRefObject<Set<VoiceTickCallback>>
   onMute: () => void
   onEnd: () => void
   exiting?: boolean
+  reviewMode?: ReviewMode
 }
 
-export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exiting }: Props) {
+function formatDuration(secs: number): string {
+  const m = Math.floor(secs / 60)
+  const s = (secs % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exiting, reviewMode }: Props) {
   const { t } = useTranslation()
   const [showShortcutHint, setShowShortcutHint] = useState(false)
 
   useEffect(() => {
     if (!window.matchMedia('(min-width: 768px)').matches) return
-    document.documentElement.style.setProperty('--voice-strip-height', '2.75rem')
+    const height = reviewMode ? '5.5rem' : '2.75rem'
+    document.documentElement.style.setProperty('--voice-strip-height', height)
     return () => {
       document.documentElement.style.removeProperty('--voice-strip-height')
     }
-  }, [])
+  }, [reviewMode])
 
   // Distill: surface the keyboard-shortcut hint only for the first
   // SHORTCUT_HINT_LIMIT sessions, then auto-graduate. Power users learn
@@ -75,22 +91,24 @@ export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exitin
     <div
       role="region"
       aria-label={t('voice.regionAria')}
-      aria-keyshortcuts="Escape Space"
+      aria-keyshortcuts={reviewMode ? undefined : 'Escape Space'}
       className={`
         ${exiting ? 'voice-strip-exit' : 'voice-strip-anim'}
         hidden md:block
         fixed left-0 right-0 z-30
-        h-11
+        overflow-hidden
         bg-surface border-b border-border-subtle
       `}
       style={{
         top: 'calc(var(--header-height) + env(safe-area-inset-top))',
+        height: reviewMode ? '5.5rem' : '2.75rem',
+        transition: 'height 320ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       <div
         role="toolbar"
         aria-label={t('voice.toolbarAria')}
-        className="h-full max-w-2xl mx-auto px-4 md:px-10 flex items-center gap-2"
+        className={`h-full max-w-2xl mx-auto px-4 md:px-10 flex items-center gap-2 ${reviewMode ? 'hidden' : ''}`}
       >
         {/* Oscillating dots — compact variant for the 44px strip. */}
         <AudioReactiveDots
@@ -161,6 +179,56 @@ export function VoiceStrip({ muted, audioTickCallbacksRef, onMute, onEnd, exitin
           </span>
         </button>
       </div>
+
+      {/* Review row — fades in after the strip has expanded */}
+      {reviewMode && (
+        <div
+          className="h-full max-w-2xl mx-auto px-4 md:px-10 flex items-center gap-4"
+          style={{ animation: 'fadeIn 180ms ease-out 180ms both' }}
+        >
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">
+              {t('voiceSave.heading')}
+            </p>
+            <p className="text-xs text-text-tertiary tabular-nums mt-0.5">
+              {formatDuration(reviewMode.durationSecs)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={reviewMode.onResume}
+              disabled={reviewMode.saving}
+              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors px-2 py-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+            >
+              {t('voiceSave.resume')}
+            </button>
+            <button
+              type="button"
+              onClick={reviewMode.onDiscard}
+              disabled={reviewMode.saving}
+              className="h-8 px-3 rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-border-subtle transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+            >
+              {t('voiceSave.discard')}
+            </button>
+            <button
+              type="button"
+              onClick={reviewMode.onSave}
+              disabled={reviewMode.saving}
+              className="h-8 px-3 rounded-full text-xs font-semibold text-on-accent bg-accent-primary hover:bg-accent-primary-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {reviewMode.saving ? (
+                <>
+                  <Icon name="spinner" className="w-3 h-3" />
+                  {t('practice.analysing')}
+                </>
+              ) : (
+                t('voiceSave.save')
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Session-connected announcement — fires once on mount. */}
       <span aria-live="polite" className="sr-only">
