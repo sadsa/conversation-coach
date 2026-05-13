@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
 import { BottomBar } from '@/components/BottomBar'
 import { VoiceStrip } from '@/components/VoiceStrip'
-import { useVoiceController } from '@/components/VoiceController'
+import { useVoiceSave, VoiceReviewSheet } from '@/components/VoiceSave'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Toast } from '@/components/Toast'
 
@@ -15,10 +15,15 @@ const HIDDEN_ON = ['/login', '/access-denied', '/onboarding', '/auth']
 export function ConditionalNav() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const voice = useVoiceController()
+  const voice = useVoiceSave()
   const { t } = useTranslation()
 
-  const voiceActive = voice.state === 'active' || voice.state === 'muted'
+  const voiceActive =
+    voice.state === 'active' ||
+    voice.state === 'muted' ||
+    voice.reviewState === 'review' ||
+    voice.reviewState === 'analysing' ||
+    voice.reviewState === 'error'
 
   // Delayed unmount for the desktop strip — keeps it mounted for the
   // voice-strip-exit animation (220ms) before removing from the DOM.
@@ -73,8 +78,27 @@ export function ConditionalNav() {
           onMute={voice.toggleMute}
           onEnd={voice.end}
           exiting={stripExiting}
+          reviewMode={
+            voice.reviewState === 'review' || voice.reviewState === 'analysing' || voice.reviewState === 'error'
+              ? {
+                  durationSecs: voice.durationSecs,
+                  saving: voice.reviewState === 'analysing',
+                  onSave: voice.save,
+                  onDiscard: voice.discard,
+                  onResume: voice.resume,
+                }
+              : undefined
+          }
         />
       )}
+      <VoiceReviewSheet
+        open={voice.reviewState === 'review' || voice.reviewState === 'analysing' || voice.reviewState === 'error'}
+        durationSecs={voice.durationSecs}
+        saving={voice.reviewState === 'analysing'}
+        onSave={voice.save}
+        onDiscard={voice.discard}
+        onResume={voice.resume}
+      />
       {voice.toast && (
         <Toast
           message={voice.toast.message}
@@ -84,6 +108,20 @@ export function ConditionalNav() {
               ? { label: t('voice.tryAgain'), onClick: voice.start }
               : undefined
           }
+        />
+      )}
+      {voice.discardToast && (
+        <Toast
+          message={t('voiceSave.discardToast')}
+          toastKey={voice.discardToast.key}
+          action={{ label: t('voiceSave.discardUndo'), onClick: voice.undoDiscard }}
+        />
+      )}
+      {voice.saveError && (
+        <Toast
+          message={t('voiceSave.errorSave')}
+          toastKey={voice.saveErrorKey}
+          action={{ label: t('voice.tryAgain'), onClick: voice.save }}
         />
       )}
     </>

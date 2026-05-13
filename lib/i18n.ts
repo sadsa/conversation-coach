@@ -492,6 +492,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'voice.muteLabel': 'Mute',
     'voice.unmuteLabel': 'Unmute',
     'voice.endLabel': 'End',
+    'voiceSave.heading': 'Save this conversation?',
+    'voiceSave.save': 'Save & analyse',
+    'voiceSave.discard': 'Discard',
+    'voiceSave.resume': '↩ Resume conversation',
+    'voiceSave.discardToast': 'Conversation discarded',
+    'voiceSave.discardUndo': 'Undo',
+    'voiceSave.errorSave': "Couldn't save — try again",
   },
 
   es: {
@@ -965,5 +972,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'voice.muteLabel': 'Silenciar',
     'voice.unmuteLabel': 'Activar',
     'voice.endLabel': 'Finalizar',
+    'voiceSave.heading': '¿Guardar esta conversación?',
+    'voiceSave.save': 'Guardar y analizar',
+    'voiceSave.discard': 'Descartar',
+    'voiceSave.resume': '↩ Reanudar conversación',
+    'voiceSave.discardToast': 'Conversación descartada',
+    'voiceSave.discardUndo': 'Deshacer',
+    'voiceSave.errorSave': 'No se pudo guardar, intenta de nuevo',
   },
 }

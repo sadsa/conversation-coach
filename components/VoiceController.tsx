@@ -36,6 +36,10 @@ export interface VoiceController {
   end: () => void
 }
 
+export interface TranscriptConfig {
+  onTurn: (role: 'user' | 'model', text: string) => void
+}
+
 function deriveRouteContext(pathname: string | null, voiceContext?: VoicePageContext): VoiceRouteContext {
   if (!pathname) return { kind: 'other' }
   if (pathname.startsWith('/write')) return { kind: 'write' }
@@ -45,7 +49,7 @@ function deriveRouteContext(pathname: string | null, voiceContext?: VoicePageCon
   return { kind: 'other' }
 }
 
-export function useVoiceController(): VoiceController {
+export function useVoiceController(transcriptConfig?: TranscriptConfig): VoiceController {
   const { t, targetLanguage } = useTranslation()
   const pathname = usePathname()
   const [state, setState] = useState<VoiceControllerState>('idle')
@@ -112,9 +116,11 @@ export function useVoiceController(): VoiceController {
           },
           onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
           onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
+          onTranscript: transcriptConfig?.onTurn,
         },
         routeContext,
-        pageContext
+        pageContext,
+        transcriptConfig ? { transcription: true } : {},
       )
       if (!isMountedRef.current) {
         agent.disconnect()
@@ -133,7 +139,7 @@ export function useVoiceController(): VoiceController {
     } finally {
       startingRef.current = false
     }
-  }, [state, targetLanguage, pathname, showToast])
+  }, [state, targetLanguage, pathname, showToast, transcriptConfig])
 
   const end = useCallback(() => {
     agentRef.current?.disconnect()

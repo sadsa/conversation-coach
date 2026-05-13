@@ -10,6 +10,10 @@ import { render, screen } from '@testing-library/react'
 import { HomeClient } from '@/components/HomeClient'
 import type { SessionListItem } from '@/lib/types'
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
 vi.mock('@/components/SessionList', () => ({
   SessionList: () => <div data-testid="session-list" />,
 }))
