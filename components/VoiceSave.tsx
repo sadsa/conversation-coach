@@ -192,54 +192,36 @@ export function VoiceReviewSheet({
         isOpen={open}
         ariaLabel={t('voiceSave.heading')}
         onClose={onDiscard}
-        headerLead={
-          <span className="text-base font-semibold text-foreground">
-            {t('voiceSave.heading')}
-          </span>
-        }
-        footer={
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <Button
-                onClick={onSave}
-                disabled={saving}
-                size="md"
-                className="flex-1"
-              >
-                {saving ? (
-                  <span className="flex items-center gap-2">
-                    <Icon name="spinner" className="w-4 h-4" />
-                    {t('practice.analysing')}
-                  </span>
-                ) : (
-                  t('voiceSave.save')
-                )}
-              </Button>
-              <Button
-                onClick={onDiscard}
-                disabled={saving}
-                variant="secondary"
-                size="md"
-                className="flex-1"
-              >
-                {t('voiceSave.discard')}
-              </Button>
-            </div>
-            <button
-              type="button"
-              onClick={onResume}
-              disabled={saving}
-              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors mx-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
-            >
-              {t('voiceSave.resume')}
-            </button>
-          </div>
-        }
+        headerLead={<></>}
       >
-        <div className="px-5 pb-2">
-          <p className="text-xs text-text-tertiary tabular-nums">
-            {formatDuration(durationSecs)}
-          </p>
+        <div className="px-6 pt-4 pb-5 flex flex-col items-center gap-4 text-center">
+          <div>
+            <p className="text-base font-medium text-foreground">{t('voiceSave.heading')}</p>
+            <p className="text-xs text-text-tertiary mt-1 tabular-nums">{formatDuration(durationSecs)}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button size="md" onClick={onSave} disabled={saving}>
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <Icon name="spinner" className="w-4 h-4" />
+                  {t('practice.analysing')}
+                </span>
+              ) : (
+                t('voiceSave.save')
+              )}
+            </Button>
+            <Button size="md" variant="secondary" onClick={onDiscard} disabled={saving}>
+              {t('voiceSave.discard')}
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={onResume}
+            disabled={saving}
+            className="text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
+          >
+            {t('voiceSave.resume')}
+          </button>
         </div>
       </DockedSheet>
     </div>
