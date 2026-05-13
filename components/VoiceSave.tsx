@@ -3,8 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useVoiceController, type VoiceController, type TranscriptConfig } from '@/components/VoiceController'
 import { useTranslation } from '@/components/LanguageProvider'
-import { DockedSheet } from '@/components/DockedSheet'
-import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
 
@@ -161,7 +159,7 @@ export function useVoiceSave(): VoiceSaveController {
   }
 }
 
-interface VoiceReviewSheetProps {
+interface VoiceReviewStripProps {
   open: boolean
   durationSecs: number
   saving: boolean
@@ -176,54 +174,109 @@ function formatDuration(secs: number): string {
   return `${m}:${s}`
 }
 
-export function VoiceReviewSheet({
+// Mobile-only fixed bottom strip that replaces the bottom nav during the
+// save-prompt review state. Same visual language as VoiceWaveMode — bg-surface
+// with a top border — but taller to accommodate two rows of content:
+//   Row 1: heading + elapsed duration
+//   Row 2: Resume (text link), Discard (ghost pill), Save (accent pill)
+//
+// --voice-bottom-height is managed by ConditionalNav (not here) so there
+// is no race with VoiceWaveMode's cleanup removing the variable.
+export function VoiceReviewStrip({
   open,
   durationSecs,
   saving,
   onSave,
   onDiscard,
   onResume,
-}: VoiceReviewSheetProps) {
+}: VoiceReviewStripProps) {
   const { t } = useTranslation()
+  const [mounted, setMounted] = useState(false)
+  const [exiting, setExiting] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevOpen = useRef(false)
+
+  useEffect(() => {
+    if (open && !prevOpen.current) {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      setExiting(false)
+      setMounted(true)
+    } else if (!open && prevOpen.current) {
+      setExiting(true)
+      timerRef.current = setTimeout(() => {
+        setMounted(false)
+        setExiting(false)
+        timerRef.current = null
+      }, 280)
+    }
+    prevOpen.current = open
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [open])
+
+  if (!mounted) return null
 
   return (
-    <div className="md:hidden">
-      <DockedSheet
-        isOpen={open}
-        ariaLabel={t('voiceSave.heading')}
-        onClose={onDiscard}
-        headerLead={<></>}
+    <div
+      role="region"
+      aria-label={t('voiceSave.heading')}
+      className={`md:hidden fixed left-0 right-0 bottom-0 z-40 ${exiting ? 'voice-wave-exit' : 'voice-wave-anim'}`}
+      style={{ height: 'calc(7rem + env(safe-area-inset-bottom))' }}
+    >
+      {/* Opaque surface — covers bottom nav tabs beneath */}
+      <div aria-hidden className="absolute inset-0 bg-surface border-t border-border-subtle" />
+
+      {/* Content — two rows stacked vertically */}
+      <div
+        className="absolute left-0 right-0 bottom-0 px-5 flex flex-col justify-center gap-2"
+        style={{
+          height: 'calc(7rem + env(safe-area-inset-bottom))',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
-        <div className="px-6 pt-4 pb-5 flex flex-col items-center gap-4 text-center">
-          <div>
-            <p className="text-base font-medium text-foreground">{t('voiceSave.heading')}</p>
-            <p className="text-xs text-text-tertiary mt-1 tabular-nums">{formatDuration(durationSecs)}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button size="md" onClick={onSave} disabled={saving}>
-              {saving ? (
-                <span className="flex items-center gap-2">
-                  <Icon name="spinner" className="w-4 h-4" />
-                  {t('practice.analysing')}
-                </span>
-              ) : (
-                t('voiceSave.save')
-              )}
-            </Button>
-            <Button size="md" variant="secondary" onClick={onDiscard} disabled={saving}>
-              {t('voiceSave.discard')}
-            </Button>
-          </div>
+        {/* Row 1: heading + duration */}
+        <div>
+          <p className="text-sm font-semibold text-foreground">{t('voiceSave.heading')}</p>
+          <p className="text-xs text-text-tertiary tabular-nums mt-0.5">{formatDuration(durationSecs)}</p>
+        </div>
+
+        {/* Row 2: Resume (left), Discard + Save (right) */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onResume}
             disabled={saving}
-            className="py-3 min-h-[44px] inline-flex items-center text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-50"
+            className="min-h-[44px] flex items-center text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
           >
             {t('voiceSave.resume')}
           </button>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={onDiscard}
+            disabled={saving}
+            className="min-h-[44px] px-4 flex items-center rounded-full text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-text-tertiary/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+          >
+            {t('voiceSave.discard')}
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="min-h-[44px] px-4 flex items-center gap-1.5 rounded-full text-xs font-semibold text-on-accent bg-accent-primary hover:bg-accent-primary-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary disabled:opacity-50"
+          >
+            {saving ? (
+              <>
+                <Icon name="spinner" className="w-3 h-3" />
+                {t('practice.analysing')}
+              </>
+            ) : (
+              t('voiceSave.save')
+            )}
+          </button>
         </div>
-      </DockedSheet>
+      </div>
     </div>
   )
 }

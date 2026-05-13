@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
 import { BottomBar } from '@/components/BottomBar'
 import { VoiceStrip } from '@/components/VoiceStrip'
-import { useVoiceSave, VoiceReviewSheet } from '@/components/VoiceSave'
+import { useVoiceSave, VoiceReviewStrip } from '@/components/VoiceSave'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Toast } from '@/components/Toast'
 
@@ -18,12 +18,32 @@ export function ConditionalNav() {
   const voice = useVoiceSave()
   const { t } = useTranslation()
 
-  const voiceActive =
-    voice.state === 'active' ||
-    voice.state === 'muted' ||
+  const isReviewActive =
     voice.reviewState === 'review' ||
     voice.reviewState === 'analysing' ||
     voice.reviewState === 'error'
+
+  const voiceActive =
+    voice.state === 'active' ||
+    voice.state === 'muted' ||
+    isReviewActive
+
+  // Centrally manage --voice-bottom-height for mobile so VoiceWaveMode and
+  // VoiceReviewStrip don't race to set/remove the same CSS variable.
+  useEffect(() => {
+    const waveActive = voice.state === 'active' || voice.state === 'muted' || voice.state === 'connecting'
+    if (!waveActive && !isReviewActive) {
+      document.documentElement.style.removeProperty('--voice-bottom-height')
+      return
+    }
+    const h = isReviewActive
+      ? 'calc(7rem + env(safe-area-inset-bottom))'
+      : 'calc(4rem + env(safe-area-inset-bottom))'
+    document.documentElement.style.setProperty('--voice-bottom-height', h)
+    return () => {
+      document.documentElement.style.removeProperty('--voice-bottom-height')
+    }
+  }, [voice.state, isReviewActive])
 
   // Delayed unmount for the desktop strip — keeps it mounted for the
   // voice-strip-exit animation (220ms) before removing from the DOM.
@@ -62,6 +82,7 @@ export function ConditionalNav() {
       />
       <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
       <BottomBar
+        reviewActive={isReviewActive}
         voice={{
           state: voice.state,
           mobileIndicatorRef: voice.mobileIndicatorRef,
@@ -91,8 +112,8 @@ export function ConditionalNav() {
           }
         />
       )}
-      <VoiceReviewSheet
-        open={voice.reviewState === 'review' || voice.reviewState === 'analysing' || voice.reviewState === 'error'}
+      <VoiceReviewStrip
+        open={isReviewActive}
         durationSecs={voice.durationSecs}
         saving={voice.reviewState === 'analysing'}
         onSave={voice.save}

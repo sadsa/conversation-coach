@@ -29,6 +29,7 @@ import type { VoiceTickCallback } from '@/components/VoiceController'
 import type React from 'react'
 
 interface Props {
+  reviewActive?: boolean
   voice: {
     state: VoiceTriggerState
     mobileIndicatorRef: React.RefObject<HTMLDivElement>
@@ -39,7 +40,7 @@ interface Props {
   }
 }
 
-export function BottomBar({ voice }: Props) {
+export function BottomBar({ voice, reviewActive }: Props) {
   const pathname = usePathname() ?? ''
   const { t } = useTranslation()
 
@@ -115,15 +116,14 @@ export function BottomBar({ voice }: Props) {
         </div>
       )}
 
-      {/* Navigation tabs — slide off-screen while wave mode is showing
-          (including during exit animation) so they don't peek behind the
-          fading gradient. Slide back in once the wave is fully gone. */}
+      {/* Navigation tabs — slide off-screen while wave mode OR review strip
+          is showing so they don't peek behind either surface. */}
       <nav
         className={`
           md:hidden fixed bottom-0 left-0 right-0 z-30
           bg-surface border-t border-border-subtle
           transition-transform duration-200 ease-in-out
-          ${showWave ? 'translate-y-full' : 'translate-y-0'}
+          ${showWave || reviewActive ? 'translate-y-full' : 'translate-y-0'}
         `}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label={t('nav.quickNavAria')}

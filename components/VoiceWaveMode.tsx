@@ -40,13 +40,9 @@ export function VoiceWaveMode({ voiceState, audioTickCallbacksRef, onMute, onEnd
   const muted = voiceState === 'muted'
   const animClass = exiting ? 'voice-wave-exit' : 'voice-wave-anim'
 
-  // Reserve bottom padding on <main> so the strip doesn't overlap content.
-  useEffect(() => {
-    document.documentElement.style.setProperty('--voice-bottom-height', TOTAL_HEIGHT)
-    return () => {
-      document.documentElement.style.removeProperty('--voice-bottom-height')
-    }
-  }, [])
+  // --voice-bottom-height is managed centrally by ConditionalNav so it
+  // transitions cleanly between VoiceWaveMode and VoiceReviewStrip without
+  // the cleanup race that would occur if each component managed it independently.
 
   return (
     <div
