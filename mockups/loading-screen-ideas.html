@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Loading screen ideas — Conversation Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* ─── Project tokens (mirrored from globals.css) ─────────────────────────── */
+  :root {
+    --color-bg:               oklch(97.5% 0.008 75);
+    --color-surface:          oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95%   0.01  75);
+    --color-border:           oklch(82%   0.012 75);
+    --color-border-subtle:    oklch(90%   0.008 75);
+    --color-text-primary:     oklch(22%   0.02  265);
+    --color-text-secondary:   oklch(42%   0.015 265);
+    --color-text-tertiary:    oklch(55%   0.01  265);
+    --color-accent-primary:   oklch(55%   0.2   285);
+
+    --font-body:    "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, serif;
+
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: oklch(93% 0.006 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.85em;
+    background: var(--color-surface-elevated);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+
+  /* ─── Page chrome ─────────────────────────────────────────────────────────── */
+  .page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.5rem, 5vw, 3.5rem) 7rem;
+  }
+
+  .page-header { margin-bottom: clamp(3.5rem, 6vw, 5.5rem); }
+
+  .eyebrow {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent-primary);
+    margin-bottom: 0.875rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 3.5vw, 2.75rem);
+    font-weight: 400;
+    line-height: 1.18;
+    letter-spacing: -0.025em;
+    margin: 0 0 1rem;
+    color: var(--color-text-primary);
+  }
+
+  .page-intro {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+    max-width: 52ch;
+    margin: 0;
+  }
+
+  /* ─── Concept grid ────────────────────────────────────────────────────────── */
+  .concepts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 4rem 3rem;
+    align-items: start;
+  }
+
+  /* ─── Phone frame ─────────────────────────────────────────────────────────── */
+  .phone {
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 9 / 18.5;
+    background: var(--color-bg);
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1.5px oklch(78% 0.007 75),
+      0 4px 8px -2px oklch(0% 0 0 / 0.07),
+      0 16px 32px -4px oklch(0% 0 0 / 0.1),
+      0 32px 56px -8px oklch(0% 0 0 / 0.07);
+  }
+
+  /* Status bar */
+  .sb {
+    height: 44px;
+    background: var(--color-surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .sb-time {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  .sb-icons { display: flex; align-items: center; gap: 5px; }
+
+  .sb-signal {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    height: 10px;
+  }
+  .sb-signal span {
+    width: 2.5px;
+    border-radius: 1px;
+    background: oklch(22% 0.02 265 / 0.6);
+  }
+
+  .sb-wifi {
+    width: 15px;
+    height: 11px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .sb-battery {
+    width: 24px;
+    height: 12px;
+    border: 1.5px solid oklch(22% 0.02 265 / 0.55);
+    border-radius: 2.5px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+  }
+  .sb-battery::after {
+    content: '';
+    position: absolute;
+    right: -4.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 5px;
+    background: oklch(22% 0.02 265 / 0.55);
+    border-radius: 0 1px 1px 0;
+  }
+  .sb-battery-fill {
+    height: 100%;
+    width: 65%;
+    background: oklch(22% 0.02 265 / 0.55);
+    border-radius: 1px;
+  }
+
+  /* NavProgress hairline */
+  .nav-progress {
+    position: absolute;
+    top: 44px;
+    left: 0; right: 0;
+    height: 2px;
+    z-index: 20;
+    overflow: hidden;
+  }
+  .nav-progress-bar {
+    height: 100%;
+    background: var(--color-accent-primary);
+    transform-origin: left;
+    animation: nav-fill 2.8s var(--ease-out-expo) infinite;
+  }
+
+  @keyframes nav-fill {
+    0%    { transform: scaleX(0);    opacity: 1; }
+    72%   { transform: scaleX(0.87); opacity: 1; }
+    86%   { transform: scaleX(0.87); opacity: 1; }
+    96%   { transform: scaleX(1);    opacity: 0; }
+    100%  { transform: scaleX(0);    opacity: 0; }
+  }
+
+  /* App header */
+  .app-header {
+    height: 52px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 11px;
+  }
+  .ah-icon {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: var(--color-surface-elevated);
+  }
+  .ah-title {
+    height: 13px; width: 88px;
+    border-radius: 4px;
+    background: var(--color-surface-elevated);
+  }
+
+  /* Content area */
+  .content {
+    position: absolute;
+    top: 96px;   /* status bar (44) + app header (52) */
+    bottom: 64px; /* bottom nav */
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
+    overflow: hidden;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 0 8px;
+  }
+  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bn-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: var(--color-surface-elevated);
+    opacity: 0.45;
+  }
+  .bn-icon.is-active { background: var(--color-accent-primary); opacity: 0.22; }
+  .bn-label {
+    width: 26px; height: 6px;
+    border-radius: 3px;
+    background: var(--color-surface-elevated);
+    opacity: 0.35;
+  }
+
+  /* ─── Concept label ───────────────────────────────────────────────────────── */
+  .concept-label { margin-top: 1.625rem; }
+
+  .concept-label h3 {
+    font-family: var(--font-display);
+    font-size: 1.1875rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+
+  .concept-label p {
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--color-text-secondary);
+    max-width: 38ch;
+    margin: 0 0 0.875rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.65rem;
+    border-radius: 99px;
+  }
+  .tag-violet { background: oklch(94% 0.035 285); color: oklch(38% 0.16 285); }
+  .tag-green  { background: oklch(93% 0.04  150); color: oklch(32% 0.1  150); }
+  .tag-amber  { background: oklch(95% 0.05   85); color: oklch(42% 0.12  55); }
+  .tag-neutral { background: oklch(93% 0.006 265); color: oklch(44% 0.01 265); }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     A — WORDMARK BREATH
+     ─────────────────────────────────────────────────────────────────────────── */
+  .wordmark-breath {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .wm-text {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .wm-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent-primary);
+    animation: breath 2.6s ease-in-out infinite;
+  }
+
+  @keyframes breath {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50%       { opacity: 1;   transform: scale(1.2); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     B — CONTENT SHIMMER
+     ─────────────────────────────────────────────────────────────────────────── */
+  .shimmer-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .shimmer-group { display: flex; flex-direction: column; gap: 8px; }
+
+  .s {
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-elevated) 0%,
+      oklch(98.5% 0.002 75) 50%,
+      var(--color-surface-elevated) 100%
+    );
+    background-size: 250% 100%;
+    animation: shimmer-sweep 2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer-sweep {
+    0%   { background-position:  110% 0; }
+    100% { background-position: -110% 0; }
+  }
+
+  .s-h1   { height: 19px; width: 52%; }
+  .s-sub  { height: 12px; }
+  .s-sub.w100 { width: 100%; }
+  .s-sub.w80  { width: 80%;  }
+  .s-sub.w70  { width: 70%;  }
+  .s-sub.w55  { width: 55%;  }
+  .s-sub.w45  { width: 45%;  }
+
+  .s-divider {
+    height: 1px;
+    background: var(--color-border-subtle);
+    margin: 2px 0;
+  }
+
+  .s-row {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 13px;
+    padding: 13px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     C — VOICE BARS
+     ─────────────────────────────────────────────────────────────────────────── */
+  .voice-bars {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 44px;
+  }
+
+  .bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--color-accent-primary);
+    opacity: 0.3;
+    animation: bar-dance 1.4s ease-in-out infinite;
+  }
+
+  /* Varied starting heights + staggered delays for organic feel */
+  .bar:nth-child(1) { animation-delay: 0s;    }
+  .bar:nth-child(2) { animation-delay: 0.12s; }
+  .bar:nth-child(3) { animation-delay: 0.24s; }
+  .bar:nth-child(4) { animation-delay: 0.07s; }
+  .bar:nth-child(5) { animation-delay: 0.36s; }
+  .bar:nth-child(6) { animation-delay: 0.18s; }
+  .bar:nth-child(7) { animation-delay: 0.30s; }
+  .bar:nth-child(8) { animation-delay: 0.05s; }
+  .bar:nth-child(9) { animation-delay: 0.22s; }
+
+  @keyframes bar-dance {
+    0%, 100% { height: 6px;  opacity: 0.2; }
+    50%       { height: 34px; opacity: 0.65; }
+  }
+
+  .vb-wordmark {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     D — ROBOT PATIENT
+     ─────────────────────────────────────────────────────────────────────────── */
+  .robot-wait {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* Blink animation: eyes are SVG ellipses; transform-box needed for scaleY around center */
+  .robot-svg .eye-l,
+  .robot-svg .eye-r {
+    transform-box: fill-box;
+    transform-origin: center center;
+    animation: eye-blink 4.2s ease-in-out infinite;
+  }
+  .robot-svg .eye-r { animation-delay: 0.06s; }
+
+  @keyframes eye-blink {
+    0%, 87%, 100% { transform: scaleY(1);    opacity: 1;   }
+    91%            { transform: scaleY(0.07); opacity: 0.3; }
+    94%            { transform: scaleY(1);    opacity: 1;   }
+  }
+
+  .rw-dots { display: flex; gap: 6px; align-items: center; }
+
+  .rw-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--color-accent-primary);
+    animation: dot-hop 1.7s ease-in-out infinite;
+  }
+  .rw-dot:nth-child(1) { animation-delay: 0s; }
+  .rw-dot:nth-child(2) { animation-delay: 0.22s; }
+  .rw-dot:nth-child(3) { animation-delay: 0.44s; }
+
+  @keyframes dot-hop {
+    0%, 100% { opacity: 0.2; transform: translateY(0);    }
+    38%       { opacity: 1;   transform: translateY(-4px); }
+  }
+
+  .rw-label {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  /* ─── Design notes section ────────────────────────────────────────────────── */
+  .notes {
+    margin-top: 5.5rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--color-border);
+    max-width: 68ch;
+  }
+
+  .notes h2 {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0 0 1.5rem;
+    color: var(--color-text-primary);
+  }
+
+  .notes dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.75rem 1.75rem;
+    font-size: 0.875rem;
+    line-height: 1.65;
+  }
+
+  .notes dt {
+    color: var(--color-text-tertiary);
+    padding-top: 1px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .notes dd {
+    margin: 0;
+    color: var(--color-text-secondary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ─ Page header ────────────────────────────────────────────────────────── -->
+  <header class="page-header">
+    <span class="eyebrow">Loading screen exploration</span>
+    <h1>Generic loading ideas</h1>
+    <p class="page-intro">Four approaches to filling the gap while server data fetches. All work as a drop-in <code>loading.tsx</code> at any route — none require page-specific content knowledge.</p>
+  </header>
+
+  <!-- ─ Concepts ──────────────────────────────────────────────────────────── -->
+  <div class="concepts">
+
+    <!-- ── A: Wordmark Breath ─────────────────────────────────────────────── -->
+    <div>
+      <div class="phone">
+        <!-- Status bar -->
+        <div class="sb">
+          <span class="sb-time">9:41</span>
+          <div class="sb-icons">
+            <div class="sb-signal">
+              <span style="height:35%"></span>
+              <span style="height:55%"></span>
+              <span style="height:75%"></span>
+              <span style="height:100%"></span>
+            </div>
+            <svg class="sb-wifi" viewBox="0 0 20 14" fill="none">
+              <path d="M10 11.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="oklch(22% 0.02 265 / 0.6)"/>
+              <path d="M4.7 7.3A7.5 7.5 0 0110 5c2.04 0 3.9.81 5.3 2.14" stroke="oklch(22% 0.02 265 / 0.6)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M1 3.7A12.5 12.5 0 0110 0c3.44 0 6.55 1.38 8.8 3.6" stroke="oklch(22% 0.02 265 / 0.45)" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="sb-battery"><div class="sb-battery-fill"></div></div>
+          </div>
+        </div>
+        <!-- NavProgress -->
+        <div class="nav-progress">
+          <div class="nav-progress-bar"></div>
+        </div>
+        <!-- App header -->
+        <div class="app-header">
+          <div class="ah-icon"></div>
+          <div class="ah-title"></div>
+        </div>
+        <!-- Loading content -->
+        <div class="content">
+          <div class="wordmark-breath">
+            <span class="wm-text">Conversation Coach</span>
+            <div class="wm-dot"></div>
+          </div>
+        </div>
+        <!-- Bottom nav -->
+        <div class="bottom-nav">
+          <div class="bn-item"><div class="bn-icon is-active"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+        </div>
+      </div>
+      <div class="concept-label">
+        <h3>A — Wordmark Breath</h3>
+        <p>The brand name with a single dot that exhales between dim and full. Zero promise about content shape. The 2.6s cycle is unhurried — closer to breathing than blinking.</p>
+        <span class="tag tag-neutral">Truly generic</span>
+      </div>
+    </div>
+
+    <!-- ── B: Content Shimmer ─────────────────────────────────────────────── -->
+    <div>
+      <div class="phone">
+        <div class="sb">
+          <span class="sb-time">9:41</span>
+          <div class="sb-icons">
+            <div class="sb-signal">
+              <span style="height:35%"></span>
+              <span style="height:55%"></span>
+              <span style="height:75%"></span>
+              <span style="height:100%"></span>
+            </div>
+            <svg class="sb-wifi" viewBox="0 0 20 14" fill="none">
+              <path d="M10 11.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="oklch(22% 0.02 265 / 0.6)"/>
+              <path d="M4.7 7.3A7.5 7.5 0 0110 5c2.04 0 3.9.81 5.3 2.14" stroke="oklch(22% 0.02 265 / 0.6)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M1 3.7A12.5 12.5 0 0110 0c3.44 0 6.55 1.38 8.8 3.6" stroke="oklch(22% 0.02 265 / 0.45)" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="sb-battery"><div class="sb-battery-fill"></div></div>
+          </div>
+        </div>
+        <div class="nav-progress">
+          <div class="nav-progress-bar" style="animation-delay:0.35s"></div>
+        </div>
+        <div class="app-header">
+          <div class="ah-icon"></div>
+          <div class="ah-title"></div>
+        </div>
+        <div class="content" style="align-items:flex-start;padding-top:16px">
+          <div class="shimmer-layout">
+            <!-- Heading block -->
+            <div class="shimmer-group">
+              <div class="s s-h1"></div>
+              <div class="s s-sub w70" style="animation-delay:0.12s"></div>
+            </div>
+            <div class="s-divider"></div>
+            <!-- List rows -->
+            <div class="shimmer-group">
+              <div class="s-row">
+                <div class="s s-sub w80" style="animation-delay:0.08s"></div>
+                <div class="s s-sub w55" style="animation-delay:0.16s"></div>
+              </div>
+              <div class="s-row">
+                <div class="s s-sub w100" style="animation-delay:0.2s"></div>
+                <div class="s s-sub w45" style="animation-delay:0.28s"></div>
+              </div>
+              <div class="s-row">
+                <div class="s s-sub w70" style="animation-delay:0.32s"></div>
+                <div class="s s-sub w55" style="animation-delay:0.4s"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="bn-item"><div class="bn-icon is-active"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+        </div>
+      </div>
+      <div class="concept-label">
+        <h3>B — Content Shimmer</h3>
+        <p>Generic skeleton blocks with a sweep of light travelling right→left instead of opacity pulsing. The motion reads as "filling in" rather than "waiting." Staggered delays between blocks prevent a robotic chorus.</p>
+        <span class="tag tag-green">Drop-in upgrade</span>
+      </div>
+    </div>
+
+    <!-- ── C: Voice Bars ──────────────────────────────────────────────────── -->
+    <div>
+      <div class="phone">
+        <div class="sb">
+          <span class="sb-time">9:41</span>
+          <div class="sb-icons">
+            <div class="sb-signal">
+              <span style="height:35%"></span>
+              <span style="height:55%"></span>
+              <span style="height:75%"></span>
+              <span style="height:100%"></span>
+            </div>
+            <svg class="sb-wifi" viewBox="0 0 20 14" fill="none">
+              <path d="M10 11.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="oklch(22% 0.02 265 / 0.6)"/>
+              <path d="M4.7 7.3A7.5 7.5 0 0110 5c2.04 0 3.9.81 5.3 2.14" stroke="oklch(22% 0.02 265 / 0.6)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M1 3.7A12.5 12.5 0 0110 0c3.44 0 6.55 1.38 8.8 3.6" stroke="oklch(22% 0.02 265 / 0.45)" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="sb-battery"><div class="sb-battery-fill"></div></div>
+          </div>
+        </div>
+        <div class="nav-progress">
+          <div class="nav-progress-bar" style="animation-delay:0.7s"></div>
+        </div>
+        <div class="app-header">
+          <div class="ah-icon"></div>
+          <div class="ah-title"></div>
+        </div>
+        <div class="content">
+          <div class="voice-bars">
+            <div class="bars">
+              <div class="bar" style="height:9px"></div>
+              <div class="bar" style="height:20px"></div>
+              <div class="bar" style="height:14px"></div>
+              <div class="bar" style="height:30px"></div>
+              <div class="bar" style="height:18px"></div>
+              <div class="bar" style="height:26px"></div>
+              <div class="bar" style="height:11px"></div>
+              <div class="bar" style="height:22px"></div>
+              <div class="bar" style="height:8px"></div>
+            </div>
+            <span class="vb-wordmark">Conversation Coach</span>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="bn-item"><div class="bn-icon is-active"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+        </div>
+      </div>
+      <div class="concept-label">
+        <h3>C — Voice Bars</h3>
+        <p>Nine thin bars bounce like an audio equaliser, staggered so the motion ripples rather than choruses. Low-opacity at rest, brightening on the peak. The only concept that expresses the audio/conversation identity without any image.</p>
+        <span class="tag tag-violet">Brand expression</span>
+      </div>
+    </div>
+
+    <!-- ── D: Robot Patient ───────────────────────────────────────────────── -->
+    <div>
+      <div class="phone">
+        <div class="sb">
+          <span class="sb-time">9:41</span>
+          <div class="sb-icons">
+            <div class="sb-signal">
+              <span style="height:35%"></span>
+              <span style="height:55%"></span>
+              <span style="height:75%"></span>
+              <span style="height:100%"></span>
+            </div>
+            <svg class="sb-wifi" viewBox="0 0 20 14" fill="none">
+              <path d="M10 11.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="oklch(22% 0.02 265 / 0.6)"/>
+              <path d="M4.7 7.3A7.5 7.5 0 0110 5c2.04 0 3.9.81 5.3 2.14" stroke="oklch(22% 0.02 265 / 0.6)" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M1 3.7A12.5 12.5 0 0110 0c3.44 0 6.55 1.38 8.8 3.6" stroke="oklch(22% 0.02 265 / 0.45)" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="sb-battery"><div class="sb-battery-fill"></div></div>
+          </div>
+        </div>
+        <div class="nav-progress">
+          <div class="nav-progress-bar" style="animation-delay:1.05s"></div>
+        </div>
+        <div class="app-header">
+          <div class="ah-icon"></div>
+          <div class="ah-title"></div>
+        </div>
+        <div class="content">
+          <div class="robot-wait">
+            <!-- Robot logomark, inlined so CSS can reach the eye elements -->
+            <svg
+              class="robot-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="140 145 744 662"
+              width="54" height="54"
+              role="img"
+              aria-label="Conversation Coach"
+            >
+              <defs>
+                <linearGradient id="rw-face" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%"   stop-color="#0f5a3f" />
+                  <stop offset="100%" stop-color="#0a3f2f" />
+                </linearGradient>
+              </defs>
+              <!-- Antenna -->
+              <circle cx="512" cy="214" r="43" fill="#d0eca7" stroke="#0f6545" stroke-width="16"/>
+              <rect x="499" y="256" width="26" height="42" rx="8" fill="#0f6545"/>
+              <!-- Body -->
+              <rect x="230" y="292" width="564" height="490" rx="150"
+                fill="var(--color-surface)" stroke="#0f6545" stroke-width="18"/>
+              <!-- Arms -->
+              <rect x="165" y="498" width="76" height="148" rx="26" fill="#c7e59c" stroke="#0f6545" stroke-width="14"/>
+              <rect x="783" y="498" width="76" height="148" rx="26" fill="#c7e59c" stroke="#0f6545" stroke-width="14"/>
+              <!-- Face panel -->
+              <rect x="284" y="432" width="456" height="260" rx="90"
+                fill="url(#rw-face)" stroke="#0f6545" stroke-width="14"/>
+              <!-- Eye glows — these animate -->
+              <ellipse class="eye-l" cx="372" cy="560" rx="44" ry="54" fill="#c7e59c"/>
+              <ellipse class="eye-r" cx="652" cy="560" rx="44" ry="54" fill="#c7e59c"/>
+              <!-- Pupils (not animated; they follow the eye glow via containment) -->
+              <ellipse cx="350" cy="535" rx="18" ry="22" fill="#ffffff"/>
+              <ellipse cx="630" cy="535" rx="18" ry="22" fill="#ffffff"/>
+              <!-- Smile -->
+              <path d="M468 620c22 20 66 20 88 0" fill="none" stroke="#c7e59c" stroke-linecap="round" stroke-width="16"/>
+            </svg>
+            <div class="rw-dots">
+              <div class="rw-dot"></div>
+              <div class="rw-dot"></div>
+              <div class="rw-dot"></div>
+            </div>
+            <span class="rw-label">Conversation Coach</span>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="bn-item"><div class="bn-icon is-active"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+          <div class="bn-item"><div class="bn-icon"></div><div class="bn-label"></div></div>
+        </div>
+      </div>
+      <div class="concept-label">
+        <h3>D — Robot Patient</h3>
+        <p>The brand robot waiting, eyes blinking every four seconds. Three dots hop below. Personal and warm — the coach is here, just thinking. The blink cadence earns its place on longer waits (analysis, transcription); on fast loads it may never be seen.</p>
+        <span class="tag tag-amber">Longer waits</span>
+      </div>
+    </div>
+
+  </div><!-- /concepts -->
+
+  <!-- ─ Design notes ────────────────────────────────────────────────────────── -->
+  <div class="notes">
+    <h2>Notes</h2>
+    <dl>
+      <dt>NavProgress</dt>
+      <dd>The accent hairline at the top persists across all four — it's the primary "navigation in progress" signal. These concepts fill the <em>content zone</em> only, and live inside <code>loading.tsx</code>.</dd>
+
+      <dt>Dark mode</dt>
+      <dd>All four use only CSS custom properties. No dark-mode variants needed — the token swap at <code>[data-theme="dark"]</code> handles it automatically.</dd>
+
+      <dt>Reduced motion</dt>
+      <dd>A global <code>@media (prefers-reduced-motion: reduce)</code> rule clamps all durations to <code>0.01ms</code>. A and D render their rest state cleanly. B renders static warm blocks. C renders nine static low-opacity bars — acceptable at-rest content hint.</dd>
+
+      <dt>Generic vs. page-specific</dt>
+      <dd>B gives users a structural preview even without page knowledge — it reduces the perceived jump when real rows appear. A, C, and D make no layout promises and work identically on every route.</dd>
+
+      <dt>Mix strategy</dt>
+      <dd>For routes that already have a tailored skeleton: swap the <code>animate-pulse</code> to a shimmer sweep (B pattern) and keep the page-specific shapes. For new routes where you don't want to build a skeleton: A or C. For the analysis/processing wait (already has <code>PipelineStatus</code>): D is redundant there; it fits routes like Settings or Write that load fast but occasionally stall.</dd>
+    </dl>
+  </div>
+
+</div><!-- /page -->
+</body>
+</html>
