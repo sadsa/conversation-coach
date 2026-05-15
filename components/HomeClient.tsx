@@ -8,6 +8,7 @@ import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
+import { targetLanguageGreeting } from '@/lib/i18n'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 import type { DashboardSummary } from '@/lib/dashboard-summary'
 
@@ -21,12 +22,6 @@ const POLL_BASE_MS = 3000
 const POLL_BACKOFF = 1.5
 const POLL_MAX_MS = 30_000
 
-function pickGreetingKey(date: Date): string {
-  const hour = date.getHours()
-  if (hour < 12) return 'home.greetingMorning'
-  if (hour < 18) return 'home.greetingAfternoon'
-  return 'home.greetingEvening'
-}
 
 interface Props {
   initialSessions: SessionListItem[]
@@ -44,7 +39,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
   const pollTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const pollAttempts = useRef<Map<string, number>>(new Map())
 
-  const greetingKey = useMemo(() => pickGreetingKey(new Date()), [])
+  const greeting = useMemo(() => targetLanguageGreeting(targetLanguage, new Date()), [targetLanguage])
 
   const stopPolling = useCallback((sessionId: string) => {
     const id = pollTimeouts.current.get(sessionId)
@@ -207,7 +202,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
       {/* Greeting */}
       <header className="space-y-1.5">
         <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
-          {t(greetingKey)}
+          {greeting}
         </h1>
         {isFirstTime && (
           <p className="text-text-secondary leading-relaxed">

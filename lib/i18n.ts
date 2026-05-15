@@ -7,6 +7,27 @@ export function inferUiLanguage(target: TargetLanguage): UiLanguage {
   return target === 'en-NZ' ? 'es' : 'en'
 }
 
+type TimeOfDay = 'morning' | 'afternoon' | 'evening'
+
+const TARGET_LANGUAGE_GREETINGS: Record<TargetLanguage, Record<TimeOfDay, string>> = {
+  'es-AR': {
+    morning: 'Buenos días',
+    afternoon: 'Buenas tardes',
+    evening: 'Buenas noches',
+  },
+  'en-NZ': {
+    morning: 'Morena',
+    afternoon: 'Kia ora',
+    evening: 'Kia ora',
+  },
+}
+
+export function targetLanguageGreeting(target: TargetLanguage, date: Date): string {
+  const hour = date.getHours()
+  const time: TimeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
+  return TARGET_LANGUAGE_GREETINGS[target][time]
+}
+
 type Replacements = Record<string, string | number>
 
 export function t(key: string, lang: UiLanguage, replacements?: Replacements): string {
