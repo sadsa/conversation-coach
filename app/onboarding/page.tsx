@@ -4,13 +4,22 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { OnboardingStep } from '@/components/OnboardingStep'
-import { UploadIllustration } from '@/components/UploadIllustration'
+import { OnboardingHub } from '@/components/OnboardingHub'
 import { WhatsAppShareIllustration } from '@/components/WhatsAppShareIllustration'
 import { Wordmark } from '@/components/Wordmark'
 import type { TargetLanguage } from '@/lib/types'
 
-const TOTAL_TUTORIAL_STEPS = 2
-const FIRST_TUTORIAL_STEP = 1
+// URL semantics:
+//   ?step=0          → language picker (one-time gate)
+//   ?step=1          → hub (decisive choice between Practice and Share)
+//   ?step=2          → WhatsApp share illustration (deep-dive opened FROM hub)
+//
+// step=1 used to be the upload-from-file tutorial; that input method is
+// gone from the product, so the slot is now the hub. step=2 keeps its old
+// behaviour and component so deep links from Settings (?step=2&revisit=true)
+// still work.
+const HUB_STEP = 1
+const SHARE_STEP = 2
 
 interface LanguageOption {
   value: TargetLanguage
@@ -34,50 +43,6 @@ const LANGUAGE_OPTIONS: LanguageOption[] = [
   },
 ]
 
-// ─── Step content map ─────────────────────────────────────────────────────────
-// Illustrations live in their own components (see components/UploadIllustration
-// and components/WhatsAppShareIllustration). Labels go through t() so a
-// Spanish-speaking learner doesn't see English chrome inside an otherwise-
-// Spanish tutorial.
-
-type TutorialStep = 1 | 2
-
-interface StepConfig {
-  illustration: (t: (key: string) => string) => ReactNode
-  headingKey: string
-  bodyKey: string
-}
-
-const STEP_CONFIG: Record<TutorialStep, StepConfig> = {
-  1: {
-    illustration: t => (
-      <UploadIllustration
-        uploadLabel={t('onboarding.illus.uploadButton')}
-        pickerTitle={t('onboarding.illus.pickerTitle')}
-        appLabel={t('onboarding.illus.appCoach')}
-      />
-    ),
-    headingKey: 'onboarding.upload.heading',
-    bodyKey: 'onboarding.upload.body',
-  },
-  2: {
-    illustration: t => (
-      <WhatsAppShareIllustration
-        shareTitle={t('onboarding.illus.shareTitle')}
-        contactName={t('onboarding.illus.shareContact')}
-        appLabels={{
-          messages: t('onboarding.illus.appMessages'),
-          mail: t('onboarding.illus.appMail'),
-          coach: t('onboarding.illus.appCoach'),
-          files: t('onboarding.illus.appFiles'),
-        }}
-      />
-    ),
-    headingKey: 'onboarding.share.heading',
-    bodyKey: 'onboarding.share.body',
-  },
-}
-
 // ─── Main content (needs Suspense for useSearchParams) ────────────────────────
 
 function OnboardingContent() {
@@ -95,24 +60,7 @@ function OnboardingContent() {
   function handleLanguageConfirm() {
     if (!selected) return
     setTargetLanguage(selected)
-    router.push(`/onboarding?step=${FIRST_TUTORIAL_STEP}`)
-  }
-
-  function gotoStep(n: number) {
-    const params = revisit ? `?step=${n}&revisit=true` : `?step=${n}`
-    router.push(`/onboarding${params}`)
-  }
-
-  function handleNext(currentStep: TutorialStep) {
-    if (currentStep < TOTAL_TUTORIAL_STEPS) {
-      gotoStep(currentStep + 1)
-    } else {
-      router.push(revisit ? '/settings' : '/')
-    }
-  }
-
-  function handleBack(currentStep: TutorialStep) {
-    if (currentStep > FIRST_TUTORIAL_STEP) gotoStep(currentStep - 1)
+    router.push(`/onboarding?step=${HUB_STEP}`)
   }
 
   function handleExit() {
@@ -231,43 +179,76 @@ function OnboardingContent() {
     )
   }
 
-  // ── Tutorial steps (clamped into the configured range) ──────────────────────
-  const tutorialStep = Math.min(TOTAL_TUTORIAL_STEPS, Math.max(FIRST_TUTORIAL_STEP, step)) as TutorialStep
-  const config = STEP_CONFIG[tutorialStep]
-  const isLastStep = tutorialStep === TOTAL_TUTORIAL_STEPS
-  const ctaKey = !isLastStep
-    ? 'onboarding.cta.next'
-    : revisit
-    ? 'onboarding.cta.done'
-    : 'onboarding.cta.letsGo'
-
-  // Back is only meaningful between tutorial steps. We deliberately do NOT
-  // route back to step 0 (the language picker) — once chosen, language change
-  // belongs in Settings, not in the wizard.
-  const showBack = tutorialStep > FIRST_TUTORIAL_STEP
-  // Exit (Skip / Close) gives every step an in-app way out so the user is never
-  // forced to march to the end. Skip on first run, Close on revisit.
+  // Exit copy (Skip first run, Close on revisit) is shared by hub and share.
   const exitKey = revisit ? 'onboarding.close' : 'onboarding.skip'
+  // Out-of-range step values clamp into the [HUB_STEP, SHARE_STEP] range.
+  // Anything < HUB_STEP that isn't 0 falls through to the hub; values >
+  // SHARE_STEP land on the share screen.
+  const tutorialStep = Math.min(SHARE_STEP, Math.max(HUB_STEP, step))
+
+  // ── Step 1: hub ──────────────────────────────────────────────────────────────
+  if (tutorialStep === HUB_STEP) {
+    // Preserve revisit param when navigating to the share deep-dive so the
+    // share screen knows it was opened from a Settings re-entry (which
+    // changes the exit target to /settings, not /).
+    const shareHref = revisit
+      ? `/onboarding?step=${SHARE_STEP}&revisit=true`
+      : `/onboarding?step=${SHARE_STEP}`
+    return (
+      <OnboardingShell>
+        <div className="mx-auto h-full w-full max-w-sm">
+          <OnboardingHub
+            shareHref={shareHref}
+            onExit={handleExit}
+            exitLabel={t(exitKey)}
+          />
+        </div>
+      </OnboardingShell>
+    )
+  }
+
+  // ── Step 2: share illustration (deep-dive) ──────────────────────────────────
+  // Reuses the wizard shell but with totalSteps=1 so the dot row hides
+  // itself (one-of-one is meaningless). Back returns to the hub, preserving
+  // revisit so re-entry from Settings keeps the close-target as /settings.
+  function handleShareNext() {
+    router.push(revisit ? '/settings' : '/')
+  }
+
+  function handleShareBack() {
+    const params = revisit ? `?step=${HUB_STEP}&revisit=true` : `?step=${HUB_STEP}`
+    router.push(`/onboarding${params}`)
+  }
+
+  const shareCtaKey = revisit ? 'onboarding.cta.done' : 'onboarding.cta.letsGo'
 
   return (
     <OnboardingShell>
       <div className="mx-auto h-full w-full max-w-sm">
         <OnboardingStep
-          step={tutorialStep}
-          totalSteps={TOTAL_TUTORIAL_STEPS}
-          illustration={config.illustration(t)}
-          heading={t(config.headingKey)}
-          body={t(config.bodyKey)}
-          ctaLabel={t(ctaKey)}
-          onNext={() => handleNext(tutorialStep)}
-          onBack={showBack ? () => handleBack(tutorialStep) : undefined}
-          backLabel={showBack ? t('nav.back') : undefined}
+          step={1}
+          totalSteps={1}
+          illustration={
+            <WhatsAppShareIllustration
+              shareTitle={t('onboarding.illus.shareTitle')}
+              contactName={t('onboarding.illus.shareContact')}
+              appLabels={{
+                messages: t('onboarding.illus.appMessages'),
+                mail: t('onboarding.illus.appMail'),
+                coach: t('onboarding.illus.appCoach'),
+                files: t('onboarding.illus.appFiles'),
+              }}
+            />
+          }
+          heading={t('onboarding.share.heading')}
+          body={t('onboarding.share.body')}
+          ctaLabel={t(shareCtaKey)}
+          onNext={handleShareNext}
+          onBack={handleShareBack}
+          backLabel={t('nav.back')}
           onExit={handleExit}
           exitLabel={t(exitKey)}
-          stepOfTotalLabel={t('onboarding.stepOfTotal', {
-            n: tutorialStep,
-            total: TOTAL_TUTORIAL_STEPS,
-          })}
+          stepOfTotalLabel={t('onboarding.stepOfTotal', { n: 1, total: 1 })}
         />
       </div>
     </OnboardingShell>

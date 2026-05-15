@@ -28,13 +28,10 @@ vi.mock('@/components/LanguageProvider', () => ({
       if (key === 'home.greetingAfternoon') return 'Good afternoon'
       if (key === 'home.greetingEvening') return 'Good evening'
       if (key === 'home.dashboardSubtitle') return ''
-      if (key === 'home.uploadFabAria') return 'Upload audio'
-      if (key === 'home.uploadFabLabel') return 'Upload audio'
       if (key === 'home.firstRunSubtitle') return 'Practice by chatting — or share a recording from WhatsApp.'
       if (key === 'home.revisitTutorial') return 'Revisit the tutorial'
       if (key === 'home.practiceCTATitle') return 'Practice with your coach'
       if (key === 'home.practiceCTASubtitle') return 'Start a 5-minute voice session in Spanish'
-      if (key === 'home.uploadRecording') return 'Upload recording'
       if (key === 'home.noRecordingsYet') return 'No recordings yet — share audio from WhatsApp to get started.'
       if (key === 'home.recentSessionsTitle') return 'Recordings'
       return key

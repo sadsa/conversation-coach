@@ -119,6 +119,12 @@ const ICONS = {
     <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
     <line x1="12" y1="19" x2="12" y2="22" />
   </>,
+  // Speech bubble with three dots — used for the Practice nav tab and the
+  // onboarding hub primary card. Immediately reads as "conversation."
+  message: <>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <path d="M9 10h.01M12 10h.01M15 10h.01" strokeWidth={2} strokeLinecap="round" />
+  </>,
   // Material Symbols `audio_wave` — filled bars, non-standard viewBox.
   // fill/stroke overrides on the path win over the SVG wrapper defaults.
   waveform: {

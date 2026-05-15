@@ -52,6 +52,10 @@ const SHORTCUT_HINT_LIMIT = 3
 
 interface Props {
   targetLanguage: TargetLanguage
+  /** When true, skip the idle screen and connect immediately on mount.
+   *  Set by the onboarding hub via `?autostart=true` — the user already
+   *  expressed intent by tapping "Start a session" there. */
+  autoStart?: boolean
 }
 
 const TOTAL_SECONDS = 300        // 5 min hard cap
@@ -62,7 +66,7 @@ const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
 // LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
-export function PracticeClient({ targetLanguage }: Props) {
+export function PracticeClient({ targetLanguage, autoStart }: Props) {
   const { t, targetLanguage: ctxTargetLanguage } = useTranslation()
   const router = useRouter()
   const reducedMotion = useReducedMotion()
@@ -94,6 +98,7 @@ export function PracticeClient({ targetLanguage }: Props) {
 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
+  const hasAutoStarted = useRef(false)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -496,6 +501,14 @@ export function PracticeClient({ targetLanguage }: Props) {
     }
   }, [submitTurns, start])
 
+  // Auto-start when arriving from the onboarding hub (`?autostart=true`).
+  // The ref guards against double-firing on React strict-mode double-invoke.
+  useEffect(() => {
+    if (!autoStart || hasAutoStarted.current) return
+    hasAutoStarted.current = true
+    void start()
+  }, [autoStart, start])
+
   // ─── Idle ──────────────────────────────────────────────────────────────
   if (practiceState === 'idle') {
     return (
@@ -514,8 +527,6 @@ export function PracticeClient({ targetLanguage }: Props) {
             {t('practice.description', { language: t(`lang.${ctxTargetLanguage}`) })}
           </p>
         </div>
-
-        <p className="text-sm text-text-secondary">{t('practice.idleMeta')}</p>
 
         <Button onClick={start} size="md">
           {t('practice.start')}
@@ -726,7 +737,6 @@ export function PracticeClient({ targetLanguage }: Props) {
             <div className="text-center">
               <p className="text-base font-medium text-foreground">{t('practice.reviewHeading')}</p>
               <p className="text-sm text-text-secondary mt-1">{t('practice.reviewEncouragement')}</p>
-              <p className="text-xs text-text-tertiary mt-1">{t('practice.reviewMeta', { time: formatTime(elapsed) })}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button size="md" onClick={confirmSave}>{t('practice.reviewSave')}</Button>

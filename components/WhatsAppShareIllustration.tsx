@@ -44,7 +44,7 @@ export function WhatsAppShareIllustration({
       <ChatHeader contactName={contactName} initial={initial} />
       <ChatBody />
       {/* Dim layer rises with the sheet — sits above chat, below the sheet. */}
-      <span className="oa-backdrop absolute inset-0 bg-black pointer-events-none" />
+      <span className="oa-backdrop absolute inset-0 bg-[oklch(12%_0.02_285)] pointer-events-none" />
       <ShareSheet shareTitle={shareTitle} appLabels={appLabels} />
     </div>
   )

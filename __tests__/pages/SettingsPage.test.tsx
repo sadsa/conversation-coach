@@ -82,9 +82,9 @@ describe('SettingsPage — Help section', () => {
     expect(screen.getByText('Help')).toBeInTheDocument()
   })
 
-  it('renders a "How to upload audio" link pointing to the upload tutorial step', () => {
+  it('renders a "Show me the tutorial again" link pointing to the hub', () => {
     render(<SettingsPage />)
-    const link = screen.getByRole('link', { name: /how to upload audio/i })
+    const link = screen.getByRole('link', { name: /show me the tutorial again/i })
     expect(link).toHaveAttribute('href', '/onboarding?step=1&revisit=true')
   })
 

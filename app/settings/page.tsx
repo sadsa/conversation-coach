@@ -126,7 +126,7 @@ export default function SettingsPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.help')}</h2>
         <ul className="-mx-2 divide-y divide-border-subtle">
           {[
-            { href: '/onboarding?step=1&revisit=true', label: t('settings.howToUpload') },
+            { href: '/onboarding?step=1&revisit=true', label: t('settings.showTutorial') },
             { href: '/onboarding?step=2&revisit=true', label: t('settings.howToShare') },
           ].map(link => (
             <li key={link.href}>

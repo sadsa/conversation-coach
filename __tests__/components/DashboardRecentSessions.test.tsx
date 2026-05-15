@@ -121,4 +121,10 @@ describe('DashboardRecentSessions', () => {
 
     expect(screen.queryByRole('button', { name: /show all/i })).not.toBeInTheDocument()
   })
+
+  it('has no upload button — upload is share-target only', () => {
+    render(<DashboardRecentSessions sessions={[makeSession('a')]} />)
+    expect(screen.queryByRole('button', { name: /upload/i })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('upload-input')).not.toBeInTheDocument()
+  })
 })

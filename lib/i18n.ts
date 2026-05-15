@@ -36,10 +36,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice
     'nav.practice': 'Practice',
     'practice.heading': 'Have a conversation',
-    'practice.description': "Chat in {language} for a few minutes — the coach starts, just respond naturally. Afterwards we'll go over the moments worth practising.",
+    'practice.description': "Chat in {language} for a few minutes — the coach starts, just respond naturally. Then we'll go over the moments worth practising.",
     'lang.es-AR': 'Spanish',
     'lang.en-NZ': 'English',
-    'practice.idleMeta': 'Uses your microphone · 5-minute session · reviewed for corrections after',
     'practice.start': 'Start chatting',
     'practice.connecting': 'Connecting to the coach…',
     'practice.endingState': 'Hanging up…',
@@ -54,7 +53,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.timeRemaining': '{time} left',
     'practice.warningToast': "1 minute left — wrap up when you're ready",
     'practice.analysing': 'Going over your conversation…',
-    'practice.analysingHint': 'Taking you to your corrections — usually 10–20 seconds',
+    'practice.analysingHint': 'Your corrections are loading — usually 10–20 seconds',
     'practice.errorConnect': "Couldn't connect — check your network and try again",
     'practice.errorMic': 'We need microphone access to hear you',
     'practice.errorNoSpeech': "Didn't catch any speech this time",
@@ -65,8 +64,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.timerAria': 'Time remaining: {time}',
     'practice.timerAriaElapsed': 'Session length: {time}',
     'practice.reviewHeading': 'Save this conversation?',
-    'practice.reviewEncouragement': "We'll highlight the moments worth practising.",
-    'practice.reviewMeta': 'Session length: {time}',
+    'practice.reviewEncouragement': "We'll flag the moments worth practising.",
     'practice.reviewSave': 'Save and review',
     'practice.reviewDiscard': 'Discard',
     'practice.reviewResume': 'Continue conversation',
@@ -123,7 +121,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.greetingAfternoon': 'Good afternoon',
     'home.greetingEvening': 'Good evening',
     'home.dashboardSubtitle': '',
-    'home.firstRunSubtitle': 'Practice by chatting — or share a conversation from WhatsApp.',
+    'home.firstRunSubtitle': 'Practice by chatting — or share a voice note from any messaging app.',
     'home.revisitTutorial': 'Revisit the tutorial',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to write down right now.',
@@ -142,7 +140,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountMany': '{n} in progress',
     'home.practiceCTATitle': 'Practice with your coach',
     'home.practiceCTASubtitle': 'Start a 5-minute voice session in Spanish',
-    'home.noRecordingsYet': 'No conversations yet — share audio from WhatsApp to get started.',
+    'home.noRecordingsYet': 'No conversations yet — share a voice note from any messaging app to get started.',
 
     // Drop zone
     'dropzone.title': 'Upload conversation',
@@ -204,7 +202,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorAnalysing': 'Analysis failed.',
     'pipeline.errorGeneric': 'Something went wrong.',
     'pipeline.errorUploadingDetail':
-      "We couldn't upload your conversation. Share the audio from WhatsApp again to retry.",
+      "We couldn't upload your conversation. Share the audio from your phone again to retry.",
     'pipeline.errorUploadingRetryAction': 'Go to home',
     'pipeline.errorTranscribingDetail':
       "The transcription service didn't respond. Most of the time another try is all it takes.",
@@ -420,33 +418,41 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.english': 'English',
     'onboarding.languageSelect.englishVariant': 'New Zealand English',
     'onboarding.languageSelect.cta': 'Get started →',
-    // Onboarding — tutorial steps (semantic keys; URL ?step=1 → upload, ?step=2 → share)
-    'onboarding.upload.heading': 'Upload a conversation',
-    'onboarding.upload.body':
-      'Tap Upload audio and pick a file. It transcribes automatically.',
-    'onboarding.share.heading': 'Share straight from WhatsApp',
+    // Onboarding — hub (URL ?step=1). Two cards: Practice (primary) and
+    // Share (secondary, links to ?step=2 for the deep-dive illustration).
+    'onboarding.hub.heading': 'Two ways to bring a conversation in.',
+    'onboarding.hub.practice.eyebrow': 'Practice now',
+    'onboarding.hub.practice.title': 'Talk it out, five minutes.',
+    'onboarding.hub.practice.body':
+      'Coach asks, you answer. Then we’ll go over the moments worth practising.',
+    'onboarding.hub.practice.cta': 'Start a session',
+    'onboarding.hub.share.eyebrow': 'Already recorded?',
+    'onboarding.hub.share.title': 'Share a voice note.',
+    'onboarding.hub.share.body': 'Send a voice note from WhatsApp, Signal, Telegram — or any app on your phone.',
+    'onboarding.hub.share.cta': 'Show me how',
+    // Onboarding — share illustration (URL ?step=2). Reached from the hub
+    // and from Settings → "Share from WhatsApp".
+    'onboarding.share.heading': 'Share from any messaging app',
     'onboarding.share.body':
-      'Hold a WhatsApp voice note, tap Share, choose Conversation Coach.',
+      'Hold any voice note, tap Share, and choose Conversation Coach. WhatsApp, Signal, Telegram, and most other apps all work.',
     // Onboarding — illustration labels (decorative mockups, but learners deserve their own language)
-    'onboarding.illus.uploadButton': 'Upload audio',
     'onboarding.illus.shareTitle': 'Share voice note via…',
     'onboarding.illus.appMessages': 'Messages',
     'onboarding.illus.appMail': 'Mail',
     'onboarding.illus.appCoach': 'Coach',
     'onboarding.illus.appFiles': 'Files',
     'onboarding.illus.shareContact': 'María',
-    'onboarding.illus.pickerTitle': 'Audio files',
     // Onboarding — chrome
     'onboarding.cta.next': 'Next →',
-    'onboarding.cta.letsGo': "Let's go →",
+    'onboarding.cta.letsGo': "I’m ready →",
     'onboarding.cta.done': 'Done',
     'onboarding.skip': 'Skip tutorial',
     'onboarding.close': 'Close',
     'onboarding.stepOfTotal': 'Step {n} of {total}',
     'onboarding.revisitLink': 'Revisit tutorial →',
     'settings.help': 'Help',
-    'settings.howToUpload': 'How to upload audio',
-    'settings.howToShare': 'Share from WhatsApp',
+    'settings.showTutorial': 'Show me the tutorial again',
+    'settings.howToShare': 'How to share audio',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -487,7 +493,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.description': 'Charlá en {language} unos minutos — el coach empieza, respondé naturalmente. Después repasamos juntos los momentos que vale la pena practicar.',
     'lang.es-AR': 'español',
     'lang.en-NZ': 'inglés',
-    'practice.idleMeta': 'Usa tu micrófono · sesión de 5 minutos · revisión de errores después',
     'practice.start': 'Empezar a charlar',
     'practice.connecting': 'Conectando con el coach…',
     'practice.endingState': 'Colgando…',
@@ -514,7 +519,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.timerAriaElapsed': 'Duración de la charla: {time}',
     'practice.reviewHeading': '¿Guardar esta charla?',
     'practice.reviewEncouragement': 'Vamos a marcar los momentos que vale la pena practicar.',
-    'practice.reviewMeta': 'Charla de {time}',
     'practice.reviewSave': 'Guardar y revisar',
     'practice.reviewDiscard': 'Descartar',
     'practice.reviewResume': 'Continuar la charla',
@@ -571,7 +575,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.greetingAfternoon': 'Buenas tardes',
     'home.greetingEvening': 'Buenas noches',
     'home.dashboardSubtitle': '',
-    'home.firstRunSubtitle': 'Practicá chateando — o compartí una conversación desde WhatsApp.',
+    'home.firstRunSubtitle': 'Practicá chateando — o compartí una nota de voz desde cualquier app de mensajes.',
     'home.revisitTutorial': 'Ver el tutorial otra vez',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
@@ -590,7 +594,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountMany': '{n} en proceso',
     'home.practiceCTATitle': 'Practicá con tu coach',
     'home.practiceCTASubtitle': 'Empezá una sesión de voz de 5 minutos en español',
-    'home.noRecordingsYet': 'Aún no hay conversaciones — compartí audio desde WhatsApp para empezar.',
+    'home.noRecordingsYet': 'Aún no hay conversaciones — compartí una nota de voz desde cualquier app para empezar.',
 
     // Drop zone
     'dropzone.title': 'Subir conversación',
@@ -650,7 +654,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'pipeline.errorAnalysing': 'Error en el análisis.',
     'pipeline.errorGeneric': 'Algo salió mal.',
     'pipeline.errorUploadingDetail':
-      'No pudimos subir la conversación. Compartí el audio desde WhatsApp de nuevo para reintentar.',
+      'No pudimos subir la conversación. Compartí el audio desde tu celular de nuevo para reintentar.',
     'pipeline.errorUploadingRetryAction': 'Ir al inicio',
     'pipeline.errorTranscribingDetail':
       'El servicio de transcripción no respondió. Casi siempre se resuelve con otro intento.',
@@ -863,33 +867,39 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.english': 'Inglés',
     'onboarding.languageSelect.englishVariant': 'Inglés de Nueva Zelanda',
     'onboarding.languageSelect.cta': 'Empezar →',
-    // Onboarding — pasos del tutorial
-    'onboarding.upload.heading': 'Subí una conversación',
-    'onboarding.upload.body':
-      'Tocá Subir audio y elegí un archivo. Se transcribe automáticamente.',
-    'onboarding.share.heading': 'Compartí desde WhatsApp',
+    // Onboarding — hub (URL ?step=1)
+    'onboarding.hub.heading': 'Dos formas de traer una conversación.',
+    'onboarding.hub.practice.eyebrow': 'Practicá ahora',
+    'onboarding.hub.practice.title': 'Charlá unos minutos.',
+    'onboarding.hub.practice.body':
+      'El coach empieza, vos respondés. Después repasamos los momentos que vale la pena practicar.',
+    'onboarding.hub.practice.cta': 'Empezar sesión',
+    'onboarding.hub.share.eyebrow': '¿Ya grabaste?',
+    'onboarding.hub.share.title': 'Compartí una nota de voz.',
+    'onboarding.hub.share.body': 'Mandá una nota de voz desde WhatsApp, Signal, Telegram — o cualquier app de tu celular.',
+    'onboarding.hub.share.cta': 'Mostrame cómo',
+    // Onboarding — ilustración de compartir (URL ?step=2)
+    'onboarding.share.heading': 'Compartí desde cualquier app de mensajes',
     'onboarding.share.body':
-      'Mantené presionada una nota de voz de WhatsApp, tocá Compartir y elegí Conversation Coach.',
+      'Mantené presionada cualquier nota de voz, tocá Compartir y elegí Conversation Coach. Funciona con WhatsApp, Signal, Telegram y la mayoría de las apps.',
     // Onboarding — etiquetas de las ilustraciones
-    'onboarding.illus.uploadButton': 'Subir audio',
     'onboarding.illus.shareTitle': 'Compartir nota de voz vía…',
     'onboarding.illus.appMessages': 'Mensajes',
     'onboarding.illus.appMail': 'Correo',
     'onboarding.illus.appCoach': 'Coach',
     'onboarding.illus.appFiles': 'Archivos',
     'onboarding.illus.shareContact': 'María',
-    'onboarding.illus.pickerTitle': 'Archivos de audio',
     // Onboarding — chrome
     'onboarding.cta.next': 'Siguiente →',
-    'onboarding.cta.letsGo': '¡Vamos! →',
+    'onboarding.cta.letsGo': 'Empecemos →',
     'onboarding.cta.done': 'Listo',
     'onboarding.skip': 'Saltar tutorial',
     'onboarding.close': 'Cerrar',
     'onboarding.stepOfTotal': 'Paso {n} de {total}',
     'onboarding.revisitLink': 'Ver tutorial otra vez →',
     'settings.help': 'Ayuda',
-    'settings.howToUpload': 'Cómo subir audio',
-    'settings.howToShare': 'Compartir desde WhatsApp',
+    'settings.showTutorial': 'Ver el tutorial otra vez',
+    'settings.howToShare': 'Cómo compartir audio',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

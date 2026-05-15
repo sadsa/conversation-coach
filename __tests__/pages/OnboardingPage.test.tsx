@@ -60,7 +60,7 @@ describe('OnboardingPage — step 0 (language select)', () => {
     expect(screen.getByRole('button', { name: 'onboarding.languageSelect.cta' })).not.toBeDisabled()
   })
 
-  it('calls setTargetLanguage and redirects to step=1 after confirming', async () => {
+  it('calls setTargetLanguage and redirects to step=1 (the hub) after confirming', async () => {
     render(<OnboardingPage />)
     await userEvent.click(screen.getByText('onboarding.languageSelect.english'))
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.languageSelect.cta' }))
@@ -93,45 +93,80 @@ describe('OnboardingPage — step 0 (language select)', () => {
   })
 })
 
-// ─── Tutorial step 1 (Upload) — was the old "step 2" ─────────────────────────
+// ─── Step 1: hub (replaces the old upload tutorial) ──────────────────────────
 
-describe('OnboardingPage — tutorial step 1 (Upload)', () => {
+describe('OnboardingPage — step 1 (hub), first run', () => {
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '1' : null))
   })
 
-  it('renders the upload heading from the semantic key', () => {
+  it('renders the hub heading from the semantic key', () => {
     render(<OnboardingPage />)
-    expect(screen.getByText('onboarding.upload.heading')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.hub.heading')).toBeInTheDocument()
   })
 
-  it('renders the Next CTA', () => {
+  it('renders both path titles (Practice + Share)', () => {
     render(<OnboardingPage />)
-    expect(screen.getByRole('button', { name: 'onboarding.cta.next' })).toBeInTheDocument()
+    expect(screen.getByText('onboarding.hub.practice.title')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.hub.share.title')).toBeInTheDocument()
   })
 
-  it('Next pushes to step=2', async () => {
+  it('Practice card links to /practice?autostart=true (session starts immediately)', () => {
     render(<OnboardingPage />)
-    await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.next' }))
-    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=2')
+    const practiceLink = screen.getByRole('link', { name: /onboarding\.hub\.practice/ })
+    expect(practiceLink).toHaveAttribute('href', '/practice?autostart=true')
   })
 
-  it('first tutorial step does NOT render a back button', () => {
+  it('Share card links to ?step=2 (no revisit on first run)', () => {
     render(<OnboardingPage />)
-    expect(screen.queryByRole('button', { name: /nav\.back/i })).not.toBeInTheDocument()
+    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share/ })
+    expect(shareLink).toHaveAttribute('href', '/onboarding?step=2')
   })
 
-  it('first-run renders a Skip exit (not Close) and Skip routes to /', async () => {
+  it('first run renders a Skip exit (not Close) and Skip routes to /', async () => {
     render(<OnboardingPage />)
     const skip = screen.getByRole('button', { name: 'onboarding.skip' })
     await userEvent.click(skip)
     expect(mockPush).toHaveBeenCalledWith('/')
   })
+
+  it('does NOT render a back button (hub is the destination, not a step)', () => {
+    render(<OnboardingPage />)
+    expect(screen.queryByRole('button', { name: /nav\.back/i })).not.toBeInTheDocument()
+  })
 })
 
-// ─── Tutorial step 2 (Share) — was the old "step 3" ─────────────────────────
+describe('OnboardingPage — step 1 (hub), revisit', () => {
+  beforeEach(() => {
+    mockSearchParams.get.mockImplementation((key: string) => {
+      if (key === 'step') return '1'
+      if (key === 'revisit') return 'true'
+      return null
+    })
+  })
 
-describe('OnboardingPage — tutorial step 2 (Share), first run', () => {
+  it('Share card preserves revisit=true when navigating to step=2', () => {
+    render(<OnboardingPage />)
+    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share/ })
+    expect(shareLink).toHaveAttribute('href', '/onboarding?step=2&revisit=true')
+  })
+
+  it('shows Close (revisit exit), not Skip', () => {
+    render(<OnboardingPage />)
+    expect(screen.getByRole('button', { name: 'onboarding.close' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'onboarding.skip' })).not.toBeInTheDocument()
+  })
+
+  it('Close routes to /settings', async () => {
+    render(<OnboardingPage />)
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.close' }))
+    expect(mockPush).toHaveBeenCalledWith('/settings')
+  })
+})
+
+// ─── Step 2: share illustration (deep-dive opened from hub) ──────────────────
+
+describe('OnboardingPage — step 2 (share), first run', () => {
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '2' : null))
   })
@@ -141,7 +176,7 @@ describe('OnboardingPage — tutorial step 2 (Share), first run', () => {
     expect(screen.getByText('onboarding.share.heading')).toBeInTheDocument()
   })
 
-  it('renders the letsGo CTA on the last step (not done)', () => {
+  it('renders the letsGo CTA on first run (not done)', () => {
     render(<OnboardingPage />)
     expect(screen.getByRole('button', { name: 'onboarding.cta.letsGo' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'onboarding.cta.done' })).not.toBeInTheDocument()
@@ -153,15 +188,20 @@ describe('OnboardingPage — tutorial step 2 (Share), first run', () => {
     expect(mockPush).toHaveBeenCalledWith('/')
   })
 
-  it('renders a Back button that returns to step=1', async () => {
+  it('renders a Back button that returns to step=1 (the hub)', async () => {
     render(<OnboardingPage />)
     const back = screen.getByRole('button', { name: /nav\.back/i })
     await userEvent.click(back)
     expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1')
   })
+
+  it('hides the progress dots row (single-step deep-dive, no sequence to indicate)', () => {
+    render(<OnboardingPage />)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
 })
 
-describe('OnboardingPage — tutorial step 2 (Share), revisit', () => {
+describe('OnboardingPage — step 2 (share), revisit', () => {
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => {
       if (key === 'step') return '2'
@@ -193,28 +233,6 @@ describe('OnboardingPage — tutorial step 2 (Share), revisit', () => {
     const close = screen.getByRole('button', { name: 'onboarding.close' })
     await userEvent.click(close)
     expect(mockPush).toHaveBeenCalledWith('/settings')
-  })
-})
-
-describe('OnboardingPage — tutorial step 1, revisit', () => {
-  beforeEach(() => {
-    mockSearchParams.get.mockImplementation((key: string) => {
-      if (key === 'step') return '1'
-      if (key === 'revisit') return 'true'
-      return null
-    })
-  })
-
-  it('Next preserves revisit=true when advancing', async () => {
-    render(<OnboardingPage />)
-    await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.next' }))
-    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=2&revisit=true')
-  })
-
-  it('shows Close (revisit exit), not Skip', () => {
-    render(<OnboardingPage />)
-    expect(screen.getByRole('button', { name: 'onboarding.close' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'onboarding.skip' })).not.toBeInTheDocument()
   })
 })
 

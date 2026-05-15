@@ -158,10 +158,24 @@ describe('onboarding tutorial i18n keys', () => {
       expect(t(key, 'es')).not.toBe(key)
     }
   })
-  it('semantic upload + share step keys exist in both langs', () => {
+  it('hub keys exist in both langs', () => {
     for (const key of [
-      'onboarding.upload.heading',
-      'onboarding.upload.body',
+      'onboarding.hub.heading',
+      'onboarding.hub.practice.eyebrow',
+      'onboarding.hub.practice.title',
+      'onboarding.hub.practice.body',
+      'onboarding.hub.practice.cta',
+      'onboarding.hub.share.eyebrow',
+      'onboarding.hub.share.title',
+      'onboarding.hub.share.body',
+      'onboarding.hub.share.cta',
+    ]) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+  it('semantic share-illustration step keys exist in both langs', () => {
+    for (const key of [
       'onboarding.share.heading',
       'onboarding.share.body',
     ]) {
@@ -171,20 +185,25 @@ describe('onboarding tutorial i18n keys', () => {
   })
   it('illustration label keys exist in both langs (so learners see their own language inside the mockup)', () => {
     for (const key of [
-      'onboarding.illus.uploadButton',
       'onboarding.illus.shareTitle',
       'onboarding.illus.appMessages',
       'onboarding.illus.appMail',
       'onboarding.illus.appCoach',
       'onboarding.illus.appFiles',
       'onboarding.illus.shareContact',
-      'onboarding.illus.pickerTitle',
     ]) {
       expect(t(key, 'en')).not.toBe(key)
       expect(t(key, 'es')).not.toBe(key)
     }
   })
-  it('legacy indexed keys are retired (fall back to key)', () => {
+  it('retired keys (upload step + indexed legacy) fall back to key', () => {
+    // Upload-from-file is gone as a primary input — the upload tutorial
+    // step was replaced by the hub. These keys should NOT have translations.
+    expect(t('onboarding.upload.heading', 'en')).toBe('onboarding.upload.heading')
+    expect(t('onboarding.upload.body', 'en')).toBe('onboarding.upload.body')
+    expect(t('onboarding.illus.uploadButton', 'en')).toBe('onboarding.illus.uploadButton')
+    expect(t('onboarding.illus.pickerTitle', 'en')).toBe('onboarding.illus.pickerTitle')
+    // Indexed legacy from an even older naming pass.
     expect(t('onboarding.step1.heading', 'en')).toBe('onboarding.step1.heading')
     expect(t('onboarding.step2.heading', 'en')).toBe('onboarding.step2.heading')
     expect(t('onboarding.step3.heading', 'en')).toBe('onboarding.step3.heading')
@@ -207,7 +226,7 @@ describe('onboarding tutorial i18n keys', () => {
     expect(t('onboarding.stepOfTotal', 'es', { n: 1, total: 2 })).toBe('Paso 1 de 2')
   })
   it('settings help keys exist in both langs', () => {
-    for (const key of ['settings.help', 'settings.howToUpload', 'settings.howToShare']) {
+    for (const key of ['settings.help', 'settings.showTutorial', 'settings.howToShare']) {
       expect(t(key, 'en')).not.toBe(key)
       expect(t(key, 'es')).not.toBe(key)
     }

@@ -73,29 +73,35 @@ export function OnboardingStep({
 
         <div className="flex flex-col items-center gap-3">
           <Wordmark />
-          <div
-            role="progressbar"
-            aria-valuenow={step}
-            aria-valuemin={1}
-            aria-valuemax={totalSteps}
-            aria-label={stepOfTotalLabel}
-            className="flex items-center gap-2"
-          >
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map(i => {
-              const active = i === step
-              return (
-                <span
-                  key={i}
-                  aria-hidden="true"
-                  className={`block h-1.5 w-5 rounded-full origin-center transition-transform duration-200 ${
-                    active
-                      ? 'bg-accent-primary scale-x-100'
-                      : 'bg-border scale-x-[0.3]'
-                  }`}
-                />
-              )
-            })}
-          </div>
+          {/* Progress dots only render when there's more than one step. A
+              single dot is visual noise that misleadingly implies a
+              sequence — used by the WhatsApp-share deep-dive opened from
+              the hub, where there's no "next step" to indicate. */}
+          {totalSteps > 1 && (
+            <div
+              role="progressbar"
+              aria-valuenow={step}
+              aria-valuemin={1}
+              aria-valuemax={totalSteps}
+              aria-label={stepOfTotalLabel}
+              className="flex items-center gap-2"
+            >
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map(i => {
+                const active = i === step
+                return (
+                  <span
+                    key={i}
+                    aria-hidden="true"
+                    className={`block h-1.5 w-5 rounded-full origin-center transition-transform duration-200 ${
+                      active
+                        ? 'bg-accent-primary scale-x-100'
+                        : 'bg-border scale-x-[0.3]'
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end">
