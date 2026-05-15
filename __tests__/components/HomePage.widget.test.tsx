@@ -19,6 +19,8 @@ vi.mock('@/components/SessionList', () => ({
 }))
 vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
+    targetLanguage: 'es-AR',
+    uiLanguage: 'en',
     t: (key: string, vars?: Record<string, unknown>) => {
       if (key === 'home.toWriteDown') return `${vars?.n} corrections to write down`
       if (key === 'home.toWriteDownOne') return '1 correction to write down'
@@ -31,7 +33,8 @@ vi.mock('@/components/LanguageProvider', () => ({
       if (key === 'home.firstRunSubtitle') return 'Practice by chatting — or share a recording from WhatsApp.'
       if (key === 'home.revisitTutorial') return 'Revisit the tutorial'
       if (key === 'home.practiceCTATitle') return 'Practice with your coach'
-      if (key === 'home.practiceCTASubtitle') return 'Start a 5-minute voice session in Spanish'
+      if (key === 'home.practiceCTASubtitle') return `Start a 5-minute voice session in ${vars?.language ?? 'Spanish'}`
+      if (key === 'lang.es-AR') return 'Spanish'
       if (key === 'home.noRecordingsYet') return 'No recordings yet — share audio from WhatsApp to get started.'
       if (key === 'home.recentSessionsTitle') return 'Recordings'
       return key

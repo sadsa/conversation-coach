@@ -186,11 +186,12 @@ function SwipeableSessionItem({
     const succeeded = deleteResult.status === 'fulfilled' && deleteResult.value === true
 
     if (!succeeded) {
-      // Undo or DELETE failure — restore the row to its pre-swipe state
-      // so it reads as "still here, ready to act on again". The parent
-      // is responsible for re-emitting the row through the `sessions`
-      // prop on Undo so this restore stays purely visual.
-      setRowHeight(null)
+      // Undo or DELETE failure — expand the row back and slide it in.
+      // Use a positive non-null value so the grid-template-rows transition
+      // stays active (null would remove the transition, snapping the height
+      // instantly). translateX → 0 slides it back in over CANCEL_DURATION_MS
+      // and setIsAnimating(false) restores opacity to 1.
+      setRowHeight(1)
       setTranslateX(0)
       setIsAnimating(false)
     }
@@ -438,14 +439,6 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
   const { t } = useTranslation()
   const [toast, setToast] = useState<ToastState | null>(null)
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Locally-hidden ids — rows that have been swiped to delete but whose
-  // backing DELETE is still inside the Undo window. We hide them
-  // visually here without removing them from the parent's `sessions`
-  // array, so an Undo can simply drop the id from this set and the row
-  // reappears in the right slot. Once the timer expires (or DELETE
-  // succeeds) we notify the parent via `onDeleted` and the parent's
-  // canonical array shrinks; at that point we can safely forget the id.
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     return () => {
@@ -453,87 +446,51 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
     }
   }, [])
 
-  // If the parent's sessions array changes underneath us (e.g. a poll
-  // refresh dropped a session that was already pending-delete here),
-  // garbage-collect any hiddenIds that no longer correspond to a known
-  // row so the set doesn't grow without bound.
-  useEffect(() => {
-    if (hiddenIds.size === 0) return
-    const known = new Set(sessions.map(s => s.id))
-    let changed = false
-    const next = new Set<string>()
-    hiddenIds.forEach(id => {
-      if (known.has(id)) next.add(id)
-      else changed = true
-    })
-    if (changed) setHiddenIds(next)
-  }, [sessions, hiddenIds])
-
   /**
-   * Optimistic, undoable session delete (mirror of WriteList's pattern):
+   * Optimistic, undoable session delete. Returns a long-lived promise
+   * that resolves `true` once the DELETE is confirmed, or `false` if the
+   * user hits Undo or the network call fails.
    *
-   *   1. Hide the row right away via local state. The row's own
-   *      slide+collapse animation already plays before this resolves;
-   *      adding the id to `hiddenIds` keeps the row gone from subsequent
-   *      renders without round-tripping the parent.
-   *   2. Show an Undo toast for UNDO_TIMEOUT_MS. The actual DELETE is
-   *      scheduled inside the timer.
-   *   3. If Undo fires, drop the id from `hiddenIds` and the row
-   *      reappears in its original slot.
-   *   4. After the timer the actual DELETE fires; on success we notify
-   *      the parent via `onDeleted` so the row leaves its array too.
-   *      On failure, we restore the row visually + surface an error toast.
+   * Critically: we do NOT hide the row from the `sessions` array here.
+   * The row stays mounted so its own slide+collapse animation can play
+   * in `SwipeableSessionItem`. Once the DELETE succeeds, `onDeleted`
+   * removes the row from the parent array and React unmounts it cleanly
+   * (it's already at height 0 by then). On Undo or failure, the child
+   * restores the row to its pre-swipe visual state.
    */
   async function deleteSession(id: string): Promise<boolean> {
-    setHiddenIds(prev => {
-      const next = new Set(prev)
-      next.add(id)
-      return next
-    })
+    return new Promise<boolean>((resolve) => {
+      let cancelled = false
+      let pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null
 
-    let cancelled = false
-    let pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null
-
-    function restoreRow() {
-      setHiddenIds(prev => {
-        if (!prev.has(id)) return prev
-        const next = new Set(prev)
-        next.delete(id)
-        return next
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+      setToast({
+        key: Date.now(),
+        message: t('session.movedToTrash'),
+        onUndo: () => {
+          cancelled = true
+          if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer)
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+          setToast(null)
+          resolve(false)
+        },
       })
-    }
+      toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
 
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    setToast({
-      key: Date.now(),
-      message: t('session.movedToTrash'),
-      onUndo: () => {
-        cancelled = true
-        if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer)
-        restoreRow()
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-        setToast(null)
-      },
+      pendingDeleteTimer = setTimeout(async () => {
+        if (cancelled) return
+        const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
+        if (!res.ok) {
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+          setToast({ key: Date.now(), message: t('session.deleteError') })
+          toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+          resolve(false)
+          return
+        }
+        onDeleted?.(id)
+        resolve(true)
+      }, UNDO_TIMEOUT_MS)
     })
-    toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
-
-    pendingDeleteTimer = setTimeout(async () => {
-      if (cancelled) return
-      const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        restoreRow()
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-        setToast({ key: Date.now(), message: t('session.deleteError') })
-        toastTimerRef.current = setTimeout(() => setToast(null), 3000)
-        return
-      }
-      // Success — promote the local hide into a parent-side removal so
-      // both halves of state agree and the hiddenIds entry can be GC'd
-      // by the cleanup effect above.
-      onDeleted?.(id)
-    }, UNDO_TIMEOUT_MS)
-
-    return true
   }
 
   async function toggleReadSession(id: string, makeRead: boolean): Promise<boolean> {
@@ -557,16 +514,8 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
     return true
   }
 
-  // Hide rows currently inside an Undo window. They're still in the
-  // parent's `sessions` array (we wait until the network DELETE actually
-  // succeeds before notifying), but they should not render in the list.
-  const visibleSessions = hiddenIds.size === 0
-    ? sessions
-    : sessions.filter(s => !hiddenIds.has(s.id))
-
   // Toast must always render — even when the list is empty (e.g. the user
-  // just swiped away the only row, the row is hidden, the Undo toast is
-  // up, and we need it to stay reachable so they can pull the row back).
+  // just swiped away the only row and the Undo toast is up).
   const renderedToast = toast && (
     <Toast
       toastKey={toast.key}
@@ -575,7 +524,7 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
     />
   )
 
-  if (visibleSessions.length === 0) {
+  if (sessions.length === 0) {
     return (
       <>
         <p className="text-text-tertiary py-4">{t('session.noSessions')}</p>
@@ -599,7 +548,7 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
         per the spacious / readable-first principle in .impeccable.md.
       */}
       <ul className="-mx-6 sm:mx-0 divide-y divide-border-subtle">
-        {visibleSessions.map(s => (
+        {sessions.map(s => (
           <SwipeableSessionItem
             key={s.id}
             session={s}

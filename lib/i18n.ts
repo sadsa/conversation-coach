@@ -139,7 +139,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountOne': '1 in progress',
     'home.inProgressCountMany': '{n} in progress',
     'home.practiceCTATitle': 'Practice with your coach',
-    'home.practiceCTASubtitle': 'Start a 5-minute voice session in Spanish',
+    'home.practiceCTASubtitle': 'Start a 5-minute voice session in {language}',
     'home.noRecordingsYet': 'No conversations yet — share a voice note from any messaging app to get started.',
 
     // Drop zone
@@ -593,7 +593,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.inProgressCountOne': '1 en proceso',
     'home.inProgressCountMany': '{n} en proceso',
     'home.practiceCTATitle': 'Practicá con tu coach',
-    'home.practiceCTASubtitle': 'Empezá una sesión de voz de 5 minutos en español',
+    'home.practiceCTASubtitle': 'Empezá una sesión de voz de 5 minutos en {language}',
     'home.noRecordingsYet': 'Aún no hay conversaciones — compartí una nota de voz desde cualquier app para empezar.',
 
     // Drop zone

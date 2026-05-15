@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function HomeClient({ initialSessions, initialSummary }: Props) {
-  const { t } = useTranslation()
+  const { t, targetLanguage } = useTranslation()
   const router = useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions)
   const [summary, setSummary] = useState<DashboardSummary | null>(initialSummary)
@@ -230,7 +230,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
               {t('home.practiceCTATitle')}
             </p>
             <p className="text-sm text-text-secondary">
-              {t('home.practiceCTASubtitle')}
+              {t('home.practiceCTASubtitle', { language: t(`lang.${targetLanguage}`) })}
             </p>
           </div>
           <svg

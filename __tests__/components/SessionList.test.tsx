@@ -46,7 +46,7 @@ const readySession = readSession
 describe('SessionList', () => {
   it('shows empty state when no sessions', () => {
     render(<SessionList sessions={[]} />)
-    expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/no conversations yet/i)).toBeInTheDocument()
   })
 
   it('renders session title', () => {
