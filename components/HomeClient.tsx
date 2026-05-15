@@ -223,7 +223,7 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
           className="group flex items-center gap-5 rounded-2xl border border-accent-primary/25 bg-accent-primary/[0.04] px-6 py-5 hover:bg-accent-primary/[0.08] hover:border-accent-primary/35 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
         >
           <span className="flex-shrink-0 w-11 h-11 rounded-full bg-accent-chip flex items-center justify-center text-on-accent-chip">
-            <Icon name="waveform" className="w-5 h-5" aria-hidden />
+            <Icon name="message" className="w-5 h-5" aria-hidden />
           </span>
           <div className="flex-1 min-w-0 space-y-0.5">
             <p className="text-lg font-semibold text-text-primary">
