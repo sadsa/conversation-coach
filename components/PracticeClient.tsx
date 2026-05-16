@@ -31,7 +31,7 @@
 // On unmount the agent disconnects, all timers clear, and the wake lock
 // (if held) releases.
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
@@ -86,7 +86,7 @@ const RMS_FLOOR = 0.004
 // LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
 export function PracticeClient({ targetLanguage, autoStart }: Props) {
-  const { t, targetLanguage: ctxTargetLanguage } = useTranslation()
+  const { t } = useTranslation()
   const router = useRouter()
   const reducedMotion = useReducedMotion()
   const [practiceState, setPracticeState] = useState<PracticeState>('idle')
@@ -279,6 +279,18 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
     const el = chatScrollRef.current
     if (!el) return
     el.scrollTop = el.scrollHeight
+  }, [liveTurns])
+
+  // Precompute "first bubble for this role" markers so the transcript map
+  // doesn't run findIndex per item (O(n²) → O(n)). At 40+ turns the lookup
+  // was the hottest thing in this render path.
+  const firstOfRoleFlags = useMemo(() => {
+    const seen = new Set<TranscriptTurn['role']>()
+    return liveTurns.map(turn => {
+      if (seen.has(turn.role)) return false
+      seen.add(turn.role)
+      return true
+    })
   }, [liveTurns])
 
   // Reflect mute toggles in the status row immediately — RAF tick alone
@@ -757,7 +769,6 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             <span className="font-semibold text-foreground text-lg">
               {t('practice.modeCallTitle')}
             </span>
-            <span className="ml-auto text-text-tertiary group-hover:text-text-secondary transition-colors" aria-hidden="true">→</span>
           </div>
           <p className="mt-2 text-sm text-text-secondary leading-relaxed">
             {t('practice.modeCallBlurb')}
@@ -791,17 +802,11 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             <span className="font-semibold text-foreground text-lg">
               {t('practice.modeChatTitle')}
             </span>
-            <span className="ml-auto text-text-tertiary group-hover:text-text-secondary transition-colors" aria-hidden="true">→</span>
           </div>
           <p className="mt-2 text-sm text-text-secondary leading-relaxed">
             {t('practice.modeChatBlurb')}
           </p>
         </button>
-
-        {/* Language hint — tiny, no-pressure */}
-        <p className="text-xs text-text-tertiary text-center mt-auto">
-          {t('practice.description', { language: t(`lang.${ctxTargetLanguage}`) })}
-        </p>
 
         {toast && <Toast message={toast} />}
         {discardToast && (
@@ -830,9 +835,6 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
         role="status"
         aria-live="polite"
       >
-        <p className="text-xs uppercase tracking-[0.18em] font-semibold text-text-tertiary">
-          {t('practice.ringingEyebrow')}
-        </p>
         <div
           className="
             w-28 h-28 rounded-full
@@ -888,20 +890,15 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
         className="
           mx-auto w-full max-w-md px-6
           flex flex-col items-center justify-center flex-1
-          gap-7 text-center
+          gap-6 text-center
         "
         role="status"
         aria-live="polite"
       >
         <ProcessingGraphic label={t('practice.analysing')} />
-        <div className="space-y-1.5">
-          <p className="text-base sm:text-lg font-medium text-text-primary">
-            {t('practice.analysing')}
-          </p>
-          <p className="text-sm text-text-tertiary">
-            {t('practice.analysingHint')}
-          </p>
-        </div>
+        <p className="text-sm text-text-tertiary max-w-[32ch] leading-relaxed">
+          {t('practice.analysingHint')}
+        </p>
       </div>
     )
   }
@@ -1005,7 +1002,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
         {liveTurns.map((turn, i) => {
           // Show a role label above the very first bubble for each speaker so
           // first-time users immediately understand the side convention.
-          const isFirstOfRole = liveTurns.findIndex(t => t.role === turn.role) === i
+          const isFirstOfRole = firstOfRoleFlags[i]
           return (
             <motion.div
               key={`${turn.wallMs}-${i}`}
@@ -1098,7 +1095,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             </div>
 
             {/* Call action buttons */}
-            <div className="flex items-end justify-center gap-16">
+            <div className="flex items-end justify-center gap-12 sm:gap-16">
 
               {/* Mute — neutral circle, amber fill when pressed */}
               <button

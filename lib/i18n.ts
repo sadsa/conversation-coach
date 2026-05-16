@@ -57,7 +57,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice
     'nav.practice': 'Practice',
     'practice.heading': 'Have a conversation',
-    'practice.description': "Chat in {language} for a few minutes — the coach starts, just respond naturally. Then we'll go over the moments worth practising.",
     'lang.es-AR': 'Spanish',
     'lang.en-NZ': 'English',
     'practice.start': 'Start chatting',
@@ -66,15 +65,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': "Pick how you'd like to start.",
     'practice.modeCallTitle': 'Pick up a call',
     'practice.modeCallBlurb':
-      'Someone new is on the line. They introduce themselves and the conversation goes wherever it goes.',
+      'Someone new calls. They introduce themselves, then you take the lead.',
     'practice.modeChatTitle': 'Casual chat',
     'practice.modeChatBlurb':
-      "The coach starts an easy back-and-forth. Talk about whatever's on your mind.",
+      "The coach starts the back-and-forth. Talk about whatever's on your mind.",
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start chatting',
 
     // Practice — ringing screen (call mode only)
-    'practice.ringingEyebrow': 'Incoming call',
     'practice.ringingText': "Someone's calling",
     'practice.ringingSub': 'Connecting you now…',
 
@@ -99,7 +97,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.timeRemaining': '{time} left',
     'practice.warningToast': "1 minute left — wrap up when you're ready",
     'practice.analysing': 'Going over your conversation…',
-    'practice.analysingHint': 'Your corrections are loading — usually 10–20 seconds',
+    'practice.analysingHint': 'Your corrections are loading. Usually 10–20 seconds.',
     'practice.errorConnect': "Couldn't connect — check your network and try again",
     'practice.errorMic': 'We need microphone access to hear you',
     'practice.errorNoSpeech': "Didn't catch any speech this time",
@@ -536,7 +534,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Practice
     'nav.practice': 'Práctica',
     'practice.heading': 'Tener una charla',
-    'practice.description': 'Charlá en {language} unos minutos — el coach empieza, respondé naturalmente. Después repasamos juntos los momentos que vale la pena practicar.',
     'lang.es-AR': 'español',
     'lang.en-NZ': 'inglés',
     'practice.start': 'Empezar a charlar',
@@ -545,15 +542,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': 'Elegí cómo querés empezar.',
     'practice.modeCallTitle': 'Atender una llamada',
     'practice.modeCallBlurb':
-      'Alguien nuevo te llama. Se presenta y la charla va para donde vaya.',
+      'Alguien nuevo te llama. Se presenta y vos seguís la charla.',
     'practice.modeChatTitle': 'Charla relajada',
     'practice.modeChatBlurb':
-      'El coach arranca una charla tranquila. Hablá de lo que se te ocurra.',
+      'El coach arranca la charla. Hablá de lo que se te ocurra.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a charlar',
 
     // Practice — ringing screen (call mode only)
-    'practice.ringingEyebrow': 'Llamada entrante',
     'practice.ringingText': 'Te están llamando',
     'practice.ringingSub': 'Conectando…',
 
@@ -578,7 +574,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.timeRemaining': 'Falta {time}',
     'practice.warningToast': '1 minuto restante — cerrá cuando quieras',
     'practice.analysing': 'Repasando tu conversación…',
-    'practice.analysingHint': 'Ya te llevamos a tu revisión — suele tardar 10–20 segundos',
+    'practice.analysingHint': 'Ya te llevamos a tu revisión. Suele tardar 10–20 segundos.',
     'practice.errorConnect': 'No se pudo conectar — revisá la red e intentá de nuevo',
     'practice.errorMic': 'Necesitamos acceso al micrófono para escucharte',
     'practice.errorNoSpeech': 'Esta vez no se detectó ninguna voz',
