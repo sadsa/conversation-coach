@@ -20,6 +20,12 @@ export interface ConnectOptions {
   /** Override the prebuilt voice name (defaults to NEXT_PUBLIC_GOOGLE_VOICE
    *  or DEFAULT_VOICE). Used by the call-mode persona to match voice to vibe. */
   voiceName?: string
+  /** Override the Gemini Live model. Defaults to {@link DEFAULT_MODEL}.
+   *  Use {@link FLASH_LIVE_MODEL} for snappier turn-taking in casual chat
+   *  (synthesised voice, less emotional nuance, lower latency). Use
+   *  {@link NATIVE_AUDIO_MODEL} for the call-mode persona (richer emotional
+   *  delivery, longer end-of-turn pauses). */
+  model?: string
   /** When set, the agent speaks FIRST with its persona opener. Implementation:
    *  after `setupComplete`, we send the literal trigger text "__START_CALL__"
    *  via `clientContent`. The persona system prompt instructs the model to
@@ -36,6 +42,21 @@ export interface ConnectOptions {
  *  Kept here so the persona system prompt builder can reference the same
  *  constant. */
 export const CALL_OPENING_TRIGGER = '__START_CALL__'
+
+/** Native-audio model. Adapts emotional tone automatically and produces
+ *  the most human-like delivery — at the cost of longer end-of-turn pauses
+ *  (the model takes a beat to "feel" the response). Best for the call-mode
+ *  persona where intonation matters more than snappy back-and-forth. */
+export const NATIVE_AUDIO_MODEL = 'models/gemini-2.5-flash-native-audio-latest'
+
+/** Synthesised-voice live model. Less emotional nuance, but noticeably
+ *  faster turn-taking — conversation flows the way casual chat should.
+ *  Default for chat mode. */
+export const FLASH_LIVE_MODEL = 'models/gemini-3.1-flash-live-preview'
+
+/** Backwards-compatible default for callers that don't pass a model. Matches
+ *  the original behaviour before mode-aware selection landed (native-audio). */
+export const DEFAULT_MODEL = NATIVE_AUDIO_MODEL
 
 /** Compute normalised RMS (0..1) over a PCM16 sample buffer. */
 function pcm16Rms(samples: Int16Array): number {
@@ -287,18 +308,19 @@ export async function connect(
     callbacks.onStateChange('connecting')
     const setupMsg: Record<string, unknown> = {
       setup: {
-        // Native-audio model — recommended for emotional tone + multilingual
-        // switching per Google's docs. The native-audio family already adapts
-        // its delivery to the conversational vibe, so we don't need a separate
-        // affective-dialog flag (which only exists on Vertex anyway, not on
-        // this AI Studio v1alpha endpoint).
+        // Mode-aware model selection (see ConnectOptions.model docs):
+        //   - NATIVE_AUDIO_MODEL → call-mode persona (emotional intonation,
+        //     longer end-of-turn pauses)
+        //   - FLASH_LIVE_MODEL   → casual chat (snappier turn-taking,
+        //     synthesised voice)
+        // Callers pick at connect time; default keeps the previous behaviour.
         //
         // CAREFUL: the AI Studio model name is NOT the same as Vertex's. Vertex
-        // calls it `gemini-live-2.5-flash-native-audio`; AI Studio v1alpha
-        // exposes `gemini-2.5-flash-native-audio-{latest,preview-...}`. Using
-        // the wrong name causes the WebSocket to silently close before
+        // calls native-audio `gemini-live-2.5-flash-native-audio`; AI Studio
+        // v1alpha exposes `gemini-2.5-flash-native-audio-{latest,preview-...}`.
+        // Using the wrong name causes the WebSocket to silently close before
         // setupComplete — looks like a hang.
-        model: 'models/gemini-2.5-flash-native-audio-latest',
+        model: options.model ?? DEFAULT_MODEL,
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {

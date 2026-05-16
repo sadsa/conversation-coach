@@ -35,7 +35,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
-import { connect, buildPracticeSystemPrompt } from '@/lib/voice-agent'
+import {
+  connect,
+  buildPracticeSystemPrompt,
+  FLASH_LIVE_MODEL,
+  NATIVE_AUDIO_MODEL,
+} from '@/lib/voice-agent'
 import { buildPersonaSystemPrompt } from '@/lib/persona'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
@@ -460,6 +465,9 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
         {
           transcription: true,
           systemPrompt,
+          // Mode-aware model — must match the model used at start() so the
+          // user doesn't suddenly hear a different voice timbre on resume.
+          model: activePersona ? NATIVE_AUDIO_MODEL : FLASH_LIVE_MODEL,
           voiceName: activePersona?.voiceName,
         },
       )
@@ -572,11 +580,15 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
       {
         transcription: true,
         systemPrompt,
+        // Mode-aware model. Call mode wants the native-audio family because
+        // emotional intonation IS the feature — the longer end-of-turn pauses
+        // are an acceptable trade. Chat mode wants the flash-live model so the
+        // casual back-and-forth doesn't feel paused. We key off `activePersona`
+        // rather than reading `mode` from closure so reroll → reconnect with a
+        // fresh persona always gets the call-tuned model.
+        model: activePersona ? NATIVE_AUDIO_MODEL : FLASH_LIVE_MODEL,
         // Persona-only: matched voice + agent-speaks-first opener trigger.
         // Chat mode gets undefined for both → existing behaviour preserved.
-        // (The native-audio model already adapts emotional tone automatically,
-        // so we don't need a separate affective-dialog flag — and it isn't
-        // supported on the AI Studio v1alpha endpoint anyway.)
         voiceName: activePersona?.voiceName,
         openingLine: activePersona?.opener,
       },
