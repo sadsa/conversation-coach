@@ -61,6 +61,31 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lang.es-AR': 'Spanish',
     'lang.en-NZ': 'English',
     'practice.start': 'Start chatting',
+
+    // Practice — mode selection (idle screen)
+    'practice.modeIntro': "Pick how you'd like to start.",
+    'practice.modeCallTitle': 'Pick up a call',
+    'practice.modeCallBlurb':
+      'Someone new is on the line. They introduce themselves and the conversation goes wherever it goes.',
+    'practice.modeChatTitle': 'Casual chat',
+    'practice.modeChatBlurb':
+      "The coach starts an easy back-and-forth. Talk about whatever's on your mind.",
+    'practice.modeCallCta': 'Pick up',
+    'practice.modeChatCta': 'Start chatting',
+
+    // Practice — ringing screen (call mode only)
+    'practice.ringingEyebrow': 'Incoming call',
+    'practice.ringingText': "Someone's calling",
+    'practice.ringingSub': 'Connecting you now…',
+
+    // Practice — reroll ("Try another line")
+    'practice.rerollLabel': 'Try another line',
+    'practice.rerollAria': 'Hang up and try another caller',
+    'practice.rerollsLeft': '{n} left',
+    'practice.rerollUsedToast': 'New caller on the line',
+    'practice.rerollExhaustedToast': "That's your last line for this session",
+    'practice.rerollErrorToast': "Couldn't reach anyone else — try again",
+
     'practice.connecting': 'Connecting to the coach…',
     'practice.endingState': 'Hanging up…',
     'practice.statusMuted': 'Muted',
@@ -515,6 +540,31 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lang.es-AR': 'español',
     'lang.en-NZ': 'inglés',
     'practice.start': 'Empezar a charlar',
+
+    // Practice — mode selection (idle screen)
+    'practice.modeIntro': 'Elegí cómo querés empezar.',
+    'practice.modeCallTitle': 'Atender una llamada',
+    'practice.modeCallBlurb':
+      'Alguien nuevo te llama. Se presenta y la charla va para donde vaya.',
+    'practice.modeChatTitle': 'Charla relajada',
+    'practice.modeChatBlurb':
+      'El coach arranca una charla tranquila. Hablá de lo que se te ocurra.',
+    'practice.modeCallCta': 'Atender',
+    'practice.modeChatCta': 'Empezar a charlar',
+
+    // Practice — ringing screen (call mode only)
+    'practice.ringingEyebrow': 'Llamada entrante',
+    'practice.ringingText': 'Te están llamando',
+    'practice.ringingSub': 'Conectando…',
+
+    // Practice — reroll ("Try another line")
+    'practice.rerollLabel': 'Probar otra línea',
+    'practice.rerollAria': 'Colgar y probar con otra persona',
+    'practice.rerollsLeft': '{n} restantes',
+    'practice.rerollUsedToast': 'Nueva persona en la línea',
+    'practice.rerollExhaustedToast': 'Ya usaste todas las líneas de esta sesión',
+    'practice.rerollErrorToast': 'No pudimos conseguir otra persona — probá de nuevo',
+
     'practice.connecting': 'Conectando con el coach…',
     'practice.endingState': 'Colgando…',
     'practice.statusMuted': 'Silenciado',

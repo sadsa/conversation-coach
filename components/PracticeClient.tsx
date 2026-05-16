@@ -36,6 +36,7 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
 import { connect, buildPracticeSystemPrompt } from '@/lib/voice-agent'
+import { buildPersonaSystemPrompt } from '@/lib/persona'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
@@ -43,12 +44,30 @@ import { AudioReactiveDots } from '@/components/AudioReactiveDots'
 import { ProcessingGraphic } from '@/components/ProcessingGraphic'
 import type { TargetLanguage, TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
+import type { Persona } from '@/lib/persona'
 import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 
-type PracticeState = 'idle' | 'connecting' | 'active' | 'warning' | 'ending' | 'review' | 'analysing' | 'error'
+// `'ringing'` is the brief beat between user tapping "Pick up a call" and
+// Gemini's `setupComplete` firing — we fetch the persona, animate the phone,
+// then transition straight into `'active'`. Casual chat mode skips ringing
+// and goes idle → connecting → active.
+type PracticeState =
+  | 'idle' | 'connecting' | 'ringing'
+  | 'active' | 'warning' | 'ending'
+  | 'review' | 'analysing' | 'error'
 
+/** Idle-screen choice. Persisted to localStorage so returning users land
+ *  on the mode they last picked. */
+type PracticeMode = 'chat' | 'call'
+
+const MODE_STORAGE_KEY = 'cc:practice-mode'
 const SHORTCUT_HINT_KEY = 'cc:practice-shortcut-hint-seen'
 const SHORTCUT_HINT_LIMIT = 3
+
+/** Max rerolls per call session. Stops mash-the-reroll loops and gives
+ *  callers gravity ("I should commit to this person"). Reroll = full
+ *  reset of timer + transcript — agreed UX behaviour. */
+const REROLL_MAX = 3
 
 interface Props {
   targetLanguage: TargetLanguage
@@ -78,6 +97,22 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
   const [toast, setToast] = useState<string | null>(null)
   const [discardToast, setDiscardToast] = useState<{ key: number } | null>(null)
   const [showShortcutHint, setShowShortcutHint] = useState(false)
+
+  // Idle-screen mode picker — defaults to 'call' (the new spontaneous mode is
+  // the headline experience). Hydrated from localStorage in an effect below
+  // so SSR + first paint don't disagree.
+  const [mode, setMode] = useState<PracticeMode>('call')
+  // The active call session's persona — set when call-mode `start()` succeeds,
+  // cleared on session end. Currently used only for system-prompt context and
+  // potential logging; future: caller-ID UI on ringing screen.
+  const [persona, setPersona] = useState<Persona | null>(null)
+  // Rerolls remaining for this call session. Resets to REROLL_MAX whenever
+  // a fresh call begins (NOT preserved across review → resume). At zero, the
+  // "Try another line" pill hides.
+  const [rerollsLeft, setRerollsLeft] = useState(REROLL_MAX)
+  // Guard against double-tapping reroll while the persona fetch + reconnect
+  // is in flight. Prevents spawning two parallel WebSockets.
+  const [isRerolling, setIsRerolling] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
   const turnsRef = useRef<TranscriptTurn[]>([])
@@ -125,6 +160,25 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
     }
   }, [])
 
+  // Hydrate the mode preference from localStorage post-mount. Default is
+  // 'call' so first-time users see the new headline mode; once they pick
+  // one explicitly it sticks across visits.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(MODE_STORAGE_KEY)
+      if (saved === 'chat' || saved === 'call') setMode(saved)
+    } catch {
+      /* localStorage blocked — fine, just use default */
+    }
+  }, [])
+
+  // Persist mode changes. Guards against the initial hydration setting back
+  // the same value (cheap write, but no point).
+  const persistMode = useCallback((next: PracticeMode) => {
+    setMode(next)
+    try { window.localStorage.setItem(MODE_STORAGE_KEY, next) } catch { /* ignore */ }
+  }, [])
+
   // Lock body scroll while a live session is running. Body uses
   // min-h-[100dvh] which lets it grow with content — without this lock
   // the flex chain never gets a definite height and the chat can push the
@@ -134,7 +188,8 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
       practiceState === 'active' ||
       practiceState === 'warning' ||
       practiceState === 'ending' ||
-      practiceState === 'review'
+      practiceState === 'review' ||
+      practiceState === 'ringing'
     if (isLive) {
       document.body.style.overflow = 'hidden'
     } else {
@@ -342,14 +397,23 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
 
   // Reconnects from the review state without losing any turns or elapsed time.
   // Restores turnsRef from the frozen snapshot so onTranscript appends correctly.
+  // In call mode, preserves the persona's voice + character — without this,
+  // resuming a call would drop the persona and the agent would morph into a
+  // generic conversation partner mid-flow. NO openingLine is passed on
+  // resume; the agent picks up where the conversation left off rather than
+  // re-speaking its introduction.
   const resumeSession = useCallback(async () => {
     if (practiceState !== 'review') return
     const restoredTurns = [...frozenTurnsRef.current]
     const restoredElapsed = elapsed
+    const activePersona = mode === 'call' ? persona : null
     turnsRef.current = restoredTurns
     frozenTurnsRef.current = []
     setPracticeState('connecting')
     setMuted(false)
+    const systemPrompt = activePersona
+      ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
+      : buildPracticeSystemPrompt(targetLanguage)
     try {
       const agent = await connect(
         targetLanguage,
@@ -381,7 +445,11 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             setLiveTurns(prev => [...prev, turn])
           },
         },
-        { transcription: true, systemPrompt: buildPracticeSystemPrompt(targetLanguage) },
+        {
+          transcription: true,
+          systemPrompt,
+          voiceName: activePersona?.voiceName,
+        },
       )
       agentRef.current = agent
     } catch (err) {
@@ -392,7 +460,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
       frozenTurnsRef.current = restoredTurns
       setPracticeState('review')
     }
-  }, [practiceState, elapsed, targetLanguage, t, startTimer])
+  }, [practiceState, elapsed, mode, persona, targetLanguage, t, startTimer])
 
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
@@ -430,7 +498,80 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [practiceState])
 
-  const start = useCallback(async () => {
+  /** Fetch a fresh persona from the server. Returns null on failure (caller
+   *  decides how to surface it). Cheap (~1.5s, ~$0.001) — single GET. */
+  const fetchPersona = useCallback(async (): Promise<Persona | null> => {
+    try {
+      const res = await fetch('/api/practice/persona')
+      if (!res.ok) return null
+      const { persona: p } = await res.json() as { persona: Persona }
+      return p
+    } catch {
+      return null
+    }
+  }, [])
+
+  /** Core connect helper shared by chat-mode start, call-mode start, and
+   *  reroll. Wires all the standard callbacks (RMS, transcript, state) and
+   *  hands the persona-specific bits through as connect() options. Throws
+   *  on failure; caller is responsible for the error UX (different per flow
+   *  — chat falls back to idle, reroll falls back to previous call). */
+  const connectAgent = useCallback(async (activePersona: Persona | null): Promise<VoiceAgent> => {
+    const systemPrompt = activePersona
+      ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
+      : buildPracticeSystemPrompt(targetLanguage)
+
+    return connect(
+      targetLanguage,
+      {
+        onStateChange: (s) => {
+          if (!isMountedRef.current) return
+          if (s === 'active') {
+            setPracticeState('active')
+            startTimer()
+          } else if (s === 'ended') {
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+            agentRef.current = null
+            // Defensive: if 'ended' arrives while still ringing/connecting (i.e.
+            // the session never reached active), fall back to idle so the UI
+            // doesn't sit on the connecting screen forever. Voice-agent now
+            // routes pre-setup closes through onError, but this catches any
+            // edge case onError doesn't cover.
+            setPracticeState(prev =>
+              prev === 'ringing' || prev === 'connecting' ? 'idle' : prev,
+            )
+          }
+        },
+        onError: (msg) => {
+          if (!isMountedRef.current) return
+          const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
+          setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+          setPracticeState('idle')
+        },
+        onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
+        onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
+        onTranscript: (role, text) => {
+          if (!isMountedRef.current) return
+          const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
+          turnsRef.current.push(turn)
+          setLiveTurns(prev => [...prev, turn])
+        },
+      },
+      {
+        transcription: true,
+        systemPrompt,
+        // Persona-only: matched voice + agent-speaks-first opener trigger.
+        // Chat mode gets undefined for both → existing behaviour preserved.
+        // (The native-audio model already adapts emotional tone automatically,
+        // so we don't need a separate affective-dialog flag — and it isn't
+        // supported on the AI Studio v1alpha endpoint anyway.)
+        voiceName: activePersona?.voiceName,
+        openingLine: activePersona?.opener,
+      },
+    )
+  }, [targetLanguage, t, startTimer])
+
+  const start = useCallback(async (overrideMode?: PracticeMode) => {
     if (practiceState !== 'idle') return
     // If a discard-undo window is open, clicking Start signals the user has
     // moved on — drop the pending timer + toast so they don't linger.
@@ -440,46 +581,36 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
       frozenTurnsRef.current = []
       setDiscardToast(null)
     }
-    setPracticeState('connecting')
+    const activeMode = overrideMode ?? mode
+    // Fresh session — reset reroll budget. Each call session gets 3 lines
+    // regardless of how many sessions the user has had today.
+    setRerollsLeft(REROLL_MAX)
+
+    // Reset state shared across both modes.
     setMuted(false)
     setElapsed(0)
     setLiveTurns([])
     turnsRef.current = []
+
+    // Call mode: ring first, fetch persona, then connect with persona prompt.
+    let resolvedPersona: Persona | null = null
+    if (activeMode === 'call') {
+      setPracticeState('ringing')
+      resolvedPersona = await fetchPersona()
+      if (!isMountedRef.current) return
+      if (!resolvedPersona) {
+        setToast(t('practice.errorConnect'))
+        setPracticeState('idle')
+        return
+      }
+      setPersona(resolvedPersona)
+    } else {
+      setPersona(null)
+      setPracticeState('connecting')
+    }
+
     try {
-      const agent = await connect(
-        targetLanguage,
-        {
-          onStateChange: (s) => {
-            if (!isMountedRef.current) return
-            if (s === 'active') {
-              setPracticeState('active')
-              startTimer()
-            } else if (s === 'ended') {
-              if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-              agentRef.current = null
-            }
-          },
-          onError: (msg) => {
-            if (!isMountedRef.current) return
-            const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
-            setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
-            setPracticeState('idle')
-          },
-          onUserAudio: (rms) => {
-            userRmsRef.current = Math.max(userRmsRef.current, rms)
-          },
-          onAgentAudio: (rms) => {
-            agentRmsRef.current = Math.max(agentRmsRef.current, rms)
-          },
-          onTranscript: (role, text) => {
-            if (!isMountedRef.current) return
-            const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
-            turnsRef.current.push(turn)
-            setLiveTurns(prev => [...prev, turn])
-          },
-        },
-        { transcription: true, systemPrompt: buildPracticeSystemPrompt(targetLanguage) },
-      )
+      const agent = await connectAgent(resolvedPersona)
       agentRef.current = agent
     } catch (err) {
       if (!isMountedRef.current) return
@@ -487,7 +618,65 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
       setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
       setPracticeState('idle')
     }
-  }, [practiceState, targetLanguage, t, startTimer])
+  }, [practiceState, mode, fetchPersona, connectAgent, t])
+
+  /** "Try another line" — call-mode only. Hangs up the current caller, fetches
+   *  a fresh persona, and starts a brand new call session (timer + transcript
+   *  reset). Costs one reroll from the budget; hides the pill at zero. */
+  const tryAnotherLine = useCallback(async () => {
+    if (isRerolling) return
+    if (mode !== 'call') return
+    if (rerollsLeft <= 0) {
+      setToast(t('practice.rerollExhaustedToast'))
+      return
+    }
+    // Only meaningful from an active/warning state — review/ending have their
+    // own affordances. Block silently if called from elsewhere.
+    if (practiceState !== 'active' && practiceState !== 'warning') return
+
+    setIsRerolling(true)
+
+    // Tear down the live session. flush() isn't useful — we're discarding the
+    // transcript anyway. Clear any ending-beat timer too just in case.
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
+    agentRef.current?.disconnect()
+    agentRef.current = null
+
+    // Full reset — fresh 5-min budget, blank transcript. Matches the
+    // metaphor: hang up → another call comes in, start over.
+    setMuted(false)
+    setElapsed(0)
+    setLiveTurns([])
+    turnsRef.current = []
+    setPracticeState('ringing')
+
+    const newPersona = await fetchPersona()
+    if (!isMountedRef.current) return
+    if (!newPersona) {
+      setIsRerolling(false)
+      setToast(t('practice.rerollErrorToast'))
+      // Falling back to idle (rather than restoring the old persona) is the
+      // simplest recovery — the previous session is already disconnected.
+      setPracticeState('idle')
+      return
+    }
+    setPersona(newPersona)
+
+    try {
+      const agent = await connectAgent(newPersona)
+      agentRef.current = agent
+      setRerollsLeft(prev => Math.max(0, prev - 1))
+      setToast(t('practice.rerollUsedToast'))
+    } catch (err) {
+      if (!isMountedRef.current) return
+      const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
+      setToast(isPermission ? t('practice.errorMic') : t('practice.rerollErrorToast'))
+      setPracticeState('idle')
+    } finally {
+      if (isMountedRef.current) setIsRerolling(false)
+    }
+  }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, connectAgent, t])
 
   // Retry from the error state. If we collected user speech, re-submit;
   // otherwise the connection itself failed before any turns landed —
@@ -502,35 +691,117 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
   }, [submitTurns, start])
 
   // Auto-start when arriving from the onboarding hub (`?autostart=true`).
-  // The ref guards against double-firing on React strict-mode double-invoke.
+  // Always opens in chat mode — the onboarding tutorial showed users what
+  // "practice" looks like as a casual conversation. Surprising them with a
+  // ringing persona call at the moment they tap "Start a session" would
+  // contradict the lesson they just saw. Users discover call mode by
+  // visiting /practice directly.
   useEffect(() => {
     if (!autoStart || hasAutoStarted.current) return
     hasAutoStarted.current = true
-    void start()
+    void start('chat')
   }, [autoStart, start])
 
   // ─── Idle ──────────────────────────────────────────────────────────────
+  // Layout B from the practice-call-mode mockup: heading + two mode cards
+  // stacked. Tapping a card persists the mode preference AND starts the
+  // session in that mode — fewer clicks than "pick mode, then press start".
   if (practiceState === 'idle') {
+    const handleModeStart = (next: PracticeMode) => {
+      persistMode(next)
+      void start(next)
+    }
     return (
       <div
         className="
           mx-auto w-full max-w-md px-6
-          flex flex-col items-center justify-center flex-1
-          gap-8 text-center
+          flex flex-col flex-1
+          gap-6
+          pt-8 pb-6
         "
       >
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
             {t('practice.heading')}
           </h1>
-          <p className="text-base md:text-lg text-text-secondary leading-relaxed">
-            {t('practice.description', { language: t(`lang.${ctxTargetLanguage}`) })}
+          <p className="text-sm md:text-base text-text-secondary leading-relaxed">
+            {t('practice.modeIntro')}
           </p>
         </div>
 
-        <Button onClick={start} size="md">
-          {t('practice.start')}
-        </Button>
+        {/* Call card — green-tinted call palette so it reads as the moment of
+            arrival. Whole card is the action — tap anywhere starts the call. */}
+        <button
+          type="button"
+          onClick={() => handleModeStart('call')}
+          className="
+            group text-left rounded-2xl p-5
+            bg-emerald-500/10 dark:bg-emerald-400/10
+            ring-1 ring-emerald-500/30 dark:ring-emerald-400/30
+            hover:bg-emerald-500/15 dark:hover:bg-emerald-400/15
+            active:opacity-80
+            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500
+            transition-colors
+          "
+          aria-label={t('practice.modeCallTitle')}
+        >
+          <div className="flex items-center gap-3">
+            <span className="
+              flex items-center justify-center
+              w-10 h-10 rounded-full
+              bg-emerald-500 dark:bg-emerald-400
+              text-white dark:text-emerald-950
+            ">
+              <Icon name="phone" className="h-5 w-5" />
+            </span>
+            <span className="font-semibold text-foreground text-lg">
+              {t('practice.modeCallTitle')}
+            </span>
+            <span className="ml-auto text-text-tertiary group-hover:text-text-secondary transition-colors" aria-hidden="true">→</span>
+          </div>
+          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+            {t('practice.modeCallBlurb')}
+          </p>
+        </button>
+
+        {/* Chat card — neutral surface, quieter visual weight. Same tap-to-start
+            interaction, no separate Start button. */}
+        <button
+          type="button"
+          onClick={() => handleModeStart('chat')}
+          className="
+            group text-left rounded-2xl p-5
+            bg-surface
+            ring-1 ring-border-subtle
+            hover:bg-surface-elevated
+            active:opacity-80
+            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
+            transition-colors
+          "
+          aria-label={t('practice.modeChatTitle')}
+        >
+          <div className="flex items-center gap-3">
+            <span className="
+              flex items-center justify-center
+              w-10 h-10 rounded-full
+              bg-surface-elevated text-text-secondary
+            ">
+              <Icon name="message" className="h-5 w-5" />
+            </span>
+            <span className="font-semibold text-foreground text-lg">
+              {t('practice.modeChatTitle')}
+            </span>
+            <span className="ml-auto text-text-tertiary group-hover:text-text-secondary transition-colors" aria-hidden="true">→</span>
+          </div>
+          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+            {t('practice.modeChatBlurb')}
+          </p>
+        </button>
+
+        {/* Language hint — tiny, no-pressure */}
+        <p className="text-xs text-text-tertiary text-center mt-auto">
+          {t('practice.description', { language: t(`lang.${ctxTargetLanguage}`) })}
+        </p>
 
         {toast && <Toast message={toast} />}
         {discardToast && (
@@ -540,6 +811,50 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             toastKey={discardToast.key}
           />
         )}
+      </div>
+    )
+  }
+
+  // ─── Ringing (call mode only) ──────────────────────────────────────────
+  // Brief intermediate beat while the persona is being fetched + Gemini
+  // session is being set up. Reinforces the "phone call" metaphor with a
+  // pulsing ring + shaking phone icon. Lasts ~1.5–2s in practice.
+  if (practiceState === 'ringing') {
+    return (
+      <div
+        className="
+          mx-auto w-full max-w-md px-6
+          flex flex-col items-center justify-center flex-1
+          gap-6 text-center
+        "
+        role="status"
+        aria-live="polite"
+      >
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold text-text-tertiary">
+          {t('practice.ringingEyebrow')}
+        </p>
+        <div
+          className="
+            w-28 h-28 rounded-full
+            bg-emerald-500/10 dark:bg-emerald-400/10
+            flex items-center justify-center
+            relative
+          "
+          style={{ animation: reducedMotion ? undefined : 'cc-call-pulse 1.8s ease-out infinite' }}
+        >
+          {/* Wrap the icon — Icon component doesn't accept inline style, so
+              the shake animation needs to live on a wrapping span. */}
+          <span style={{ animation: reducedMotion ? undefined : 'cc-call-shake 1.4s ease-in-out infinite', display: 'inline-flex' }}>
+            <Icon
+              name="phone"
+              className="h-12 w-12 text-emerald-600 dark:text-emerald-400"
+            />
+          </span>
+        </div>
+        <p className="text-xl font-medium text-foreground">{t('practice.ringingText')}</p>
+        <p className="text-sm text-text-secondary max-w-[24ch] leading-relaxed">
+          {t('practice.ringingSub')}
+        </p>
       </div>
     )
   }
@@ -841,6 +1156,45 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
                 </span>
               </button>
             </div>
+
+            {/* Reroll pill — call mode only, hides at zero rerolls. Lives
+                below the mute/end buttons so it's discoverable but not
+                competing with the primary controls. Greyed out + disabled
+                while a reroll is in flight (prevents double-tap spawning two
+                parallel WebSockets). */}
+            {mode === 'call' && rerollsLeft > 0 && !isEnding && (
+              <button
+                type="button"
+                onClick={tryAnotherLine}
+                disabled={isRerolling}
+                aria-label={t('practice.rerollAria')}
+                className="
+                  mt-1 inline-flex items-center gap-1.5
+                  px-3 py-1.5 rounded-full
+                  text-xs font-medium
+                  bg-surface-elevated text-text-secondary
+                  ring-1 ring-border-subtle
+                  hover:bg-border-subtle hover:text-text-primary
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
+                  transition-colors
+                "
+              >
+                <Icon name="refresh" className="h-3.5 w-3.5" />
+                <span>{t('practice.rerollLabel')}</span>
+                {/* Compact reroll counter — three dots, ones used dim. Reads
+                    "lines remaining" at a glance without needing a numeral. */}
+                <span className="flex items-center gap-0.5 ml-1" aria-hidden="true">
+                  {Array.from({ length: REROLL_MAX }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`block w-1 h-1 rounded-full ${i < rerollsLeft ? 'bg-text-secondary' : 'bg-border-subtle'}`}
+                    />
+                  ))}
+                </span>
+                <span className="sr-only">{t('practice.rerollsLeft', { n: rerollsLeft })}</span>
+              </button>
+            )}
 
             {showShortcutHint && (
               <p className="text-xs text-text-tertiary select-none" aria-hidden="true">

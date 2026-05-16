@@ -17,7 +17,25 @@ export interface ConnectOptions {
   transcription?: boolean
   /** Override the system prompt sent to Gemini on connect. */
   systemPrompt?: string
+  /** Override the prebuilt voice name (defaults to NEXT_PUBLIC_GOOGLE_VOICE
+   *  or DEFAULT_VOICE). Used by the call-mode persona to match voice to vibe. */
+  voiceName?: string
+  /** When set, the agent speaks FIRST with its persona opener. Implementation:
+   *  after `setupComplete`, we send the literal trigger text "__START_CALL__"
+   *  via `clientContent`. The persona system prompt instructs the model to
+   *  reply with the opener on receiving this trigger. clientContent text
+   *  input does NOT pass through STT, so the trigger never appears as a
+   *  user transcript bubble.
+   *
+   *  Pass the opener text here so the agent waits to be told to speak. If
+   *  omitted, the agent waits for the user to speak first (existing behaviour). */
+  openingLine?: string
 }
+
+/** Trigger token sent via clientContent to cue the agent's first turn.
+ *  Kept here so the persona system prompt builder can reference the same
+ *  constant. */
+export const CALL_OPENING_TRIGGER = '__START_CALL__'
 
 /** Compute normalised RMS (0..1) over a PCM16 sample buffer. */
 function pcm16Rms(samples: Int16Array): number {
@@ -187,8 +205,9 @@ export async function connect(
   ws.binaryType = 'arraybuffer'
 
   let ready = false
+  let setupTimeout: ReturnType<typeof setTimeout> | null = null
   let playbackTime = safeCtx.currentTime
-  const voiceName = process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
+  const voiceName = options.voiceName ?? process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
 
   // Track every scheduled agent audio source so we can hard-stop playback
   // when the user changes focus mid-response (otherwise the new turn's audio
@@ -268,7 +287,18 @@ export async function connect(
     callbacks.onStateChange('connecting')
     const setupMsg: Record<string, unknown> = {
       setup: {
-        model: 'models/gemini-3.1-flash-live-preview',
+        // Native-audio model — recommended for emotional tone + multilingual
+        // switching per Google's docs. The native-audio family already adapts
+        // its delivery to the conversational vibe, so we don't need a separate
+        // affective-dialog flag (which only exists on Vertex anyway, not on
+        // this AI Studio v1alpha endpoint).
+        //
+        // CAREFUL: the AI Studio model name is NOT the same as Vertex's. Vertex
+        // calls it `gemini-live-2.5-flash-native-audio`; AI Studio v1alpha
+        // exposes `gemini-2.5-flash-native-audio-{latest,preview-...}`. Using
+        // the wrong name causes the WebSocket to silently close before
+        // setupComplete — looks like a hang.
+        model: 'models/gemini-2.5-flash-native-audio-latest',
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
@@ -287,6 +317,16 @@ export async function connect(
       },
     }
     ws.send(JSON.stringify(setupMsg))
+    // Fail fast if the server accepts the WebSocket but never responds with
+    // setupComplete. Without this, an unrecognised setup field (or any
+    // server-side hiccup) leaves the user staring at the connecting/ringing
+    // screen indefinitely. 15s is generous for a healthy connection.
+    setupTimeout = setTimeout(() => {
+      if (!ready) {
+        callbacks.onError('Setup timed out')
+        try { ws.close() } catch { /* already closed */ }
+      }
+    }, 15000)
   })
 
   ws.addEventListener('message', (event: MessageEvent) => {
@@ -308,6 +348,7 @@ export async function connect(
 
     if ('setupComplete' in msg) {
       ready = true
+      if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
       // Audible "ready to listen" cue. Played BEFORE the state change so the
       // tone reaches the speakers at roughly the same instant the UI flips
       // active. Wrapped in try/catch so an audio glitch (e.g. context
@@ -316,6 +357,18 @@ export async function connect(
         playStartTone(safeCtx, agentSink)
       } catch {
         /* non-fatal — the session is up, the chime is a nice-to-have */
+      }
+      // Persona/call mode: send the opening trigger so the agent speaks FIRST.
+      // clientContent text input bypasses STT (no inputTranscription) so the
+      // trigger never appears as a user bubble in the transcript. The persona
+      // system prompt instructs the model to reply with the opener verbatim.
+      if (options.openingLine) {
+        ws.send(JSON.stringify({
+          clientContent: {
+            turns: [{ role: 'user', parts: [{ text: CALL_OPENING_TRIGGER }] }],
+            turnComplete: true,
+          },
+        }))
       }
       callbacks.onStateChange('active')
       return
@@ -394,9 +447,18 @@ export async function connect(
     }
   })
 
-  ws.addEventListener('close', () => {
+  ws.addEventListener('close', (ev: CloseEvent) => {
+    const wasReady = ready
     ready = false
-    callbacks.onStateChange('ended')
+    if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
+    // If we never got setupComplete, the session never went live — surface
+    // this as an error so the UI can bail out of the connecting/ringing
+    // screen. Otherwise emit 'ended' (the normal disconnect path).
+    if (!wasReady) {
+      callbacks.onError(`Connection closed before ready (code ${ev.code})`)
+    } else {
+      callbacks.onStateChange('ended')
+    }
     safeCtx.close()
     safeStream.getTracks().forEach(t => t.stop())
     if (bridgeAudioEl) {
