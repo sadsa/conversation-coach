@@ -1,12 +1,18 @@
 // components/PracticeClient.tsx
 //
-// Client island for /practice — the deliberate 5-minute Spanish conversation
-// surface. Full state machine:
+// The 5-minute Spanish conversation session UI. Rendered in-place by the
+// Practise home (`<PractiseClient>`) when the user taps Call or Chat — there
+// is no longer a standalone `/practice` route. State machine:
 //
-//   idle → connecting → active/warning/ending → review → analysing → ready
-//                                                      ↗ connecting (resume)
-//                                                      ↘ idle (discard)
-//                                                               ↘ error
+//   connecting → active/warning/ending → review → analysing → ready
+//                                              ↗ connecting (resume)
+//                                              ↘ home via onExit() (discard / no speech)
+//                                                       ↘ error
+//
+// Mode is passed in as a prop (caller decides chat vs. call). Whenever the
+// session would otherwise return to a picker / idle screen — discard, end
+// with no turns, error retry with nothing recorded, fatal reroll failure —
+// the component calls `onExit()` and the parent re-renders the home doors.
 //
 // Audio-reactive feedback uses a RAF tick + RMS decay loop feeding
 // AudioReactiveDots.
@@ -21,7 +27,7 @@
 // ceremonial wrap-up is auto-end-only.
 //
 // Review state — both manual and auto-end land here. The user confirms
-// whether to save (→ analysing) or discard (→ idle after 5s undo window).
+// whether to save (→ analysing) or discard (→ onExit → home).
 // beforeunload guard covers review + analysing so navigating away warns.
 //
 // Keyboard shortcuts:
@@ -32,7 +38,7 @@
 // (if held) releases.
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
@@ -51,20 +57,19 @@ import type { VoiceAgent } from '@/lib/voice-agent'
 import type { Persona } from '@/lib/persona'
 import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 
-// `'ringing'` is the brief beat between user tapping "Pick up a call" and
+/** Mode selected on the home doors — call (caller persona) or chat
+ *  (coach-led back-and-forth). Reroll only applies to call mode. */
+export type PracticeMode = 'chat' | 'call'
+
+// `'ringing'` is the brief beat between mounting in call mode and
 // Gemini's `setupComplete` firing — we fetch the persona, animate the phone,
-// then transition straight into `'active'`. Casual chat mode skips ringing
-// and goes idle → connecting → active.
+// then transition straight into `'active'`. Chat mode skips ringing and
+// goes connecting → active.
 type PracticeState =
-  | 'idle' | 'connecting' | 'ringing'
+  | 'connecting' | 'ringing'
   | 'active' | 'warning' | 'ending'
   | 'review' | 'analysing' | 'error'
 
-/** Idle-screen choice. Persisted to localStorage so returning users land
- *  on the mode they last picked. */
-type PracticeMode = 'chat' | 'call'
-
-const MODE_STORAGE_KEY = 'cc:practice-mode'
 const SHORTCUT_HINT_KEY = 'cc:practice-shortcut-hint-seen'
 const SHORTCUT_HINT_LIMIT = 3
 
@@ -75,6 +80,13 @@ const REROLL_MAX = 3
 
 interface Props {
   targetLanguage: TargetLanguage
+  /** Mode the parent chose on the home doors. Drives initial connect path:
+   *  'call' goes through ringing + persona fetch; 'chat' connects directly. */
+  mode: PracticeMode
+  /** Called whenever the session ends without saving — discard, end with no
+   *  speech, fatal connection error before any turns. Parent uses this to
+   *  return to the doors view. */
+  onExit: () => void
 }
 
 const TOTAL_SECONDS = 300        // 5 min hard cap
@@ -85,25 +97,24 @@ const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
 // LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
-export function PracticeClient({ targetLanguage }: Props) {
+export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const reducedMotion = useReducedMotion()
-  const [practiceState, setPracticeState] = useState<PracticeState>('idle')
+  // First state shown is mode-dependent — 'ringing' for call (persona fetch
+  // overlay), 'connecting' for chat (compact spinner). Both transition to
+  // 'active' once the WebSocket reports setupComplete.
+  const [practiceState, setPracticeState] = useState<PracticeState>(
+    mode === 'call' ? 'ringing' : 'connecting',
+  )
   const [muted, setMuted] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [voiceStatus, setVoiceStatus] = useState<'listening' | 'speaking' | 'muted'>('listening')
   const [liveTurns, setLiveTurns] = useState<TranscriptTurn[]>([])
   const [toast, setToast] = useState<string | null>(null)
-  const [discardToast, setDiscardToast] = useState<{ key: number } | null>(null)
   const [showShortcutHint, setShowShortcutHint] = useState(false)
 
-  // Idle-screen mode picker — defaults to 'call' (the new spontaneous mode is
-  // the headline experience). Hydrated from localStorage in an effect below
-  // so SSR + first paint don't disagree.
-  const [mode, setMode] = useState<PracticeMode>('call')
-  // The active call session's persona — set when call-mode `start()` succeeds,
+  // The active call session's persona — set when call-mode connect succeeds,
   // cleared on session end. Currently used only for system-prompt context and
   // potential logging; future: caller-ID UI on ringing screen.
   const [persona, setPersona] = useState<Persona | null>(null)
@@ -119,9 +130,12 @@ export function PracticeClient({ targetLanguage }: Props) {
   const turnsRef = useRef<TranscriptTurn[]>([])
   const frozenTurnsRef = useRef<TranscriptTurn[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const discardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const endingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMountedRef = useRef(true)
+  // Stable ref so effects below can fire onExit without re-binding when the
+  // parent passes a fresh function on every render.
+  const onExitRef = useRef(onExit)
+  useEffect(() => { onExitRef.current = onExit }, [onExit])
   // Break circular dep: startTimer → endSession → startTimer
   const endSessionRef = useRef<() => void>(() => {})
 
@@ -142,7 +156,6 @@ export function PracticeClient({ targetLanguage }: Props) {
       agentRef.current?.disconnect()
       if (timerRef.current) clearInterval(timerRef.current)
       if (endingTimeoutRef.current) clearTimeout(endingTimeoutRef.current)
-      if (discardTimerRef.current) clearTimeout(discardTimerRef.current)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       wakeLockRef.current?.release()
       wakeLockRef.current = null
@@ -160,34 +173,12 @@ export function PracticeClient({ targetLanguage }: Props) {
     }
   }, [])
 
-  // Hydrate the mode preference from localStorage post-mount. Default is
-  // 'call' so first-time users see the new headline mode; once they pick
-  // one explicitly it sticks across visits.
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(MODE_STORAGE_KEY)
-      if (saved === 'chat' || saved === 'call') setMode(saved)
-    } catch {
-      /* localStorage blocked — fine, just use default */
-    }
-  }, [])
-
-  // Persist mode changes. Guards against the initial hydration setting back
-  // the same value (cheap write, but no point).
-  const persistMode = useCallback((next: PracticeMode) => {
-    setMode(next)
-    try { window.localStorage.setItem(MODE_STORAGE_KEY, next) } catch { /* ignore */ }
-  }, [])
-
-  // Guard for the auto-start effect below — declared up here so the ref
-  // identity is stable across renders. Set when the URL `?mode=` param
-  // first kicks off a session so a refresh mid-session doesn't replay.
-  const autoStartedRef = useRef(false)
-
   // Lock body scroll while a live session is running. Body uses
   // min-h-[100dvh] which lets it grow with content — without this lock
   // the flex chain never gets a definite height and the chat can push the
   // controls off-screen. Mirrors the pattern used by modals/overlays.
+  // Connecting / analysing / error states render compact centered cards
+  // and keep the body scrollable.
   useEffect(() => {
     const isLive =
       practiceState === 'active' ||
@@ -215,8 +206,7 @@ export function PracticeClient({ targetLanguage }: Props) {
   // / WriteList, Practice's toasts are notifications without an action slot,
   // so they have no natural dismiss interaction — left alone they'd linger
   // across the whole next session (e.g. "Nueva persona en la línea" bleeding
-  // into the freshly-connected call). discardToast manages its own 5s timer
-  // because Undo is interactive; this only governs the plain `toast` state.
+  // into the freshly-connected call).
   useEffect(() => {
     if (!toast) return
     const timer = setTimeout(() => setToast(null), 3500)
@@ -357,7 +347,10 @@ export function PracticeClient({ targetLanguage }: Props) {
     const userTurns = turns.filter(turn => turn.role === 'user')
     if (userTurns.length === 0) {
       setToast(t('practice.errorNoSpeech'))
-      setPracticeState('idle')
+      // Nothing to analyse — bail back to the home doors so the user can
+      // start a fresh session rather than stranding them on a half-collapsed
+      // review screen.
+      onExitRef.current()
       return
     }
     setPracticeState('analysing')
@@ -381,12 +374,11 @@ export function PracticeClient({ targetLanguage }: Props) {
     agentRef.current?.flush()
     agentRef.current?.disconnect()
     agentRef.current = null
-    // Nothing was said — skip the save/discard prompt and return to idle.
+    // Nothing was said — skip the save/discard prompt and return to the
+    // home doors. The session was effectively a no-op; treating it like a
+    // dismiss is the gentlest exit.
     if (turnsRef.current.length === 0) {
-      turnsRef.current = []
-      setElapsed(0)
-      setLiveTurns([])
-      setPracticeState('idle')
+      onExitRef.current()
       return
     }
     frozenTurnsRef.current = [...turnsRef.current]
@@ -397,29 +389,14 @@ export function PracticeClient({ targetLanguage }: Props) {
     submitTurns(frozenTurnsRef.current)
   }, [submitTurns])
 
-  // Undo restores the review state with frozenTurnsRef intact — that's why
-  // we don't clear frozen turns until the 5s timer expires.
-  const undoDiscard = useCallback(() => {
-    if (discardTimerRef.current) { clearTimeout(discardTimerRef.current); discardTimerRef.current = null }
-    setDiscardToast(null)
-    setPracticeState('review')
-  }, [])
-
-  // Optimistic: drop the user back to idle immediately, surface the undo
-  // toast over the idle screen, and run a 5s timer to truly clear turns.
-  // If the user clicks Start during the window, start() cancels the timer.
+  // Discard exits straight back to the home doors. Previously this routed
+  // through a 5-second undo toast on a dedicated idle screen — that screen
+  // no longer exists (the Practice route was retired in favour of the home
+  // doors), so undo across a route boundary added more complexity than it
+  // bought. Discard is intentional; a mis-tap is recoverable by starting a
+  // fresh session from the doors.
   const discardSession = useCallback(() => {
-    if (discardTimerRef.current) clearTimeout(discardTimerRef.current)
-    setDiscardToast({ key: Date.now() })
-    setPracticeState('idle')
-    discardTimerRef.current = setTimeout(() => {
-      discardTimerRef.current = null
-      frozenTurnsRef.current = []
-      turnsRef.current = []
-      setElapsed(0)
-      setLiveTurns([])
-      setDiscardToast(null)
-    }, 5000)
+    onExitRef.current()
   }, [])
 
   useEffect(() => { endSessionRef.current = endSession }, [endSession])
@@ -567,20 +544,24 @@ export function PracticeClient({ targetLanguage }: Props) {
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
             agentRef.current = null
             // Defensive: if 'ended' arrives while still ringing/connecting (i.e.
-            // the session never reached active), fall back to idle so the UI
-            // doesn't sit on the connecting screen forever. Voice-agent now
-            // routes pre-setup closes through onError, but this catches any
-            // edge case onError doesn't cover.
-            setPracticeState(prev =>
-              prev === 'ringing' || prev === 'connecting' ? 'idle' : prev,
-            )
+            // the session never reached active), exit back to the home doors
+            // so the UI doesn't sit on the connecting screen forever. Voice-
+            // agent now routes pre-setup closes through onError, but this
+            // catches any edge case onError doesn't cover.
+            setPracticeState(prev => {
+              if (prev === 'ringing' || prev === 'connecting') {
+                onExitRef.current()
+                return prev
+              }
+              return prev
+            })
           }
         },
         onError: (msg) => {
           if (!isMountedRef.current) return
           const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
           setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
-          setPracticeState('idle')
+          onExitRef.current()
         },
         onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
         onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
@@ -608,78 +589,43 @@ export function PracticeClient({ targetLanguage }: Props) {
     )
   }, [targetLanguage, t, startTimer])
 
-  const start = useCallback(async (overrideMode?: PracticeMode) => {
-    if (practiceState !== 'idle') return
-    // If a discard-undo window is open, clicking Start signals the user has
-    // moved on — drop the pending timer + toast so they don't linger.
-    if (discardTimerRef.current) {
-      clearTimeout(discardTimerRef.current)
-      discardTimerRef.current = null
-      frozenTurnsRef.current = []
-      setDiscardToast(null)
-    }
-    const activeMode = overrideMode ?? mode
-    // Fresh session — reset reroll budget. Each call session gets 3 lines
-    // regardless of how many sessions the user has had today.
-    setRerollsLeft(REROLL_MAX)
-
-    // Reset state shared across both modes.
-    setMuted(false)
-    setElapsed(0)
-    setLiveTurns([])
-    turnsRef.current = []
-
-    // Call mode: ring first, fetch persona, then connect with persona prompt.
-    let resolvedPersona: Persona | null = null
-    if (activeMode === 'call') {
-      setPracticeState('ringing')
-      resolvedPersona = await fetchPersona()
-      if (!isMountedRef.current) return
-      if (!resolvedPersona) {
-        setToast(t('practice.errorConnect'))
-        setPracticeState('idle')
-        return
-      }
-      setPersona(resolvedPersona)
-    } else {
-      setPersona(null)
-      setPracticeState('connecting')
-    }
-
-    try {
-      const agent = await connectAgent(resolvedPersona)
-      agentRef.current = agent
-    } catch (err) {
-      if (!isMountedRef.current) return
-      const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
-      setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
-      setPracticeState('idle')
-    }
-  }, [practiceState, mode, fetchPersona, connectAgent, t])
-
-  // Auto-start when arriving from the Practise home with ?mode=call|chat.
-  // The home's mode cards push us here with that param so the user skips
-  // the idle picker entirely — same outcome, fewer taps. Runs exactly
-  // once per mount (autoStartedRef guard) so a refresh mid-session
-  // doesn't try to restart on top of live state, and we clear the param
-  // so the auto-start doesn't replay if the user lands back on /practice
-  // via browser back. If the param is missing or unrecognised, nothing
-  // happens and the idle screen renders as a fallback for direct visits.
+  // Connect on mount with the mode the parent picked on the home doors.
+  // Runs exactly once. Cleanup of the WebSocket / timers / wake lock lives
+  // in the top-level mount effect, so this effect only needs to kick off
+  // the connect — no return cleanup. Errors fall through to onExit (via
+  // connectAgent's onError + the catch below).
+  const hasStartedRef = useRef(false)
   useEffect(() => {
-    if (autoStartedRef.current) return
-    const requested = searchParams?.get('mode')
-    if (requested !== 'call' && requested !== 'chat') return
-    autoStartedRef.current = true
-    persistMode(requested)
-    // Strip ?mode= so a refresh doesn't re-fire and browser back from
-    // /sessions/[id] lands on a stable /practice URL. replace (not push)
-    // avoids stacking a no-mode entry into history.
-    router.replace('/practice', { scroll: false })
-    void start(requested)
-    // start, router, persistMode are stable; intentionally depend only on
-    // searchParams so the effect fires once after hydration.
+    if (hasStartedRef.current) return
+    hasStartedRef.current = true
+    void (async () => {
+      // Call mode: ring first, fetch persona, then connect with persona prompt.
+      let resolvedPersona: Persona | null = null
+      if (mode === 'call') {
+        resolvedPersona = await fetchPersona()
+        if (!isMountedRef.current) return
+        if (!resolvedPersona) {
+          setToast(t('practice.errorConnect'))
+          onExitRef.current()
+          return
+        }
+        setPersona(resolvedPersona)
+      }
+      try {
+        const agent = await connectAgent(resolvedPersona)
+        agentRef.current = agent
+      } catch (err) {
+        if (!isMountedRef.current) return
+        const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
+        setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+        onExitRef.current()
+      }
+    })()
+    // mode is captured at mount and intentionally never re-runs — a mode
+    // change would mean a fresh session, which is the parent's job to
+    // model by re-mounting this component.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [])
 
   /** "Try another line" — call-mode only. Hangs up the current caller, fetches
    *  a fresh persona, and starts a brand new call session (timer + transcript
@@ -724,9 +670,10 @@ export function PracticeClient({ targetLanguage }: Props) {
     if (!newPersona) {
       setIsRerolling(false)
       setToast(t('practice.rerollErrorToast'))
-      // Falling back to idle (rather than restoring the old persona) is the
-      // simplest recovery — the previous session is already disconnected.
-      setPracticeState('idle')
+      // Falling back to the home doors (rather than restoring the old
+      // persona) is the simplest recovery — the previous session is
+      // already disconnected.
+      onExitRef.current()
       return
     }
     setPersona(newPersona)
@@ -740,132 +687,23 @@ export function PracticeClient({ targetLanguage }: Props) {
       if (!isMountedRef.current) return
       const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
       setToast(isPermission ? t('practice.errorMic') : t('practice.rerollErrorToast'))
-      setPracticeState('idle')
+      onExitRef.current()
     } finally {
       if (isMountedRef.current) setIsRerolling(false)
     }
   }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, connectAgent, t])
 
   // Retry from the error state. If we collected user speech, re-submit;
-  // otherwise the connection itself failed before any turns landed —
-  // restart the session instead of POSTing an empty body.
+  // otherwise the connection itself failed before any turns landed — bail
+  // back to the home doors so the user can pick a mode and try again
+  // (rather than restarting on a dead screen).
   const retry = useCallback(() => {
     if (turnsRef.current.some(turn => turn.role === 'user')) {
       submitTurns([...turnsRef.current])
     } else {
-      setPracticeState('idle')
-      setTimeout(() => { void start() }, 0)
+      onExitRef.current()
     }
-  }, [submitTurns, start])
-
-  // ─── Idle ──────────────────────────────────────────────────────────────
-  // Layout B from the practice-call-mode mockup: heading + two mode cards
-  // stacked. Tapping a card persists the mode preference AND starts the
-  // session in that mode — fewer clicks than "pick mode, then press start".
-  if (practiceState === 'idle') {
-    const handleModeStart = (next: PracticeMode) => {
-      persistMode(next)
-      void start(next)
-    }
-    return (
-      <div
-        className="
-          mx-auto w-full max-w-md px-6
-          flex flex-col flex-1
-          gap-6
-          pt-8 pb-6
-        "
-      >
-        <div className="flex flex-col gap-2">
-          <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
-            {t('practice.heading')}
-          </h1>
-          <p className="text-sm text-text-secondary leading-relaxed">
-            {t('practice.modeIntro')}
-          </p>
-        </div>
-
-        {/* Call card — green-tinted call palette so it reads as the moment of
-            arrival. Whole card is the action — tap anywhere starts the call.
-            Chrome (p-6 + 1px border) matches the Onboarding hub Practice card
-            so the cards across onboarding + practice read as one family. */}
-        <button
-          type="button"
-          onClick={() => handleModeStart('call')}
-          className="
-            group text-left rounded-2xl p-6
-            bg-emerald-500/10 dark:bg-emerald-400/10
-            border border-emerald-500/30 dark:border-emerald-400/30
-            hover:bg-emerald-500/15 dark:hover:bg-emerald-400/15
-            active:opacity-80
-            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500
-            transition-colors
-          "
-          aria-label={t('practice.modeCallTitle')}
-        >
-          <div className="flex items-center gap-3">
-            <span className="
-              flex items-center justify-center
-              w-10 h-10 rounded-full
-              bg-emerald-500 dark:bg-emerald-400
-              text-white dark:text-emerald-950
-            ">
-              <Icon name="phone" className="h-5 w-5" />
-            </span>
-            <span className="text-lg font-semibold text-text-primary">
-              {t('practice.modeCallTitle')}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            {t('practice.modeCallBlurb')}
-          </p>
-        </button>
-
-        {/* Chat card — neutral surface, quieter visual weight. Same tap-to-start
-            interaction, no separate Start button. Same chrome shape as the
-            Call card; only the palette differs. */}
-        <button
-          type="button"
-          onClick={() => handleModeStart('chat')}
-          className="
-            group text-left rounded-2xl p-6
-            bg-surface
-            border border-border-subtle
-            hover:bg-surface-elevated
-            active:opacity-80
-            focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
-            transition-colors
-          "
-          aria-label={t('practice.modeChatTitle')}
-        >
-          <div className="flex items-center gap-3">
-            <span className="
-              flex items-center justify-center
-              w-10 h-10 rounded-full
-              bg-surface-elevated text-text-secondary
-            ">
-              <Icon name="message" className="h-5 w-5" />
-            </span>
-            <span className="text-lg font-semibold text-text-primary">
-              {t('practice.modeChatTitle')}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            {t('practice.modeChatBlurb')}
-          </p>
-        </button>
-
-        {toast && <Toast message={toast} />}
-        {discardToast && (
-          <Toast
-            message={t('practice.discardToast')}
-            action={{ label: t('practice.discardUndo'), onClick: undoDiscard }}
-            toastKey={discardToast.key}
-          />
-        )}
-      </div>
-    )
-  }
+  }, [submitTurns])
 
   // ─── Ringing (call mode only) ──────────────────────────────────────────
   // Brief intermediate beat while the persona is being fetched + Gemini

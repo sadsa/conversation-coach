@@ -3,9 +3,17 @@
 // Client island for `/` — the Practise landing page, the first impression
 // of the methodology. Three doors:
 //
-//   1. Pick up a call    → /practice?mode=call  (Gemini Live voice agent)
-//   2. Casual chat       → /practice?mode=chat  (Gemini Live voice agent)
-//   3. Share a voice note → /onboarding?step=2  (WhatsApp share illustration)
+//   1. Pick up a call    → starts a Gemini Live call session in-place
+//   2. Casual chat       → starts a Gemini Live chat session in-place
+//   3. Share a voice note → /onboarding?step=2 (WhatsApp share illustration)
+//
+// The Call and Chat doors used to navigate to `/practice?mode=…`; that
+// route was retired so that discarding a session returns the user to the
+// home doors (where they came from) instead of stranding them on an
+// orphaned `/practice` idle screen. `<PracticeClient>` now mounts inside
+// this component when a session is active, and we flip `activeMode` back
+// to null on `onExit` to restore the doors view. The `targetLanguage`
+// prop comes from the server-side auth header for both shells.
 //
 // Above the doors sits a Practise → Review → Study eyebrow that names the
 // pillars of the methodology. The current pillar (Practise on /) reads in
@@ -29,6 +37,7 @@ import { Icon } from '@/components/Icon'
 import { MethodologyEyebrow } from '@/components/MethodologyEyebrow'
 import { useTranslation } from '@/components/LanguageProvider'
 import { targetLanguageGreeting } from '@/lib/i18n'
+import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
 
 // Peak-end welcome beat — shows for ~3s when the user arrives from
 // onboarding completion (`/?welcome=true`). Onboarding sets the flag in
@@ -38,9 +47,9 @@ const WELCOME_HOLD_MS = 3000
 
 // The Practise home no longer takes any server-fetched data — the
 // methodology eyebrow's old "study count" badge was retired, and the
-// share-target pickup reads from IndexedDB on mount. Keep an empty
-// interface so the export shape is explicit if future state needs
-// threading through.
+// share-target pickup reads from IndexedDB on mount. `targetLanguage` for
+// the embedded `<PracticeClient>` session comes from `useTranslation()`
+// (LanguageProvider context, which is hydrated from the same auth header).
 type Props = Record<string, never>
 
 export function PractiseClient(_props: Props) {
@@ -67,6 +76,13 @@ export function PractiseClient(_props: Props) {
     const timer = setTimeout(() => setShowWelcome(false), WELCOME_HOLD_MS)
     return () => clearTimeout(timer)
   }, [initialWelcome, router])
+
+  // The active voice session, if any. null = doors view. Setting this to
+  // 'call' or 'chat' mounts <PracticeClient> in place of the doors; the
+  // session's onExit callback flips it back to null when the user discards,
+  // ends with no speech, or hits a fatal connection error.
+  const [activeMode, setActiveMode] = useState<PracticeMode | null>(null)
+  const handleExitSession = useCallback(() => setActiveMode(null), [])
 
   const greeting = useMemo(
     () => targetLanguageGreeting(targetLanguage, new Date()),
@@ -115,6 +131,22 @@ export function PractiseClient(_props: Props) {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Session in progress — replace the home doors with the active session
+  // UI. `<PracticeClient>` owns its own full-bleed chrome (it pins itself
+  // via `position: fixed` once it reaches the active state), so we render
+  // it as a sibling of the doors view rather than nesting it inside the
+  // home's space-y wrapper. The doors will rehydrate cleanly on exit
+  // because none of the home's `useState` resets when `activeMode` flips.
+  if (activeMode !== null) {
+    return (
+      <PracticeClient
+        mode={activeMode}
+        targetLanguage={targetLanguage}
+        onExit={handleExitSession}
+      />
+    )
+  }
 
   return (
     // Page rhythm matches /review, /write, /settings: layout owns the
@@ -186,11 +218,16 @@ export function PractiseClient(_props: Props) {
         </h2>
 
         <div className="space-y-3">
-        {/* Pick up a call */}
-        <Link
-          href="/practice?mode=call"
+        {/* Pick up a call — starts a Gemini Live call session in-place.
+            <button> (not <Link>) because there's no URL to navigate to;
+            the parent renders <PracticeClient> when activeMode flips. The
+            visual rhythm matches the Share door below so the three cards
+            still read as siblings rather than two button + one link. */}
+        <button
+          type="button"
+          onClick={() => setActiveMode('call')}
           data-testid="home-mode-call"
-          className="group flex items-center gap-4 rounded-2xl border border-call-border bg-call-bg px-5 py-4 hover:bg-call-bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-call-fill focus-visible:ring-offset-2"
+          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-call-border bg-call-bg px-5 py-4 hover:bg-call-bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-call-fill focus-visible:ring-offset-2"
         >
           <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-call-fill text-white flex items-center justify-center">
             <Icon name="phone" className="w-5 h-5" aria-hidden />
@@ -204,13 +241,15 @@ export function PractiseClient(_props: Props) {
             </p>
           </div>
           <ChevronRight />
-        </Link>
+        </button>
 
-        {/* Casual chat */}
-        <Link
-          href="/practice?mode=chat"
+        {/* Casual chat — starts a Gemini Live chat session in-place. Same
+            in-place mount story as the Call door above. */}
+        <button
+          type="button"
+          onClick={() => setActiveMode('chat')}
           data-testid="home-mode-chat"
-          className="group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
         >
           <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-chip text-on-accent-chip flex items-center justify-center">
             <Icon name="message" className="w-5 h-5" aria-hidden />
@@ -224,7 +263,7 @@ export function PractiseClient(_props: Props) {
             </p>
           </div>
           <ChevronRight />
-        </Link>
+        </button>
 
         {/* Share a voice note — third peer door, not a buried secondary.
             Deep-links into the existing share-from-WhatsApp tutorial at

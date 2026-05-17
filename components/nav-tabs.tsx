@@ -9,9 +9,10 @@
 // "share a voice note" deep-dive); `/review` is the inbox of recorded
 // conversations and saved corrections; `/write` keeps its underlying
 // route but the user-facing label is "Study" so the nav, the methodology
-// eyebrow on the home, and the brand vocabulary all match. The /practice
-// route still exists for the active session shell but is reached from the
-// home doors, not from a nav tab.
+// eyebrow on the home, and the brand vocabulary all match. Active voice
+// sessions used to live on a separate /practice route — that's gone now;
+// PracticeClient mounts in place on `/` when the user taps a mode door
+// and unmounts on discard, so there's no second route to surface here.
 //
 // Icons are Phosphor (regular + fill) — see `mockups/nav-icons.html` for
 // the exploration that landed here. Active state swaps to the fill weight

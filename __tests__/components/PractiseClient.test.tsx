@@ -4,7 +4,10 @@
 // This suite covers the new home:
 //
 //   • Renders the three doors (Pick up a call / Casual chat / Share a
-//     voice note) and points them at the right routes.
+//     voice note). Call and Chat are now in-place `<button>`s (they mount
+//     <PracticeClient> on tap — the standalone /practice route was retired
+//     so discard returns to these doors); Share remains a `<Link>` to the
+//     WhatsApp tutorial.
 //   • Renders the Practise · Review · Study eyebrow with Practise as the
 //     active pillar and the other two as plain links to their routes.
 //   • Picks up a pending share-target file from IndexedDB and routes
@@ -93,14 +96,18 @@ describe('PractiseClient — three doors', () => {
     expect(screen.getByTestId('home-mode-share')).toBeInTheDocument()
   })
 
-  it('points Call door at /practice?mode=call (auto-starts call mode)', () => {
+  it('renders Call door as an in-place <button> (no href; mounts PracticeClient on click)', () => {
     render(<PractiseClient />)
-    expect(screen.getByTestId('home-mode-call')).toHaveAttribute('href', '/practice?mode=call')
+    const callDoor = screen.getByTestId('home-mode-call')
+    expect(callDoor.tagName).toBe('BUTTON')
+    expect(callDoor).not.toHaveAttribute('href')
   })
 
-  it('points Chat door at /practice?mode=chat (auto-starts chat mode)', () => {
+  it('renders Chat door as an in-place <button> (no href; mounts PracticeClient on click)', () => {
     render(<PractiseClient />)
-    expect(screen.getByTestId('home-mode-chat')).toHaveAttribute('href', '/practice?mode=chat')
+    const chatDoor = screen.getByTestId('home-mode-chat')
+    expect(chatDoor.tagName).toBe('BUTTON')
+    expect(chatDoor).not.toHaveAttribute('href')
   })
 
   it('points Share door at /onboarding?step=2 (WhatsApp share illustration)', () => {

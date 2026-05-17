@@ -23,9 +23,10 @@ function sectionKeyFor(pathname: string | null): string {
   if (!pathname) return ''
   // `/` is the Practise home, `/review` is the conversations inbox, and
   // `/write` keeps its underlying route but reads as "Study" in the nav.
-  // `/practice` (the active session) intentionally shows no label — the
-  // page is full-bleed during a live call and the call chrome carries
-  // its own context.
+  // Live voice sessions now mount in place on `/` (the standalone
+  // `/practice` route was retired) so the header label naturally stays
+  // on "Practise" for the duration — the full-bleed call chrome takes
+  // visual precedence, so the label sitting in the header is fine.
   if (pathname === '/') return 'nav.practise'
   if (pathname.startsWith('/review')) return 'nav.review'
   if (pathname.startsWith('/write')) return 'nav.study'
