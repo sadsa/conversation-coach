@@ -161,14 +161,10 @@ describe('onboarding tutorial i18n keys', () => {
   it('hub keys exist in both langs', () => {
     for (const key of [
       'onboarding.hub.heading',
-      'onboarding.hub.practice.eyebrow',
       'onboarding.hub.practice.title',
       'onboarding.hub.practice.body',
       'onboarding.hub.practice.cta',
-      'onboarding.hub.share.eyebrow',
-      'onboarding.hub.share.title',
-      'onboarding.hub.share.body',
-      'onboarding.hub.share.cta',
+      'onboarding.hub.share.linkText',
     ]) {
       expect(t(key, 'en')).not.toBe(key)
       expect(t(key, 'es')).not.toBe(key)

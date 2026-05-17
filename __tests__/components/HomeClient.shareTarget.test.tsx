@@ -10,8 +10,12 @@ import { HomeClient } from '@/components/HomeClient'
 
 // ── Router mock ───────────────────────────────────────────────────────────────
 const mockPush = vi.fn()
+const mockReplace = vi.fn()
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  // No welcome param in this suite — share-target tests deliberately exercise
+  // the IndexedDB pickup path, not the onboarding peak-end beat.
+  useSearchParams: () => ({ get: () => null }),
 }))
 
 // ── Component mocks (avoid rendering the full dashboard tree) ─────────────────

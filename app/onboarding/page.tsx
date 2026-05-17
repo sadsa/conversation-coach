@@ -7,17 +7,23 @@ import { OnboardingStep } from '@/components/OnboardingStep'
 import { OnboardingHub } from '@/components/OnboardingHub'
 import { WhatsAppShareIllustration } from '@/components/WhatsAppShareIllustration'
 import { Wordmark } from '@/components/Wordmark'
+import { buttonStyles } from '@/components/Button'
 import type { TargetLanguage } from '@/lib/types'
 
 // URL semantics:
 //   ?step=0          → language picker (one-time gate)
-//   ?step=1          → hub (decisive choice between Practice and Share)
-//   ?step=2          → WhatsApp share illustration (deep-dive opened FROM hub)
+//   ?step=1          → hub (single Practice card + quiet Share footer link)
+//   ?step=2          → WhatsApp share illustration (deep-dive opened FROM
+//                      the hub footer link, or directly from Settings)
 //
-// step=1 used to be the upload-from-file tutorial; that input method is
-// gone from the product, so the slot is now the hub. step=2 keeps its old
-// behaviour and component so deep links from Settings (?step=2&revisit=true)
-// still work.
+// step=1 used to be the upload-from-file tutorial, then a two-card
+// Practice/Share choice; both prior structures were templated. It's now a
+// single-action hub. step=2 keeps its component and animation so deep
+// links from Settings (?step=2&revisit=true) still work.
+//
+// First-run exit paths append `?welcome=true` to /, which fires a one-shot
+// peak-end beat on the home greeting (see components/HomeClient.tsx).
+// Revisits from Settings route to /settings and skip the welcome.
 const HUB_STEP = 1
 const SHARE_STEP = 2
 
@@ -64,7 +70,11 @@ function OnboardingContent() {
   }
 
   function handleExit() {
-    router.push(revisit ? '/settings' : '/')
+    // On first-run completion, drop a `?welcome=true` so the home greeting
+    // can fire its one-shot peak-end beat. Revisits from Settings skip the
+    // welcome — they've already seen it, and we don't want to retrigger
+    // the moment every time they revisit a tutorial page.
+    router.push(revisit ? '/settings' : '/?welcome=true')
   }
 
   // Radiogroup keyboard nav: Arrow keys move focus AND selection between
@@ -106,22 +116,29 @@ function OnboardingContent() {
           <Wordmark className="text-center flex-shrink-0" />
 
           {/* Middle band absorbs vertical slack on tall viewports (content
-              centres) and lets the radio list shrink rather than push the
-              CTA off-screen on short ones. `min-h-0` is the well-known
-              flex-column escape hatch that lets children shrink below their
-              intrinsic content size. */}
+              centres) and lets the cards shrink rather than push the CTA
+              off-screen on short ones. `min-h-0` is the flex-column escape
+              hatch that lets children shrink below intrinsic content size. */}
           <div className="flex flex-1 flex-col justify-center gap-6 min-h-0">
             <div className="space-y-2 text-center">
-              <h1 className="font-display text-3xl font-medium text-text-primary">
+              <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
                 {t('onboarding.languageSelect.heading')}
               </h1>
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm text-text-secondary leading-relaxed">
                 {t('onboarding.languageSelect.body')}
               </p>
             </div>
 
+            {/* Distilled from a settings-row radiogroup (right-side check
+                dot, dense list) to two visually decisive cards. We keep the
+                ARIA radiogroup semantics (correct for "select one, then
+                confirm") and roving tabindex, but selection state lives on
+                the card chrome itself — no separate dot, no metadata row.
+                The big flag is the recognition cue; name + variant give the
+                detail. CTA below stays as the explicit commit step because
+                language is a profile-level choice, not a session toggle. */}
             <div
-              className="space-y-3"
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
               role="radiogroup"
               aria-label={t('onboarding.languageSelect.targetLanguageAria')}
             >
@@ -141,24 +158,16 @@ function OnboardingContent() {
                   tabIndex={isTabStop ? 0 : -1}
                   onClick={() => setSelected(opt.value)}
                   onKeyDown={e => handleRadioKeyDown(e, idx)}
-                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  className={`flex flex-col items-center justify-center gap-3 px-5 py-6 rounded-2xl border-2 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     isSelected
                       ? 'border-accent-primary bg-accent-chip'
-                      : 'border-border bg-surface hover:border-accent-primary/40 hover:bg-surface-elevated'
+                      : 'border-transparent bg-surface hover:bg-surface-elevated'
                   }`}
                 >
-                  <span className="text-4xl leading-none flex-shrink-0">{opt.flag}</span>
-                  <div className="flex-1">
+                  <span className="text-5xl leading-none">{opt.flag}</span>
+                  <div className="space-y-0.5">
                     <p className="font-semibold text-text-primary">{t(opt.nameKey)}</p>
-                    <p className="text-sm text-text-tertiary mt-0.5">{t(opt.variantKey)}</p>
-                  </div>
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
-                      isSelected ? 'bg-accent-primary border-accent-primary' : 'border-border'
-                    }`}
-                    aria-hidden="true"
-                  >
-                    {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                    <p className="text-xs text-text-tertiary">{t(opt.variantKey)}</p>
                   </div>
                 </button>
               )
@@ -170,7 +179,11 @@ function OnboardingContent() {
             type="button"
             onClick={handleLanguageConfirm}
             disabled={selected === null}
-            className="w-full flex-shrink-0 py-3 rounded-xl bg-accent-primary hover:bg-accent-primary-hover text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className={buttonStyles({
+              variant: 'primary',
+              fullWidth: true,
+              className: 'flex-shrink-0 rounded-xl py-3',
+            })}
           >
             {t('onboarding.languageSelect.cta')}
           </button>
@@ -212,7 +225,9 @@ function OnboardingContent() {
   // itself (one-of-one is meaningless). Back returns to the hub, preserving
   // revisit so re-entry from Settings keeps the close-target as /settings.
   function handleShareNext() {
-    router.push(revisit ? '/settings' : '/')
+    // Same welcome-beat hand-off as handleExit — first-run completion
+    // earns the peak-end moment regardless of which exit path the user took.
+    router.push(revisit ? '/settings' : '/?welcome=true')
   }
 
   function handleShareBack() {
@@ -238,6 +253,7 @@ function OnboardingContent() {
                 coach: t('onboarding.illus.appCoach'),
                 files: t('onboarding.illus.appFiles'),
               }}
+              ariaLabel={t('onboarding.illus.shareAriaLabel')}
             />
           }
           heading={t('onboarding.share.heading')}
@@ -273,6 +289,15 @@ function OnboardingContent() {
 //     between the iOS status bar and home indicator on PWA installs;
 //     `viewport-fit: cover` is already set globally, so these resolve to
 //     real values.
+//
+// No extra "warmth" overlay on the shell. The `bg-bg` token is already
+// warm cream (oklch(97.5% 0.008 75) in light mode — hue 75 is the warm
+// yellow-cream zone), and adding a peach/amber gradient over it would
+// introduce an off-palette hue. The brand accent is cool purple (hue 285);
+// warmth in this product comes from the cream substrate showing through
+// low-opacity cool tints, not from a competing warm hue. The hub Practice
+// card uses `bg-accent-primary/[0.04]` for exactly this reason — same
+// pattern as the home page Practice CTA.
 function OnboardingShell({ children }: { children: ReactNode }) {
   return (
     <div

@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 import { DashboardReminders } from '@/components/DashboardReminders'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
@@ -11,6 +12,12 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { targetLanguageGreeting } from '@/lib/i18n'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 import type { DashboardSummary } from '@/lib/dashboard-summary'
+
+// Peak-end welcome beat — shows for ~3s when the user arrives from
+// onboarding completion (`/?welcome=true`). Onboarding sets the flag in
+// `handleExit` / `handleShareNext`; we read it once on mount, immediately
+// clear the URL so refresh doesn't retrigger, then dismiss after the beat.
+const WELCOME_HOLD_MS = 3000
 
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
 
@@ -31,8 +38,28 @@ interface Props {
 export function HomeClient({ initialSessions, initialSummary }: Props) {
   const { t, targetLanguage } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const reducedMotion = useReducedMotion()
   const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions)
   const [summary, setSummary] = useState<DashboardSummary | null>(initialSummary)
+  // Read once on first render, then never again — we clear the URL param
+  // in the effect below so subsequent reads would be `false` anyway.
+  const initialWelcome = useMemo(
+    () => searchParams.get('welcome') === 'true',
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  const [showWelcome, setShowWelcome] = useState(initialWelcome)
+
+  useEffect(() => {
+    if (!initialWelcome) return
+    // Clear the param immediately so a refresh doesn't retrigger the beat,
+    // but the local `showWelcome` state keeps the message visible for the
+    // hold window. `scroll: false` so we don't jump the page on replace.
+    router.replace('/', { scroll: false })
+    const timer = setTimeout(() => setShowWelcome(false), WELCOME_HOLD_MS)
+    return () => clearTimeout(timer)
+  }, [initialWelcome, router])
   // One pending timeout per polled session, plus per-session attempt
   // count for exponential backoff. Refs so the polling loop can read its
   // own latest state without re-binding on every render.
@@ -199,8 +226,29 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
-      {/* Greeting */}
+      {/* Greeting + peak-end welcome beat.
+          The welcome line sits above the greeting and animates in/out so
+          the user's first impression of the home screen is the warm hand-
+          off from onboarding. After WELCOME_HOLD_MS the message dismisses,
+          leaving just the greeting + first-run subtitle. aria-live polite
+          so screen-reader users hear it without it being announced as an
+          alert. */}
       <header className="space-y-1.5">
+        <AnimatePresence>
+          {showWelcome && (
+            <motion.p
+              key="welcome-beat"
+              initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="text-sm font-medium text-accent-primary"
+              aria-live="polite"
+            >
+              {t('home.welcomeBeat')}
+            </motion.p>
+          )}
+        </AnimatePresence>
         <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
           {greeting}
         </h1>

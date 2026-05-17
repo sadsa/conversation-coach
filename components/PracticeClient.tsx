@@ -39,7 +39,6 @@ import {
   connect,
   buildPracticeSystemPrompt,
   FLASH_LIVE_MODEL,
-  NATIVE_AUDIO_MODEL,
 } from '@/lib/voice-agent'
 import { buildPersonaSystemPrompt } from '@/lib/persona'
 import { Button } from '@/components/Button'
@@ -76,10 +75,6 @@ const REROLL_MAX = 3
 
 interface Props {
   targetLanguage: TargetLanguage
-  /** When true, skip the idle screen and connect immediately on mount.
-   *  Set by the onboarding hub via `?autostart=true` — the user already
-   *  expressed intent by tapping "Start a session" there. */
-  autoStart?: boolean
 }
 
 const TOTAL_SECONDS = 300        // 5 min hard cap
@@ -90,7 +85,7 @@ const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
 // LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
-export function PracticeClient({ targetLanguage, autoStart }: Props) {
+export function PracticeClient({ targetLanguage }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
   const reducedMotion = useReducedMotion()
@@ -138,7 +133,6 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
-  const hasAutoStarted = useRef(false)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -210,6 +204,18 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [practiceState])
+
+  // Auto-dismiss informational toasts after a few seconds. Unlike SessionList
+  // / WriteList, Practice's toasts are notifications without an action slot,
+  // so they have no natural dismiss interaction — left alone they'd linger
+  // across the whole next session (e.g. "Nueva persona en la línea" bleeding
+  // into the freshly-connected call). discardToast manages its own 5s timer
+  // because Undo is interactive; this only governs the plain `toast` state.
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(timer)
+  }, [toast])
 
   // Keep the screen awake during a 5-minute session — without this the
   // lockscreen kicks in mid-conversation and the mic worklet streams into
@@ -462,14 +468,16 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             setLiveTurns(prev => [...prev, turn])
           },
         },
-        {
-          transcription: true,
-          systemPrompt,
-          // Mode-aware model — must match the model used at start() so the
-          // user doesn't suddenly hear a different voice timbre on resume.
-          model: activePersona ? NATIVE_AUDIO_MODEL : FLASH_LIVE_MODEL,
-          voiceName: activePersona?.voiceName,
-        },
+      {
+        transcription: true,
+        systemPrompt,
+        // Both modes are on the flash-live model — call mode used to pin
+        // NATIVE_AUDIO_MODEL for richer intonation but the end-of-turn pauses
+        // made personas feel sluggish vs. chat. Same model = same voice
+        // timbre on resume, which is what matters here.
+        model: FLASH_LIVE_MODEL,
+        voiceName: activePersona?.voiceName,
+      },
       )
       agentRef.current = agent
     } catch (err) {
@@ -580,13 +588,12 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
       {
         transcription: true,
         systemPrompt,
-        // Mode-aware model. Call mode wants the native-audio family because
-        // emotional intonation IS the feature — the longer end-of-turn pauses
-        // are an acceptable trade. Chat mode wants the flash-live model so the
-        // casual back-and-forth doesn't feel paused. We key off `activePersona`
-        // rather than reading `mode` from closure so reroll → reconnect with a
-        // fresh persona always gets the call-tuned model.
-        model: activePersona ? NATIVE_AUDIO_MODEL : FLASH_LIVE_MODEL,
+        // Both modes use the flash-live model. Call mode previously used
+        // NATIVE_AUDIO_MODEL for emotional intonation, but the longer
+        // end-of-turn pauses made personas feel clunky vs. chat's snappy
+        // back-and-forth. Personas still come through via the system prompt
+        // + matched voice — flash-live carries enough character with those.
+        model: FLASH_LIVE_MODEL,
         // Persona-only: matched voice + agent-speaks-first opener trigger.
         // Chat mode gets undefined for both → existing behaviour preserved.
         voiceName: activePersona?.voiceName,
@@ -659,9 +666,16 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
     if (practiceState !== 'active' && practiceState !== 'warning') return
 
     setIsRerolling(true)
+    // Drop any lingering toast (e.g. a previous "Nueva persona en la línea"
+    // still in its 3.5s window) so the next setToast(...) below always
+    // re-renders, even if the new message happens to be identical text.
+    setToast(null)
 
     // Tear down the live session. flush() isn't useful — we're discarding the
-    // transcript anyway. Clear any ending-beat timer too just in case.
+    // transcript anyway. Clear any ending-beat timer too just in case. The
+    // agent's dispose() runs synchronously inside disconnect(), which kills
+    // scheduled audio playback immediately — without that, the previous
+    // persona kept talking over the new one because ws.close is async.
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
     agentRef.current?.disconnect()
@@ -714,18 +728,6 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
     }
   }, [submitTurns, start])
 
-  // Auto-start when arriving from the onboarding hub (`?autostart=true`).
-  // Always opens in chat mode — the onboarding tutorial showed users what
-  // "practice" looks like as a casual conversation. Surprising them with a
-  // ringing persona call at the moment they tap "Start a session" would
-  // contradict the lesson they just saw. Users discover call mode by
-  // visiting /practice directly.
-  useEffect(() => {
-    if (!autoStart || hasAutoStarted.current) return
-    hasAutoStarted.current = true
-    void start('chat')
-  }, [autoStart, start])
-
   // ─── Idle ──────────────────────────────────────────────────────────────
   // Layout B from the practice-call-mode mockup: heading + two mode cards
   // stacked. Tapping a card persists the mode preference AND starts the
@@ -745,23 +747,25 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
         "
       >
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+          <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
             {t('practice.heading')}
           </h1>
-          <p className="text-sm md:text-base text-text-secondary leading-relaxed">
+          <p className="text-sm text-text-secondary leading-relaxed">
             {t('practice.modeIntro')}
           </p>
         </div>
 
         {/* Call card — green-tinted call palette so it reads as the moment of
-            arrival. Whole card is the action — tap anywhere starts the call. */}
+            arrival. Whole card is the action — tap anywhere starts the call.
+            Chrome (p-6 + 1px border) matches the Onboarding hub Practice card
+            so the cards across onboarding + practice read as one family. */}
         <button
           type="button"
           onClick={() => handleModeStart('call')}
           className="
-            group text-left rounded-2xl p-5
+            group text-left rounded-2xl p-6
             bg-emerald-500/10 dark:bg-emerald-400/10
-            ring-1 ring-emerald-500/30 dark:ring-emerald-400/30
+            border border-emerald-500/30 dark:border-emerald-400/30
             hover:bg-emerald-500/15 dark:hover:bg-emerald-400/15
             active:opacity-80
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500
@@ -778,7 +782,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             ">
               <Icon name="phone" className="h-5 w-5" />
             </span>
-            <span className="font-semibold text-foreground text-lg">
+            <span className="text-lg font-semibold text-text-primary">
               {t('practice.modeCallTitle')}
             </span>
           </div>
@@ -788,14 +792,15 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
         </button>
 
         {/* Chat card — neutral surface, quieter visual weight. Same tap-to-start
-            interaction, no separate Start button. */}
+            interaction, no separate Start button. Same chrome shape as the
+            Call card; only the palette differs. */}
         <button
           type="button"
           onClick={() => handleModeStart('chat')}
           className="
-            group text-left rounded-2xl p-5
+            group text-left rounded-2xl p-6
             bg-surface
-            ring-1 ring-border-subtle
+            border border-border-subtle
             hover:bg-surface-elevated
             active:opacity-80
             focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary
@@ -811,7 +816,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             ">
               <Icon name="message" className="h-5 w-5" />
             </span>
-            <span className="font-semibold text-foreground text-lg">
+            <span className="text-lg font-semibold text-text-primary">
               {t('practice.modeChatTitle')}
             </span>
           </div>
@@ -865,7 +870,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             />
           </span>
         </div>
-        <p className="text-xl font-medium text-foreground">{t('practice.ringingText')}</p>
+        <p className="text-xl font-medium text-text-primary">{t('practice.ringingText')}</p>
         <p className="text-sm text-text-secondary max-w-[24ch] leading-relaxed">
           {t('practice.ringingSub')}
         </p>
@@ -1059,7 +1064,7 @@ export function PracticeClient({ targetLanguage, autoStart }: Props) {
             className="flex-shrink-0 border-t border-border-subtle px-6 pt-5 pb-5 flex flex-col items-center gap-4"
           >
             <div className="text-center">
-              <p className="text-base font-medium text-foreground">{t('practice.reviewHeading')}</p>
+              <p className="text-base font-medium text-text-primary">{t('practice.reviewHeading')}</p>
               <p className="text-sm text-text-secondary mt-1">{t('practice.reviewEncouragement')}</p>
             </div>
             <div className="flex items-center gap-3">

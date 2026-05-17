@@ -27,19 +27,26 @@ interface Props {
   /** Name shown in the chat header. Defaults to "María" — recognisably
    *  Hispanic, fits the Spanish-learner audience without being on-the-nose. */
   contactName?: string
+  /** Plain-text summary read by assistive tech in place of the animation.
+   *  Required because the visual is the teaching moment — without this,
+   *  screen-reader users would get the body copy below and miss the
+   *  step-by-step demonstration. */
+  ariaLabel: string
 }
 
 export function WhatsAppShareIllustration({
   shareTitle,
   appLabels,
   contactName = 'María',
+  ariaLabel,
 }: Props) {
   const initial = contactName.charAt(0).toUpperCase()
 
   return (
     <div
       className="relative w-[264px] h-[184px] rounded-2xl bg-bg border border-border overflow-hidden shadow-sm select-none"
-      aria-hidden="true"
+      role="img"
+      aria-label={ariaLabel}
     >
       <ChatHeader contactName={contactName} initial={initial} />
       <ChatBody />

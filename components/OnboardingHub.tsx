@@ -1,36 +1,40 @@
 // components/OnboardingHub.tsx
 //
-// First-run tutorial after the language pick. Replaces the old linear
-// "upload illustration → share illustration" wizard with a single decisive
-// screen offering both real input paths in parallel:
+// First-run tutorial after the language pick. Replaces the old two-card
+// "Practice vs. Share" hub with a single-action surface that hands the user
+// straight to the practice mode picker, with the WhatsApp-share deep-dive
+// demoted to a quiet footer link.
 //
-//   • Practice (primary) — links straight to /practice. The page itself owns
-//     the explainer (mic permission, "5-minute session", review-after copy)
-//     so we don't duplicate it here.
-//   • Share from WhatsApp (secondary) — links to /onboarding?step=2, which
-//     keeps the existing animated WhatsApp-share illustration as a single
-//     deep-dive teaching frame.
+// Why the demotion:
+//   1. Most users who arrive via WhatsApp share intent never see this hub —
+//      they're routed through the service worker → IndexedDB → HomeClient
+//      upload flow and land on /sessions/[id]/status directly. The hub's
+//      audience is users who opened the app deliberately; for them Practice
+//      is the headline experience.
+//   2. The previous two-card mirror-image scaffold (eyebrow + 48px icon tile
+//      + title + body + CTA, ×2) read as templated AI onboarding. Even with
+//      one card tinted accent and one neutral, the underlying structure was
+//      indistinguishable from a thousand other onboarding screens.
+//   3. The .impeccable.md brand voice is "patient, encouraging, spacious."
+//      A single inviting card with breathing room around it lands warmer
+//      than a balanced choice the user didn't ask for.
 //
-// Why a hub instead of a numbered list — the .impeccable.md surface
-// constraints explicitly call out the "1, 2, 3, 4 numbered cards" pattern
-// as templated AI onboarding, and ask for one decisive action per surface.
-// Two cards with deliberate visual weight (filled accent vs. neutral) is
-// the closest honest answer for a product with two real input methods.
+// Layout: top chrome (empty / wordmark / exit), then a warm-tinted Practice
+// card that owns the visual centre, then a small text link below for the
+// fallback share-from-WhatsApp path. No icon tile, no uppercase eyebrow.
 //
-// Animation: cards stage in with the existing `stage-in` keyframe (cascade
-// via inline animation-delay, motion-safe gated). Reduced-motion users get
-// the rest state immediately.
+// Animation: card stages in with the existing `stage-in` keyframe, motion-
+// safe gated. Reduced-motion users see the rest state immediately.
 
 'use client'
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
 import { Wordmark } from '@/components/Wordmark'
-import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import { buttonStyles } from '@/components/Button'
 
 interface Props {
-  /** Where the Share card routes — `?step=2` first run, `?step=2&revisit=true` from Settings. */
+  /** Where the secondary Share link routes — `?step=2` first run,
+   *  `?step=2&revisit=true` from Settings. */
   shareHref: string
   /** Top-right exit callback. "Skip" on first run, "Close" when revisiting. */
   onExit: () => void
@@ -43,7 +47,7 @@ export function OnboardingHub({ shareHref, onExit, exitLabel }: Props) {
   const { t } = useTranslation()
 
   return (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex h-full flex-col gap-8">
       {/* Top chrome — empty left column keeps the wordmark optically centred
           even though the hub has no Back. No progress dots: the hub is not
           a step in a sequence, it's the destination. */}
@@ -61,102 +65,65 @@ export function OnboardingHub({ shareHref, onExit, exitLabel }: Props) {
         </div>
       </div>
 
-      {/* Body — heading + two cards. flex-1 lets the body absorb vertical
-          slack on tall viewports without the cards stretching themselves. */}
-      <div className="flex flex-1 flex-col gap-6 min-h-0">
-        <h1 className={`font-display text-3xl font-medium text-text-primary leading-tight ${STAGE_IN}`}>
+      {/* Body — heading + single Practice card + small Share fallback link.
+          flex-1 + justify-center centres the composition on tall viewports;
+          gap-7 gives the Practice card breathing room without isolating it
+          from the heading. */}
+      <div className="flex flex-1 flex-col justify-center gap-7 min-h-0">
+        <h1
+          className={`font-display text-3xl md:text-4xl font-medium text-text-primary ${STAGE_IN}`}
+        >
           {t('onboarding.hub.heading')}
         </h1>
 
-        <div className="flex flex-col gap-3">
-          {/* Practice — primary action. Soft accent tint mirrors the
-              home-page Practice CTA so the user recognises the surface
-              when they land on it next. */}
-          <Link
-            href="/practice?autostart=true"
-            className={`group flex flex-col gap-3 rounded-2xl border border-accent-primary/30 bg-accent-primary/[0.05] p-5 transition-colors hover:bg-accent-primary/[0.09] hover:border-accent-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${STAGE_IN}`}
-            style={{ animationDelay: '60ms' } as CSSProperties}
-          >
-            <div className="flex items-center gap-4">
-              <span
-                className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent-primary text-white flex items-center justify-center"
-                aria-hidden="true"
-              >
-                <Icon name="message" className="w-5 h-5" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-accent-primary">
-                  {t('onboarding.hub.practice.eyebrow')}
-                </p>
-                <p className="font-display text-lg font-medium text-text-primary leading-snug">
-                  {t('onboarding.hub.practice.title')}
-                </p>
-              </div>
-            </div>
+        {/* Practice — the single primary action. Mirrors the home page
+            Practice CTA's treatment exactly (border-accent-primary/25 +
+            bg-accent-primary/[0.04]) so the user sees the same brand
+            language across both surfaces — the hub card visually becomes
+            the "front door" of the same CTA they'll see on every
+            subsequent home visit. Warmth comes from the cream `bg-bg`
+            substrate showing through the low-opacity cool tint, not from
+            an off-palette hue. Text-first composition: no icon tile, no
+            eyebrow — the title carries the room. */}
+        <Link
+          href="/practice"
+          className={`group flex flex-col gap-4 rounded-2xl border border-accent-primary/25 bg-accent-primary/[0.04] p-6 transition-all hover:bg-accent-primary/[0.08] hover:border-accent-primary/35 hover:translate-y-[-1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${STAGE_IN}`}
+          style={{ animationDelay: '90ms' }}
+        >
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-text-primary">
+              {t('onboarding.hub.practice.title')}
+            </p>
             <p className="text-sm text-text-secondary leading-relaxed">
               {t('onboarding.hub.practice.body')}
             </p>
-            <span className={buttonStyles({ variant: 'primary', fullWidth: true, className: 'rounded-xl py-2.5 group-hover:bg-accent-primary-hover' })}>
-              {t('onboarding.hub.practice.cta')} →
-            </span>
-          </Link>
+          </div>
+          <span
+            className={buttonStyles({
+              variant: 'primary',
+              fullWidth: true,
+              className: 'rounded-xl py-3 group-hover:bg-accent-primary-hover',
+            })}
+          >
+            {t('onboarding.hub.practice.cta')}
+          </span>
+        </Link>
 
-          {/* Share — secondary, neutral surface. Stays a Link (no callback)
-              so the route is the source of truth and back/forward work. */}
+        {/* Share fallback — a single text link below the Practice card.
+            Most users who want to share a voice note arrive via the system
+            share intent and never see this screen; the link is here for
+            the minority who tap through onboarding first and want to
+            preview the share flow. Quiet by design. */}
+        <div className={`text-center ${STAGE_IN}`} style={{ animationDelay: '180ms' }}>
           <Link
             href={shareHref}
-            className={`group flex flex-col gap-3 rounded-2xl border border-border-subtle bg-surface p-5 transition-colors hover:bg-surface-elevated hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${STAGE_IN}`}
-            style={{ animationDelay: '140ms' } as CSSProperties}
+            className="inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-text-secondary transition-colors rounded-md px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <div className="flex items-center gap-4">
-              <span
-                className="flex-shrink-0 w-12 h-12 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center"
-                aria-hidden="true"
-              >
-                <ShareIcon />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
-                  {t('onboarding.hub.share.eyebrow')}
-                </p>
-                <p className="font-display text-lg font-medium text-text-primary leading-snug">
-                  {t('onboarding.hub.share.title')}
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              {t('onboarding.hub.share.body')}
-            </p>
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-text-primary group-hover:translate-x-0.5 transition-transform">
-              {t('onboarding.hub.share.cta')}
-              <span aria-hidden="true">→</span>
-            </span>
+            {t('onboarding.hub.share.linkText')}
+            <span aria-hidden="true">→</span>
           </Link>
         </div>
-
       </div>
     </div>
-  )
-}
-
-// Inline share-arrow glyph — not in Icon.tsx because this is the only
-// surface that needs it. Stroke-based to match the rest of the icon set.
-function ShareIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-5 h-5"
-      aria-hidden="true"
-    >
-      <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
-      <polyline points="16 6 12 2 8 6" />
-      <line x1="12" y1="2" x2="12" y2="15" />
-    </svg>
   )
 }

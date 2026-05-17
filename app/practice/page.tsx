@@ -8,17 +8,11 @@ export const metadata: Metadata = {
   title: 'Practice — Conversation Coach',
 }
 
-export default async function PracticePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ autostart?: string }>
-}) {
+export default async function PracticePage() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
   // targetLanguage from the auth header is typed string | null; default to es-AR
   const targetLanguage: TargetLanguage =
     (user.targetLanguage as TargetLanguage) ?? 'es-AR'
-  const params = await searchParams
-  const autoStart = params.autostart === 'true'
-  return <PracticeClient targetLanguage={targetLanguage} autoStart={autoStart} />
+  return <PracticeClient targetLanguage={targetLanguage} />
 }

@@ -105,29 +105,35 @@ describe('OnboardingPage — step 1 (hub), first run', () => {
     expect(screen.getByText('onboarding.hub.heading')).toBeInTheDocument()
   })
 
-  it('renders both path titles (Practice + Share)', () => {
+  it('renders the Practice card title and CTA (single primary action)', () => {
     render(<OnboardingPage />)
     expect(screen.getByText('onboarding.hub.practice.title')).toBeInTheDocument()
-    expect(screen.getByText('onboarding.hub.share.title')).toBeInTheDocument()
+    expect(screen.getByText('onboarding.hub.practice.cta')).toBeInTheDocument()
   })
 
-  it('Practice card links to /practice?autostart=true (session starts immediately)', () => {
+  it('Practice card links to /practice (mode picker, user chooses call vs. chat)', () => {
     render(<OnboardingPage />)
     const practiceLink = screen.getByRole('link', { name: /onboarding\.hub\.practice/ })
-    expect(practiceLink).toHaveAttribute('href', '/practice?autostart=true')
+    expect(practiceLink).toHaveAttribute('href', '/practice')
   })
 
-  it('Share card links to ?step=2 (no revisit on first run)', () => {
+  it('Share is a quiet footer link (not a peer card) and routes to ?step=2', () => {
     render(<OnboardingPage />)
-    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share/ })
+    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share\.linkText/ })
     expect(shareLink).toHaveAttribute('href', '/onboarding?step=2')
   })
 
-  it('first run renders a Skip exit (not Close) and Skip routes to /', async () => {
+  it('does NOT render the old Share card title or CTA keys (demoted to link)', () => {
+    render(<OnboardingPage />)
+    expect(screen.queryByText('onboarding.hub.share.title')).not.toBeInTheDocument()
+    expect(screen.queryByText('onboarding.hub.share.cta')).not.toBeInTheDocument()
+  })
+
+  it('first run renders a Skip exit (not Close) and Skip routes to / with welcome flag', async () => {
     render(<OnboardingPage />)
     const skip = screen.getByRole('button', { name: 'onboarding.skip' })
     await userEvent.click(skip)
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
   })
 
   it('does NOT render a back button (hub is the destination, not a step)', () => {
@@ -145,9 +151,9 @@ describe('OnboardingPage — step 1 (hub), revisit', () => {
     })
   })
 
-  it('Share card preserves revisit=true when navigating to step=2', () => {
+  it('Share footer link preserves revisit=true when navigating to step=2', () => {
     render(<OnboardingPage />)
-    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share/ })
+    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share\.linkText/ })
     expect(shareLink).toHaveAttribute('href', '/onboarding?step=2&revisit=true')
   })
 
@@ -157,7 +163,7 @@ describe('OnboardingPage — step 1 (hub), revisit', () => {
     expect(screen.queryByRole('button', { name: 'onboarding.skip' })).not.toBeInTheDocument()
   })
 
-  it('Close routes to /settings', async () => {
+  it('Close routes to /settings (no welcome beat on revisit)', async () => {
     render(<OnboardingPage />)
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.close' }))
     expect(mockPush).toHaveBeenCalledWith('/settings')
@@ -182,10 +188,10 @@ describe('OnboardingPage — step 2 (share), first run', () => {
     expect(screen.queryByRole('button', { name: 'onboarding.cta.done' })).not.toBeInTheDocument()
   })
 
-  it('letsGo pushes to /', async () => {
+  it('letsGo pushes to / with the welcome flag for the peak-end beat', async () => {
     render(<OnboardingPage />)
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.letsGo' }))
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
   })
 
   it('renders a Back button that returns to step=1 (the hub)', async () => {

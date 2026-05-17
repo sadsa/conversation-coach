@@ -167,6 +167,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.dashboardSubtitle': '',
     'home.firstRunSubtitle': 'Practice by chatting — or share a voice note from any messaging app.',
     'home.revisitTutorial': 'Revisit the tutorial',
+    // Peak-end beat shown once when the user lands on / from onboarding
+    // completion (via ?welcome=true). Auto-dismisses after ~3s.
+    'home.welcomeBeat': 'All set. Ready when you are.',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to write down right now.',
     'home.recentSessionsTitle': 'Your conversations',
@@ -462,18 +465,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.english': 'English',
     'onboarding.languageSelect.englishVariant': 'New Zealand English',
     'onboarding.languageSelect.cta': 'Get started →',
-    // Onboarding — hub (URL ?step=1). Two cards: Practice (primary) and
-    // Share (secondary, links to ?step=2 for the deep-dive illustration).
-    'onboarding.hub.heading': 'Two ways to bring a conversation in.',
-    'onboarding.hub.practice.eyebrow': 'Practice now',
-    'onboarding.hub.practice.title': 'Talk it out, five minutes.',
+    // Onboarding — hub (URL ?step=1). Single Practice card with a quiet
+    // footer link to the WhatsApp-share deep-dive at ?step=2 for users who
+    // tap through onboarding before discovering the system share intent.
+    'onboarding.hub.heading': 'Ready when you are.',
+    'onboarding.hub.practice.title': 'Five minutes, out loud.',
     'onboarding.hub.practice.body':
-      'Coach asks, you answer. Then we’ll go over the moments worth practising.',
-    'onboarding.hub.practice.cta': 'Start a session',
-    'onboarding.hub.share.eyebrow': 'Already recorded?',
-    'onboarding.hub.share.title': 'Share a voice note.',
-    'onboarding.hub.share.body': 'Send a voice note from WhatsApp, Signal, Telegram — or any app on your phone.',
-    'onboarding.hub.share.cta': 'Show me how',
+      'Pick up a call from someone new, or just chat. We’ll mark the bits worth practising.',
+    'onboarding.hub.practice.cta': 'Have a conversation',
+    'onboarding.hub.share.linkText': 'Already recorded a voice note? Show me how',
     // Onboarding — share illustration (URL ?step=2). Reached from the hub
     // and from Settings → "Share from WhatsApp".
     'onboarding.share.heading': 'Share from any messaging app',
@@ -486,6 +486,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.illus.appCoach': 'Coach',
     'onboarding.illus.appFiles': 'Files',
     'onboarding.illus.shareContact': 'María',
+    // Screen-reader narration for the share illustration. The visual is
+    // the teaching moment; without this, AT users would only get the body
+    // copy below and miss the step-by-step demonstration.
+    'onboarding.illus.shareAriaLabel':
+      'Animation: a voice note from María is pressed and held; the system share sheet rises from the bottom of the screen; the Conversation Coach app is highlighted as the share destination.',
     // Onboarding — chrome
     'onboarding.cta.next': 'Next →',
     'onboarding.cta.letsGo': "I’m ready →",
@@ -644,6 +649,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.dashboardSubtitle': '',
     'home.firstRunSubtitle': 'Practicá chateando — o compartí una nota de voz desde cualquier app de mensajes.',
     'home.revisitTutorial': 'Ver el tutorial otra vez',
+    'home.welcomeBeat': 'Todo listo. Empezá cuando quieras.',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Tus conversaciones',
@@ -935,16 +941,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.englishVariant': 'Inglés de Nueva Zelanda',
     'onboarding.languageSelect.cta': 'Empezar →',
     // Onboarding — hub (URL ?step=1)
-    'onboarding.hub.heading': 'Dos formas de traer una conversación.',
-    'onboarding.hub.practice.eyebrow': 'Practicá ahora',
-    'onboarding.hub.practice.title': 'Charlá unos minutos.',
+    'onboarding.hub.heading': 'Cuando estés listo.',
+    'onboarding.hub.practice.title': 'Cinco minutos en voz alta.',
     'onboarding.hub.practice.body':
-      'El coach empieza, vos respondés. Después repasamos los momentos que vale la pena practicar.',
-    'onboarding.hub.practice.cta': 'Empezar sesión',
-    'onboarding.hub.share.eyebrow': '¿Ya grabaste?',
-    'onboarding.hub.share.title': 'Compartí una nota de voz.',
-    'onboarding.hub.share.body': 'Mandá una nota de voz desde WhatsApp, Signal, Telegram — o cualquier app de tu celular.',
-    'onboarding.hub.share.cta': 'Mostrame cómo',
+      'Atendé una llamada de alguien nuevo, o charlá nomás. Después marcamos lo que vale la pena practicar.',
+    'onboarding.hub.practice.cta': 'Tener una charla',
+    'onboarding.hub.share.linkText': '¿Ya grabaste una nota de voz? Mostrame cómo',
     // Onboarding — ilustración de compartir (URL ?step=2)
     'onboarding.share.heading': 'Compartí desde cualquier app de mensajes',
     'onboarding.share.body':
@@ -956,6 +958,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.illus.appCoach': 'Coach',
     'onboarding.illus.appFiles': 'Archivos',
     'onboarding.illus.shareContact': 'María',
+    'onboarding.illus.shareAriaLabel':
+      'Animación: se mantiene presionada una nota de voz de María; aparece la hoja para compartir desde abajo de la pantalla; la app Conversation Coach se resalta como destino para compartir.',
     // Onboarding — chrome
     'onboarding.cta.next': 'Siguiente →',
     'onboarding.cta.letsGo': 'Empecemos →',
