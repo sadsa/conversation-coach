@@ -125,7 +125,11 @@ describe('generatePersona', () => {
     expect(systemPrompt).toContain('PERSONAJE')
     expect(systemPrompt).toMatch(/Nombre: \w+/)
     expect(systemPrompt).toMatch(/Edad: \d+/)
-    expect(systemPrompt).toMatch(/Motivo de la llamada:/)
+    // The "Motivo" label now carries a parenthetical reminding the writer
+    // model that this is INTERNAL context — it should NOT be spilled in the
+    // opener. The brief still includes the reason; the framing just made
+    // explicit it's character motivation, not opening-line material.
+    expect(systemPrompt).toMatch(/Motivo de la llamada \(INTERNO/)
     expect(systemPrompt).toMatch(/Está llamando desde:/)
     expect(systemPrompt).toMatch(/Estado emocional:/)
   })
@@ -208,6 +212,23 @@ describe('pickPersonaSeed diversity', () => {
       }
     }
   })
+
+  it('never picks a fast-paced voice for learner-paced sessions', () => {
+    // Guards the speech-speed lever: fast voices (Excitable/Forward/Upbeat/
+    // Lively) outpace beginner comprehension, so `pickVoice` filters them
+    // out. They stay in VOICE_CATALOG for future "natural pace" toggle, but
+    // must never reach a default learner session.
+    const fastVoices = new Set(
+      VOICE_CATALOG.filter(v => v.pace === 'fast').map(v => v.name)
+    )
+    // Sanity check the catalog still has fast voices to exclude — guards
+    // against accidental retagging that would silently make this test pass.
+    expect(fastVoices.size).toBeGreaterThan(0)
+    for (let i = 0; i < 500; i++) {
+      const seed = pickPersonaSeed('es-AR')
+      expect(fastVoices.has(seed.voiceName)).toBe(false)
+    }
+  })
 })
 
 describe('buildPersonaSystemPrompt', () => {
@@ -235,6 +256,19 @@ describe('buildPersonaSystemPrompt', () => {
   it('warns the model not to repeat the trigger token aloud', () => {
     const result = buildPersonaSystemPrompt(basePrompt, persona)
     expect(result).toMatch(/Do NOT mention the trigger/)
+  })
+
+  it('includes call-pacing instructions so the model eases in instead of info-dumping', () => {
+    // Guards the fix for the "first turn dumps the whole situation" bug.
+    // We don't pin exact wording — just that the prompt explicitly tells
+    // the model to (a) reveal gradually, (b) keep turns short, and (c) wait
+    // for follow-up questions. If those three behaviours disappear, the
+    // overwhelm regression is back.
+    const result = buildPersonaSystemPrompt(basePrompt, persona)
+    expect(result).toMatch(/CONVERSATION DYNAMICS/)
+    expect(result).toMatch(/gradually|one piece|one detail/i)
+    expect(result).toMatch(/short|1.{0,3}2 short sentences/i)
+    expect(result).toMatch(/follow-up|wait for the learner/i)
   })
 })
 

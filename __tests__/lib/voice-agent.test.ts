@@ -24,4 +24,21 @@ describe('buildPracticeSystemPrompt', () => {
     expect(esPrompt).toContain('NO corrijas los errores del aprendiz durante la conversación')
     expect(enPrompt).toContain('Do NOT correct the learner')
   })
+
+  it('tells Gemini to speak at a slower learner-friendly pace', () => {
+    // Guards the speech-speed lever for both languages. We don't pin exact
+    // wording — just that the prompt explicitly slows the model down without
+    // tipping into "teacher voice" (which would feel patronising and break
+    // the casual-conversation framing).
+    const esPrompt = buildPracticeSystemPrompt('es-AR')
+    const enPrompt = buildPracticeSystemPrompt('en-NZ')
+
+    expect(esPrompt).toMatch(/pausado|tranquilo|sin apuro/i)
+    expect(esPrompt).toMatch(/aprendiendo el idioma/)
+    expect(esPrompt).toMatch(/NO uses voz de "maestro/)
+
+    expect(enPrompt).toMatch(/deliberate|calm|unhurried/i)
+    expect(enPrompt).toMatch(/learning English/)
+    expect(enPrompt).toMatch(/NOT.*teacher voice/i)
+  })
 })

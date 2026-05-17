@@ -37,32 +37,42 @@ type VoiceGender = 'male' | 'female'
  *  rather than re-introducing the cross-gender bug we're fixing here. */
 type VoiceAgeFit = 'youth' | 'any' | 'older'
 
+/** Perceived speech pace bucket — derived from Google's vibe descriptor for
+ *  each prebuilt voice. Used as a HARD filter at pick time so language
+ *  learners aren't paired with rapid-fire personas. 'fast' voices stay in
+ *  the catalog (handy if we ever surface a "natural pace" toggle in
+ *  settings) but `pickVoice` excludes them by default. */
+type VoicePace = 'slow' | 'medium' | 'fast'
+
 /** Subset of Gemini Live's 30 prebuilt voices, curated for character variety.
  *  Each entry's `vibe` is the official Google descriptor — surfaced to the
  *  writer model so it can reflect the voice's energy in the addendum.
- *  `gender` is sourced from Google's official catalog. */
+ *  `gender` is sourced from Google's official catalog. `pace` is our own
+ *  judgement based on the vibe descriptor — used to keep practice calls at
+ *  a learner-friendly speed (see VoicePace docstring). */
 export const VOICE_CATALOG: Array<{
   name: string
   vibe: string
   gender: VoiceGender
   ageFit: VoiceAgeFit
+  pace: VoicePace
 }> = [
-  { name: 'Fenrir',         gender: 'male',   ageFit: 'any',   vibe: 'Excitable — frustrated, urgent, agitated callers' },
-  { name: 'Pulcherrima',    gender: 'female', ageFit: 'any',   vibe: 'Forward — assertive, gossipy, outraged' },
-  { name: 'Vindemiatrix',   gender: 'female', ageFit: 'older', vibe: 'Gentle — soft-spoken, warm, older' },
-  { name: 'Gacrux',         gender: 'female', ageFit: 'older', vibe: 'Mature — older, settled, weighed down by life' },
-  { name: 'Algenib',        gender: 'male',   ageFit: 'older', vibe: 'Gravelly — older men, character voices' },
-  { name: 'Leda',           gender: 'female', ageFit: 'youth', vibe: 'Youthful — children, young adults' },
-  { name: 'Puck',           gender: 'male',   ageFit: 'youth', vibe: 'Upbeat — energetic young adult / teen' },
-  { name: 'Enceladus',      gender: 'male',   ageFit: 'any',   vibe: 'Breathy — conspiratorial, intimate, sharing secrets' },
-  { name: 'Alnilam',        gender: 'male',   ageFit: 'any',   vibe: 'Firm — confident, salesy, official' },
-  { name: 'Achernar',       gender: 'female', ageFit: 'any',   vibe: 'Soft — uncertain, bewildered, shy' },
-  { name: 'Zubenelgenubi',  gender: 'male',   ageFit: 'any',   vibe: 'Casual — laid-back, easygoing friend' },
-  { name: 'Achird',         gender: 'male',   ageFit: 'any',   vibe: 'Friendly — warm, approachable' },
-  { name: 'Sulafat',        gender: 'female', ageFit: 'any',   vibe: 'Warm — kindhearted, caring' },
-  { name: 'Sadachbia',      gender: 'male',   ageFit: 'any',   vibe: 'Lively — energetic, animated' },
-  { name: 'Charon',         gender: 'male',   ageFit: 'any',   vibe: 'Informative — knowledgeable, official' },
-  { name: 'Aoede',          gender: 'female', ageFit: 'any',   vibe: 'Breezy — light, neutral, cheerful' },
+  { name: 'Fenrir',         gender: 'male',   ageFit: 'any',   pace: 'fast',   vibe: 'Excitable — frustrated, urgent, agitated callers' },
+  { name: 'Pulcherrima',    gender: 'female', ageFit: 'any',   pace: 'fast',   vibe: 'Forward — assertive, gossipy, outraged' },
+  { name: 'Vindemiatrix',   gender: 'female', ageFit: 'older', pace: 'slow',   vibe: 'Gentle — soft-spoken, warm, older' },
+  { name: 'Gacrux',         gender: 'female', ageFit: 'older', pace: 'slow',   vibe: 'Mature — older, settled, weighed down by life' },
+  { name: 'Algenib',        gender: 'male',   ageFit: 'older', pace: 'slow',   vibe: 'Gravelly — older men, character voices' },
+  { name: 'Leda',           gender: 'female', ageFit: 'youth', pace: 'medium', vibe: 'Youthful — children, young adults' },
+  { name: 'Puck',           gender: 'male',   ageFit: 'youth', pace: 'fast',   vibe: 'Upbeat — energetic young adult / teen' },
+  { name: 'Enceladus',      gender: 'male',   ageFit: 'any',   pace: 'slow',   vibe: 'Breathy — conspiratorial, intimate, sharing secrets' },
+  { name: 'Alnilam',        gender: 'male',   ageFit: 'any',   pace: 'medium', vibe: 'Firm — confident, salesy, official' },
+  { name: 'Achernar',       gender: 'female', ageFit: 'any',   pace: 'slow',   vibe: 'Soft — uncertain, bewildered, shy' },
+  { name: 'Zubenelgenubi',  gender: 'male',   ageFit: 'any',   pace: 'medium', vibe: 'Casual — laid-back, easygoing friend' },
+  { name: 'Achird',         gender: 'male',   ageFit: 'any',   pace: 'medium', vibe: 'Friendly — warm, approachable' },
+  { name: 'Sulafat',        gender: 'female', ageFit: 'any',   pace: 'slow',   vibe: 'Warm — kindhearted, caring' },
+  { name: 'Sadachbia',      gender: 'male',   ageFit: 'any',   pace: 'fast',   vibe: 'Lively — energetic, animated' },
+  { name: 'Charon',         gender: 'male',   ageFit: 'any',   pace: 'medium', vibe: 'Informative — knowledgeable, official' },
+  { name: 'Aoede',          gender: 'female', ageFit: 'any',   pace: 'medium', vibe: 'Breezy — light, neutral, cheerful' },
 ]
 
 export interface Persona {
@@ -432,16 +442,25 @@ function ageBucket(ageYears: number): VoiceAgeFit {
   return 'any'
 }
 
+/** Voices excluded from default learner-paced calls. Fast voices (Excitable,
+ *  Forward, Upbeat, Lively) overwhelm beginner/intermediate listeners — the
+ *  syllable rate outpaces comprehension before the persona finishes the first
+ *  turn. Filtered at pick time, not at catalog-export time, so a future
+ *  "natural pace" toggle in settings can opt back in without restructuring
+ *  the data. */
+const LEARNER_PACED_VOICES = VOICE_CATALOG.filter(v => v.pace !== 'fast')
+
 /**
- * Pick a voice that matches the persona's gender (HARD constraint) and
- * roughly fits their age (SOFT constraint). The hard/soft split exists so
+ * Pick a voice that matches the persona's gender (HARD constraint), roughly
+ * fits their age (SOFT constraint), and reads at a learner-friendly pace
+ * (HARD filter — see LEARNER_PACED_VOICES). The hard/soft split exists so
  * a 14-year-old boy never gets a feminine voice just because no male-youth
  * voice happens to be tagged — falling back to any age within the right
  * gender is always better than crossing genders.
  *
  * Non-binary personas: no gender filter at all (the picker draws from the
- * whole catalog), since the `namesNB` pool deliberately uses gender-ambiguous
- * names where either voice register reads as plausible.
+ * whole learner-paced catalog), since the `namesNB` pool deliberately uses
+ * gender-ambiguous names where either voice register reads as plausible.
  */
 function pickVoice(
   gender: PersonaSeed['gender'],
@@ -449,12 +468,13 @@ function pickVoice(
 ): { name: string; vibe: string } {
   const bucket = ageBucket(ageYears)
   const genderMatch = gender === 'no-binarie'
-    ? VOICE_CATALOG
-    : VOICE_CATALOG.filter(v => v.gender === (gender === 'masculino' ? 'male' : 'female'))
+    ? LEARNER_PACED_VOICES
+    : LEARNER_PACED_VOICES.filter(v => v.gender === (gender === 'masculino' ? 'male' : 'female'))
 
   // Try (gender ∩ ageFit) first; if that intersection is empty (e.g. no
-  // 'older' voice for some gender at some future catalog state), relax the
-  // age constraint and pick from any age within the right gender.
+  // 'older' voice for some gender at some future catalog state, or no
+  // male-youth voice once Puck is filtered out for being too fast), relax
+  // the age constraint and pick from any age within the right gender.
   const ageMatch = genderMatch.filter(v => v.ageFit === bucket)
   const pool = ageMatch.length > 0 ? ageMatch : genderMatch
 
@@ -511,20 +531,22 @@ CHARACTER:
 - Their relationship to the learner: ${seed.relation}
 - Calling from: ${seed.callingFrom}
 - Emotional state: ${seed.emotion}
-- Reason for the call: ${seed.reason}${seed.twist ? `\n- Twist to weave in: ${seed.twist}` : ''}
+- Reason for the call (INTERNAL — they know it but should NOT spill it all upfront): ${seed.reason}${seed.twist ? `\n- Twist (INTERNAL — emerges later): ${seed.twist}` : ''}
 - They speak with the voice "${seed.voiceName}" (${seed.voiceVibe}). The addendum should match that energy.
 
 OUTPUT JSON shape:
 {
-  "opener": "<single English line, 1–3 sentences, casual NZ register. They greet, introduce themselves by name, give the reason for the call, and end with a question or beat the learner can respond to. Must work as the model's FIRST spoken line with no prior context.>",
-  "systemPromptAddendum": "<2–4 lines in English, written as instructions in second person ('You are X. You're calling because Y. You sound Z.'). Cover: who you are, why you're calling, your emotional state, where the conversation might go. Be specific so the AI stays in character.>"
+  "opener": "<one short English line, 1–2 short sentences MAX, casual NZ register. Pattern: a natural phone-call greeting plus a vague hook — NOT the full reason for calling. Examples that work: 'Hey, it's ${seed.name} — you got a sec?', 'Hi, ${seed.name} here, sorry to bother you — bad time?', 'Hey ${seed.name === 'Mum' ? '' : 'mate, '}quick one — are you around?'. The opener just opens the channel; the actual reason emerges over the next few turns once the learner engages. Must work as the model's FIRST spoken line with no prior context.>",
+  "systemPromptAddendum": "<3–5 lines in English, written as instructions in second person ('You are X. You're calling because Y. You sound Z.'). Cover: who you are, why you're calling INTERNALLY, your emotional state, and — critically — HOW to reveal the reason: drop it gradually across 3–5 turns, NOT in the first turn. Wait for the learner to ask follow-up questions and answer those specifically. Leave hooks the learner can grab. Be vague before you're specific — real callers don't lead with the full picture. If the learner asks nothing, drop one detail at a time rather than a full explanation.>"
 }
 
 CRITICAL:
+- The opener must NOT contain the reason for the call. It only opens the channel — greeting, name, and a small hook (a question, hesitation, or "got a sec?"). The reason unfolds over the following turns.
 - Use the character's actual age, location, and emotion. Do not soften them into a generic adult.
 - Casual NZ register: "yeah nah", "mate", "eh" are fine but use sparingly and only when they fit the character (a 12-year-old won't say "mate").
 - Do NOT default to a "neighbour who saw something weird in the building" — work with the axes given above.
 - Set the emotional tone EXPLICITLY in the addendum, not just by implication.
+- The addendum MUST instruct the model to ease in: keep turns short, withhold details, wait for the learner to ask questions.
 
 Respond ONLY with the JSON object. No prose, no markdown fence.`
   }
@@ -538,20 +560,22 @@ PERSONAJE:
 - Relación con quien aprende: ${seed.relation}
 - Está llamando desde: ${seed.callingFrom}
 - Estado emocional: ${seed.emotion}
-- Motivo de la llamada: ${seed.reason}${seed.twist ? `\n- Detalle para incorporar: ${seed.twist}` : ''}
+- Motivo de la llamada (INTERNO — lo sabés vos pero NO lo soltás de una): ${seed.reason}${seed.twist ? `\n- Detalle (INTERNO — sale después): ${seed.twist}` : ''}
 - Habla con la voz "${seed.voiceName}" (${seed.voiceVibe}). El addendum debería reflejar esa energía.
 
 FORMA DE LA SALIDA (JSON):
 {
-  "opener": "<una sola línea en español rioplatense, 1–3 oraciones. Saluda, dice su nombre, da el motivo de la llamada, y termina con una pregunta o un beat que el aprendiz pueda agarrar. Tiene que funcionar como la PRIMERA frase del modelo, sin contexto previo.>",
-  "systemPromptAddendum": "<2–4 líneas en español (voseo), escritas como instrucciones en segunda persona ('Sos X. Llamás porque Y. Estás Z.'). Cubrir: quién sos, por qué llamás, cómo estás emocionalmente, hacia dónde puede ir la charla. Sé específico para que el modelo no se salga de personaje.>"
+  "opener": "<una sola línea corta en español rioplatense — 1 a 2 oraciones cortas COMO MÁXIMO. Patrón: un saludo natural de teléfono + un gancho vago, NO el motivo entero. Ejemplos que funcionan: 'Hola, soy ${seed.name}, ¿tenés un segundo?', '¿Hola? Soy ${seed.name}, perdón que te moleste — ¿estás ocupado/a?', 'Che, soy ${seed.name}, ¿te puedo robar un minutito?'. El opener solo abre el canal; el motivo real se va desplegando en los próximos turnos cuando el aprendiz empieza a engancharse. Tiene que funcionar como la PRIMERA frase del modelo, sin contexto previo.>",
+  "systemPromptAddendum": "<3 a 5 líneas en español (voseo), escritas como instrucciones en segunda persona ('Sos X. Llamás porque Y. Estás Z.'). Cubrir: quién sos, por qué llamás INTERNAMENTE, cómo estás emocionalmente, y — lo más importante — CÓMO desplegar el motivo: revelalo de a poco a lo largo de 3 a 5 turnos, NO en el primer turno. Esperá a que el aprendiz haga preguntas de seguimiento y respondé a esas preguntas. Dejá ganchos para que el aprendiz pueda agarrar. Sé vago/a antes de ser específico/a — la gente real no arranca con todo el cuadro. Si el aprendiz no pregunta nada, soltá un detalle a la vez en vez de una explicación entera.>"
 }
 
 CRÍTICO:
+- El opener NO debe contener el motivo de la llamada. Solo abre el canal — saludo, nombre y un gancho chico (una pregunta, un titubeo, '¿tenés un segundo?'). El motivo se desarma en los turnos siguientes.
 - Usá la edad, ubicación y emoción reales del personaje. No los suavices a "adulto genérico".
 - Usá voseo rioplatense (sos, tenés, hablás, podés). Lunfardo bienvenido pero sin forzar.
 - NO te vayas al cliché del "vecino que vio algo raro en el edificio" — trabajá con los ejes dados arriba.
 - Fijá el tono emocional EXPLÍCITAMENTE en el addendum, no solo por implicación.
+- El addendum DEBE instruir al modelo a entrar de a poco: turnos cortos, retener detalles, esperar a que el aprendiz pregunte.
 - Si el personaje tiene menos de 16 años, hablá como adolescente/niño — sin formalismos.
 - Si tiene más de 65, evitá modismos demasiado modernos.
 
@@ -577,12 +601,24 @@ export function buildPersonaSystemPrompt(
 —— YOUR CHARACTER FOR THIS CALL ——
 ${persona.systemPromptAddendum}
 
+—— CONVERSATION DYNAMICS (REAL CALL PACING) ——
+This is a real phone call between two humans, not a monologue or an exposition dump. Pace yourself the way a real person would:
+
+- Your opener is ONLY a greeting + a small hook. Say it, then STOP. Wait for the learner to respond before continuing.
+- Do NOT dump your reason for calling in the first turn or two. Real callers ease in — they say hello, exchange a beat, maybe ask "is this a bad time?", and only then start working into what they actually wanted to talk about.
+- Reveal your situation GRADUALLY across the call. Drop one piece of context per turn. Let the learner pull more out of you with follow-up questions — that is the natural rhythm of a phone conversation.
+- Be a bit vague before you're specific. Real people often start with "I had this weird thing happen..." or "...I wanted to ask you something" before getting into the detail. Hold back the punchline.
+- Keep EVERY turn short — 1 to 2 short sentences max. One thought per turn. If you have more to say, save it for the next turn after the learner responds.
+- React specifically to what the learner asks or says. If they ask a clarifying question, answer THAT question — don't pivot to a different chunk of your backstory to deliver more information.
+- Leave space for the learner to drive. If they go quiet, a short "...does that make sense?" or "...you with me?" works better than another paragraph of context.
+- Use natural call patterns: small hesitations, false starts ("uh, well..."), checking in ("you there?"), and acknowledgements ("yeah, exactly") — the texture of a real call, not a clean speech.
+
 —— OPENING THE CALL ——
 You will receive a single text message "__START_CALL__" from the user. That is your cue to begin the call. Speak this exact line FIRST as your spoken response:
 
 "${persona.opener}"
 
-Do NOT mention the trigger. Do NOT translate or explain the opener. Just say it as your character would, then wait for the learner to respond and continue the conversation in character.`
+Do NOT mention the trigger. Do NOT translate or explain the opener. Do NOT continue speaking past the opener — say only the opener line, then stop and wait for the learner. The reason for the call comes out over the next few exchanges, not in your first turn.`
 }
 
 /**
@@ -648,16 +684,19 @@ function templateFallback(targetLanguage: TargetLanguage, seed: PersonaSeed): Pe
     return {
       name: seed.name,
       voiceName: seed.voiceName,
-      opener: `Hey, it's ${seed.name} — listen, I'm calling because I ${seed.reason.replace(/^needs to|^wants to|^has /, m => m.startsWith('needs to') ? 'need to' : m.startsWith('wants to') ? 'want to' : 'have ')}. Got a sec?`,
+      // Hook-only opener — no reason for the call, no info dump. The reason
+      // emerges over the next few turns once the learner engages. Matches
+      // the pacing instructions in buildPersonaSystemPrompt.
+      opener: `Hey, it's ${seed.name} — you got a sec?`,
       systemPromptAddendum:
-        `You are ${seed.name}, ${seed.ageYears} years old, ${seed.relation}. You're calling from ${seed.callingFrom}. You sound ${seed.emotion}. The reason for the call: ${seed.reason}.${seed.twist ? ` ${seed.twist[0].toUpperCase() + seed.twist.slice(1)}.` : ''} Stay in character, keep turns short, let the learner respond.`,
+        `You are ${seed.name}, ${seed.ageYears} years old, ${seed.relation}. You're calling from ${seed.callingFrom}. You sound ${seed.emotion}. INTERNALLY, the reason for the call is: ${seed.reason}.${seed.twist ? ` ${seed.twist[0].toUpperCase() + seed.twist.slice(1)}.` : ''} Do NOT spill the reason in your first turn — ease in, greet, and wait for the learner. Reveal the situation gradually across several turns, one detail at a time, in response to their questions. Keep every turn to 1–2 short sentences.`,
     }
   }
   return {
     name: seed.name,
     voiceName: seed.voiceName,
-    opener: `Hola, soy ${seed.name}. Te llamo porque ${seed.reason}. ¿Tenés un minuto?`,
+    opener: `Hola, soy ${seed.name}. ¿Tenés un segundo?`,
     systemPromptAddendum:
-      `Sos ${seed.name}, tenés ${seed.ageYears} años, sos ${seed.relation}. Llamás desde ${seed.callingFrom}. Estás ${seed.emotion}. El motivo de la llamada: ${seed.reason}.${seed.twist ? ` ${seed.twist[0].toUpperCase() + seed.twist.slice(1)}.` : ''} Mantenete en personaje, hablá en voseo, dejá espacio para que el aprendiz responda.`,
+      `Sos ${seed.name}, tenés ${seed.ageYears} años, sos ${seed.relation}. Llamás desde ${seed.callingFrom}. Estás ${seed.emotion}. INTERNAMENTE, el motivo de la llamada es: ${seed.reason}.${seed.twist ? ` ${seed.twist[0].toUpperCase() + seed.twist.slice(1)}.` : ''} NO sueltes el motivo en tu primer turno — saludá, dejá un beat, y esperá a que el aprendiz responda. El motivo se va desplegando de a poco en los próximos turnos, un detalle por vez, respondiendo a las preguntas que te haga. Mantené cada turno en 1 a 2 oraciones cortas. Hablá en voseo rioplatense.`,
   }
 }
