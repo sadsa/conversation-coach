@@ -240,22 +240,40 @@ describe('buildPersonaSystemPrompt', () => {
     systemPromptAddendum: 'Sos Mateo, treintañero.',
   }
 
-  it('appends the persona block + opener trigger instructions', () => {
+  it('appends the persona character block + the opener line', () => {
     const result = buildPersonaSystemPrompt(basePrompt, persona)
     expect(result).toContain(basePrompt)
     expect(result).toContain(persona.systemPromptAddendum)
     expect(result).toContain(persona.opener)
   })
 
-  it('instructs the model to speak the opener on the __START_CALL__ trigger', () => {
+  it('instructs the model to wait for the learner to greet before speaking', () => {
+    // The whole point of the refactor: the LEARNER picks up the phone and
+    // greets first ("Hello, Josh speaking"); the persona responds. If this
+    // wait-for-greeting instruction disappears the agent will auto-speak
+    // again and the answer-the-phone practice surface dissolves.
     const result = buildPersonaSystemPrompt(basePrompt, persona)
-    expect(result).toContain('__START_CALL__')
-    expect(result).toMatch(/Speak this exact line FIRST/)
+    expect(result).toMatch(/Stay silent until they speak first|wait.*they.*speak/i)
+    expect(result).toMatch(/greet/i)
   })
 
-  it('warns the model not to repeat the trigger token aloud', () => {
+  it('frames the opener as a reply to the learner\'s greeting (adaptable, not verbatim)', () => {
+    // The opener is now the agent's FIRST RESPONSE after the learner greets,
+    // not an unprompted cold-open. The prompt tells the model it may adapt
+    // the line lightly (e.g. address the learner by name if they introduced
+    // themselves) — that nuance keeps the conversation feeling like a real
+    // reply instead of an awkwardly canned line.
     const result = buildPersonaSystemPrompt(basePrompt, persona)
-    expect(result).toMatch(/Do NOT mention the trigger/)
+    expect(result).toMatch(/adapt.*lightly|adapt.*fit/i)
+  })
+
+  it('no longer references the legacy __START_CALL__ auto-speak trigger', () => {
+    // Guard against accidentally reintroducing the trigger pattern — if the
+    // prompt mentions __START_CALL__ but PracticeClient stops sending it,
+    // the agent will sit silent waiting for a cue that never arrives.
+    const result = buildPersonaSystemPrompt(basePrompt, persona)
+    expect(result).not.toContain('__START_CALL__')
+    expect(result).not.toMatch(/Speak this exact line FIRST/)
   })
 
   it('includes call-pacing instructions so the model eases in instead of info-dumping', () => {

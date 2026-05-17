@@ -4,10 +4,28 @@
 // Practise home (`<PractiseClient>`) when the user taps Call or Chat — there
 // is no longer a standalone `/practice` route. State machine:
 //
-//   connecting → active/warning/ending → review → analysing → ready
-//                                              ↗ connecting (resume)
-//                                              ↘ home via onExit() (discard / no speech)
-//                                                       ↘ error
+//   incoming → connecting → active/warning/ending → review → analysing → ready
+//                                                       ↗ connecting (resume)
+//                                                       ↘ home via onExit() (discard / no speech)
+//                                                                ↘ error
+//
+// Call mode mounts in `incoming` — an iOS-style incoming-call screen with
+// Answer / Decline buttons. The persona is fetched in the background during
+// the ring; tapping Answer awaits the fetch then transitions through
+// `connecting` into the live session. Tapping Decline calls `onExit()`
+// (the in-flight persona fetch is fire-and-forget — its result is just
+// discarded). This shifts the very first spoken turn onto the LEARNER —
+// they answer the phone with "Hello, Josh speaking" / "Hola, soy Josh" —
+// which is the small high-frequency moment scripted lessons usually skip.
+// The persona then responds to that greeting (see `buildPersonaSystemPrompt`
+// in lib/persona.ts — we no longer auto-trigger an opener; the agent waits
+// for the learner to speak first and adapts its opener line to their
+// greeting). Chat mode skips `incoming` and goes straight into `connecting`.
+//
+// Reroll ("Try another line") doesn't re-show the incoming screen — the
+// learner already opted in to a new caller, making them tap Answer again
+// is friction. It transitions through `ringing` (the brief compact
+// connecting beat with the ring+shake icon) into `active`.
 //
 // Mode is passed in as a prop (caller decides chat vs. call). Whenever the
 // session would otherwise return to a picker / idle screen — discard, end
@@ -31,7 +49,7 @@
 // beforeunload guard covers review + analysing so navigating away warns.
 //
 // Keyboard shortcuts:
-//   Escape → endSession
+//   Escape → endSession (also declines from the incoming screen)
 //   Space  → toggleMute
 //
 // On unmount the agent disconnects, all timers clear, and the wake lock
@@ -47,10 +65,12 @@ import {
   FLASH_LIVE_MODEL,
 } from '@/lib/voice-agent'
 import { buildPersonaSystemPrompt } from '@/lib/persona'
+import { playRingtone, type Ringtone } from '@/lib/ringtone'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 import { AudioReactiveDots } from '@/components/AudioReactiveDots'
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { ProcessingGraphic } from '@/components/ProcessingGraphic'
 import type { TargetLanguage, TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
@@ -61,12 +81,14 @@ import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
  *  (coach-led back-and-forth). Reroll only applies to call mode. */
 export type PracticeMode = 'chat' | 'call'
 
-// `'ringing'` is the brief beat between mounting in call mode and
-// Gemini's `setupComplete` firing — we fetch the persona, animate the phone,
-// then transition straight into `'active'`. Chat mode skips ringing and
-// goes connecting → active.
+// `'incoming'` is the iOS-style ringing screen with Answer / Decline buttons
+// shown on call-mode mount AND on every reroll ("Try another line"), so the
+// user re-rehearses the answer-the-phone moment with every new caller. The
+// persona is fetched in the background; tapping Answer awaits the fetch and
+// transitions through `'connecting'` into `'active'`. Chat mode skips the
+// incoming screen entirely and goes connecting → active.
 type PracticeState =
-  | 'connecting' | 'ringing'
+  | 'incoming' | 'connecting'
   | 'active' | 'warning' | 'ending'
   | 'review' | 'analysing' | 'error'
 
@@ -101,11 +123,14 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
   const reducedMotion = useReducedMotion()
-  // First state shown is mode-dependent — 'ringing' for call (persona fetch
-  // overlay), 'connecting' for chat (compact spinner). Both transition to
-  // 'active' once the WebSocket reports setupComplete.
+  // First state shown is mode-dependent — 'incoming' for call (ringing screen
+  // with Answer / Decline; persona fetches in the background while ringing),
+  // 'connecting' for chat (compact spinner; connect kicks off immediately).
+  // Both eventually transition to 'active' once the WebSocket reports
+  // setupComplete; call mode passes through 'connecting' on the way after
+  // the user taps Answer.
   const [practiceState, setPracticeState] = useState<PracticeState>(
-    mode === 'call' ? 'ringing' : 'connecting',
+    mode === 'call' ? 'incoming' : 'connecting',
   )
   const [muted, setMuted] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -148,6 +173,11 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
+  // Handle to the active ringtone (if any). Held in a ref because the
+  // ringtone's start/stop lifecycle is driven by an effect that reads
+  // practiceState, not by any render output — and we want one persistent
+  // handle across re-renders, not a fresh one per render.
+  const ringtoneRef = useRef<Ringtone | null>(null)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -159,6 +189,13 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       wakeLockRef.current?.release()
       wakeLockRef.current = null
+      // Defence-in-depth — the ringtone effect's own cleanup should have
+      // run already (practiceState transitions and unmount both fire it),
+      // but if the component is torn down while the ringtone is somehow
+      // still playing we'd leak the AudioContext + oscillators. stop() is
+      // idempotent, so the redundant call is harmless.
+      ringtoneRef.current?.stop()
+      ringtoneRef.current = null
     }
   }, [])
 
@@ -185,13 +222,41 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
       practiceState === 'warning' ||
       practiceState === 'ending' ||
       practiceState === 'review' ||
-      practiceState === 'ringing'
+      practiceState === 'incoming'
     if (isLive) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
+  }, [practiceState])
+
+  // Ringtone lifecycle — plays through both `incoming` (initial answer
+  // screen) and `ringing` (the brief reroll connect beat) so the audible
+  // signal carries the "incoming call" metaphor everywhere the visual
+  // ring choreography does. Stops the moment we leave those states (user
+  // taps Answer or Decline, reroll completes into `connecting`, or the
+  // component unmounts via discard / strict-mode double-invoke).
+  //
+  // The component mounted via a click on the home door — that's the
+  // user-gesture context the browser needs to allow AudioContext output,
+  // and React's commit + effect dispatch happen within the transient
+  // activation window. If the browser still blocks playback, playRingtone
+  // returns a no-op handle and we silently degrade — the ring screen is
+  // already telling the story visually, and a silent ringtone is better
+  // than an unhandled rejection on every call mount.
+  useEffect(() => {
+    const shouldRing = practiceState === 'incoming'
+    if (!shouldRing) return
+    try {
+      ringtoneRef.current = playRingtone()
+    } catch {
+      ringtoneRef.current = null
+    }
+    return () => {
+      ringtoneRef.current?.stop()
+      ringtoneRef.current = null
+    }
   }, [practiceState])
 
   // Warn on browser navigation while unsaved turns exist or analysis is running.
@@ -405,9 +470,9 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   // Restores turnsRef from the frozen snapshot so onTranscript appends correctly.
   // In call mode, preserves the persona's voice + character — without this,
   // resuming a call would drop the persona and the agent would morph into a
-  // generic conversation partner mid-flow. NO openingLine is passed on
-  // resume; the agent picks up where the conversation left off rather than
-  // re-speaking its introduction.
+  // generic conversation partner mid-flow. The agent waits for the user to
+  // resume speaking (same wait-for-greeting pattern as initial connect) rather
+  // than re-speaking its introduction; no `openingLine` is passed on resume.
   const resumeSession = useCallback(async () => {
     if (practiceState !== 'review') return
     const restoredTurns = [...frozenTurnsRef.current]
@@ -543,13 +608,13 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
           } else if (s === 'ended') {
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
             agentRef.current = null
-            // Defensive: if 'ended' arrives while still ringing/connecting (i.e.
+            // Defensive: if 'ended' arrives while still connecting (i.e.
             // the session never reached active), exit back to the home doors
             // so the UI doesn't sit on the connecting screen forever. Voice-
             // agent now routes pre-setup closes through onError, but this
             // catches any edge case onError doesn't cover.
             setPracticeState(prev => {
-              if (prev === 'ringing' || prev === 'connecting') {
+              if (prev === 'connecting') {
                 onExitRef.current()
                 return prev
               }
@@ -581,38 +646,47 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
         // back-and-forth. Personas still come through via the system prompt
         // + matched voice — flash-live carries enough character with those.
         model: FLASH_LIVE_MODEL,
-        // Persona-only: matched voice + agent-speaks-first opener trigger.
-        // Chat mode gets undefined for both → existing behaviour preserved.
+        // Persona-only: matched voice. We intentionally do NOT pass
+        // `openingLine` anymore — the call now mirrors a real phone call
+        // where the LEARNER picks up first and greets ("Hello, Josh
+        // speaking"). The persona system prompt (lib/persona.ts) instructs
+        // the agent to wait for that greeting and reply with its opener
+        // line. Auto-speaking the opener would defeat the whole point of
+        // the answer-the-phone practice surface.
         voiceName: activePersona?.voiceName,
-        openingLine: activePersona?.opener,
       },
     )
   }, [targetLanguage, t, startTimer])
 
-  // Connect on mount with the mode the parent picked on the home doors.
-  // Runs exactly once. Cleanup of the WebSocket / timers / wake lock lives
-  // in the top-level mount effect, so this effect only needs to kick off
-  // the connect — no return cleanup. Errors fall through to onExit (via
+  // Persona fetch promise — kicked off on mount in call mode so the network
+  // round trip happens during the ring (target: persona ready by the time
+  // the user actually taps Answer). The user's Answer tap awaits this
+  // promise; Decline just unmounts and the resolved persona is discarded.
+  // Held in a ref (not state) so re-renders don't reset it and so the
+  // `answerCall` callback can read it without re-binding on every fetch
+  // state change.
+  const personaPromiseRef = useRef<Promise<Persona | null> | null>(null)
+
+  // Initial dispatch — runs exactly once. Cleanup of WebSocket / timers /
+  // wake lock lives in the top-level mount effect, so this only kicks off
+  // the work — no return cleanup. Errors fall through to onExit (via
   // connectAgent's onError + the catch below).
+  //
+  // Chat mode: connect immediately (no Answer step — Casual Chat is a
+  // back-and-forth, not a phone call, and the agent speaks first naturally).
+  // Call mode: start the persona fetch in the background; the UI sits on
+  // the incoming screen until the user taps Answer.
   const hasStartedRef = useRef(false)
   useEffect(() => {
     if (hasStartedRef.current) return
     hasStartedRef.current = true
+    if (mode === 'call') {
+      personaPromiseRef.current = fetchPersona()
+      return
+    }
     void (async () => {
-      // Call mode: ring first, fetch persona, then connect with persona prompt.
-      let resolvedPersona: Persona | null = null
-      if (mode === 'call') {
-        resolvedPersona = await fetchPersona()
-        if (!isMountedRef.current) return
-        if (!resolvedPersona) {
-          setToast(t('practice.errorConnect'))
-          onExitRef.current()
-          return
-        }
-        setPersona(resolvedPersona)
-      }
       try {
-        const agent = await connectAgent(resolvedPersona)
+        const agent = await connectAgent(null)
         agentRef.current = agent
       } catch (err) {
         if (!isMountedRef.current) return
@@ -627,10 +701,53 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** "Try another line" — call-mode only. Hangs up the current caller, fetches
-   *  a fresh persona, and starts a brand new call session (timer + transcript
-   *  reset). Costs one reroll from the budget; hides the pill at zero. */
-  const tryAnotherLine = useCallback(async () => {
+  /** Answer the incoming call: flip to the connecting beat, await whatever
+   *  persona fetch is in flight (usually already resolved by the time the
+   *  user has finished reading the ring screen and tapping), then connect.
+   *  Errors fall back to the home doors via onExit. */
+  const answerCall = useCallback(async () => {
+    if (practiceState !== 'incoming') return
+    if (!personaPromiseRef.current) return
+    setPracticeState('connecting')
+    try {
+      const p = await personaPromiseRef.current
+      if (!isMountedRef.current) return
+      if (!p) {
+        setToast(t('practice.errorConnect'))
+        onExitRef.current()
+        return
+      }
+      setPersona(p)
+      const agent = await connectAgent(p)
+      agentRef.current = agent
+    } catch (err) {
+      if (!isMountedRef.current) return
+      const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
+      setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+      onExitRef.current()
+    }
+  }, [practiceState, connectAgent, t])
+
+  /** Decline the incoming call: straight back to the home doors. The
+   *  persona fetch (if still in flight) finishes in the background and
+   *  its result is discarded — the component is already unmounting. */
+  const declineCall = useCallback(() => {
+    onExitRef.current()
+  }, [])
+
+  /** "Try another line" — call-mode only. Hangs up the current caller and
+   *  routes back through the `incoming` screen for the new caller, so the
+   *  user re-rehearses the answer-the-phone moment with every reroll (the
+   *  whole point of call mode is practising that micro-moment — auto-
+   *  answering rerolls would mean the user only ever practised it once
+   *  per session). Tearing down the live agent, wiping the transcript, and
+   *  starting a fresh persona fetch happens here; the answer/decline of the
+   *  new caller is then handled by the same `answerCall` / `declineCall`
+   *  handlers the initial incoming screen uses. Costs one reroll from the
+   *  budget at tap-time (declining the new caller still "spent" a reroll —
+   *  if the user declines, they exit the session entirely anyway). Pill
+   *  hides at zero remaining. */
+  const tryAnotherLine = useCallback(() => {
     if (isRerolling) return
     if (mode !== 'call') return
     if (rerollsLeft <= 0) {
@@ -642,9 +759,8 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     if (practiceState !== 'active' && practiceState !== 'warning') return
 
     setIsRerolling(true)
-    // Drop any lingering toast (e.g. a previous "Nueva persona en la línea"
-    // still in its 3.5s window) so the next setToast(...) below always
-    // re-renders, even if the new message happens to be identical text.
+    // Drop any lingering toast so a stale message doesn't bleed onto the
+    // incoming screen for the new caller.
     setToast(null)
 
     // Tear down the live session. flush() isn't useful — we're discarding the
@@ -663,35 +779,21 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     setElapsed(0)
     setLiveTurns([])
     turnsRef.current = []
-    setPracticeState('ringing')
+    setPersona(null)
 
-    const newPersona = await fetchPersona()
-    if (!isMountedRef.current) return
-    if (!newPersona) {
-      setIsRerolling(false)
-      setToast(t('practice.rerollErrorToast'))
-      // Falling back to the home doors (rather than restoring the old
-      // persona) is the simplest recovery — the previous session is
-      // already disconnected.
-      onExitRef.current()
-      return
-    }
-    setPersona(newPersona)
+    // Decrement at tap-time, not after connect. The act of asking for a
+    // new caller IS the spend; if the user declines the new caller they
+    // exit the session entirely (consistent with declining the initial
+    // call) so the budget bookkeeping is moot in that branch anyway.
+    setRerollsLeft(prev => Math.max(0, prev - 1))
 
-    try {
-      const agent = await connectAgent(newPersona)
-      agentRef.current = agent
-      setRerollsLeft(prev => Math.max(0, prev - 1))
-      setToast(t('practice.rerollUsedToast'))
-    } catch (err) {
-      if (!isMountedRef.current) return
-      const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
-      setToast(isPermission ? t('practice.errorMic') : t('practice.rerollErrorToast'))
-      onExitRef.current()
-    } finally {
-      if (isMountedRef.current) setIsRerolling(false)
-    }
-  }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, connectAgent, t])
+    // Kick off the new persona fetch in the background and route to the
+    // incoming screen. `answerCall` reads `personaPromiseRef` exactly the
+    // same way it does for the initial call — no duplication needed.
+    personaPromiseRef.current = fetchPersona()
+    setPracticeState('incoming')
+    setIsRerolling(false)
+  }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, t])
 
   // Retry from the error state. If we collected user speech, re-submit;
   // otherwise the connection itself failed before any turns landed — bail
@@ -705,65 +807,139 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     }
   }, [submitTurns])
 
-  // ─── Ringing (call mode only) ──────────────────────────────────────────
-  // Brief intermediate beat while the persona is being fetched + Gemini
-  // session is being set up. Reinforces the "phone call" metaphor with a
-  // pulsing ring + shaking phone icon. Lasts ~1.5–2s in practice.
-  if (practiceState === 'ringing') {
+  // ─── Incoming (call mode only — initial mount) ─────────────────────────
+  // iOS-style incoming-call screen. Persona is fetched in the background;
+  // the user taps Answer to connect (the answer awaits the fetch promise
+  // and transitions through `connecting` into `active`). Decline returns
+  // to the home doors. Caller info is intentionally anonymous — the
+  // persona reveals themselves when they reply to the user's greeting,
+  // which is the whole "who's this?" moment we're trying to recreate.
+  if (practiceState === 'incoming') {
     return (
       <div
         className="
           mx-auto w-full max-w-md px-6
-          flex flex-col items-center justify-center flex-1
-          gap-6 text-center
+          flex flex-col flex-1
+          pt-10 pb-8
         "
-        role="status"
-        aria-live="polite"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="incoming-caller-name"
       >
-        <div
-          className="
-            w-28 h-28 rounded-full
-            bg-emerald-500/10 dark:bg-emerald-400/10
-            flex items-center justify-center
-            relative
-          "
-          style={{ animation: reducedMotion ? undefined : 'cc-call-pulse 1.8s ease-out infinite' }}
-        >
-          {/* Wrap the icon — Icon component doesn't accept inline style, so
-              the shake animation needs to live on a wrapping span. */}
-          <span style={{ animation: reducedMotion ? undefined : 'cc-call-shake 1.4s ease-in-out infinite', display: 'inline-flex' }}>
-            <Icon
-              name="phone"
-              className="h-12 w-12 text-emerald-600 dark:text-emerald-400"
-            />
-          </span>
+        {/* Top block: eyebrow → ringing phone → caller name + hint.
+            `space-y` keeps internal rhythm tight; the spacer below pushes
+            the call-action row to the bottom of the viewport. */}
+        <div className="flex flex-col items-center text-center gap-7">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-text-tertiary">
+            {t('practice.incomingTitle')}
+          </p>
+
+          {/* Ringing handset — emerald pulse + shake. Same primitives the
+              old `ringing` screen used, just sized up for the dominant
+              role they play on this screen. */}
+          <div
+            className="
+              w-28 h-28 rounded-full
+              bg-emerald-500/10 dark:bg-emerald-400/10
+              flex items-center justify-center
+            "
+            style={{ animation: reducedMotion ? undefined : 'cc-call-pulse 1.8s ease-out infinite' }}
+            aria-hidden="true"
+          >
+            <span style={{ animation: reducedMotion ? undefined : 'cc-call-shake 1.4s ease-in-out infinite', display: 'inline-flex' }}>
+              <Icon
+                name="phone"
+                className="h-12 w-12 text-emerald-600 dark:text-emerald-400"
+              />
+            </span>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <p
+              id="incoming-caller-name"
+              className="font-display text-2xl font-medium text-text-primary"
+            >
+              {t('practice.incomingCaller')}
+            </p>
+            <p className="text-sm text-text-secondary leading-relaxed max-w-[28ch]">
+              {t('practice.incomingHint')}
+            </p>
+          </div>
         </div>
-        <p className="text-xl font-medium text-text-primary">{t('practice.ringingText')}</p>
-        <p className="text-sm text-text-secondary max-w-[24ch] leading-relaxed">
-          {t('practice.ringingSub')}
-        </p>
+
+        {/* Spacer — pushes the action row to the bottom of the available
+            vertical space the way iOS phone app does. min-h prevents the
+            row from collapsing into the caller block on short viewports. */}
+        <div className="flex-1 min-h-8" aria-hidden="true" />
+
+        {/* Decline + Answer. Matches the iOS/Android phone-app convention
+            (Decline left, Answer right) so the muscle memory carries over.
+            Decline reuses rose (same hue family as the in-call Hang Up
+            button — destructive read). Answer wears the brand emerald and
+            gets a slow, calm pulse to draw the eye without nagging. */}
+        <div className="flex items-end justify-center gap-12 sm:gap-16">
+
+          <button
+            type="button"
+            onClick={declineCall}
+            data-testid="incoming-decline"
+            aria-label={t('practice.declineAria')}
+            className="group flex flex-col items-center gap-1.5 focus-visible:outline-none"
+          >
+            <div
+              className="
+                w-16 h-16 rounded-full flex items-center justify-center
+                bg-rose-500 text-white
+                group-hover:bg-rose-600 group-active:bg-rose-700
+                group-focus-visible:ring-2 group-focus-visible:ring-rose-500 group-focus-visible:ring-offset-2
+                transition-colors duration-150
+              "
+            >
+              <Icon name="phone-hangup" className="h-6 w-6" />
+            </div>
+            <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
+              {t('practice.decline')}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={answerCall}
+            data-testid="incoming-answer"
+            aria-label={t('practice.answerAria')}
+            className="group flex flex-col items-center gap-1.5 focus-visible:outline-none"
+          >
+            <div
+              className="
+                w-16 h-16 rounded-full flex items-center justify-center
+                bg-emerald-500 text-white
+                group-hover:bg-emerald-600 group-active:bg-emerald-700
+                group-focus-visible:ring-2 group-focus-visible:ring-emerald-500 group-focus-visible:ring-offset-2
+                transition-colors duration-150
+              "
+              style={{ animation: reducedMotion ? undefined : 'cc-call-pulse 2.2s ease-out infinite' }}
+            >
+              <Icon name="phone" className="h-6 w-6" />
+            </div>
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 select-none">
+              {t('practice.answer')}
+            </span>
+          </button>
+        </div>
       </div>
     )
   }
 
   // ─── Connecting ────────────────────────────────────────────────────────
-  // Brief pre-flight — uses the compact processing graphic so the visual
-  // language matches the analysing screen (and the upload pipeline) without
-  // dominating a near-instant transition.
+  // Brief pre-flight before Gemini's setupComplete fires. Uses the shared
+  // "Robot Patient" loader (LoadingScreen) — same identity as every
+  // suspense fallback in the app, with a random Rioplatense phrase as a
+  // tiny teaching beat while the user waits. The analysing screen below
+  // keeps the waveform-to-line graphic because that one IS the audio →
+  // transcript metaphor; the connecting beat carries no such meaning, so
+  // it borrows the generic robot loader instead.
   if (practiceState === 'connecting') {
-    return (
-      <div
-        className="
-          mx-auto w-full max-w-md px-6
-          flex flex-col items-center justify-center flex-1
-          gap-5 text-center
-        "
-        role="status"
-        aria-live="polite"
-      >
-        <ProcessingGraphic compact label={t('practice.connecting')} />
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   // ─── Analysing ─────────────────────────────────────────────────────────
@@ -810,9 +986,22 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   // ─── Active / Warning / Ending / Review ────────────────────────────────
   const isEnding = practiceState === 'ending'
   const isReview = practiceState === 'review'
+  // Call-mode greet cue: the agent now waits for the learner to greet first
+  // (real phone-call pacing — see lib/persona.ts). Surface a quiet
+  // "your turn — say hello" hint until the first user turn lands so a new
+  // user doesn't think the call is broken. Naturally suppressed in chat
+  // mode (the agent always speaks first there), in muted/ending states (the
+  // existing label takes the slot), and once any user turn has landed.
+  const hasUserSpoken = liveTurns.some(turn => turn.role === 'user')
+  const showGreetCue =
+    mode === 'call' &&
+    practiceState === 'active' &&
+    !hasUserSpoken &&
+    voiceStatus !== 'muted'
   const statusLabel = isEnding
     ? t('practice.endingState')
     : voiceStatus === 'muted' ? t('practice.statusMuted')
+    : showGreetCue ? t('practice.greetCue')
     : null
 
   return (
@@ -971,7 +1160,13 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className={`text-xs font-medium select-none ${isEnding ? 'text-text-tertiary' : 'text-amber-600 dark:text-amber-400'}`}
+                    className={`text-xs font-medium select-none ${
+                      isEnding
+                        ? 'text-text-tertiary'
+                        : showGreetCue
+                          ? 'text-text-secondary'
+                          : 'text-amber-600 dark:text-amber-400'
+                    }`}
                   >
                     {statusLabel}
                   </motion.span>

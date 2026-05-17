@@ -84,17 +84,35 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start chatting',
 
-    // Practice — ringing screen (call mode only)
-    'practice.ringingText': "Someone's calling",
-    'practice.ringingSub': 'Connecting you now…',
+    // Practice — incoming-call screen (call mode, initial mount).
+    // Reads like an iOS/Android incoming-call notification. Caller is kept
+    // anonymous so the persona reveals themselves naturally once the user
+    // greets them — preserving the "who's this?" moment of a real call.
+    // `incomingHint` sets the expectation that the learner is the one who
+    // speaks first ("Hello, Josh speaking" / "Hola, soy Josh") before the
+    // call connects, so the active screen doesn't catch them off guard.
+    'practice.incomingTitle': 'Incoming call',
+    'practice.incomingCaller': 'Unknown caller',
+    'practice.incomingHint': "You answer first — just say hello when you're ready.",
+    'practice.answer': 'Answer',
+    'practice.answerAria': 'Answer the call',
+    'practice.decline': 'Decline',
+    'practice.declineAria': 'Decline the call',
+    // Transient cue shown above the audio dots on the active screen when
+    // the call has connected but the learner hasn't spoken yet. Disappears
+    // the moment a user turn lands. Quiet read (text-text-secondary) so it
+    // sits as orientation rather than instruction.
+    'practice.greetCue': 'Your turn — say hello',
 
-    // Practice — reroll ("Try another line")
+    // Practice — reroll ("Try another line"). The reroll now routes through
+    // the incoming screen above (same Answer/Decline as the initial call) so
+    // the user re-practises the answer-the-phone moment with every new
+    // caller, instead of auto-connecting. The success / error toasts that
+    // used to fire on direct reconnect are gone with that flow.
     'practice.rerollLabel': 'Try another line',
     'practice.rerollAria': 'Hang up and try another caller',
     'practice.rerollsLeft': '{n} left',
-    'practice.rerollUsedToast': 'New caller on the line',
     'practice.rerollExhaustedToast': "That's your last line for this session",
-    'practice.rerollErrorToast': "Couldn't reach anyone else — try again",
 
     'practice.connecting': 'Connecting to the coach…',
     'practice.endingState': 'Hanging up…',
@@ -592,17 +610,35 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a charlar',
 
-    // Practice — ringing screen (call mode only)
-    'practice.ringingText': 'Te están llamando',
-    'practice.ringingSub': 'Conectando…',
+    // Practice — pantalla de llamada entrante (modo call, al iniciar).
+    // Se ve como una notificación de llamada entrante de iOS/Android. El
+    // que llama queda anónimo a propósito — la persona se presenta sola
+    // cuando el aprendiz la saluda, conservando el momento "¿quién será?"
+    // de una llamada real. `incomingHint` aclara que el aprendiz habla
+    // primero ("Hola, soy Josh") para que la pantalla activa no lo
+    // agarre desprevenido.
+    'practice.incomingTitle': 'Llamada entrante',
+    'practice.incomingCaller': 'Número desconocido',
+    'practice.incomingHint': 'Atendés vos — saludá cuando estés listo/a.',
+    'practice.answer': 'Atender',
+    'practice.answerAria': 'Atender la llamada',
+    'practice.decline': 'Rechazar',
+    'practice.declineAria': 'Rechazar la llamada',
+    // Cue temporario arriba de los puntos de audio en la pantalla activa
+    // cuando la llamada ya conectó pero el aprendiz todavía no habló.
+    // Desaparece apenas aterriza el primer turno del usuario. Lectura
+    // tranquila (text-text-secondary) — orientación, no instrucción.
+    'practice.greetCue': 'Tu turno — saludá',
 
-    // Practice — reroll ("Try another line")
+    // Practice — reroll ("Try another line"). El reroll ahora pasa por la
+    // pantalla incoming (mismos botones Atender/Rechazar que la llamada
+    // inicial) para que el aprendiz vuelva a practicar el momento de
+    // atender el teléfono con cada nueva persona, en vez de auto-conectarse.
+    // Los toasts de éxito / error de la reconexión directa ya no existen.
     'practice.rerollLabel': 'Probar otra línea',
     'practice.rerollAria': 'Colgar y probar con otra persona',
     'practice.rerollsLeft': '{n} restantes',
-    'practice.rerollUsedToast': 'Nueva persona en la línea',
     'practice.rerollExhaustedToast': 'Ya usaste todas las líneas de esta sesión',
-    'practice.rerollErrorToast': 'No pudimos conseguir otra persona — probá de nuevo',
 
     'practice.connecting': 'Conectando con el coach…',
     'practice.endingState': 'Colgando…',
