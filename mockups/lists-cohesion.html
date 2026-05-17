@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Review &amp; Study lists — before vs. after</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* ─── Project tokens (light mode, mirrored from globals.css) ─────────── */
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-correction-text: oklch(48% 0.14 150);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:oklch(94% 0.005 75);color:var(--color-text-primary);font-family:var(--font-body)}
+  .page{max-width:1400px;margin:0 auto;padding:clamp(1.5rem,3vw,2.5rem) clamp(1rem,3vw,2rem) 4rem}
+  .page-header{margin-bottom:2rem}
+  .eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--color-text-tertiary);margin:0 0 .5rem}
+  h1{font-family:var(--font-display);font-weight:500;font-size:clamp(1.75rem,3vw,2.5rem);line-height:1.1;letter-spacing:-.01em;margin:0 0 .5rem}
+  .lede{font-size:.9375rem;line-height:1.55;color:var(--color-text-secondary);max-width:62ch;margin:0}
+
+  .comparison{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:1.5rem;margin-top:2rem}
+  .pane{display:flex;flex-direction:column;gap:1rem}
+  .pane-header{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--color-border-subtle)}
+  .pane-h{font-family:var(--font-display);font-weight:500;font-size:1.125rem;margin:0;color:var(--color-text-primary)}
+  .pane-tag{font-size:.6875rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+  .pane-tag.before{color:oklch(50% 0.16 25)}
+  .pane-tag.after{color:oklch(45% 0.16 150)}
+
+  .frame{background:var(--color-bg);border-radius:18px;padding:1.25rem;border:1px solid var(--color-border-subtle)}
+  .frame-title{font-family:var(--font-display);font-size:1.5rem;font-weight:500;margin:0 0 1rem;letter-spacing:-.01em}
+
+  /* ─── BEFORE: divided edge-to-edge inbox (current SessionList) ─────── */
+  .before-list{margin:0 -1.25rem;padding:0;list-style:none;border-top:1px solid var(--color-border-subtle);border-bottom:1px solid var(--color-border-subtle)}
+  .before-list li + li{border-top:1px solid var(--color-border-subtle)}
+  .before-row{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;padding:1rem 1.25rem;background:var(--color-surface);cursor:pointer;transition:background .15s ease}
+  .before-row:hover{background:var(--color-surface-elevated)}
+  .before-row.unread .title{font-weight:600;color:var(--color-text-primary)}
+  .before-row.read .title{font-weight:400;color:var(--color-text-secondary)}
+  .before-row .title{font-size:1.0625rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+  .before-row .date{font-size:.8125rem;color:var(--color-text-tertiary);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+  /* ─── AFTER: card stack (new SessionList; matches WriteList) ────────── */
+  .after-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.5rem}
+  .after-card{border-radius:.75rem;border:1px solid var(--color-border-subtle);background:var(--color-surface);transition:background .15s ease,border-color .15s ease;overflow:hidden}
+  .after-card:hover{background:var(--color-surface-elevated);border-color:var(--color-border)}
+  .after-row{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;padding:1rem 1.25rem;cursor:pointer}
+  .after-card.unread .title{font-weight:600;color:var(--color-text-primary)}
+  .after-card.read .title{font-weight:400;color:var(--color-text-secondary)}
+  .after-row .title{font-size:1.0625rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+  .after-row .date{font-size:.8125rem;color:var(--color-text-tertiary);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+  /* ─── Study card (unchanged WriteList primitives) ──────────────────── */
+  .study-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.5rem}
+  .study-card{display:flex;align-items:stretch;border-radius:.75rem;border:1px solid var(--color-border-subtle);background:var(--color-surface);transition:background .15s ease,border-color .15s ease;overflow:hidden}
+  .study-card:hover{background:var(--color-surface-elevated);border-color:var(--color-border)}
+  .study-body{flex:1;min-width:0;padding:.75rem 1rem;cursor:pointer}
+  .study-sentence{font-size:.9375rem;line-height:1.5;color:var(--color-text-secondary);margin:0}
+  .study-sentence .strike{color:var(--color-text-tertiary);text-decoration:line-through;text-decoration-color:oklch(55% 0.01 265 / 0.4)}
+  .study-sentence .fix{color:var(--color-correction-text);font-weight:600}
+  .study-done{display:flex;align-items:center;justify-content:center;padding:0 .875rem;border-left:1px solid var(--color-border-subtle);color:var(--color-text-secondary);cursor:pointer}
+  .study-done svg{width:18px;height:18px}
+
+  .note{margin-top:1rem;padding:.875rem 1rem;background:var(--color-surface);border:1px solid var(--color-border-subtle);border-radius:.75rem;font-size:.8125rem;line-height:1.55;color:var(--color-text-secondary)}
+  .note strong{color:var(--color-text-primary);font-weight:600}
+
+  .callout{margin-top:2rem;padding:1.25rem 1.5rem;background:oklch(95% 0.04 150);border:1px solid oklch(80% 0.06 150);border-radius:.75rem;color:oklch(28% 0.08 150);font-size:.875rem;line-height:1.6}
+  .callout strong{font-weight:600}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="page-header">
+    <p class="eyebrow">Review &amp; Study lists · cohesion pass</p>
+    <h1>One list vocabulary across both pillars.</h1>
+    <p class="lede">
+      The two lists used to share zero structural primitives — Review was a
+      divided edge-to-edge inbox, Study was a card stack. After this pass,
+      Review adopts the card stack: same `rounded-xl border-border-subtle`
+      chrome, same `space-y-2` rhythm, same hover bg + border response.
+    </p>
+  </header>
+
+  <section class="comparison">
+
+    <article class="pane">
+      <header class="pane-header">
+        <h2 class="pane-h">/review · before</h2>
+        <span class="pane-tag before">edge-to-edge divided list</span>
+      </header>
+      <div class="frame">
+        <p class="frame-title">Your conversations</p>
+        <ul class="before-list">
+          <li><div class="before-row unread"><span class="title">Coffee with Mateo</span><span class="date">Yesterday</span></div></li>
+          <li><div class="before-row read"><span class="title">Sunday phone call</span><span class="date">Tue</span></div></li>
+          <li><div class="before-row read"><span class="title">Voice note from Ana</span><span class="date">Mon</span></div></li>
+          <li><div class="before-row read"><span class="title">Café with Sofía</span><span class="date">15 Mar</span></div></li>
+        </ul>
+        <aside class="note">
+          <strong>Old chrome:</strong> mobile bleed (<code>-mx-6</code>), divided list
+          (<code>divide-y</code>), no per-row border, no gaps between rows.
+        </aside>
+      </div>
+    </article>
+
+    <article class="pane">
+      <header class="pane-header">
+        <h2 class="pane-h">/review · after</h2>
+        <span class="pane-tag after">card stack (matches Study)</span>
+      </header>
+      <div class="frame">
+        <p class="frame-title">Your conversations</p>
+        <ul class="after-list">
+          <li class="after-card unread"><div class="after-row"><span class="title">Coffee with Mateo</span><span class="date">Yesterday</span></div></li>
+          <li class="after-card read"><div class="after-row"><span class="title">Sunday phone call</span><span class="date">Tue</span></div></li>
+          <li class="after-card read"><div class="after-row"><span class="title">Voice note from Ana</span><span class="date">Mon</span></div></li>
+          <li class="after-card read"><div class="after-row"><span class="title">Café with Sofía</span><span class="date">15 Mar</span></div></li>
+        </ul>
+        <aside class="note">
+          <strong>New chrome:</strong> rounded card per row
+          (<code>rounded-xl border border-border-subtle</code>),
+          <code>space-y-2</code> gaps, inset to the page gutter, card-level
+          hover (<code>hover:bg-surface-elevated hover:border-border</code>).
+          Read/unread still differentiated by weight + tone only — no dot,
+          no border stripe.
+        </aside>
+      </div>
+    </article>
+
+    <article class="pane">
+      <header class="pane-header">
+        <h2 class="pane-h">/write · unchanged</h2>
+        <span class="pane-tag after">the reference vocabulary</span>
+      </header>
+      <div class="frame">
+        <p class="frame-title">Study</p>
+        <ul class="study-list">
+          <li class="study-card">
+            <div class="study-body">
+              <p class="study-sentence">…entonces <span class="strike">yo fui</span> <span class="fix">fui</span> al mercado…</p>
+            </div>
+            <div class="study-done" aria-label="Mark as written">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </li>
+          <li class="study-card">
+            <div class="study-body">
+              <p class="study-sentence">…<span class="strike">le dije a el</span> <span class="fix">le dije</span> que sí…</p>
+            </div>
+            <div class="study-done" aria-label="Mark as written">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </li>
+          <li class="study-card">
+            <div class="study-body">
+              <p class="study-sentence">…<span class="strike">no quiero que vengas</span> <span class="fix">no quiero que venís</span>…</p>
+            </div>
+            <div class="study-done" aria-label="Mark as written">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </li>
+        </ul>
+        <aside class="note">
+          <strong>Untouched:</strong> The visible Done button stays (Study's
+          per-row action is non-destructive and benefits from being explicit,
+          per principle #4 "obvious actions"). The row chrome was already the
+          target — Review just adopted it.
+        </aside>
+      </div>
+    </article>
+
+  </section>
+
+  <aside class="callout">
+    <strong>Why this direction:</strong> the brand references in
+    <code>.impeccable.md</code> are Gmail and Google Recorder (inbox metaphor),
+    but those interfaces use full-bleed dividers because their rows have no
+    per-row action surfaces. Study needs a permanent Done button, which doesn't
+    sit cleanly in a divided list. Cards are the smallest move that gives both
+    surfaces one row primitive AND keeps Study's trailing tap target legible.
+    Swipe gestures (delete, toggle-read) work the same as before; the rounded
+    overflow-hidden card now clips the swipe-reveal layers to the rounded
+    shape so the gesture reads as "this card slides".
+  </aside>
+</main>
+</body>
+</html>

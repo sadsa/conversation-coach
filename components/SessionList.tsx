@@ -24,6 +24,17 @@
 // of the list — the weight/tone difference is enough at-a-glance signal, and
 // removing the filter means a read-toggle never causes the row to leave the
 // visible array mid-animation.
+//
+// Row chrome (visual cohesion with the Study queue): each row is a rounded
+// card (`rounded-xl border border-border-subtle bg-surface`) with `space-y-2`
+// gaps between rows, matching `<WriteList>` exactly. The previous edge-to-edge
+// divided-list style was distinctive but it gave Review and Study two
+// completely different visual vocabularies — one inbox, one card stack. The
+// brand wants one list shape across both surfaces; cards win because (1) they
+// already work for Study's per-row trailing action, (2) they contain the
+// swipe reveals inside a rounded shape that feels intentional rather than
+// bleeding into the page edge, and (3) the spacing gaps reinforce the
+// "spacious" principle from .impeccable.md without needing extra padding.
 
 'use client'
 import { useState, useRef, useEffect } from 'react'
@@ -278,7 +289,12 @@ function SwipeableSessionItem({
   return (
     <li
       ref={rowRef}
-      className="relative overflow-hidden grid"
+      // `overflow-hidden` here clips the inner card's content against the
+      // shrinking grid track during the collapse animation — without it the
+      // row's contents would visually spill past the collapsing track. The
+      // rounded card border lives on the inner div so the visible card shape
+      // still reads as rounded; this outer clipper is invisible.
+      className="relative grid overflow-hidden"
       style={
         rowHeight !== null
           ? {
@@ -288,7 +304,17 @@ function SwipeableSessionItem({
           : { gridTemplateRows: '1fr' }
       }
     >
-      <div className="overflow-hidden min-h-0 min-w-0">
+      {/*
+        Card frame. Holds the rounded border + hover-border (static while
+        the gesture target slides) and the overflow clipping that keeps
+        the swipe-reveal layers inside the rounded shape. Importantly: no
+        bg here — the bg lives on the gesture target below so the slide
+        reveal works correctly (the sliding target obscures the reveal
+        except where it has moved away from). Border-hover bubbles from
+        the gesture target via natural `:hover` propagation, so no group
+        wiring is needed.
+      */}
+      <div className="relative overflow-hidden min-h-0 min-w-0 rounded-xl border border-border-subtle hover:border-border transition-colors">
       {/* Swipe reveals — only one is mounted at a time based on drag direction
           (or active commit animation). Both layers are `absolute inset-0`, so
           if we mounted them simultaneously the second one in the DOM would
@@ -309,7 +335,19 @@ function SwipeableSessionItem({
         </div>
       )}
 
-      {/* Session card */}
+      {/*
+        Session card — gesture target. Carries the resting bg + hover
+        bg so the swipe-reveal layers underneath are properly OCCLUDED
+        by the sliding card surface (and become visible only on the
+        portion the card has slid AWAY from). Hover-bg propagates to
+        the parent's hover-border via natural `:hover` bubbling, so
+        both react together without any group wiring.
+
+        Processing rows tint the gesture target with `bg-accent-chip`
+        instead of `bg-surface`, matching the previous brand-warmth
+        signal. No hover state in that case — processing rows aren't
+        actionable beyond opening status.
+      */}
       <div
         {...handlers}
         style={{
@@ -328,7 +366,9 @@ function SwipeableSessionItem({
           userSelect: 'none',
           touchAction: 'pan-y',
         }}
-        className={`relative${isProcessing ? ' bg-accent-chip' : ' bg-surface'}`}
+        className={`relative transition-colors ${
+          isProcessing ? 'bg-accent-chip' : 'bg-surface hover:bg-surface-elevated'
+        }`}
       >
         {/* Hidden test seam for triggering delete in tests. Kicks off the
             same optimistic-undo flow the swipe gesture uses, since simulating
@@ -361,7 +401,7 @@ function SwipeableSessionItem({
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
           onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
-          className="block py-4 px-5 min-w-0 hover:bg-surface-elevated transition-colors"
+          className="block py-4 px-5 min-w-0"
         >
           {/*
             Title row. Date is pinned top-right (Drive/Gmail pattern) so it's
@@ -536,18 +576,15 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
   return (
     <div>
       {/*
-        Mobile bleed: the page's <main> wrapper sits at `px-6`, but on a
-        phone the rows want to feel like an inbox — backgrounds, dividers,
-        and swipe reveals running edge-to-edge so the gesture surface is
-        the full width of the screen and the row's red/chip reveal isn't
-        framed by an awkward 24px gutter. We negate the parent padding
-        with `-mx-6` and snap back at `sm:` where the viewport is wide
-        enough that an inset list reads as composed rather than cramped.
-        Row interior padding (`px-5` on each row link) keeps the title
-        text 20px from the screen edge — an intentional, readable inset
-        per the spacious / readable-first principle in .impeccable.md.
+        Card-list rhythm matches <WriteList> on /write so the two pillars
+        (Review + Study) read as one brand. `space-y-2` puts an 8px gap
+        between cards — same as Study. We dropped the previous mobile
+        bleed (`-mx-6`) because cards want to feel inset, not glued to
+        the screen edge — and once the rows are bounded by a rounded
+        border, the page's existing `px-6` gutter reads as deliberate
+        rather than awkward.
       */}
-      <ul className="-mx-6 sm:mx-0 divide-y divide-border-subtle">
+      <ul className="space-y-2">
         {sessions.map(s => (
           <SwipeableSessionItem
             key={s.id}
