@@ -64,17 +64,21 @@ const PHOSPHOR_PATHS = {
 
 function phIcon(glyph: keyof typeof PHOSPHOR_PATHS, size: 'sm' | 'lg') {
   const cls = size === 'sm' ? 'w-5 h-5 flex-shrink-0' : 'w-6 h-6'
-  return (active: boolean) => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 256 256"
-      fill="currentColor"
-      className={cls}
-      aria-hidden="true"
-    >
-      <path d={PHOSPHOR_PATHS[glyph][active ? 'fill' : 'regular']} />
-    </svg>
-  )
+  function NavPhosphorIcon({ active }: { active: boolean }) {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 256 256"
+        fill="currentColor"
+        className={cls}
+        aria-hidden="true"
+      >
+        <path d={PHOSPHOR_PATHS[glyph][active ? 'fill' : 'regular']} />
+      </svg>
+    )
+  }
+  NavPhosphorIcon.displayName = `NavPhosphorIcon_${glyph}_${size}`
+  return (active: boolean) => <NavPhosphorIcon active={active} />
 }
 
 export const NAV_TABS: NavTab[] = [
