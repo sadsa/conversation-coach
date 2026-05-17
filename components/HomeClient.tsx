@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 import { DashboardReminders } from '@/components/DashboardReminders'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
@@ -259,8 +258,12 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
         )}
       </header>
 
-      {/* Practice CTA — primary action, close to the greeting */}
-      <section aria-label={t('home.practiceCTATitle')} className="mt-8">
+      {/* Practice CTA — primary action, close to the greeting.
+          The Share CTA below is a quiet alternative path: visually
+          subordinate (text-row, no tint, smaller icon) so the hierarchy
+          stays Practice-first while still surfacing the share-from-any-
+          messaging-app flow that the home subtitle teaches in prose. */}
+      <section aria-label={t('home.practiceCTATitle')} className="mt-8 space-y-2">
         <Link
           href="/practice"
           className="group flex items-center gap-5 rounded-2xl border border-accent-primary/25 bg-accent-primary/[0.04] px-6 py-5 hover:bg-accent-primary/[0.08] hover:border-accent-primary/35 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
@@ -280,6 +283,30 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
             className="w-5 h-5 flex-shrink-0 text-text-tertiary transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+
+        {/* Subtle Share CTA — quiet text row beneath Practice. Opens the
+            share-from-WhatsApp tutorial (the same illustration the old
+            onboarding hub linked to), so users learn the system share
+            intent in-context rather than via a dedicated wizard step.
+            Negative horizontal margin lets the row's hover bg breathe
+            past the parent container's column without changing layout
+            width — same trick used by Settings → Help list items. */}
+        <Link
+          href="/onboarding?step=2"
+          data-testid="home-share-cta"
+          className="group flex items-center gap-3 rounded-xl px-3 py-2.5 -mx-3 text-sm text-text-secondary transition-colors hover:bg-surface hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+        >
+          <Icon name="waveform" className="w-4 h-4 flex-shrink-0 text-text-tertiary group-hover:text-text-secondary transition-colors" aria-hidden />
+          <span className="flex-1 leading-relaxed">{t('home.shareCTA')}</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+            className="w-4 h-4 flex-shrink-0 text-text-tertiary transition-transform group-hover:translate-x-0.5"
             aria-hidden="true"
           >
             <polyline points="9 18 15 12 9 6" />
@@ -309,13 +336,6 @@ export function HomeClient({ initialSessions, initialSummary }: Props) {
           onToggleRead={handleToggleRead}
         />
       </div>
-
-      {/* First-run: tutorial entry point, visually quiet */}
-      {isFirstTime && (
-        <div className="mt-6">
-          <DashboardOnboarding />
-        </div>
-      )}
     </div>
   )
 }

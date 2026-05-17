@@ -1,7 +1,6 @@
 // app/settings/page.tsx
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { TARGET_LANGUAGES, type TargetLanguage } from '@/lib/types'
@@ -115,38 +114,6 @@ export default function SettingsPage() {
             ))}
           </select>
         </div>
-      </div>
-
-      {/* Help — read-only documentation links, not form fields. The previous
-          full-width bordered buttons mirrored the language <select> above
-          and made the section look like another preference toggle. List-link
-          styling (chevron + hover-tinted text) reads as "tap to learn",
-          which matches what these actually do (re-open the tutorial). */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.help')}</h2>
-        <ul className="-mx-2 divide-y divide-border-subtle">
-          {[
-            { href: '/onboarding?step=1&revisit=true', label: t('settings.showTutorial') },
-            { href: '/onboarding?step=2&revisit=true', label: t('settings.howToShare') },
-          ].map(link => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className="group flex items-center justify-between gap-3 px-2 py-2.5 text-sm text-text-primary hover:text-accent-primary focus-visible:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors"
-              >
-                <span>{link.label}</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-                  className="w-4 h-4 text-text-tertiary group-hover:text-accent-primary transition-colors"
-                  aria-hidden="true"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </Link>
-            </li>
-          ))}
-        </ul>
       </div>
 
       <div className="space-y-3">

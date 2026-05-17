@@ -60,12 +60,16 @@ describe('OnboardingPage — step 0 (language select)', () => {
     expect(screen.getByRole('button', { name: 'onboarding.languageSelect.cta' })).not.toBeDisabled()
   })
 
-  it('calls setTargetLanguage and redirects to step=1 (the hub) after confirming', async () => {
+  // Onboarding collapsed to a single screen: the language pick IS the wizard.
+  // Confirming the language commits the choice and lands the user on the
+  // home dashboard with the peak-end welcome flag — there's no longer a
+  // hub or tutorial step between here and the app.
+  it('calls setTargetLanguage and redirects straight to / with welcome flag', async () => {
     render(<OnboardingPage />)
     await userEvent.click(screen.getByText('onboarding.languageSelect.english'))
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.languageSelect.cta' }))
     expect(mockSetTargetLanguage).toHaveBeenCalledWith('en-NZ')
-    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1')
+    expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
   })
 
   it('language radios use roving tabindex (only one in tab order)', () => {
@@ -93,86 +97,14 @@ describe('OnboardingPage — step 0 (language select)', () => {
   })
 })
 
-// ─── Step 1: hub (replaces the old upload tutorial) ──────────────────────────
+// ─── Step 2: share illustration (standalone deep-dive) ───────────────────────
+// The previous step=1 hub is gone — the share illustration is now a
+// standalone page reached from the home page Share CTA. No Back button
+// (there's nowhere to go back to within the wizard), no progress dots
+// (totalSteps=1), and the exit returns to / without firing the welcome
+// beat (that fired once when the language was first picked).
 
-describe('OnboardingPage — step 1 (hub), first run', () => {
-  beforeEach(() => {
-    mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '1' : null))
-  })
-
-  it('renders the hub heading from the semantic key', () => {
-    render(<OnboardingPage />)
-    expect(screen.getByText('onboarding.hub.heading')).toBeInTheDocument()
-  })
-
-  it('renders the Practice card title and CTA (single primary action)', () => {
-    render(<OnboardingPage />)
-    expect(screen.getByText('onboarding.hub.practice.title')).toBeInTheDocument()
-    expect(screen.getByText('onboarding.hub.practice.cta')).toBeInTheDocument()
-  })
-
-  it('Practice card links to /practice (mode picker, user chooses call vs. chat)', () => {
-    render(<OnboardingPage />)
-    const practiceLink = screen.getByRole('link', { name: /onboarding\.hub\.practice/ })
-    expect(practiceLink).toHaveAttribute('href', '/practice')
-  })
-
-  it('Share is a quiet footer link (not a peer card) and routes to ?step=2', () => {
-    render(<OnboardingPage />)
-    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share\.linkText/ })
-    expect(shareLink).toHaveAttribute('href', '/onboarding?step=2')
-  })
-
-  it('does NOT render the old Share card title or CTA keys (demoted to link)', () => {
-    render(<OnboardingPage />)
-    expect(screen.queryByText('onboarding.hub.share.title')).not.toBeInTheDocument()
-    expect(screen.queryByText('onboarding.hub.share.cta')).not.toBeInTheDocument()
-  })
-
-  it('first run renders a Skip exit (not Close) and Skip routes to / with welcome flag', async () => {
-    render(<OnboardingPage />)
-    const skip = screen.getByRole('button', { name: 'onboarding.skip' })
-    await userEvent.click(skip)
-    expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
-  })
-
-  it('does NOT render a back button (hub is the destination, not a step)', () => {
-    render(<OnboardingPage />)
-    expect(screen.queryByRole('button', { name: /nav\.back/i })).not.toBeInTheDocument()
-  })
-})
-
-describe('OnboardingPage — step 1 (hub), revisit', () => {
-  beforeEach(() => {
-    mockSearchParams.get.mockImplementation((key: string) => {
-      if (key === 'step') return '1'
-      if (key === 'revisit') return 'true'
-      return null
-    })
-  })
-
-  it('Share footer link preserves revisit=true when navigating to step=2', () => {
-    render(<OnboardingPage />)
-    const shareLink = screen.getByRole('link', { name: /onboarding\.hub\.share\.linkText/ })
-    expect(shareLink).toHaveAttribute('href', '/onboarding?step=2&revisit=true')
-  })
-
-  it('shows Close (revisit exit), not Skip', () => {
-    render(<OnboardingPage />)
-    expect(screen.getByRole('button', { name: 'onboarding.close' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'onboarding.skip' })).not.toBeInTheDocument()
-  })
-
-  it('Close routes to /settings (no welcome beat on revisit)', async () => {
-    render(<OnboardingPage />)
-    await userEvent.click(screen.getByRole('button', { name: 'onboarding.close' }))
-    expect(mockPush).toHaveBeenCalledWith('/settings')
-  })
-})
-
-// ─── Step 2: share illustration (deep-dive opened from hub) ──────────────────
-
-describe('OnboardingPage — step 2 (share), first run', () => {
+describe('OnboardingPage — share illustration (?step=2)', () => {
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '2' : null))
   })
@@ -182,32 +114,40 @@ describe('OnboardingPage — step 2 (share), first run', () => {
     expect(screen.getByText('onboarding.share.heading')).toBeInTheDocument()
   })
 
-  it('renders the letsGo CTA on first run (not done)', () => {
+  it('uses the "done" CTA (collapsed flow has no first-run "letsGo" variant anymore)', () => {
     render(<OnboardingPage />)
-    expect(screen.getByRole('button', { name: 'onboarding.cta.letsGo' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'onboarding.cta.done' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'onboarding.cta.done' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'onboarding.cta.letsGo' })).not.toBeInTheDocument()
   })
 
-  it('letsGo pushes to / with the welcome flag for the peak-end beat', async () => {
+  it('CTA returns the user to / (no welcome flag — only the language pick fires the beat)', async () => {
     render(<OnboardingPage />)
-    await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.letsGo' }))
-    expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.done' }))
+    expect(mockPush).toHaveBeenCalledWith('/')
   })
 
-  it('renders a Back button that returns to step=1 (the hub)', async () => {
+  it('does NOT render a Back button (the hub it used to belong to is gone)', () => {
     render(<OnboardingPage />)
-    const back = screen.getByRole('button', { name: /nav\.back/i })
-    await userEvent.click(back)
-    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1')
+    expect(screen.queryByRole('button', { name: /nav\.back/i })).not.toBeInTheDocument()
   })
 
   it('hides the progress dots row (single-step deep-dive, no sequence to indicate)', () => {
     render(<OnboardingPage />)
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
+
+  it('exit affordance reads as Close (not Skip — wizard chrome is gone)', () => {
+    render(<OnboardingPage />)
+    expect(screen.getByRole('button', { name: 'onboarding.close' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'onboarding.skip' })).not.toBeInTheDocument()
+  })
 })
 
-describe('OnboardingPage — step 2 (share), revisit', () => {
+describe('OnboardingPage — share illustration (?step=2&revisit=true)', () => {
+  // `revisit=true` is preserved for forward-compat with any future
+  // Settings re-entry. No in-app surface sets it today, but if/when
+  // Settings → Help returns the contract is: exit lands on /settings
+  // instead of /.
   beforeEach(() => {
     mockSearchParams.get.mockImplementation((key: string) => {
       if (key === 'step') return '2'
@@ -216,34 +156,25 @@ describe('OnboardingPage — step 2 (share), revisit', () => {
     })
   })
 
-  it('renders the done CTA (not letsGo)', () => {
-    render(<OnboardingPage />)
-    expect(screen.getByRole('button', { name: 'onboarding.cta.done' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'onboarding.cta.letsGo' })).not.toBeInTheDocument()
-  })
-
-  it('done pushes to /settings', async () => {
+  it('CTA routes to /settings when revisit=true', async () => {
     render(<OnboardingPage />)
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.cta.done' }))
     expect(mockPush).toHaveBeenCalledWith('/settings')
   })
-
-  it('Back from step 2 in revisit mode preserves revisit=true', async () => {
-    render(<OnboardingPage />)
-    await userEvent.click(screen.getByRole('button', { name: /nav\.back/i }))
-    expect(mockPush).toHaveBeenCalledWith('/onboarding?step=1&revisit=true')
-  })
-
-  it('renders a Close exit (not Skip) and Close routes to /settings', async () => {
-    render(<OnboardingPage />)
-    const close = screen.getByRole('button', { name: 'onboarding.close' })
-    await userEvent.click(close)
-    expect(mockPush).toHaveBeenCalledWith('/settings')
-  })
 })
 
-describe('OnboardingPage — out-of-range step values are clamped', () => {
-  it('?step=99 is clamped to the last tutorial step (Share)', () => {
+describe('OnboardingPage — stale URLs fall through to the share illustration', () => {
+  // ?step=1 used to render the hub. With the hub removed, stale
+  // bookmarks (and the old Settings → Help → "Show me the tutorial"
+  // link) land on the only remaining tutorial surface instead of
+  // 404-ing or silently bouncing to /.
+  it('?step=1 (legacy hub URL) clamps to the share illustration', () => {
+    mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '1' : null))
+    render(<OnboardingPage />)
+    expect(screen.getByText('onboarding.share.heading')).toBeInTheDocument()
+  })
+
+  it('?step=99 (out of range) also clamps to the share illustration', () => {
     mockSearchParams.get.mockImplementation((key: string) => (key === 'step' ? '99' : null))
     render(<OnboardingPage />)
     expect(screen.getByText('onboarding.share.heading')).toBeInTheDocument()

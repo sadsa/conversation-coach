@@ -4,28 +4,26 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { OnboardingStep } from '@/components/OnboardingStep'
-import { OnboardingHub } from '@/components/OnboardingHub'
 import { WhatsAppShareIllustration } from '@/components/WhatsAppShareIllustration'
 import { Wordmark } from '@/components/Wordmark'
 import { buttonStyles } from '@/components/Button'
 import type { TargetLanguage } from '@/lib/types'
 
 // URL semantics:
-//   ?step=0          → language picker (one-time gate)
-//   ?step=1          → hub (single Practice card + quiet Share footer link)
-//   ?step=2          → WhatsApp share illustration (deep-dive opened FROM
-//                      the hub footer link, or directly from Settings)
+//   ?step=0 (or no step) → language picker (one-time gate)
+//   ?step=2              → WhatsApp share illustration (deep-dive; opened
+//                          from the home page Share CTA, or via deep link)
 //
-// step=1 used to be the upload-from-file tutorial, then a two-card
-// Practice/Share choice; both prior structures were templated. It's now a
-// single-action hub. step=2 keeps its component and animation so deep
-// links from Settings (?step=2&revisit=true) still work.
+// The old ?step=1 "hub" was removed: after the user picks Practice vs.
+// Share on the home page itself, the hub became a redundant relay screen.
+// Any non-zero step value now routes to the share illustration so stale
+// bookmarks (e.g. /onboarding?step=1) still land somewhere meaningful
+// instead of 404-ing or quietly bouncing to /.
 //
-// First-run exit paths append `?welcome=true` to /, which fires a one-shot
-// peak-end beat on the home greeting (see components/HomeClient.tsx).
-// Revisits from Settings route to /settings and skip the welcome.
-const HUB_STEP = 1
-const SHARE_STEP = 2
+// `?revisit=true` is preserved for forward compatibility with any future
+// Settings re-entry, but no in-app surface uses it today. Default exit
+// from the share step goes back to / (no welcome flag — the welcome beat
+// only fires after the language pick, the once-in-a-lifetime moment).
 
 interface LanguageOption {
   value: TargetLanguage
@@ -66,15 +64,11 @@ function OnboardingContent() {
   function handleLanguageConfirm() {
     if (!selected) return
     setTargetLanguage(selected)
-    router.push(`/onboarding?step=${HUB_STEP}`)
-  }
-
-  function handleExit() {
-    // On first-run completion, drop a `?welcome=true` so the home greeting
-    // can fire its one-shot peak-end beat. Revisits from Settings skip the
-    // welcome — they've already seen it, and we don't want to retrigger
-    // the moment every time they revisit a tutorial page.
-    router.push(revisit ? '/settings' : '/?welcome=true')
+    // First-run completion lands on home with the peak-end beat — the
+    // language pick is now the entire wizard, so this is the moment to fire
+    // "all set." The hub used to sit between here and home; with that gone,
+    // the user is one tap from the dashboard the moment they commit.
+    router.push('/?welcome=true')
   }
 
   // Radiogroup keyboard nav: Arrow keys move focus AND selection between
@@ -192,50 +186,20 @@ function OnboardingContent() {
     )
   }
 
-  // Exit copy (Skip first run, Close on revisit) is shared by hub and share.
-  const exitKey = revisit ? 'onboarding.close' : 'onboarding.skip'
-  // Out-of-range step values clamp into the [HUB_STEP, SHARE_STEP] range.
-  // Anything < HUB_STEP that isn't 0 falls through to the hub; values >
-  // SHARE_STEP land on the share screen.
-  const tutorialStep = Math.min(SHARE_STEP, Math.max(HUB_STEP, step))
-
-  // ── Step 1: hub ──────────────────────────────────────────────────────────────
-  if (tutorialStep === HUB_STEP) {
-    // Preserve revisit param when navigating to the share deep-dive so the
-    // share screen knows it was opened from a Settings re-entry (which
-    // changes the exit target to /settings, not /).
-    const shareHref = revisit
-      ? `/onboarding?step=${SHARE_STEP}&revisit=true`
-      : `/onboarding?step=${SHARE_STEP}`
-    return (
-      <OnboardingShell>
-        <div className="mx-auto h-full w-full max-w-sm">
-          <OnboardingHub
-            shareHref={shareHref}
-            onExit={handleExit}
-            exitLabel={t(exitKey)}
-          />
-        </div>
-      </OnboardingShell>
-    )
+  // ── Share illustration (step ≠ 0) ────────────────────────────────────────────
+  // Standalone surface now — the hub that used to wrap it is gone. The
+  // user reaches this page from the home page Share CTA (or a stale deep
+  // link from the removed Settings → Help → Share entry). No Back button
+  // (there's nowhere to go back to within the wizard), no progress dots
+  // (totalSteps=1).
+  function handleShareExit() {
+    // Revisit branch is kept for forward-compat with a possible future
+    // Settings re-entry; no current surface sets it, so the practical
+    // exit is always back to /. We deliberately do NOT fire the welcome
+    // beat here — the user is learning a workflow mid-app, not
+    // completing onboarding for the first time.
+    router.push(revisit ? '/settings' : '/')
   }
-
-  // ── Step 2: share illustration (deep-dive) ──────────────────────────────────
-  // Reuses the wizard shell but with totalSteps=1 so the dot row hides
-  // itself (one-of-one is meaningless). Back returns to the hub, preserving
-  // revisit so re-entry from Settings keeps the close-target as /settings.
-  function handleShareNext() {
-    // Same welcome-beat hand-off as handleExit — first-run completion
-    // earns the peak-end moment regardless of which exit path the user took.
-    router.push(revisit ? '/settings' : '/?welcome=true')
-  }
-
-  function handleShareBack() {
-    const params = revisit ? `?step=${HUB_STEP}&revisit=true` : `?step=${HUB_STEP}`
-    router.push(`/onboarding${params}`)
-  }
-
-  const shareCtaKey = revisit ? 'onboarding.cta.done' : 'onboarding.cta.letsGo'
 
   return (
     <OnboardingShell>
@@ -258,12 +222,10 @@ function OnboardingContent() {
           }
           heading={t('onboarding.share.heading')}
           body={t('onboarding.share.body')}
-          ctaLabel={t(shareCtaKey)}
-          onNext={handleShareNext}
-          onBack={handleShareBack}
-          backLabel={t('nav.back')}
-          onExit={handleExit}
-          exitLabel={t(exitKey)}
+          ctaLabel={t('onboarding.cta.done')}
+          onNext={handleShareExit}
+          onExit={handleShareExit}
+          exitLabel={t('onboarding.close')}
           stepOfTotalLabel={t('onboarding.stepOfTotal', { n: 1, total: 1 })}
         />
       </div>
@@ -295,9 +257,7 @@ function OnboardingContent() {
 // yellow-cream zone), and adding a peach/amber gradient over it would
 // introduce an off-palette hue. The brand accent is cool purple (hue 285);
 // warmth in this product comes from the cream substrate showing through
-// low-opacity cool tints, not from a competing warm hue. The hub Practice
-// card uses `bg-accent-primary/[0.04]` for exactly this reason — same
-// pattern as the home page Practice CTA.
+// low-opacity cool tints, not from a competing warm hue.
 function OnboardingShell({ children }: { children: ReactNode }) {
   return (
     <div

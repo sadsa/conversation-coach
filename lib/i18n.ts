@@ -166,7 +166,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.greetingEvening': 'Good evening',
     'home.dashboardSubtitle': '',
     'home.firstRunSubtitle': 'Practice by chatting — or share a voice note from any messaging app.',
-    'home.revisitTutorial': 'Revisit the tutorial',
+    // Secondary text-row CTA shown beneath the Practice card. Deep-links
+    // into the share-from-WhatsApp tutorial at /onboarding?step=2 — the
+    // tutorial used to be reachable only through the (now removed) hub
+    // and Settings → Help, so this row is the only durable entry point.
+    'home.shareCTA': 'Already recorded a voice note? Show me how',
     // Peak-end beat shown once when the user lands on / from onboarding
     // completion (via ?welcome=true). Auto-dismisses after ~3s.
     'home.welcomeBeat': 'All set. Ready when you are.',
@@ -465,17 +469,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.english': 'English',
     'onboarding.languageSelect.englishVariant': 'New Zealand English',
     'onboarding.languageSelect.cta': 'Get started →',
-    // Onboarding — hub (URL ?step=1). Single Practice card with a quiet
-    // footer link to the WhatsApp-share deep-dive at ?step=2 for users who
-    // tap through onboarding before discovering the system share intent.
-    'onboarding.hub.heading': 'Ready when you are.',
-    'onboarding.hub.practice.title': 'Five minutes, out loud.',
-    'onboarding.hub.practice.body':
-      'Pick up a call from someone new, or just chat. We’ll mark the bits worth practising.',
-    'onboarding.hub.practice.cta': 'Have a conversation',
-    'onboarding.hub.share.linkText': 'Already recorded a voice note? Show me how',
-    // Onboarding — share illustration (URL ?step=2). Reached from the hub
-    // and from Settings → "Share from WhatsApp".
+    // Onboarding — share illustration (URL ?step=2). The required
+    // wizard is now just the language pick above; this step is reached
+    // standalone from the home page's "Already recorded a voice note?"
+    // CTA (and from stale deep links from before the hub was removed).
     'onboarding.share.heading': 'Share from any messaging app',
     'onboarding.share.body':
       'Hold any voice note, tap Share, and choose Conversation Coach. WhatsApp, Signal, Telegram, and most other apps all work.',
@@ -491,17 +488,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // copy below and miss the step-by-step demonstration.
     'onboarding.illus.shareAriaLabel':
       'Animation: a voice note from María is pressed and held; the system share sheet rises from the bottom of the screen; the Conversation Coach app is highlighted as the share destination.',
-    // Onboarding — chrome
-    'onboarding.cta.next': 'Next →',
-    'onboarding.cta.letsGo': "I’m ready →",
+    // Onboarding — chrome. The collapsed flow uses only `done` (CTA on
+    // the share illustration) and `close` (exit affordance). `next` /
+    // `letsGo` / `skip` / `revisitLink` were chrome for the multi-step
+    // wizard and the hub; both are gone.
     'onboarding.cta.done': 'Done',
-    'onboarding.skip': 'Skip tutorial',
     'onboarding.close': 'Close',
     'onboarding.stepOfTotal': 'Step {n} of {total}',
-    'onboarding.revisitLink': 'Revisit tutorial →',
-    'settings.help': 'Help',
-    'settings.showTutorial': 'Show me the tutorial again',
-    'settings.howToShare': 'How to share audio',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -648,7 +641,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.greetingEvening': 'Buenas noches',
     'home.dashboardSubtitle': '',
     'home.firstRunSubtitle': 'Practicá chateando — o compartí una nota de voz desde cualquier app de mensajes.',
-    'home.revisitTutorial': 'Ver el tutorial otra vez',
+    // CTA secundaria debajo del card de Practicá. Lleva al tutorial de
+    // compartir desde WhatsApp en /onboarding?step=2 — único punto de
+    // entrada durable después de retirar el hub y el ítem en Configuración.
+    'home.shareCTA': '¿Ya grabaste una nota de voz? Mostrame cómo',
     'home.welcomeBeat': 'Todo listo. Empezá cuando quieras.',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
@@ -940,14 +936,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.languageSelect.english': 'Inglés',
     'onboarding.languageSelect.englishVariant': 'Inglés de Nueva Zelanda',
     'onboarding.languageSelect.cta': 'Empezar →',
-    // Onboarding — hub (URL ?step=1)
-    'onboarding.hub.heading': 'Cuando estés listo.',
-    'onboarding.hub.practice.title': 'Cinco minutos en voz alta.',
-    'onboarding.hub.practice.body':
-      'Atendé una llamada de alguien nuevo, o charlá nomás. Después marcamos lo que vale la pena practicar.',
-    'onboarding.hub.practice.cta': 'Tener una charla',
-    'onboarding.hub.share.linkText': '¿Ya grabaste una nota de voz? Mostrame cómo',
-    // Onboarding — ilustración de compartir (URL ?step=2)
+    // Onboarding — ilustración de compartir (URL ?step=2). El wizard
+    // obligatorio se reduce al selector de idioma; este paso se abre
+    // como página independiente desde la CTA "¿Ya grabaste una nota
+    // de voz?" en la pantalla de inicio.
     'onboarding.share.heading': 'Compartí desde cualquier app de mensajes',
     'onboarding.share.body':
       'Mantené presionada cualquier nota de voz, tocá Compartir y elegí Conversation Coach. Funciona con WhatsApp, Signal, Telegram y la mayoría de las apps.',
@@ -960,17 +952,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.illus.shareContact': 'María',
     'onboarding.illus.shareAriaLabel':
       'Animación: se mantiene presionada una nota de voz de María; aparece la hoja para compartir desde abajo de la pantalla; la app Conversation Coach se resalta como destino para compartir.',
-    // Onboarding — chrome
-    'onboarding.cta.next': 'Siguiente →',
-    'onboarding.cta.letsGo': 'Empecemos →',
+    // Onboarding — chrome. El flujo colapsado solo usa `done` (CTA en
+    // la ilustración de compartir) y `close` (salida). `next` / `letsGo`
+    // / `skip` / `revisitLink` eran para el wizard multi-paso y el hub;
+    // ambos desaparecieron.
     'onboarding.cta.done': 'Listo',
-    'onboarding.skip': 'Saltar tutorial',
     'onboarding.close': 'Cerrar',
     'onboarding.stepOfTotal': 'Paso {n} de {total}',
-    'onboarding.revisitLink': 'Ver tutorial otra vez →',
-    'settings.help': 'Ayuda',
-    'settings.showTutorial': 'Ver el tutorial otra vez',
-    'settings.howToShare': 'Cómo compartir audio',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

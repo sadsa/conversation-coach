@@ -19,7 +19,6 @@ vi.mock('next/navigation', () => ({
 }))
 
 // ── Component mocks (avoid rendering the full dashboard tree) ─────────────────
-vi.mock('@/components/DashboardOnboarding', () => ({ DashboardOnboarding: () => null }))
 vi.mock('@/components/DashboardReminders', () => ({ DashboardReminders: () => null }))
 vi.mock('@/components/DashboardInProgress', () => ({ DashboardInProgress: () => null }))
 vi.mock('@/components/DashboardRecentSessions', () => ({ DashboardRecentSessions: () => null }))
@@ -31,6 +30,11 @@ vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
     uiLanguage: 'en' as const,
+    // HomeClient drives its greeting + Practice CTA subtitle from
+    // targetLanguage; the greeting helper crashes on undefined, so
+    // the mock must supply a concrete language even though these
+    // tests only assert the share-target redirect.
+    targetLanguage: 'es-AR' as const,
   }),
 }))
 

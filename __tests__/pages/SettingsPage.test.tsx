@@ -77,21 +77,19 @@ describe('SettingsPage', () => {
 })
 
 describe('SettingsPage — Help section', () => {
-  it('renders a Help section heading', () => {
+  // Help links (showTutorial → step=1 hub, howToShare → step=2) were
+  // removed alongside the onboarding hub. The share-from-WhatsApp tutorial
+  // is now reachable from the home page's "Already recorded a voice note?"
+  // CTA instead, so there's no second entry point to maintain in Settings.
+  it('does NOT render a Help section heading', () => {
     render(<SettingsPage />)
-    expect(screen.getByText('Help')).toBeInTheDocument()
+    expect(screen.queryByText('Help')).not.toBeInTheDocument()
   })
 
-  it('renders a "Show me the tutorial again" link pointing to the hub', () => {
+  it('does NOT link to the old hub or share tutorial', () => {
     render(<SettingsPage />)
-    const link = screen.getByRole('link', { name: /show me the tutorial again/i })
-    expect(link).toHaveAttribute('href', '/onboarding?step=1&revisit=true')
-  })
-
-  it('renders a "Share from WhatsApp" link deep-linking to the share tutorial step', () => {
-    render(<SettingsPage />)
-    const link = screen.getByRole('link', { name: /share from whatsapp/i })
-    expect(link).toHaveAttribute('href', '/onboarding?step=2&revisit=true')
+    expect(screen.queryByRole('link', { name: /show me the tutorial again/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /share from whatsapp/i })).not.toBeInTheDocument()
   })
 })
 

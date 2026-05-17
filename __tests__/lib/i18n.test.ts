@@ -158,7 +158,7 @@ describe('onboarding tutorial i18n keys', () => {
       expect(t(key, 'es')).not.toBe(key)
     }
   })
-  it('hub keys exist in both langs', () => {
+  it('hub keys are retired (hub removed; home page Share CTA replaces it)', () => {
     for (const key of [
       'onboarding.hub.heading',
       'onboarding.hub.practice.title',
@@ -166,9 +166,17 @@ describe('onboarding tutorial i18n keys', () => {
       'onboarding.hub.practice.cta',
       'onboarding.hub.share.linkText',
     ]) {
-      expect(t(key, 'en')).not.toBe(key)
-      expect(t(key, 'es')).not.toBe(key)
+      expect(t(key, 'en')).toBe(key)
+      expect(t(key, 'es')).toBe(key)
     }
+  })
+  it('home.shareCTA exists in both langs (subtle text-row CTA under Practice)', () => {
+    expect(t('home.shareCTA', 'en')).toMatch(/voice note/i)
+    expect(t('home.shareCTA', 'es')).toMatch(/nota de voz/i)
+  })
+  it('home.revisitTutorial is retired (DashboardOnboarding link removed)', () => {
+    expect(t('home.revisitTutorial', 'en')).toBe('home.revisitTutorial')
+    expect(t('home.revisitTutorial', 'es')).toBe('home.revisitTutorial')
   })
   it('semantic share-illustration step keys exist in both langs', () => {
     for (const key of [
@@ -204,27 +212,38 @@ describe('onboarding tutorial i18n keys', () => {
     expect(t('onboarding.step2.heading', 'en')).toBe('onboarding.step2.heading')
     expect(t('onboarding.step3.heading', 'en')).toBe('onboarding.step3.heading')
   })
-  it('CTA + chrome keys exist in both langs', () => {
+  it('CTA + chrome keys still in use exist in both langs', () => {
+    // Only `done` (CTA on share step) and `close` (exit affordance)
+    // survive the collapsed wizard. `next`, `letsGo`, `skip`, and
+    // `revisitLink` were chrome for the multi-step flow and the hub;
+    // both are gone.
     for (const key of [
-      'onboarding.cta.next',
-      'onboarding.cta.letsGo',
       'onboarding.cta.done',
-      'onboarding.skip',
       'onboarding.close',
-      'onboarding.revisitLink',
     ]) {
       expect(t(key, 'en')).not.toBe(key)
       expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+  it('retired chrome keys (next/letsGo/skip/revisitLink) fall back to the key', () => {
+    for (const key of [
+      'onboarding.cta.next',
+      'onboarding.cta.letsGo',
+      'onboarding.skip',
+      'onboarding.revisitLink',
+    ]) {
+      expect(t(key, 'en')).toBe(key)
+      expect(t(key, 'es')).toBe(key)
     }
   })
   it('onboarding.stepOfTotal substitutes {n} and {total} in both langs', () => {
     expect(t('onboarding.stepOfTotal', 'en', { n: 1, total: 2 })).toBe('Step 1 of 2')
     expect(t('onboarding.stepOfTotal', 'es', { n: 1, total: 2 })).toBe('Paso 1 de 2')
   })
-  it('settings help keys exist in both langs', () => {
+  it('settings help keys are retired (Help section removed)', () => {
     for (const key of ['settings.help', 'settings.showTutorial', 'settings.howToShare']) {
-      expect(t(key, 'en')).not.toBe(key)
-      expect(t(key, 'es')).not.toBe(key)
+      expect(t(key, 'en')).toBe(key)
+      expect(t(key, 'es')).toBe(key)
     }
   })
 })
