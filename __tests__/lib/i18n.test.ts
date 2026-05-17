@@ -12,10 +12,10 @@ describe('inferUiLanguage', () => {
 
 describe('t()', () => {
   it('returns English string for en', () => {
-    expect(t('nav.recordings', 'en')).toBe('Recordings')
+    expect(t('nav.practise', 'en')).toBe('Practise')
   })
   it('returns Spanish string for es', () => {
-    expect(t('nav.recordings', 'es')).toBe('Grabaciones')
+    expect(t('nav.practise', 'es')).toBe('Practicar')
   })
   it('returns the key itself when not found', () => {
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')
@@ -29,6 +29,84 @@ describe('t()', () => {
   it('home.toWriteDownOne uses singular grammar in both langs', () => {
     expect(t('home.toWriteDownOne', 'en')).toBe('1 correction to write down')
     expect(t('home.toWriteDownOne', 'es')).toBe('1 corrección para anotar')
+  })
+})
+
+describe('nav.* renamed for the three-pillar methodology', () => {
+  // The Practise-as-home redesign renamed two nav keys to match the
+  // methodology — `nav.recordings` → `nav.review` (the inbox of
+  // recorded conversations) and `nav.write` → `nav.study` (the queue of
+  // corrections to study). `nav.practice` was retired entirely: the
+  // home tab now reads `nav.practise` (British spelling, matching the
+  // pillar name) since the /practice route lost its dedicated tab and
+  // is reached from the home mode cards.
+  it('nav.practise + nav.review + nav.study + nav.settings are the four tabs', () => {
+    for (const key of ['nav.practise', 'nav.review', 'nav.study', 'nav.settings']) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+
+  it('nav.recordings is retired (use nav.review for the conversations inbox)', () => {
+    expect(t('nav.recordings', 'en')).toBe('nav.recordings')
+    expect(t('nav.recordings', 'es')).toBe('nav.recordings')
+  })
+
+  it('nav.write is retired (use nav.study for the corrections queue)', () => {
+    expect(t('nav.write', 'en')).toBe('nav.write')
+    expect(t('nav.write', 'es')).toBe('nav.write')
+  })
+
+  it('nav.practice is retired (use nav.practise — British spelling matches the pillar)', () => {
+    expect(t('nav.practice', 'en')).toBe('nav.practice')
+    expect(t('nav.practice', 'es')).toBe('nav.practice')
+  })
+})
+
+describe('home.* methodology eyebrow + three doors', () => {
+  it('home.pillarPractise / Review / Study read as the pillar names', () => {
+    expect(t('home.pillarPractise', 'en')).toBe('Practise')
+    expect(t('home.pillarReview', 'en')).toBe('Review')
+    expect(t('home.pillarStudy', 'en')).toBe('Study')
+    expect(t('home.pillarPractise', 'es')).toBe('Practicar')
+  })
+
+  it('home.subhead is the new under-greeting tagline (drives the three doors)', () => {
+    expect(t('home.subhead', 'en')).toMatch(/practise/i)
+    expect(t('home.subhead', 'es')).toMatch(/practicar/i)
+  })
+
+  it('home.modeShareTitle + Blurb back the third door', () => {
+    for (const key of [
+      'home.modeShareTitle',
+      'home.modeShareBlurb',
+    ]) {
+      expect(t(key, 'en')).not.toBe(key)
+      expect(t(key, 'es')).not.toBe(key)
+    }
+  })
+
+  // Old keys that the home no longer renders. Retired deliberately so a
+  // stale reference shows up as the literal key in dev rather than the
+  // wrong copy. `home.modeShareAria` joined this list when the visible
+  // title+blurb on the Share door were promoted to do the screen-reader
+  // talking — keeping an aria-label there overrode the visible text for
+  // SR users and silently dropped the blurb.
+  it('retired home keys fall back to the key (firstRunSubtitle, shareCTA, practiceCTA*, modeShareAria)', () => {
+    for (const key of [
+      'home.firstRunSubtitle',
+      'home.shareCTA',
+      'home.practiceCTATitle',
+      'home.practiceCTASubtitle',
+      'home.subtitle',
+      'home.greetingMorning',
+      'home.greetingAfternoon',
+      'home.greetingEvening',
+      'home.modeShareAria',
+    ]) {
+      expect(t(key, 'en')).toBe(key)
+      expect(t(key, 'es')).toBe(key)
+    }
   })
 })
 
@@ -126,10 +204,9 @@ describe('annotation action i18n keys', () => {
     expect(t('writeList.emptyWriteCaption', 'es')).not.toBe('writeList.emptyWriteCaption')
     expect(t('writeList.emptyWriteCta', 'es')).not.toBe('writeList.emptyWriteCta')
   })
-  it('nav.write and nav.practice exist for navigation', () => {
-    expect(t('nav.write', 'en')).toBe('Write')
-    expect(t('nav.practice', 'en')).toBe('Practice')
-    expect(t('nav.practice', 'es')).toBe('Práctica')
+  it('nav.study replaced nav.write for the corrections queue tab', () => {
+    expect(t('nav.study', 'en')).toBe('Study')
+    expect(t('nav.study', 'es')).toBe('Estudiar')
   })
   it('practice.title and practiceList.* keys are retired (fall back to key)', () => {
     expect(t('practice.title', 'en')).toBe('practice.title')
@@ -170,9 +247,9 @@ describe('onboarding tutorial i18n keys', () => {
       expect(t(key, 'es')).toBe(key)
     }
   })
-  it('home.shareCTA exists in both langs (subtle text-row CTA under Practice)', () => {
-    expect(t('home.shareCTA', 'en')).toMatch(/voice note/i)
-    expect(t('home.shareCTA', 'es')).toMatch(/nota de voz/i)
+  it('home.shareCTA is retired (folded into the home.modeShare* door)', () => {
+    expect(t('home.shareCTA', 'en')).toBe('home.shareCTA')
+    expect(t('home.shareCTA', 'es')).toBe('home.shareCTA')
   })
   it('home.revisitTutorial is retired (DashboardOnboarding link removed)', () => {
     expect(t('home.revisitTutorial', 'en')).toBe('home.revisitTutorial')

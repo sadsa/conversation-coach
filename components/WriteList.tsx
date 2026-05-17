@@ -215,7 +215,13 @@ function EmptyWrite() {
         </p>
       </div>
       <p className="text-text-secondary text-sm leading-relaxed">
-        <Link href="/" className="text-accent-primary font-medium hover:underline">
+        {/* Points at /review (the conversations inbox) — the user opens a
+            conversation there, saves a correction inside the transcript,
+            and it lands back in this queue. Used to point at `/`, which
+            is now the Practise picker after the home redesign and would
+            send the user a tab away from where the saved-correction
+            workflow actually starts. */}
+        <Link href="/review" className="text-accent-primary font-medium hover:underline">
           {t('writeList.emptyWriteCta')}
         </Link>
       </p>

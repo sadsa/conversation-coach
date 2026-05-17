@@ -40,30 +40,33 @@ describe('NavDrawer', () => {
     expect(container.querySelector('#nav-drawer')).toHaveClass('translate-x-0')
   })
 
-  it('renders all three nav links (Recordings, Write, Settings)', () => {
+  // Tabs renamed in the Practise-as-home redesign: Recordings → Review,
+  // Write → Study, plus a new Practise tab at /.
+  it('renders all four nav links (Practise, Review, Study, Settings)', () => {
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /recordings/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /write/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /practise/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /study/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })
 
   it('marks the current route with aria-current="page"', () => {
     mockPathname.mockReturnValue('/write')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /write/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /recordings/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /study/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /practise/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Recordings active on "/write"', () => {
+  it('does NOT mark Practise active on "/write" (exact match required)', () => {
     mockPathname.mockReturnValue('/write')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /recordings/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /practise/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('marks Recordings active on exact "/"', () => {
+  it('marks Practise active on exact "/"', () => {
     mockPathname.mockReturnValue('/')
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    expect(screen.getByRole('link', { name: /recordings/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /practise/i })).toHaveAttribute('aria-current', 'page')
   })
 
   it('calls onClose when the close button is clicked', async () => {
@@ -80,7 +83,7 @@ describe('NavDrawer', () => {
 
   it('calls onClose when a nav link is clicked', async () => {
     render(<NavDrawer isOpen={true} onClose={onClose} />)
-    await userEvent.click(screen.getByRole('link', { name: /write/i }))
+    await userEvent.click(screen.getByRole('link', { name: /study/i }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 

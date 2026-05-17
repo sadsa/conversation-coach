@@ -32,7 +32,7 @@
 // (if held) releases.
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
@@ -88,6 +88,7 @@ const RMS_FLOOR = 0.004
 export function PracticeClient({ targetLanguage }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const reducedMotion = useReducedMotion()
   const [practiceState, setPracticeState] = useState<PracticeState>('idle')
   const [muted, setMuted] = useState(false)
@@ -177,6 +178,11 @@ export function PracticeClient({ targetLanguage }: Props) {
     setMode(next)
     try { window.localStorage.setItem(MODE_STORAGE_KEY, next) } catch { /* ignore */ }
   }, [])
+
+  // Guard for the auto-start effect below — declared up here so the ref
+  // identity is stable across renders. Set when the URL `?mode=` param
+  // first kicks off a session so a refresh mid-session doesn't replay.
+  const autoStartedRef = useRef(false)
 
   // Lock body scroll while a live session is running. Body uses
   // min-h-[100dvh] which lets it grow with content — without this lock
@@ -650,6 +656,30 @@ export function PracticeClient({ targetLanguage }: Props) {
       setPracticeState('idle')
     }
   }, [practiceState, mode, fetchPersona, connectAgent, t])
+
+  // Auto-start when arriving from the Practise home with ?mode=call|chat.
+  // The home's mode cards push us here with that param so the user skips
+  // the idle picker entirely — same outcome, fewer taps. Runs exactly
+  // once per mount (autoStartedRef guard) so a refresh mid-session
+  // doesn't try to restart on top of live state, and we clear the param
+  // so the auto-start doesn't replay if the user lands back on /practice
+  // via browser back. If the param is missing or unrecognised, nothing
+  // happens and the idle screen renders as a fallback for direct visits.
+  useEffect(() => {
+    if (autoStartedRef.current) return
+    const requested = searchParams?.get('mode')
+    if (requested !== 'call' && requested !== 'chat') return
+    autoStartedRef.current = true
+    persistMode(requested)
+    // Strip ?mode= so a refresh doesn't re-fire and browser back from
+    // /sessions/[id] lands on a stable /practice URL. replace (not push)
+    // avoids stacking a no-mode entry into history.
+    router.replace('/practice', { scroll: false })
+    void start(requested)
+    // start, router, persistMode are stable; intentionally depend only on
+    // searchParams so the effect fires once after hydration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   /** "Try another line" — call-mode only. Hangs up the current caller, fetches
    *  a fresh persona, and starts a brand new call session (timer + transcript

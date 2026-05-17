@@ -168,11 +168,18 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       <header className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
+            {/* font-display medium at 2xl/3xl puts the conversation title
+                in the same brand voice as the section H1s on home /review
+                /write. One notch smaller than those (3xl/4xl) so the
+                transcript reads as a sub-document inside Review rather
+                than a peer section. The break-words guard is unchanged —
+                long auto-titles can still wrap mid-word without forcing
+                horizontal scroll. */}
             <InlineEdit
               value={title}
               onSave={handleRename}
               ariaLabel={t('transcript.editTitle')}
-              className="text-xl md:text-2xl font-bold break-words text-text-primary"
+              className="font-display text-2xl md:text-3xl font-medium leading-tight tracking-[-0.01em] break-words text-text-primary"
             />
           </div>
 

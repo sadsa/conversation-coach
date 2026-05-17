@@ -50,6 +50,25 @@
     --color-widget-write-bg: oklch(94% 0.03 160);
     --color-widget-write-bg-hover: oklch(90% 0.05 160);
     --color-widget-write-text: oklch(35% 0.1 160);
+    /* Practise home — "Pick up a call" card.
+       Brand emerald (hue 150) — matches the `cc-call-pulse` keyframe used
+       on the active call screen, so the visual language carries from the
+       home tile through into the ringing state. `bg` is a tinted cream-
+       on-emerald surface; `border` reads as a soft halo; `fill` is the
+       solid icon-tile background; `text` is the deep emerald used for
+       any text that needs to sit on the tinted background. */
+    --color-call-bg: oklch(94% 0.04 150);
+    --color-call-bg-hover: oklch(90% 0.05 150);
+    --color-call-border: oklch(78% 0.1 150);
+    --color-call-fill: oklch(58% 0.16 150);
+    --color-call-text: oklch(30% 0.12 150);
+    /* Study count badge in the methodology eyebrow.
+       Warm amber (hue 70) so the badge reads as a distinct attention
+       cue against the emerald STUDY wordmark — `study-badge-bg` is
+       loud enough to register at 11px; `study-badge-text` is the deep
+       navy text that survives WCAG AA contrast on the amber fill. */
+    --color-study-badge-bg: oklch(70% 0.14 70);
+    --color-study-badge-text: oklch(22% 0.02 265);
     /* Annotation highlight states — light */
     --annotation-unreviewed-bg: oklch(95% 0.06 85);
     --annotation-unreviewed-border: oklch(55% 0.15 55);
@@ -113,6 +132,21 @@
     --color-widget-write-bg: oklch(25% 0.06 160);
     --color-widget-write-bg-hover: oklch(30% 0.08 160);
     --color-widget-write-text: oklch(80% 0.1 160);
+    /* Practise home — Call card (dark).
+       Chroma drops as we move toward black so the tile doesn't read
+       as garish against the dark navy surfaces. Fill stays at brand
+       lightness (58%) since that's the recognisable emerald that the
+       cc-call-pulse keyframe already uses. */
+    --color-call-bg: oklch(24% 0.05 150);
+    --color-call-bg-hover: oklch(28% 0.07 150);
+    --color-call-border: oklch(42% 0.1 150);
+    --color-call-fill: oklch(58% 0.16 150);
+    --color-call-text: oklch(82% 0.08 150);
+    /* Study count badge (dark) — slightly higher lightness so the
+       badge still pops against the dark navy eyebrow row, with the
+       same dark-navy contrast text since amber stays readable. */
+    --color-study-badge-bg: oklch(72% 0.14 70);
+    --color-study-badge-text: oklch(14% 0.02 265);
     /* Annotation highlight states — dark */
     --annotation-unreviewed-bg: oklch(30% 0.08 85);
     --annotation-unreviewed-border: oklch(60% 0.14 55);

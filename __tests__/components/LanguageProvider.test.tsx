@@ -16,7 +16,9 @@ function TestConsumer() {
   const { t, targetLanguage, setTargetLanguage } = useTranslation()
   return (
     <div>
-      <span data-testid="nav-label">{t('nav.recordings')}</span>
+      {/* `nav.review` was renamed from `nav.recordings` when the home
+          dashboard moved to its own /review route. */}
+      <span data-testid="nav-label">{t('nav.review')}</span>
       <span data-testid="target">{targetLanguage}</span>
       <button onClick={() => setTargetLanguage('en-NZ')}>Switch to en-NZ</button>
     </div>
@@ -30,7 +32,7 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('nav-label')).toHaveTextContent('Recordings')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Review')
     expect(screen.getByTestId('target')).toHaveTextContent('es-AR')
   })
 
@@ -40,7 +42,7 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('nav-label')).toHaveTextContent('Grabaciones')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Revisar')
   })
 
   it('updates translations when setTargetLanguage is called', async () => {
@@ -49,9 +51,9 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('nav-label')).toHaveTextContent('Recordings')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Review')
     await userEvent.click(screen.getByText('Switch to en-NZ'))
-    expect(screen.getByTestId('nav-label')).toHaveTextContent('Grabaciones')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Revisar')
     expect(screen.getByTestId('target')).toHaveTextContent('en-NZ')
   })
 
@@ -61,7 +63,7 @@ describe('LanguageProvider', () => {
         <TestConsumer />
       </LanguageProvider>
     )
-    expect(screen.getByTestId('nav-label')).toHaveTextContent('Recordings')
+    expect(screen.getByTestId('nav-label')).toHaveTextContent('Review')
   })
 })
 
@@ -69,9 +71,9 @@ describe('useTranslation outside provider', () => {
   it('returns English strings with fallback context', () => {
     function Bare() {
       const { t } = useTranslation()
-      return <span data-testid="val">{t('nav.recordings')}</span>
+      return <span data-testid="val">{t('nav.review')}</span>
     }
     render(<Bare />)
-    expect(screen.getByTestId('val')).toHaveTextContent('Recordings')
+    expect(screen.getByTestId('val')).toHaveTextContent('Review')
   })
 })

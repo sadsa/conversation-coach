@@ -119,7 +119,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               style={{
                 marginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
                 scrollMarginTop: 'calc(var(--header-height) + env(safe-area-inset-top))',
-                paddingBottom: '5rem',
+                // Clearance for fixed BottomNav (mobile) + breathing room.
+                // `--bottom-nav-h` already encodes h-16 + safe-area-inset-bottom
+                // and is zeroed on md+. Replaces a hardcoded 5rem that wasn't
+                // enough on iOS PWAs with a home indicator — content was
+                // overlapping the nav by ~18px. Wrappers on /, /review used
+                // to compensate with their own pb; with this fix the
+                // wrappers can drop their overrides and every page tab
+                // gets the same baseline.
+                paddingBottom: 'calc(var(--bottom-nav-h) + 1rem)',
               }}
               className="w-full max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none flex-1 flex flex-col"
             >

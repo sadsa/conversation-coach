@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bottom nav icons — exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,ital,wght@8..60,0,400;8..60,0,500;8..60,1,400;8..60,1,500&display=swap"
+  rel="stylesheet"
+/>
+<!-- Material Symbols Rounded — full variable font (FILL axis is toggled per-element via font-variation-settings) -->
+<link
+  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+  rel="stylesheet"
+/>
+<!-- Phosphor Icons (regular + fill stylesheets via jsDelivr) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
+<!-- Tabler Icons webfont -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css" />
+<!-- Iconoir webfont -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/iconoir@7.10.1/css/iconoir.css" />
+<!-- Remix Icon -->
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet" />
+
+<style>
+  :root {
+    /* Project tokens — mirrored from globals.css (warm cream light) */
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-text-quaternary: oklch(68% 0.008 75);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-accent-primary-soft: oklch(94% 0.035 285);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, oklch(95% 0.025 285 / 0.5), transparent 60%),
+      oklch(94% 0.005 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Page chrome ────────────────────────────────────────────────────── */
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 5vw, 5rem) clamp(1.5rem, 4vw, 3rem) 6rem;
+  }
+
+  .header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-bottom: clamp(3rem, 6vw, 5rem);
+    max-width: 78ch;
+  }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.9375rem;
+    color: var(--color-accent-primary);
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+  .eyebrow .num {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-style: normal;
+    color: var(--color-text-tertiary);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    vertical-align: 0.1em;
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--color-text-primary);
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+  }
+  .header p {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 62ch;
+  }
+
+  /* Legend strip across the top */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.625rem;
+    margin-top: 1.25rem;
+  }
+  .legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+  .legend-chip .dot {
+    width: 0.5rem; height: 0.5rem; border-radius: 999px;
+    background: var(--color-accent-primary);
+  }
+
+  /* ─── Sections ───────────────────────────────────────────────────────── */
+  .section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-bottom: clamp(4rem, 7vw, 6rem);
+  }
+  @media (min-width: 900px) {
+    .section { grid-template-columns: 260px 1fr; gap: clamp(2rem, 4vw, 4rem); }
+  }
+
+  .section-side h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.875rem;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+  .section-side .id {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-accent-primary);
+    margin: 0 0 0.875rem;
+  }
+  .section-side .summary {
+    margin: 0 0 1.25rem;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    max-width: 36ch;
+  }
+  .current-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.625rem 0.4rem 0.5rem;
+    border-radius: 999px;
+    background: var(--color-accent-primary-soft);
+    border: 1px solid oklch(82% 0.06 285);
+    font-size: 0.75rem;
+    color: oklch(38% 0.14 285);
+    font-weight: 500;
+  }
+  .current-flag .marker {
+    display: inline-block;
+    width: 1.5rem; height: 1.5rem;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 1px solid oklch(82% 0.06 285);
+    color: var(--color-accent-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .current-flag .marker svg,
+  .current-flag .marker i { font-size: 14px; }
+  .current-flag .marker svg { width: 14px; height: 14px; }
+
+  /* Candidate grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.875rem;
+  }
+  .cell {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 18px;
+    padding: 1.125rem 1rem 0.875rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  }
+  .cell:hover {
+    border-color: oklch(78% 0.05 285);
+    box-shadow: 0 1px 0 oklch(100% 0 0 / 0.7) inset,
+                0 8px 24px -16px oklch(40% 0.02 265 / 0.18);
+    transform: translateY(-1px);
+  }
+  .cell-states {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+  }
+  .cell-state {
+    height: 64px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    background: oklch(96% 0.005 75);
+  }
+  .cell-state.active {
+    background: var(--color-accent-primary-soft);
+    color: var(--color-accent-primary);
+  }
+  .cell-state.inactive {
+    color: var(--color-text-tertiary);
+  }
+  .cell-state .ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+  }
+  .cell-state .ico svg { width: 24px; height: 24px; display: block; }
+  .cell-state .ico i,
+  .cell-state .ico .material-symbols-rounded {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .cell-state .lbl {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  .cell-state.active .lbl { color: var(--color-accent-primary); }
+  .cell-state.inactive .lbl { color: var(--color-text-quaternary); }
+
+  .cell-caption {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+  .cell-caption .family {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+  .cell-caption .glyph {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+  .cell.is-current {
+    border-color: oklch(78% 0.08 285);
+    background: oklch(99% 0.012 285);
+  }
+  .cell.is-current::before {
+    content: "Current";
+    display: inline-block;
+    margin-bottom: 0.625rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent-primary);
+  }
+
+  /* Material Symbols variations: rounded with explicit fill control per element */
+  .ms { font-family: "Material Symbols Rounded"; font-weight: 400; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; }
+  .ms.filled { font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+  .ms.outline { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+
+  /* ─── Full-nav comparison ────────────────────────────────────────────── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+  .nav-strip {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 oklch(100% 0 0 / 0.6) inset,
+                0 12px 28px -20px oklch(40% 0.02 265 / 0.2);
+  }
+  .nav-strip header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem 0.625rem;
+    border-bottom: 1px dashed var(--color-border-subtle);
+  }
+  .nav-strip header .ltr {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+  .nav-strip header h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.125rem;
+    margin: 0;
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+  }
+  .nav-strip header .tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+  .nav-strip header .note {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    max-width: 42ch;
+    text-align: right;
+  }
+  .nav-strip .strip {
+    display: flex;
+    height: 78px;
+    background: var(--color-surface);
+  }
+  .nav-strip .strip .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    color: var(--color-text-tertiary);
+  }
+  .nav-strip .strip .tab.active { color: var(--color-accent-primary); }
+  .nav-strip .strip .tab .ico { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; }
+  .nav-strip .strip .tab .ico svg { width: 24px; height: 24px; display: block; }
+  .nav-strip .strip .tab .ico i,
+  .nav-strip .strip .tab .ico .ms { font-size: 22px; line-height: 1; }
+  .nav-strip .strip .tab .lbl {
+    font-size: 0.6875rem;
+    font-weight: 500;
+  }
+
+  /* ─── Footer scratch ────────────────────────────────────────────────── */
+  .scratch {
+    margin-top: 3rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 18px;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+  .scratch strong { font-style: normal; font-family: var(--font-body); color: var(--color-text-primary); font-weight: 600; }
+
+  /* Inline SVG defaults — for Lucide/Heroicons we draw inline */
+  .lucide {
+    width: 24px; height: 24px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ─── Header ─────────────────────────────────────────────────────── -->
+  <header class="header">
+    <p class="eyebrow"><span class="num">Exploration</span> Bottom nav icon set</p>
+    <h1>Pick the glyphs that <em>read instantly</em> in the thumb zone.</h1>
+    <p>Four tabs, four metaphors to settle. For each tab below, the current icon is flagged, then a handful of alternates from popular icon families are shown at deploy size (24&nbsp;px). Each candidate is rendered in both <em>inactive</em> (tertiary) and <em>active</em> (accent) states so you can read shape, weight, and fill behaviour side by side. Five complete-set previews live at the bottom of the page.</p>
+
+    <div class="legend">
+      <span class="legend-chip"><span class="dot"></span> Active state on the right of each cell</span>
+      <span class="legend-chip">Drawn at the real 24&nbsp;px deploy size</span>
+      <span class="legend-chip">Families: Lucide · Phosphor · Material Symbols · Tabler · Iconoir · Remix</span>
+    </div>
+  </header>
+
+  <!-- ─── Section 1: Practise ───────────────────────────────────────── -->
+  <section class="section">
+    <aside class="section-side">
+      <p class="id">01 · Tab one</p>
+      <h2>Practise</h2>
+      <p class="summary">The home. Voice agent sessions and the share-a-voice-note deep dive. Should read as <em>have a conversation</em> — not record, not call.</p>
+      <span class="current-flag">
+        <span class="marker">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9 10h.01M12 10h.01M15 10h.01" stroke-width="2"/></svg>
+        </span>
+        Current: Lucide message-square + dots
+      </span>
+    </aside>
+
+    <div class="grid">
+      <!-- Current -->
+      <div class="cell is-current">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9 10h.01M12 10h.01M15 10h.01" stroke-width="2"/></svg></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9 10h.01M12 10h.01M15 10h.01" stroke-width="2"/></svg></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Lucide · stroke</span><span class="glyph">message-square-dots</span></div>
+      </div>
+
+      <!-- Phosphor chat-centered-dots -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-chat-centered-dots"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-chat-centered-dots"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">chat-centered-dots</span></div>
+      </div>
+
+      <!-- Phosphor chat-circle-dots -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-chat-circle-dots"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-chat-circle-dots"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">chat-circle-dots</span></div>
+      </div>
+
+      <!-- Material Symbols rounded chat -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">chat</span></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">chat</span></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">chat</span></div>
+      </div>
+
+      <!-- Material Symbols rounded forum -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">forum</span></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">forum</span></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">forum</span></div>
+      </div>
+
+      <!-- Material Symbols rounded record_voice_over -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">record_voice_over</span></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">record_voice_over</span></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">record_voice_over</span></div>
+      </div>
+
+      <!-- Phosphor microphone -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-microphone"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-microphone"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">microphone</span></div>
+      </div>
+
+      <!-- Phosphor waveform -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-waveform"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-waveform"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">waveform</span></div>
+      </div>
+
+      <!-- Tabler messages -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ti ti-messages"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ti ti-messages-filled"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Tabler · line/fill</span><span class="glyph">messages</span></div>
+      </div>
+
+      <!-- Iconoir chat-bubble-empty -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-chat-bubble-empty"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-chat-bubble"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · empty/solid</span><span class="glyph">chat-bubble</span></div>
+      </div>
+
+      <!-- Remix chat-voice-line -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ri-chat-voice-line"></i></span><span class="lbl">Practise</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ri-chat-voice-fill"></i></span><span class="lbl">Practise</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Remix · line/fill</span><span class="glyph">chat-voice</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Section 2: Review ─────────────────────────────────────────── -->
+  <section class="section">
+    <aside class="section-side">
+      <p class="id">02 · Tab two</p>
+      <h2>Review</h2>
+      <p class="summary">The inbox of recorded conversations and what Claude found. Should read as <em>go back and read</em> — transcripts you already have, not a place to search the web.</p>
+      <span class="current-flag">
+        <span class="marker">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2"/><line x1="13" y1="16" x2="14.5" y2="17.5"/></svg>
+        </span>
+        Current: hand-rolled doc + magnifier dot
+      </span>
+    </aside>
+
+    <div class="grid">
+      <!-- Current -->
+      <div class="cell is-current">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2"/><line x1="13" y1="16" x2="14.5" y2="17.5"/></svg></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2"/><line x1="13" y1="16" x2="14.5" y2="17.5"/></svg></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Lucide-style · custom</span><span class="glyph">doc-search</span></div>
+      </div>
+
+      <!-- Phosphor file-magnifying-glass -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-file-magnifying-glass"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-file-magnifying-glass"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">file-magnifying-glass</span></div>
+      </div>
+
+      <!-- Phosphor file-text -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-file-text"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-file-text"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">file-text</span></div>
+      </div>
+
+      <!-- Phosphor articles -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-article"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-article"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">article</span></div>
+      </div>
+
+      <!-- Material Symbols description -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">description</span></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">description</span></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">description</span></div>
+      </div>
+
+      <!-- Material Symbols fact_check -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">fact_check</span></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">fact_check</span></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">fact_check</span></div>
+      </div>
+
+      <!-- Material Symbols inbox -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">inbox</span></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">inbox</span></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">inbox</span></div>
+      </div>
+
+      <!-- Tabler list-search -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ti ti-list-search"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ti ti-list-search"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Tabler · line only</span><span class="glyph">list-search</span></div>
+      </div>
+
+      <!-- Iconoir multiple-pages — line only (no solid variant in iconoir v7) -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-multiple-pages"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-multiple-pages"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · line only</span><span class="glyph">multiple-pages</span></div>
+      </div>
+
+      <!-- Iconoir page-search -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-page-search"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-page-search"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · line only</span><span class="glyph">page-search</span></div>
+      </div>
+
+      <!-- Remix file-text -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ri-file-text-line"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ri-file-text-fill"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Remix · line/fill</span><span class="glyph">file-text</span></div>
+      </div>
+
+      <!-- Remix inbox-line -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ri-inbox-line"></i></span><span class="lbl">Review</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ri-inbox-fill"></i></span><span class="lbl">Review</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Remix · line/fill</span><span class="glyph">inbox</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Section 3: Study ──────────────────────────────────────────── -->
+  <section class="section">
+    <aside class="section-side">
+      <p class="id">03 · Tab three</p>
+      <h2>Study</h2>
+      <p class="summary">The Write surface — saved corrections that the user is reinforcing on paper. Should read as <em>reinforcement</em>, not <em>writing</em> (the pencil felt active; study is the deliberate state).</p>
+      <span class="current-flag">
+        <span class="marker">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/></svg>
+        </span>
+        Current: Lucide book-open
+      </span>
+    </aside>
+
+    <div class="grid">
+      <!-- Current -->
+      <div class="cell is-current">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/></svg></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/></svg></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Lucide · stroke</span><span class="glyph">book-open</span></div>
+      </div>
+
+      <!-- Phosphor book-open -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-book-open"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-book-open"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">book-open</span></div>
+      </div>
+
+      <!-- Phosphor book-open-text -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-book-open-text"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-book-open-text"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">book-open-text</span></div>
+      </div>
+
+      <!-- Phosphor books -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-books"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-books"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">books</span></div>
+      </div>
+
+      <!-- Phosphor cards -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-cards"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-cards"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">cards (flashcards)</span></div>
+      </div>
+
+      <!-- Material Symbols menu_book -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">menu_book</span></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">menu_book</span></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">menu_book</span></div>
+      </div>
+
+      <!-- Material Symbols auto_stories -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">auto_stories</span></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">auto_stories</span></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">auto_stories</span></div>
+      </div>
+
+      <!-- Material Symbols school -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">school</span></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">school</span></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">school</span></div>
+      </div>
+
+      <!-- Tabler book-2 -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ti ti-book-2"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ti ti-book-2"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Tabler · line only</span><span class="glyph">book-2</span></div>
+      </div>
+
+      <!-- Tabler cards -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ti ti-cards"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ti ti-cards-filled"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Tabler · line/fill</span><span class="glyph">cards</span></div>
+      </div>
+
+      <!-- Iconoir book-stack — line only (no solid variant in iconoir v7) -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-book-stack"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-book-stack"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · line only</span><span class="glyph">book-stack</span></div>
+      </div>
+
+      <!-- Iconoir open-book — line only -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-open-book"></i></span><span class="lbl">Study</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-open-book"></i></span><span class="lbl">Study</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · line only</span><span class="glyph">open-book</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Section 4: Settings ──────────────────────────────────────── -->
+  <section class="section">
+    <aside class="section-side">
+      <p class="id">04 · Tab four</p>
+      <h2>Settings</h2>
+      <p class="summary">Language, theme, font size, sign out. Workhorse glyph. The trick is choosing a flavour that <em>doesn't shout</em> — settings is the quietest tab and the icon should sit back.</p>
+      <span class="current-flag">
+        <span class="marker">
+          <svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
+        Current: Lucide settings (gear)
+      </span>
+    </aside>
+
+    <div class="grid">
+      <!-- Current -->
+      <div class="cell is-current">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Lucide · stroke</span><span class="glyph">settings</span></div>
+      </div>
+
+      <!-- Phosphor gear -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-gear"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-gear"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">gear</span></div>
+      </div>
+
+      <!-- Phosphor gear-six -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-gear-six"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-gear-six"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">gear-six</span></div>
+      </div>
+
+      <!-- Phosphor faders-horizontal -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-faders-horizontal"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">faders-horizontal</span></div>
+      </div>
+
+      <!-- Phosphor sliders-horizontal -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ph ph-sliders-horizontal"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ph-fill ph-sliders-horizontal"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Phosphor · reg/fill</span><span class="glyph">sliders-horizontal</span></div>
+      </div>
+
+      <!-- Material Symbols settings -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">settings</span></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">settings</span></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">settings</span></div>
+      </div>
+
+      <!-- Material Symbols tune -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><span class="ms outline">tune</span></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><span class="ms filled">tune</span></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">M. Symbols · rounded</span><span class="glyph">tune</span></div>
+      </div>
+
+      <!-- Tabler settings-2 -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ti ti-settings-2"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ti ti-settings-2"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Tabler · line only</span><span class="glyph">settings-2</span></div>
+      </div>
+
+      <!-- Tabler adjustments-horizontal -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ti ti-adjustments-horizontal"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ti ti-adjustments-horizontal"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Tabler · line only</span><span class="glyph">adjustments-horizontal</span></div>
+      </div>
+
+      <!-- Iconoir settings — line only -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-settings"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-settings"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · line only</span><span class="glyph">settings</span></div>
+      </div>
+
+      <!-- Iconoir tools -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="iconoir-tools"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="iconoir-tools"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Iconoir · line only</span><span class="glyph">tools</span></div>
+      </div>
+
+      <!-- Remix settings-3 -->
+      <div class="cell">
+        <div class="cell-states">
+          <div class="cell-state inactive"><span class="ico"><i class="ri-settings-3-line"></i></span><span class="lbl">Settings</span></div>
+          <div class="cell-state active"><span class="ico"><i class="ri-settings-3-fill"></i></span><span class="lbl">Settings</span></div>
+        </div>
+        <div class="cell-caption"><span class="family">Remix · line/fill</span><span class="glyph">settings-3</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Section 5: Full-set previews ─────────────────────────────── -->
+  <section class="section">
+    <aside class="section-side">
+      <p class="id">05 · Whole sets</p>
+      <h2>Style directions</h2>
+      <p class="summary">If you want to commit to a single family rather than mixing, here are five complete bottom navs in their native style. The <em>Practise</em> tab is shown active in each.</p>
+    </aside>
+
+    <div class="compare">
+
+      <!-- A. Current (Lucide-style hand-rolled) -->
+      <div class="nav-strip">
+        <header>
+          <div class="ltr"><span class="tag">A</span><h3>Current — Lucide stroke</h3></div>
+          <p class="note">Today's set. Even stroke (1.75), distinctive Practise glyph but no fill on active.</p>
+        </header>
+        <div class="strip">
+          <div class="tab active"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9 10h.01M12 10h.01M15 10h.01" stroke-width="2"/></svg></span><span class="lbl">Practise</span></div>
+          <div class="tab"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2"/><line x1="13" y1="16" x2="14.5" y2="17.5"/></svg></span><span class="lbl">Review</span></div>
+          <div class="tab"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/></svg></span><span class="lbl">Study</span></div>
+          <div class="tab"><span class="ico"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="lbl">Settings</span></div>
+        </div>
+      </div>
+
+      <!-- B. Phosphor (regular → fill on active) -->
+      <div class="nav-strip">
+        <header>
+          <div class="ltr"><span class="tag">B</span><h3>Phosphor — regular → fill</h3></div>
+          <p class="note">Friendlier. Active tab fills the glyph instead of changing only colour, so the difference is visible at a glance.</p>
+        </header>
+        <div class="strip">
+          <div class="tab active"><span class="ico"><i class="ph-fill ph-chat-centered-dots"></i></span><span class="lbl">Practise</span></div>
+          <div class="tab"><span class="ico"><i class="ph ph-file-text"></i></span><span class="lbl">Review</span></div>
+          <div class="tab"><span class="ico"><i class="ph ph-book-open-text"></i></span><span class="lbl">Study</span></div>
+          <div class="tab"><span class="ico"><i class="ph ph-gear"></i></span><span class="lbl">Settings</span></div>
+        </div>
+      </div>
+
+      <!-- C. Material Symbols rounded -->
+      <div class="nav-strip">
+        <header>
+          <div class="ltr"><span class="tag">C</span><h3>Material Symbols — rounded</h3></div>
+          <p class="note">Warm, pillowy, app-store native. Active state uses the variable-axis fill toggle — closest pattern to iOS / Gmail mobile.</p>
+        </header>
+        <div class="strip">
+          <div class="tab active"><span class="ico"><span class="ms filled">chat</span></span><span class="lbl">Practise</span></div>
+          <div class="tab"><span class="ico"><span class="ms outline">description</span></span><span class="lbl">Review</span></div>
+          <div class="tab"><span class="ico"><span class="ms outline">menu_book</span></span><span class="lbl">Study</span></div>
+          <div class="tab"><span class="ico"><span class="ms outline">settings</span></span><span class="lbl">Settings</span></div>
+        </div>
+      </div>
+
+      <!-- D. Tabler -->
+      <div class="nav-strip">
+        <header>
+          <div class="ltr"><span class="tag">D</span><h3>Tabler — line only</h3></div>
+          <p class="note">Very close to current Lucide weight but with subtle character differences (open caps, slightly thinner stroke at deploy size).</p>
+        </header>
+        <div class="strip">
+          <div class="tab active"><span class="ico"><i class="ti ti-message-2"></i></span><span class="lbl">Practise</span></div>
+          <div class="tab"><span class="ico"><i class="ti ti-file-text"></i></span><span class="lbl">Review</span></div>
+          <div class="tab"><span class="ico"><i class="ti ti-book-2"></i></span><span class="lbl">Study</span></div>
+          <div class="tab"><span class="ico"><i class="ti ti-settings"></i></span><span class="lbl">Settings</span></div>
+        </div>
+      </div>
+
+      <!-- E. Iconoir -->
+      <div class="nav-strip">
+        <header>
+          <div class="ltr"><span class="tag">E</span><h3>Iconoir — line / solid</h3></div>
+          <p class="note">Newer family with distinctive geometry — slightly more editorial than the others.</p>
+        </header>
+        <div class="strip">
+          <div class="tab active"><span class="ico"><i class="iconoir-chat-bubble"></i></span><span class="lbl">Practise</span></div>
+          <div class="tab"><span class="ico"><i class="iconoir-multiple-pages"></i></span><span class="lbl">Review</span></div>
+          <div class="tab"><span class="ico"><i class="iconoir-book-stack"></i></span><span class="lbl">Study</span></div>
+          <div class="tab"><span class="ico"><i class="iconoir-settings"></i></span><span class="lbl">Settings</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <p class="scratch">
+    <strong>How to pick.</strong> The active state is what the user reads first — a tab that <em>doesn't</em> change shape between inactive and active will always feel weaker than one that fills. If you stay on Lucide-style strokes (today), consider painting the active glyph with a tint or background pill instead of relying on colour alone. If you switch to Phosphor or Material Symbols, the fill-on-active behaviour is free.
+  </p>
+
+</div>
+</body>
+</html>

@@ -119,29 +119,67 @@ const ICONS = {
     <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
     <line x1="12" y1="19" x2="12" y2="22" />
   </>,
-  // Speech bubble with three dots — used for the Practice nav tab and the
-  // onboarding hub primary card. Immediately reads as "conversation."
-  message: <>
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    <path d="M9 10h.01M12 10h.01M15 10h.01" strokeWidth={2} strokeLinecap="round" />
-  </>,
+  // Phosphor `chat-circle-dots` — round speech bubble with three dots.
+  // Used for the Practise home Chat door and the Practice session shell's
+  // chat-mode chrome. The plural `chats` glyph is intentionally reserved
+  // for the Review nav tab — keep this entry single-bubble only.
+  message: {
+    viewBox: '0 0 256 256',
+    node: <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128ZM84,116a12,12,0,1,0,12,12A12,12,0,0,0,84,116Zm88,0a12,12,0,1,0,12,12A12,12,0,0,0,172,116Zm60,12A104,104,0,0,1,79.12,219.82L45.07,231.17a16,16,0,0,1-20.24-20.24l11.35-34.05A104,104,0,1,1,232,128Zm-16,0A88,88,0,1,0,51.81,172.06a8,8,0,0,1,.66,6.54L40,216,77.4,203.53a7.85,7.85,0,0,1,2.53-.42,8,8,0,0,1,4,1.08A88,88,0,0,0,216,128Z" fill="currentColor" stroke="none" />,
+  },
   // Material Symbols `audio_wave` — filled bars, non-standard viewBox.
   // fill/stroke overrides on the path win over the SVG wrapper defaults.
   waveform: {
     viewBox: '0 -960 960 960',
     node: <path d="M280-240v-480h80v480h-80ZM440-80v-800h80v800h-80ZM120-400v-160h80v160h-80Zm480 160v-480h80v480h-80Zm160-160v-160h80v160h-80Z" fill="currentColor" stroke="none" />,
   },
-  // Phone handset — upright. Used for the Practice page's "Pick up a call"
-  // mode card and the ringing screen. The hangup variant below rotates the
-  // same path 135° and adds extra viewBox padding.
-  phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
-  // Phone handset tilted 135° — the universal "end call" pictogram.
-  // Uses a padded viewBox (-4 -4 32 32) so the rotated path corners
-  // don't get clipped by the default 0 0 24 24 boundary.
+  // Upload-from-cloud — retired from the home Share door (replaced by
+  // `export` below) but kept in the registry in case any other surface
+  // wants a generic upload affordance later.
+  upload: <>
+    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+    <polyline points="12 12 12 21" />
+    <polyline points="8 17 12 21 16 17" />
+  </>,
+  // Phosphor `export` — iOS-style share glyph (tray with an arrow rising
+  // out of it). Used by the home "Share a voice note" door. Names the
+  // affordance ("share") rather than a single destination app, which
+  // matches the underlying share-target API accepting audio from any
+  // messaging app, not just WhatsApp. Phosphor uses a 256x256 viewBox
+  // with filled paths, so this entry overrides the wrapper's default
+  // stroke styling via the complex `{ node, viewBox }` form.
+  export: {
+    viewBox: '0 0 256 256',
+    node: <path d="M216,112v96a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V112A16,16,0,0,1,56,96H80a8,8,0,0,1,0,16H56v96H200V112H176a8,8,0,0,1,0-16h24A16,16,0,0,1,216,112ZM93.66,69.66,120,43.31V136a8,8,0,0,0,16,0V43.31l26.34,26.35a8,8,0,0,0,11.32-11.32l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,93.66,69.66Z" fill="currentColor" stroke="none" />,
+  },
+  // Document with magnifier dot — used by the Review nav tab. Names the
+  // pillar ("look back at your transcripts") rather than the destination
+  // metaphor of the previous microphone icon.
+  'doc-search': <>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <circle cx="11.5" cy="14.5" r="2" />
+    <line x1="13" y1="16" x2="14.5" y2="17.5" />
+  </>,
+  // Open book — used by the Study nav tab. Connotes long-form study /
+  // reinforcement, distinct from the pencil-as-action of the old Write
+  // label. Two pages with a centre crease.
+  book: <>
+    <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z" />
+    <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z" />
+  </>,
+  // Phosphor `phone-call` — handset with sound arcs. Used for the Practise
+  // home Call door and the Practice session shell's call-mode chrome. Names
+  // the active state (a call in progress) rather than the inert object.
+  phone: {
+    viewBox: '0 0 256 256',
+    node: <path d="M144.27,45.93a8,8,0,0,1,9.8-5.66,86.22,86.22,0,0,1,61.66,61.66,8,8,0,0,1-5.66,9.8A8.23,8.23,0,0,1,208,112a8,8,0,0,1-7.73-5.94,70.35,70.35,0,0,0-50.33-50.33A8,8,0,0,1,144.27,45.93Zm-2.33,41.8c13.79,3.68,22.65,12.54,26.33,26.33A8,8,0,0,0,176,120a8.23,8.23,0,0,0,2.07-.27,8,8,0,0,0,5.66-9.8c-5.12-19.16-18.5-32.54-37.66-37.66a8,8,0,1,0-4.13,15.46Zm81.94,95.35A56.26,56.26,0,0,1,168,232C88.6,232,24,167.4,24,88A56.26,56.26,0,0,1,72.92,32.12a16,16,0,0,1,16.62,9.52l21.12,47.15,0,.12A16,16,0,0,1,109.39,104c-.18.27-.37.52-.57.77L88,129.45c7.49,15.22,23.41,31,38.83,38.51l24.34-20.71a8.12,8.12,0,0,1,.75-.56,16,16,0,0,1,15.17-1.4l.13.06,47.11,21.11A16,16,0,0,1,223.88,183.08Zm-15.88-2s-.07,0-.11,0h0l-47-21.05-24.35,20.71a8.44,8.44,0,0,1-.74.56,16,16,0,0,1-15.75,1.14c-18.73-9.05-37.4-27.58-46.46-46.11a16,16,0,0,1,1-15.7,6.13,6.13,0,0,1,.57-.77L96,95.15l-21-47a.61.61,0,0,1,0-.12A40.2,40.2,0,0,0,40,88,128.14,128.14,0,0,0,168,216,40.21,40.21,0,0,0,208,181.07Z" fill="currentColor" stroke="none" />,
+  },
+  // Phosphor `phone-disconnect` — the universal "end call" pictogram.
+  // Drops the previous rotated-Lucide hack in favour of a purpose-drawn
+  // hangup glyph so it sits at the same visual weight as `phone` above.
   'phone-hangup': {
-    node: <g transform="rotate(135 12 12)">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-    </g>,
-    viewBox: '-4 -4 32 32',
+    viewBox: '0 0 256 256',
+    node: <path d="M231.59,90.13h0C175.44,34,80.56,34,24.41,90.13c-20,20-21.92,49.49-4.69,71.71A16,16,0,0,0,32.35,168a15.8,15.8,0,0,0,5.75-1.08l49-17.37.29-.11a16,16,0,0,0,9.75-11.73l5.9-29.52a76.52,76.52,0,0,1,49.68-.11h0l6.21,29.75a16,16,0,0,0,9.72,11.59l.29.11,49,17.39a16,16,0,0,0,18.38-5.06C253.51,139.62,251.58,110.13,231.59,90.13ZM223.67,152l-.3-.12-48.82-17.33-6.21-29.74A16,16,0,0,0,158,93a92.56,92.56,0,0,0-60.34.13,16,16,0,0,0-10.32,12l-5.9,29.51L32.63,151.86c-.1,0-.17.13-.27.17-12.33-15.91-11-36.23,3.36-50.58,25-25,58.65-37.53,92.28-37.53s67.27,12.51,92.28,37.53C234.61,115.8,236,136.12,223.67,152Zm.32,48a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,200Z" fill="currentColor" stroke="none" />,
   },
 }

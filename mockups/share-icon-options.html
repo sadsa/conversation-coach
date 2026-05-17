@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Share door icon — comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,ital,wght@8..60,0,400;8..60,0,500;8..60,1,400;8..60,1,500&display=swap"
+  rel="stylesheet"
+/>
+<!-- Phosphor regular + fill (also includes brand glyphs like whatsapp-logo) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
+
+<style>
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-text-quaternary: oklch(68% 0.008 75);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-accent-primary-soft: oklch(94% 0.035 285);
+
+    --whatsapp-green: oklch(73% 0.18 145);
+    --whatsapp-green-deep: oklch(58% 0.16 145);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, oklch(95% 0.025 285 / 0.5), transparent 60%),
+      oklch(94% 0.005 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1.5rem, 4vw, 3rem) 6rem;
+  }
+  .header { display: grid; gap: 1.25rem; margin-bottom: clamp(3rem, 5vw, 4rem); }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9375rem;
+    color: var(--color-accent-primary);
+    margin: 0;
+  }
+  .eyebrow .num {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-style: normal;
+    color: var(--color-text-tertiary);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    vertical-align: 0.1em;
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+  }
+  .header p {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 60ch;
+  }
+
+  /* ─── A candidate row ─────────────────────────────────────────── */
+  .opt {
+    display: grid;
+    gap: 0.875rem;
+    margin-bottom: clamp(1.75rem, 3vw, 2.25rem);
+  }
+  .opt-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .opt-head .tag {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .opt-head h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .opt-head .glyph {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+  .opt-note {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    margin: 0;
+    max-width: 56ch;
+  }
+  .opt.is-current .opt-head h2::after {
+    content: " — currently shipping";
+    font-style: italic;
+    color: var(--color-text-tertiary);
+    font-weight: 400;
+  }
+
+  /* ─── The actual share-door card (mirrors PractiseClient.tsx) ─── */
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-radius: 16px;
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+    padding: 1rem 1.25rem;
+    text-decoration: none;
+    transition: background 200ms ease;
+  }
+  .card:hover {
+    background: var(--color-surface-elevated);
+  }
+  .icon-tile {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: var(--color-surface-elevated);
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-tile i { font-size: 20px; line-height: 1; }
+  .icon-tile.brand-whatsapp {
+    background: var(--whatsapp-green);
+    color: oklch(99% 0.005 145);
+  }
+  .icon-tile.brand-whatsapp i { font-size: 22px; }
+  .icon-tile.accent-tinted {
+    background: var(--color-accent-primary-soft);
+    color: var(--color-accent-primary);
+  }
+  .card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    line-height: 1.3;
+    margin: 0;
+  }
+  .card-blurb {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+    margin: 0;
+  }
+  .chevron {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-text-tertiary);
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+
+  /* ─── Alternatives row ───────────────────────────────────────── */
+  .alts {
+    margin-top: clamp(2.5rem, 4vw, 3.5rem);
+    padding: 1.5rem 1.5rem 1.25rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 18px;
+  }
+  .alts h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.125rem;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.01em;
+  }
+  .alts .lede {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin: 0 0 1.25rem;
+  }
+  .alts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.875rem;
+  }
+  .alt-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    border-radius: 14px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border-subtle);
+  }
+  .alt-cell .tile {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: var(--color-surface-elevated);
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .alt-cell .tile i { font-size: 20px; line-height: 1; }
+  .alt-cell .name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  /* ─── Footer scratch ──────────────────────────────────────── */
+  .scratch {
+    margin-top: 2.25rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 18px;
+    background: var(--color-surface);
+    border: 1px dashed oklch(82% 0.012 75);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+  .scratch strong { font-style: normal; font-family: var(--font-body); color: var(--color-text-primary); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <p class="eyebrow"><span class="num">Exploration</span> Share door icon</p>
+    <h1>Three contenders for the <em>“share a voice note”</em> tile.</h1>
+    <p>Each card below mirrors the actual share door on the Practise home — same border, padding, icon tile, copy. Compare them in context, then tell me which one to wire.</p>
+  </header>
+
+  <!-- ─── Current ─────────────────────────────────────────────── -->
+  <div class="opt is-current">
+    <div class="opt-head">
+      <span class="tag">00</span>
+      <h2>Cloud-upload</h2>
+      <span class="glyph">Lucide-style · upload</span>
+    </div>
+    <p class="opt-note">Reads as “upload a file” — slightly off-vocabulary because the user doesn't browse-and-upload; they share from another app's share sheet. Reference baseline.</p>
+    <a class="card" href="#" onclick="return false">
+      <span class="icon-tile">
+        <!-- Inline copy of the existing Icon `upload` (cloud + arrow), so the
+             reference matches exactly. -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+          style="width:20px;height:20px;" aria-hidden="true">
+          <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+          <polyline points="12 12 12 21" />
+          <polyline points="8 17 12 21 16 17" />
+        </svg>
+      </span>
+      <div class="card-body">
+        <p class="card-title">Share a voice note</p>
+        <p class="card-blurb">Recorded a real conversation? Send it from any messaging app.</p>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+    </a>
+  </div>
+
+  <!-- ─── Option A: iOS share ─────────────────────────────────── -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="tag">A</span>
+      <h2>iOS share — Phosphor <code>export</code></h2>
+      <span class="glyph">tray with arrow rising</span>
+    </div>
+    <p class="opt-note">The universal “share” pictogram on iOS and increasingly on Android. Names the affordance, not the destination — works equally for WhatsApp, Signal, Telegram, Voice Memos. Stays cohesive with the new Phosphor nav we just adopted.</p>
+    <a class="card" href="#" onclick="return false">
+      <span class="icon-tile">
+        <i class="ph ph-export"></i>
+      </span>
+      <div class="card-body">
+        <p class="card-title">Share a voice note</p>
+        <p class="card-blurb">Recorded a real conversation? Send it from any messaging app.</p>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+    </a>
+
+    <p class="opt-note" style="margin-top:0.5rem; opacity:0.8;">
+      Variant — accent-tinted tile (matches the call/chat doors' active treatment):
+    </p>
+    <a class="card" href="#" onclick="return false">
+      <span class="icon-tile accent-tinted">
+        <i class="ph ph-export"></i>
+      </span>
+      <div class="card-body">
+        <p class="card-title">Share a voice note</p>
+        <p class="card-blurb">Recorded a real conversation? Send it from any messaging app.</p>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+    </a>
+  </div>
+
+  <!-- ─── Option B: WhatsApp (brand green) ─────────────────────── -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="tag">B</span>
+      <h2>WhatsApp logo — brand green</h2>
+      <span class="glyph">Phosphor · whatsapp-logo · WhatsApp green tile</span>
+    </div>
+    <p class="opt-note">Names the canonical destination. Visually loud — the only branded element in the app, which makes the door immediately recognisable but anchors the affordance to WhatsApp specifically (even though the underlying share-target accepts audio from any app).</p>
+    <a class="card" href="#" onclick="return false">
+      <span class="icon-tile brand-whatsapp">
+        <i class="ph-fill ph-whatsapp-logo"></i>
+      </span>
+      <div class="card-body">
+        <p class="card-title">Share a voice note</p>
+        <p class="card-blurb">Recorded a real conversation? Send it from any messaging app.</p>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+    </a>
+  </div>
+
+  <!-- ─── Option C: WhatsApp (in app accent) ───────────────────── -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="tag">C</span>
+      <h2>WhatsApp logo — app accent</h2>
+      <span class="glyph">Phosphor · whatsapp-logo · accent-tinted tile</span>
+    </div>
+    <p class="opt-note">Same glyph as B but tinted into the app's purple. Quieter, more cohesive with the rest of the surface — but loses most of the brand-recognition advantage. At small sizes it just reads as “speech bubble with phone” which isn't very specific.</p>
+    <a class="card" href="#" onclick="return false">
+      <span class="icon-tile accent-tinted">
+        <i class="ph-fill ph-whatsapp-logo"></i>
+      </span>
+      <div class="card-body">
+        <p class="card-title">Share a voice note</p>
+        <p class="card-blurb">Recorded a real conversation? Send it from any messaging app.</p>
+      </div>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+    </a>
+  </div>
+
+  <!-- ─── Honorable mentions ──────────────────────────────────── -->
+  <section class="alts">
+    <h3>Honourable mentions</h3>
+    <p class="lede">Adjacent glyphs in case none of the above feels right. Same Phosphor family so any of these can be wired with a one-word change.</p>
+    <div class="alts-grid">
+      <div class="alt-cell"><span class="tile"><i class="ph ph-share-fat"></i></span><span class="name">share-fat</span></div>
+      <div class="alt-cell"><span class="tile"><i class="ph ph-share"></i></span><span class="name">share</span></div>
+      <div class="alt-cell"><span class="tile"><i class="ph ph-share-network"></i></span><span class="name">share-network</span></div>
+      <div class="alt-cell"><span class="tile"><i class="ph ph-arrow-square-out"></i></span><span class="name">arrow-square-out</span></div>
+      <div class="alt-cell"><span class="tile"><i class="ph ph-upload-simple"></i></span><span class="name">upload-simple</span></div>
+      <div class="alt-cell"><span class="tile"><i class="ph ph-paper-plane-tilt"></i></span><span class="name">paper-plane-tilt</span></div>
+    </div>
+  </section>
+
+  <p class="scratch">
+    <strong>Quick steer.</strong> <em>iOS share (A)</em> is the safest pick — universally legible, family-consistent, doesn't lie about which apps the share-target accepts. <em>WhatsApp brand-green (B)</em> wins on raw recognition and matches the deep-link target (the onboarding step is literally the WhatsApp share illustration), but it's the only branded mark in the app and visually loudest. <em>WhatsApp in accent (C)</em> is the compromise that satisfies neither argument completely. If you want a single recommendation: <strong>A</strong>.
+  </p>
+
+</div>
+</body>
+</html>

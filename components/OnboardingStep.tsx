@@ -129,7 +129,7 @@ export function OnboardingStep({
         </div>
 
         <div className="space-y-2">
-          <h1 className="font-display text-3xl font-medium text-text-primary">{heading}</h1>
+          <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">{heading}</h1>
           <p className="text-sm text-text-secondary leading-relaxed">{body}</p>
         </div>
       </div>

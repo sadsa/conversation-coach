@@ -147,7 +147,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
                     : 'text-text-tertiary hover:bg-surface-elevated hover:text-text-secondary'
                 }`}
               >
-                {tab.icon}
+                {tab.icon(active)}
                 <span className="text-sm font-medium">{t(tab.labelKey)}</span>
               </Link>
             )

@@ -42,8 +42,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'common.close': 'Dismiss',
 
     // Navigation
-    'nav.recordings': 'Conversations',
-    'nav.write': 'Write',
+    //
+    // Labels match the three pillars of the methodology — Practise → Review →
+    // Study → Settings. `nav.recordings` (was "Conversations") was retired
+    // when the home dashboard moved to its own /review route; existing
+    // imports were swept over to `nav.review`. Same with `nav.write` →
+    // `nav.study`. Old keys deliberately removed so a stale reference
+    // surfaces as the literal key in dev rather than the wrong label.
+    'nav.practise': 'Practise',
+    'nav.review': 'Review',
+    'nav.study': 'Study',
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
     'nav.back': 'Back',
@@ -55,7 +63,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Sign out',
 
     // Practice
-    'nav.practice': 'Practice',
+    //
+    // The `nav.practice` key was retired when /practice stopped owning a
+    // nav tab — `nav.practise` (above, British spelling) is the home tab
+    // label now, and /practice is reached via the home mode cards.
+    // Keys below still drive the in-session UI.
     'practice.heading': 'Have a conversation',
     'lang.es-AR': 'Spanish',
     'lang.en-NZ': 'English',
@@ -153,45 +165,65 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'accessDenied.requestSubject': 'Conversation Coach access request',
     'accessDenied.requestBody': "Hi,\n\nI'd like to request access to Conversation Coach.\n\nThanks,",
 
-    // Home page
+    // Home page (now the Practise landing)
+    //
+    // The home `/` lost its conversations dashboard in the Practise-as-home
+    // redesign — the dashboard moved to a dedicated /review route. What
+    // remains on the home: the greeting, a "Practise · Review · Study"
+    // methodology eyebrow (with a count badge on Study when items are
+    // waiting), and three door cards: Pick up a call · Casual chat · Share
+    // a voice note. The third door folds in the WhatsApp-share tutorial
+    // that used to be a quiet text-row CTA, treating it as a peer way to
+    // start the methodology.
     'home.title': 'Conversation Coach',
-    'home.subtitle': 'Upload a recorded conversation to get feedback on your speech.',
-    'home.uploading': 'Uploading…',
-    'home.uploadFailed': 'Upload failed — please try again',
-    'home.pastSessions': 'Past Sessions',
-
-    // Dashboard
-    'home.greetingMorning': 'Good morning',
-    'home.greetingAfternoon': 'Good afternoon',
-    'home.greetingEvening': 'Good evening',
-    'home.dashboardSubtitle': '',
-    'home.firstRunSubtitle': 'Practice by chatting — or share a voice note from any messaging app.',
-    // Secondary text-row CTA shown beneath the Practice card. Deep-links
-    // into the share-from-WhatsApp tutorial at /onboarding?step=2 — the
-    // tutorial used to be reachable only through the (now removed) hub
-    // and Settings → Help, so this row is the only durable entry point.
-    'home.shareCTA': 'Already recorded a voice note? Show me how',
+    // Greeting tagline shown under the time-of-day "Buenos días". Drives
+    // the user straight into the three modes — replaces the older
+    // home.firstRunSubtitle which described the WhatsApp share fallback
+    // (that's now its own door in the modes grid).
+    'home.subhead': 'How do you want to practise?',
     // Peak-end beat shown once when the user lands on / from onboarding
     // completion (via ?welcome=true). Auto-dismisses after ~3s.
     'home.welcomeBeat': 'All set. Ready when you are.',
+
+    // Methodology eyebrow — small "Practise · Review · Study" row beneath
+    // the greeting that surfaces the three pillars. The current pillar
+    // (Practise on /) tints accent; Study carries a numeric badge when
+    // the user has corrections waiting to write down.
+    'home.pillarPractise': 'Practise',
+    'home.pillarReview': 'Review',
+    'home.pillarStudy': 'Study',
+    'home.pillarAria': 'Methodology: Practise, then review, then study',
+
+    // Mode cards — the three doors out of the home. Call + Chat reuse the
+    // existing practice.modeCall*/modeChat* copy. The third door is the
+    // "Share a voice note" path, which deep-links into the WhatsApp share
+    // illustration at /onboarding?step=2 (existing route, no new wizard).
+    'home.modeShareTitle': 'Share a voice note',
+    'home.modeShareBlurb': 'Recorded a real conversation? Send it from any messaging app.',
+
+    // Review tab (the conversations inbox — previously the home dashboard)
+    //
+    // The keys below kept their `home.*` prefix when the inbox moved to
+    // /review — the names describe the widget surface, not its route, and
+    // a sweeping rename would have touched a dozen Dashboard* components
+    // and their tests with no behavioural payoff. Treat `home.recent*`,
+    // `home.inProgress*`, and `home.reminders*` as Review-tab strings.
+    //
+    // /review page H1. The warm time-of-day greeting belongs to the home
+    // (peak-end moment after onboarding, and the "I'm back" beat on every
+    // return). /review names its surface directly so the user knows what
+    // they're looking at without sharing the home's emotional weight.
+    'review.title': 'Your conversations',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to write down right now.',
     'home.recentSessionsTitle': 'Your conversations',
     'home.recentShowAll': 'Show all {n}',
     'home.recentShowFewer': 'Show fewer',
-    'home.recentBucketToday': 'Today',
-    'home.recentBucketYesterday': 'Yesterday',
-    'home.recentBucketThisWeek': 'This week',
-    'home.recentBucketEarlier': 'Earlier',
     'home.recentSessionUnreadAria': 'Unread',
-    'home.newSessionTitle': 'Start a new session',
-    'home.newSessionSubtitle': 'Upload a recorded conversation to get fresh feedback.',
     'home.inProgressTitle': 'Currently processing',
     'home.inProgressCountOne': '1 in progress',
     'home.inProgressCountMany': '{n} in progress',
-    'home.practiceCTATitle': 'Practice with your coach',
-    'home.practiceCTASubtitle': 'Start a 5-minute voice session in {language}',
-    'home.noRecordingsYet': 'No conversations yet — share a voice note from any messaging app to get started.',
+    'home.noRecordingsYet': 'No conversations yet — start one from the home page, or share a voice note from any messaging app.',
 
     // Drop zone
     'dropzone.title': 'Upload conversation',
@@ -394,11 +426,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDownOne': '1 correction to write down',
 
     // Write page (the queue of saved corrections waiting to be written down)
-    'write.title': 'Write',
-    // Empty-state only. The H1 already names the surface; the subtitle's
-    // job here is to invite the next action without restating "saved
-    // corrections waiting to be written down" (the page is the noun, the
-    // subtitle is the verb).
+    //
+    // Surface name reads as "Study" — the methodology pillar the home
+    // redesign established and the bottom-nav matches. The route stays
+    // `/write` for URL stability per CLAUDE.md; only the visible label
+    // shifts. Internal verbs ("write down", "Mark as written", "Written
+    // archive") still use "write" — that's the literal action on paper,
+    // separate from the surface name.
+    'write.title': 'Study',
+    // Subtitle stays visible above the queue (not only when empty) — a
+    // calm one-liner that invites the action without repeating the H1.
     'write.subtitle': 'Pick up a saved correction whenever you\'re ready.',
     'write.loading': 'Loading…',
     'write.error': 'Error: {msg}',
@@ -517,8 +554,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'common.close': 'Cerrar',
 
     // Navigation
-    'nav.recordings': 'Conversaciones',
-    'nav.write': 'Anotar',
+    //
+    // Labels coinciden con los tres pilares: Practicar → Revisar → Estudiar
+    // → Configuración. `nav.recordings` (antes "Conversaciones") se retiró
+    // cuando el dashboard se mudó a /review; `nav.write` → `nav.study`.
+    'nav.practise': 'Practicar',
+    'nav.review': 'Revisar',
+    'nav.study': 'Estudiar',
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
     'nav.back': 'Atrás',
@@ -530,7 +572,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Cerrar sesión',
 
     // Practice
-    'nav.practice': 'Práctica',
+    //
+    // `nav.practice` se retiró cuando /practice dejó de tener pestaña
+    // propia — `nav.practise` es ahora la etiqueta del home, y /practice
+    // se alcanza desde las puertas del home.
     'practice.heading': 'Tener una charla',
     'lang.es-AR': 'español',
     'lang.en-NZ': 'inglés',
@@ -628,42 +673,54 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'accessDenied.requestSubject': 'Solicitud de acceso a Conversation Coach',
     'accessDenied.requestBody': 'Hola,\n\nMe gustaría solicitar acceso a Conversation Coach.\n\nGracias,',
 
-    // Home page
+    // Home page (pantalla Practicar)
+    //
+    // El home `/` perdió el dashboard de conversaciones en el rediseño
+    // "Practicar es el home" — el dashboard se mudó a /review. Quedan en
+    // el home: el saludo, el eyebrow de metodología "Practicar · Revisar
+    // · Estudiar" (con badge numérico en Estudiar cuando hay pendientes)
+    // y las tres puertas: Atender una llamada · Charla relajada · Compartir
+    // una nota de voz.
     'home.title': 'Entrenador de conversación',
-    'home.subtitle': 'Subí una conversación grabada para recibir retroalimentación sobre tu habla.',
-    'home.uploading': 'Subiendo…',
-    'home.uploadFailed': 'Error al subir — por favor intentá de nuevo',
-    'home.pastSessions': 'Sesiones anteriores',
-
-    // Dashboard
-    'home.greetingMorning': 'Buenos días',
-    'home.greetingAfternoon': 'Buenas tardes',
-    'home.greetingEvening': 'Buenas noches',
-    'home.dashboardSubtitle': '',
-    'home.firstRunSubtitle': 'Practicá chateando — o compartí una nota de voz desde cualquier app de mensajes.',
-    // CTA secundaria debajo del card de Practicá. Lleva al tutorial de
-    // compartir desde WhatsApp en /onboarding?step=2 — único punto de
-    // entrada durable después de retirar el hub y el ítem en Configuración.
-    'home.shareCTA': '¿Ya grabaste una nota de voz? Mostrame cómo',
+    'home.subhead': '¿Cómo querés practicar?',
     'home.welcomeBeat': 'Todo listo. Empezá cuando quieras.',
+
+    // Eyebrow de metodología — pequeña fila "Practicar · Revisar · Estudiar"
+    // bajo el saludo. El pilar actual (Practicar en /) toma el acento;
+    // Estudiar lleva un badge numérico cuando hay correcciones pendientes.
+    'home.pillarPractise': 'Practicar',
+    'home.pillarReview': 'Revisar',
+    'home.pillarStudy': 'Estudiar',
+    'home.pillarAria': 'Metodología: practicá, luego revisá, luego estudiá',
+
+    // Tarjetas de modo — las tres puertas del home. Llamada + Chat
+    // reutilizan practice.modeCall*/modeChat*. La tercera puerta es
+    // "Compartir nota de voz", que abre la ilustración del paso 2 de
+    // onboarding.
+    'home.modeShareTitle': 'Compartir nota de voz',
+    'home.modeShareBlurb': '¿Grabaste una charla real? Compartila desde cualquier app de mensajes.',
+
+    // Pestaña Revisar (el inbox de conversaciones — antes era el home)
+    //
+    // Las claves de abajo conservan el prefijo `home.*` aunque el inbox
+    // ahora viva en /review — los nombres describen el widget, no la ruta,
+    // y renombrar implicaba tocar muchos componentes Dashboard* sin
+    // beneficio real. Tratar `home.recent*`, `home.inProgress*` y
+    // `home.reminders*` como cadenas de la pestaña Revisar.
+    //
+    // H1 de la página /review. El saludo cálido pertenece a la home; aquí
+    // nombramos la superficie directamente.
+    'review.title': 'Tus conversaciones',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Tus conversaciones',
     'home.recentShowAll': 'Mostrar las {n}',
     'home.recentShowFewer': 'Mostrar menos',
-    'home.recentBucketToday': 'Hoy',
-    'home.recentBucketYesterday': 'Ayer',
-    'home.recentBucketThisWeek': 'Esta semana',
-    'home.recentBucketEarlier': 'Antes',
     'home.recentSessionUnreadAria': 'Sin leer',
-    'home.newSessionTitle': 'Empezar una sesión nueva',
-    'home.newSessionSubtitle': 'Subí una conversación grabada para recibir nuevas correcciones.',
     'home.inProgressTitle': 'Procesando ahora',
     'home.inProgressCountOne': '1 en proceso',
     'home.inProgressCountMany': '{n} en proceso',
-    'home.practiceCTATitle': 'Practicá con tu coach',
-    'home.practiceCTASubtitle': 'Empezá una sesión de voz de 5 minutos en {language}',
-    'home.noRecordingsYet': 'Aún no hay conversaciones — compartí una nota de voz desde cualquier app para empezar.',
+    'home.noRecordingsYet': 'Aún no hay conversaciones — empezá una desde el home, o compartí una nota de voz desde cualquier app.',
 
     // Drop zone
     'dropzone.title': 'Subir conversación',
@@ -864,10 +921,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} correcciones para anotar',
     'home.toWriteDownOne': '1 corrección para anotar',
 
-    // Write page (the queue of saved corrections waiting to be written down)
-    'write.title': 'Anotar',
-    // Solo estado vacío. El H1 ya nombra la superficie; el subtítulo invita
-    // a la próxima acción sin repetir "correcciones guardadas".
+    // Write page (la cola de correcciones guardadas para anotar).
+    //
+    // El nombre de la superficie es "Estudiar" — el pilar de la
+    // metodología que estableció el rediseño de la home y que la nav
+    // inferior refleja. La ruta sigue siendo `/write` por estabilidad
+    // del URL (ver CLAUDE.md); solo cambia la etiqueta visible. Los
+    // verbos internos ("anotar", "Marcar como anotada", "Archivo de
+    // anotadas") siguen usando "anotar" — esa es la acción literal en
+    // papel, distinta del nombre de la superficie.
+    'write.title': 'Estudiar',
+    // El subtítulo se queda visible sobre la cola (no solo cuando está
+    // vacía) — una línea calma que invita a la acción sin repetir el H1.
     'write.subtitle': 'Tomá una corrección guardada cuando quieras.',
     'write.loading': 'Cargando…',
     'write.error': 'Error: {msg}',

@@ -30,7 +30,7 @@ export function BottomNav() {
                 active ? 'text-accent-primary' : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
-              {tab.iconLg}
+              {tab.iconLg(active)}
               <span className="text-xs font-medium">{t(tab.labelKey)}</span>
             </Link>
           )

@@ -21,21 +21,27 @@ interface AppHeaderProps {
  */
 function sectionKeyFor(pathname: string | null): string {
   if (!pathname) return ''
-  if (pathname === '/') return 'nav.recordings'
-  if (pathname.startsWith('/practice')) return 'nav.practice'
-  if (pathname.startsWith('/write')) return 'nav.write'
+  // `/` is the Practise home, `/review` is the conversations inbox, and
+  // `/write` keeps its underlying route but reads as "Study" in the nav.
+  // `/practice` (the active session) intentionally shows no label — the
+  // page is full-bleed during a live call and the call chrome carries
+  // its own context.
+  if (pathname === '/') return 'nav.practise'
+  if (pathname.startsWith('/review')) return 'nav.review'
+  if (pathname.startsWith('/write')) return 'nav.study'
   if (pathname.startsWith('/settings')) return 'nav.settings'
   return ''
 }
 
 /**
- * Session sub-routes get a back arrow that takes the user up to Home.
- * router.back() is unreliable in PWA/Safari (CLAUDE.md gotcha) so we
- * use a real Link with a known destination.
+ * Session sub-routes get a back arrow. The back destination is the
+ * Review inbox now (where the user came from to open a transcript),
+ * not the Practise home. router.back() is unreliable in PWA/Safari
+ * (CLAUDE.md gotcha) so we use a real Link with a known destination.
  */
 function backHrefFor(pathname: string | null): string | null {
   if (!pathname) return null
-  if (pathname.startsWith('/sessions/')) return '/'
+  if (pathname.startsWith('/sessions/')) return '/review'
   return null
 }
 

@@ -54,7 +54,12 @@ export default function SettingsPage() {
     // controls cap their own width below where the visual rhythm wants it
     // (the +/- text-size cluster, the language <select>) so the form
     // doesn't stretch absurdly across a 672px column.
-    <div className="space-y-10">
+    //
+    // space-y-8 matches /, /review, /write — same inter-section rhythm
+    // across all four bottom-nav tabs. Was space-y-10 (40px); the bump
+    // down to 32px keeps Settings calm without it feeling looser than
+    // its siblings.
+    <div className="space-y-8">
       <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
         {t('settings.title')}
       </h1>

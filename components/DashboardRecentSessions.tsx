@@ -3,6 +3,13 @@
 // Wraps SessionList with a dashboard-friendly cap: shows only the most
 // recent N sessions by default, with an unobtrusive "Show all (N)" /
 // "Show fewer" toggle when there are more.
+//
+// Used to render a "Your conversations" section heading above the list.
+// Dropped once /review's page H1 took over that exact phrasing — having
+// the same name in two stacked elements was double-billing the surface.
+// The list itself becomes the section; the page H1 is the only label.
+// The translation key `home.recentSessionsTitle` is retained in i18n.ts
+// because it still backs the screen-reader landmark below.
 
 'use client'
 import { useState, useMemo } from 'react'
@@ -39,16 +46,7 @@ export function DashboardRecentSessions({
   const hiddenCount = Math.max(0, sessions.length - DEFAULT_VISIBLE)
 
   return (
-    <section aria-labelledby="recent-sessions-heading" className="space-y-4">
-      <header className="flex items-center justify-between gap-4">
-        <h2
-          id="recent-sessions-heading"
-          className="text-sm font-medium text-text-secondary uppercase tracking-wider"
-        >
-          {t('home.recentSessionsTitle')}
-        </h2>
-      </header>
-
+    <section aria-label={t('home.recentSessionsTitle')} className="space-y-3">
       {sessions.length === 0 ? (
         <p className="text-sm text-text-tertiary leading-relaxed">
           {t('home.noRecordingsYet')}

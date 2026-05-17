@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Review icon — Phosphor candidates in context</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,ital,wght@8..60,0,400;8..60,0,500;8..60,1,400;8..60,1,500&display=swap"
+  rel="stylesheet"
+/>
+<!-- Phosphor regular + fill -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
+
+<style>
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-text-quaternary: oklch(68% 0.008 75);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-accent-primary-soft: oklch(94% 0.035 285);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, oklch(95% 0.025 285 / 0.5), transparent 60%),
+      oklch(94% 0.005 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 5vw, 5rem) clamp(1.5rem, 4vw, 3rem) 6rem;
+  }
+
+  .header {
+    display: grid;
+    gap: 1.25rem;
+    margin-bottom: clamp(3rem, 6vw, 4.5rem);
+    max-width: 78ch;
+  }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.9375rem;
+    color: var(--color-accent-primary);
+    margin: 0;
+  }
+  .eyebrow .num {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-style: normal;
+    color: var(--color-text-tertiary);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    vertical-align: 0.1em;
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+  }
+  .header p {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 62ch;
+  }
+  .header p strong { font-weight: 600; color: var(--color-text-primary); }
+
+  /* ─── Quick-shape strip (just the glyphs, no chrome) ────────────────── */
+  .quickshape {
+    margin-top: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 18px;
+    overflow-x: auto;
+  }
+  .quickshape-row {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    min-width: max-content;
+  }
+  .quickshape-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 60px;
+  }
+  .quickshape-item .ico {
+    color: var(--color-accent-primary);
+    font-size: 24px;
+    line-height: 1;
+  }
+  .quickshape-item .name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 0.625rem;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  /* ─── Section heading ──────────────────────────────────────────────── */
+  .section-id {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-accent-primary);
+    margin: clamp(2.5rem, 5vw, 3.5rem) 0 0.625rem;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.875rem;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.625rem;
+  }
+  .section-blurb {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    max-width: 56ch;
+    margin: 0 0 2rem;
+  }
+
+  /* ─── Grid of candidates ──────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+  .cell {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 18px;
+    padding: 1rem 1rem 1.125rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  }
+  .cell:hover {
+    border-color: oklch(78% 0.05 285);
+    box-shadow: 0 1px 0 oklch(100% 0 0 / 0.7) inset,
+                0 8px 24px -16px oklch(40% 0.02 265 / 0.18);
+    transform: translateY(-1px);
+  }
+  .cell.is-current {
+    border-color: oklch(78% 0.08 285);
+    background: oklch(99% 0.012 285);
+  }
+  .cell.is-current .cell-meta::before {
+    content: "Current · ";
+    color: var(--color-accent-primary);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+  }
+
+  /* Mini bottom-nav strip rendered inside each cell */
+  .nav {
+    background: var(--color-bg);
+    border-radius: 12px;
+    border: 1px solid var(--color-border-subtle);
+    height: 72px;
+    display: flex;
+  }
+  .nav .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    color: var(--color-text-tertiary);
+    font-size: 0.625rem;
+    font-weight: 500;
+  }
+  .nav .tab.active { color: var(--color-accent-primary); }
+  .nav .tab .ico { font-size: 22px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; height: 22px; }
+
+  .cell-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.625rem;
+  }
+  .cell-meta .glyph {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+  .cell-meta .note {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+    text-align: right;
+    max-width: 26ch;
+    line-height: 1.35;
+  }
+
+  /* ─── Footer scratch ───────────────────────────────────────────── */
+  .scratch {
+    margin-top: 3rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 18px;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+  .scratch strong {
+    font-style: normal;
+    font-family: var(--font-body);
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <p class="eyebrow"><span class="num">Exploration</span> Review icon — Phosphor only</p>
+    <h1>Sixteen ways to say <em>“go back and read.”</em></h1>
+    <p>Each candidate is rendered <strong>in context</strong> — a full bottom-nav strip with the committed glyphs for the other three tabs (Practise = microphone, Study = book-open, Settings = faders-horizontal). The Review tab is shown in its <strong>active</strong> state with the candidate glyph filled. The other tabs sit at rest so you can read each candidate against its real neighbours, not in isolation.</p>
+  </header>
+
+  <!-- ─── Quick shape strip ──────────────────────────────────────── -->
+  <p class="section-id">00 · Shape vocabulary</p>
+  <h2 class="section-title">All sixteen, side by side</h2>
+  <p class="section-blurb">A flat strip of all candidates at deploy size, filled. Useful for spotting silhouettes that read clearly versus those that fight the surrounding glyphs.</p>
+
+  <div class="quickshape">
+    <div class="quickshape-row">
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-article"></i></span><span class="name">article</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-article-medium"></i></span><span class="name">article-medium</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-file-text"></i></span><span class="name">file-text</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-files"></i></span><span class="name">files</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-file-magnifying-glass"></i></span><span class="name">file-mag-glass</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-newspaper-clipping"></i></span><span class="name">newspaper-clip</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-notepad"></i></span><span class="name">notepad</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-notebook"></i></span><span class="name">notebook</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-note"></i></span><span class="name">note</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-note-pencil"></i></span><span class="name">note-pencil</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-chat-text"></i></span><span class="name">chat-text</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-chats"></i></span><span class="name">chats</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-chats-circle"></i></span><span class="name">chats-circle</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-tray"></i></span><span class="name">tray</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-archive-tray"></i></span><span class="name">archive-tray</span></div>
+      <div class="quickshape-item"><span class="ico"><i class="ph-fill ph-list-magnifying-glass"></i></span><span class="name">list-mag-glass</span></div>
+    </div>
+  </div>
+
+  <!-- ─── Section: Documents ──────────────────────────────────────── -->
+  <p class="section-id">01 · Document family</p>
+  <h2 class="section-title">Treats the transcript as a page</h2>
+  <p class="section-blurb">The most literal angle — a written record. Skews formal and broadly recognisable. Watch how each silhouette competes with Study's open-book on the neighbouring tab.</p>
+
+  <div class="grid">
+
+    <!-- article (CURRENT) -->
+    <div class="cell is-current">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-article"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">article</span><span class="note">Wired in now. Reads as a page with text lines.</span></div>
+    </div>
+
+    <!-- article-medium -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-article-medium"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">article-medium</span><span class="note">Heavier title line — feels like a headline.</span></div>
+    </div>
+
+    <!-- file-text -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-file-text"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">file-text</span><span class="note">Classic dog-eared page. Familiar from every file-manager UI.</span></div>
+    </div>
+
+    <!-- files -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-files"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">files</span><span class="note">Stack of pages — signals "you have several recordings."</span></div>
+    </div>
+
+    <!-- file-magnifying-glass -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-file-magnifying-glass"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">file-magnifying-glass</span><span class="note">Closest to the previous hand-rolled icon. Says "examine."</span></div>
+    </div>
+
+    <!-- newspaper-clipping -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-newspaper-clipping"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">newspaper-clipping</span><span class="note">Saved article. Editorial flavour — sits oddly next to a microphone.</span></div>
+    </div>
+
+  </div>
+
+  <!-- ─── Section: Notes / annotated ─────────────────────────────── -->
+  <p class="section-id">02 · Notes family</p>
+  <h2 class="section-title">Treats the transcript as something you wrote on</h2>
+  <p class="section-blurb">Highlights the <em>annotated</em> nature of the surface — what's there is your conversation plus Claude's marks on it. Some of these creep close to the Study tab's book — watch for collision.</p>
+
+  <div class="grid">
+
+    <!-- notepad -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-notepad"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">notepad</span><span class="note">Spiral binding at top. Reads as "scratch pad."</span></div>
+    </div>
+
+    <!-- notebook -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-notebook"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">notebook</span><span class="note">Vertical-bound book. <strong>Collides</strong> with Study's open-book.</span></div>
+    </div>
+
+    <!-- note -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-note"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">note</span><span class="note">Folded-corner sticky. Casual.</span></div>
+    </div>
+
+    <!-- note-pencil -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-note-pencil"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">note-pencil</span><span class="note">Page being edited. Names the act of correcting.</span></div>
+    </div>
+
+  </div>
+
+  <!-- ─── Section: Conversation ───────────────────────────────── -->
+  <p class="section-id">03 · Conversation family</p>
+  <h2 class="section-title">Treats the recording as a conversation</h2>
+  <p class="section-blurb">The transcript is literally a conversation written down. These read more "social" than "documentary" and may compete with the Practise tab's microphone for semantic real-estate.</p>
+
+  <div class="grid">
+
+    <!-- chat-text -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-chat-text"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">chat-text</span><span class="note">Bubble with horizontal lines. "A spoken thing, written down."</span></div>
+    </div>
+
+    <!-- chats -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-chats"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">chats</span><span class="note">Two stacked bubbles. Connotes "multiple conversations."</span></div>
+    </div>
+
+    <!-- chats-circle -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-chats-circle"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">chats-circle</span><span class="note">Round bubbles. Softer than the squared chats.</span></div>
+    </div>
+
+  </div>
+
+  <!-- ─── Section: Inbox ───────────────────────────────────────── -->
+  <p class="section-id">04 · Inbox family</p>
+  <h2 class="section-title">Treats Review as a queue</h2>
+  <p class="section-blurb">Closer to the mental model of "things that arrived and you need to triage." Works well with the new-recording badge if/when we add one.</p>
+
+  <div class="grid">
+
+    <!-- tray -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-tray"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">tray</span><span class="note">Open in-tray. Quiet and clean.</span></div>
+    </div>
+
+    <!-- archive-tray -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-archive-tray"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">archive-tray</span><span class="note">Tray with lid line. Slight "saved away" flavour.</span></div>
+    </div>
+
+    <!-- list-magnifying-glass -->
+    <div class="cell">
+      <div class="nav">
+        <div class="tab"><span class="ico"><i class="ph ph-microphone"></i></span><span>Practise</span></div>
+        <div class="tab active"><span class="ico"><i class="ph-fill ph-list-magnifying-glass"></i></span><span>Review</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-book-open"></i></span><span>Study</span></div>
+        <div class="tab"><span class="ico"><i class="ph ph-faders-horizontal"></i></span><span>Settings</span></div>
+      </div>
+      <div class="cell-meta"><span class="glyph">list-magnifying-glass</span><span class="note">List + magnifier. Says "scan through entries."</span></div>
+    </div>
+
+  </div>
+
+  <p class="scratch">
+    <strong>Things to watch for as you choose.</strong> The Review icon sits between a microphone and a book — those are both fairly tall, organic silhouettes. The candidates that read most clearly tend to be squat and rectangular (article, file-text, tray, files) because they don't fight the surrounding shapes. Notebook and note-pencil get close enough to Study's book that the eye can confuse them at speed. Chat-family glyphs are great if Review reads as "the conversations you've recorded," but be aware Practise already owns a speaking metaphor (microphone), so two bubbles in the same nav can muddle the model.
+  </p>
+
+</div>
+</body>
+</html>
