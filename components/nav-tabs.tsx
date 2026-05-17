@@ -19,16 +19,15 @@
 // read as weak hierarchy in the thumb zone. Paths inlined verbatim from
 // `@phosphor-icons/core@2.1.1`; no runtime dep added.
 
-import type { ReactNode } from 'react'
+import type { ComponentType } from 'react'
 
 export interface NavTab {
   href: string
   labelKey: string
   exact: boolean
-  // Functions of `active` so we can render the regular weight when the
-  // tab is inactive and the fill weight when it's active.
-  icon: (active: boolean) => ReactNode
-  iconLg: (active: boolean) => ReactNode
+  // Swaps Phosphor regular/fill by `active` — see phIcon below.
+  icon: ComponentType<{ active: boolean }>
+  iconLg: ComponentType<{ active: boolean }>
 }
 
 // Phosphor Icons regular + fill paths (viewBox 256x256, fill="currentColor").
@@ -78,7 +77,7 @@ function phIcon(glyph: keyof typeof PHOSPHOR_PATHS, size: 'sm' | 'lg') {
     )
   }
   NavPhosphorIcon.displayName = `NavPhosphorIcon_${glyph}_${size}`
-  return (active: boolean) => <NavPhosphorIcon active={active} />
+  return NavPhosphorIcon
 }
 
 export const NAV_TABS: NavTab[] = [

@@ -135,6 +135,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         <nav className="flex-1 py-2 overflow-y-auto" aria-label="Main navigation">
           {NAV_TABS.map(tab => {
             const active = isTabActive(tab, pathname)
+            const Icon = tab.icon
             return (
               <Link
                 key={tab.href}
@@ -147,7 +148,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
                     : 'text-text-tertiary hover:bg-surface-elevated hover:text-text-secondary'
                 }`}
               >
-                {tab.icon(active)}
+                <Icon active={active} />
                 <span className="text-sm font-medium">{t(tab.labelKey)}</span>
               </Link>
             )

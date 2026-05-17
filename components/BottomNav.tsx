@@ -21,6 +21,7 @@ export function BottomNav() {
       <div className="flex h-16 max-w-2xl mx-auto">
         {NAV_TABS.map(tab => {
           const active = isTabActive(tab, pathname)
+          const IconLg = tab.iconLg
           return (
             <Link
               key={tab.href}
@@ -30,7 +31,7 @@ export function BottomNav() {
                 active ? 'text-accent-primary' : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
-              {tab.iconLg(active)}
+              <IconLg active={active} />
               <span className="text-xs font-medium">{t(tab.labelKey)}</span>
             </Link>
           )
