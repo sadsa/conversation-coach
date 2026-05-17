@@ -12,7 +12,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
-- **Gemini Multimodal Live API** (raw WebSocket) — real-time voice on the `/practice` page. Mode-aware: call-mode persona uses `models/gemini-2.5-flash-native-audio-latest` (emotional intonation, slower end-of-turn); casual chat uses `models/gemini-3.1-flash-live-preview` (snappier turn-taking, synthesised voice). Constants exported from `lib/voice-agent.ts` as `NATIVE_AUDIO_MODEL` / `FLASH_LIVE_MODEL`; pass via `ConnectOptions.model`
+- **Gemini Multimodal Live API** (raw WebSocket) — real-time voice on the `/practice` page. Both chat and call modes use `models/gemini-3.1-flash-live-preview` (snappier turn-taking, synthesised voice) — call mode previously pinned `models/gemini-2.5-flash-native-audio-latest` for emotional intonation but the end-of-turn pauses made personas feel clunky vs. chat. Constants exported from `lib/voice-agent.ts` as `FLASH_LIVE_MODEL` (current) and `NATIVE_AUDIO_MODEL` (kept for opt-in experimentation); pass via `ConnectOptions.model`
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
 - **`framer-motion`** — sheet entrance animations + `useReducedMotion`
 - **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`

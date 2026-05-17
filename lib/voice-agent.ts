@@ -21,10 +21,11 @@ export interface ConnectOptions {
    *  or DEFAULT_VOICE). Used by the call-mode persona to match voice to vibe. */
   voiceName?: string
   /** Override the Gemini Live model. Defaults to {@link DEFAULT_MODEL}.
-   *  Use {@link FLASH_LIVE_MODEL} for snappier turn-taking in casual chat
-   *  (synthesised voice, less emotional nuance, lower latency). Use
-   *  {@link NATIVE_AUDIO_MODEL} for the call-mode persona (richer emotional
-   *  delivery, longer end-of-turn pauses). */
+   *  Practice uses {@link FLASH_LIVE_MODEL} for both chat and call modes —
+   *  the snappier turn-taking matters more than native-audio's richer
+   *  intonation, and persona character comes through via the system prompt
+   *  + matched voice. {@link NATIVE_AUDIO_MODEL} is kept exported in case
+   *  we want to reintroduce it for a specific surface. */
   model?: string
   /** When set, the agent speaks FIRST with its persona opener. Implementation:
    *  after `setupComplete`, we send the literal trigger text "__START_CALL__"
@@ -45,17 +46,20 @@ export const CALL_OPENING_TRIGGER = '__START_CALL__'
 
 /** Native-audio model. Adapts emotional tone automatically and produces
  *  the most human-like delivery — at the cost of longer end-of-turn pauses
- *  (the model takes a beat to "feel" the response). Best for the call-mode
- *  persona where intonation matters more than snappy back-and-forth. */
+ *  (the model takes a beat to "feel" the response). Not currently wired up:
+ *  call mode used to pin this for richer intonation, but the sluggish
+ *  turn-taking outweighed the benefit and call mode now uses
+ *  {@link FLASH_LIVE_MODEL} too. Kept exported for opt-in experimentation. */
 export const NATIVE_AUDIO_MODEL = 'models/gemini-2.5-flash-native-audio-latest'
 
-/** Synthesised-voice live model. Less emotional nuance, but noticeably
- *  faster turn-taking — conversation flows the way casual chat should.
- *  Default for chat mode. */
+/** Synthesised-voice live model. Less emotional nuance than native-audio,
+ *  but noticeably faster turn-taking — conversation flows the way real
+ *  conversation should. Used by both chat mode and call-mode personas. */
 export const FLASH_LIVE_MODEL = 'models/gemini-3.1-flash-live-preview'
 
-/** Backwards-compatible default for callers that don't pass a model. Matches
- *  the original behaviour before mode-aware selection landed (native-audio). */
+/** Backwards-compatible default for callers that don't pass a model. Kept
+ *  on NATIVE_AUDIO_MODEL so any pre-existing caller's behaviour is
+ *  unchanged; the practice surface always passes an explicit model. */
 export const DEFAULT_MODEL = NATIVE_AUDIO_MODEL
 
 /** Compute normalised RMS (0..1) over a PCM16 sample buffer. */
@@ -226,6 +230,7 @@ export async function connect(
   ws.binaryType = 'arraybuffer'
 
   let ready = false
+  let disposed = false
   let setupTimeout: ReturnType<typeof setTimeout> | null = null
   let playbackTime = safeCtx.currentTime
   const voiceName = options.voiceName ?? process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
@@ -243,7 +248,37 @@ export async function connect(
     playbackTime = safeCtx.currentTime
     // Snap the indicator back to silence so the UI doesn't keep pulsing
     // green for a beat after we cut the audio.
-    callbacks.onAgentAudio?.(0)
+    if (!disposed) callbacks.onAgentAudio?.(0)
+  }
+
+  /**
+   * Synchronous teardown. Both the explicit `disconnect()` and the natural
+   * `ws.close` event funnel through here so the cleanup is idempotent.
+   *
+   * Why this matters: `ws.close()` is async — the close event can fire
+   * hundreds of ms later. Without this, scheduled `AudioBufferSourceNode`s
+   * (the agent's tail) keep playing through the still-open `AudioContext`
+   * while a new session spins up — the user hears two voices simultaneously.
+   * Also marks the instance disposed so any pending WebSocket events from
+   * the old session can't fire stale callbacks at the caller, who has
+   * usually already swapped in a new agent (e.g. "try another line").
+   */
+  function dispose() {
+    if (disposed) return
+    disposed = true
+    if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
+    stopAgentPlayback()
+    if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+      try { ws.close() } catch { /* already closed — fine */ }
+    }
+    safeCtx.close().catch(() => { /* already closed — fine */ })
+    safeStream.getTracks().forEach(t => t.stop())
+    if (bridgeAudioEl) {
+      bridgeAudioEl.pause()
+      bridgeAudioEl.srcObject = null
+      bridgeAudioEl.remove()
+      bridgeAudioEl = null
+    }
   }
 
   // Decode + schedule a PCM16 chunk from the agent at 24 kHz, and emit RMS
@@ -276,7 +311,7 @@ export async function connect(
 
   // Stream mic audio once the session is ready.
   worklet.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
-    if (!ready || ws.readyState !== WebSocket.OPEN) return
+    if (disposed || !ready || ws.readyState !== WebSocket.OPEN) return
     const bytes = new Uint8Array(e.data)
     // Emit RMS from the same PCM16 buffer so the indicator is driven by the
     // exact bytes being sent. When muted, audioTrack.enabled = false silences
@@ -305,21 +340,20 @@ export async function connect(
   let userFlushedForTurn = false
 
   ws.addEventListener('open', () => {
+    if (disposed) return
     callbacks.onStateChange('connecting')
     const setupMsg: Record<string, unknown> = {
       setup: {
-        // Mode-aware model selection (see ConnectOptions.model docs):
-        //   - NATIVE_AUDIO_MODEL → call-mode persona (emotional intonation,
-        //     longer end-of-turn pauses)
-        //   - FLASH_LIVE_MODEL   → casual chat (snappier turn-taking,
-        //     synthesised voice)
-        // Callers pick at connect time; default keeps the previous behaviour.
+        // Practice surface always passes FLASH_LIVE_MODEL (both chat and
+        // call modes — see ConnectOptions.model docs). DEFAULT_MODEL is kept
+        // on NATIVE_AUDIO_MODEL for callers that don't pass one.
         //
         // CAREFUL: the AI Studio model name is NOT the same as Vertex's. Vertex
         // calls native-audio `gemini-live-2.5-flash-native-audio`; AI Studio
-        // v1alpha exposes `gemini-2.5-flash-native-audio-{latest,preview-...}`.
-        // Using the wrong name causes the WebSocket to silently close before
-        // setupComplete — looks like a hang.
+        // v1alpha exposes `gemini-2.5-flash-native-audio-{latest,preview-...}`
+        // and `gemini-3.1-flash-live-preview`. Using the wrong name causes
+        // the WebSocket to silently close before setupComplete — looks like
+        // a hang.
         model: options.model ?? DEFAULT_MODEL,
         generationConfig: {
           responseModalities: ['AUDIO'],
@@ -352,6 +386,7 @@ export async function connect(
   })
 
   ws.addEventListener('message', (event: MessageEvent) => {
+    if (disposed) return
     // Gemini sends ALL frames as binary — control messages (JSON) and audio (raw PCM16).
     // Try UTF-8 decode + JSON parse first; treat as audio only if that fails.
     let msg: Record<string, unknown> | null = null
@@ -470,28 +505,23 @@ export async function connect(
   })
 
   ws.addEventListener('close', (ev: CloseEvent) => {
+    // If dispose() already ran (caller-initiated disconnect), don't bother
+    // the caller with an 'ended' callback — they triggered the teardown
+    // themselves and have already moved on (often to a new session). Firing
+    // it anyway would let the OLD session's handler stomp on the NEW state.
+    if (disposed) return
     const wasReady = ready
     ready = false
-    if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
-    // If we never got setupComplete, the session never went live — surface
-    // this as an error so the UI can bail out of the connecting/ringing
-    // screen. Otherwise emit 'ended' (the normal disconnect path).
     if (!wasReady) {
       callbacks.onError(`Connection closed before ready (code ${ev.code})`)
     } else {
       callbacks.onStateChange('ended')
     }
-    safeCtx.close()
-    safeStream.getTracks().forEach(t => t.stop())
-    if (bridgeAudioEl) {
-      bridgeAudioEl.pause()
-      bridgeAudioEl.srcObject = null
-      bridgeAudioEl.remove()
-      bridgeAudioEl = null
-    }
+    dispose()
   })
 
   ws.addEventListener('error', () => {
+    if (disposed) return
     callbacks.onError('Connection error')
   })
 
@@ -513,7 +543,7 @@ export async function connect(
       userFlushedForTurn = false
     },
     disconnect() {
-      if (ws.readyState !== WebSocket.CLOSED) ws.close()
+      dispose()
     },
   }
 }
