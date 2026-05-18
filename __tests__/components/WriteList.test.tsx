@@ -46,6 +46,17 @@ const writtenItem: PracticeItem = {
   end_char: null,
 }
 
+// Item with flashcard fields — exercises the Concept-A row rendering.
+// Both front and back use the [[double-bracket]] phrase convention that
+// Claude already produces.
+const flashcardItem: PracticeItem = {
+  ...grammarItem,
+  id: 'item-fc',
+  flashcard_front: 'I [[went]] to the market yesterday.',
+  flashcard_back: '[[Fui]] al mercado ayer.',
+  flashcard_note: 'Drop the redundant pronoun in Rioplatense.',
+}
+
 describe('WriteList — rows', () => {
   it('renders the correction in context (sentence + struck wrong + inline rewrite)', () => {
     render(<WriteList items={[grammarItem]} />)
@@ -74,6 +85,23 @@ describe('WriteList — rows', () => {
     const row = screen.getByTestId(`write-row-${subjectiveItem.id}`)
     expect(within(row).getByText('vengas')).toBeInTheDocument()
     expect(within(row).getByText('venís')).toBeInTheDocument()
+  })
+
+  it('prefers the FlashcardRow rendering when flashcard_front/back are present', () => {
+    // Items written after migration 20260325 carry the flashcard fields.
+    // The Study row should use the native-prompt / target-answer pair
+    // and skip the source-sentence correction-in-context treatment (the
+    // sheet body still uses CorrectionInContext — that's by design).
+    render(<WriteList items={[flashcardItem]} />)
+    expect(screen.getByTestId(`flashcard-row-${flashcardItem.id}`)).toBeInTheDocument()
+    expect(
+      screen.queryByTestId(`correction-in-context-${flashcardItem.id}`),
+    ).not.toBeInTheDocument()
+    // Both lines render: native sentence above, target sentence below.
+    expect(screen.getByTestId(`flashcard-row-${flashcardItem.id}-front`))
+      .toHaveTextContent('I went to the market yesterday.')
+    expect(screen.getByTestId(`flashcard-row-${flashcardItem.id}-back`))
+      .toHaveTextContent('Fui al mercado ayer.')
   })
 })
 

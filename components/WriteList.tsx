@@ -13,6 +13,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { WriteSheet } from '@/components/WriteSheet'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
 import { CorrectionInContext } from '@/components/CorrectionInContext'
+import { FlashcardRow } from '@/components/FlashcardRow'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 
@@ -48,11 +49,31 @@ function WriteRow({ item, isWritten, onOpen, onMarkWritten }: RowProps) {
           data-testid={`write-row-${item.id}`}
           className="flex-1 min-w-0 text-left px-4 py-3 rounded-l-xl"
         >
-          {/* Single-block "correction in context" — sentence with the wrong
-              fragment struck through and the rewrite inserted right after.
-              Falls back to the bare wrong → right pair for items without
-              segment data so older entries still render meaningfully. */}
-          {item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
+          {/*
+            Row content priority (Concept A from the Study card redesign):
+              1. FlashcardRow — native-language prompt above, target-language
+                 answer below with the bracketed phrase tinted green. Used
+                 whenever Claude produced flashcard fields for this item
+                 (essentially every annotation written after the flashcard
+                 fields shipped — see migration 20260325).
+              2. CorrectionInContext — the source-sentence strike-through
+                 treatment. Used for items whose annotation predates the
+                 flashcard fields but still has the segment offsets.
+              3. StrikeOriginal — bare wrong→right pair. Final fallback for
+                 the oldest items where neither flashcard nor segment data
+                 is available.
+            Sheet body continues to use CorrectionInContext regardless — the
+            original-sentence framing earns its space once the user has
+            tapped in for the full story.
+          */}
+          {item.flashcard_front && item.flashcard_back ? (
+            <FlashcardRow
+              flashcardFront={item.flashcard_front}
+              flashcardBack={item.flashcard_back}
+              muted={isWritten}
+              testId={`flashcard-row-${item.id}`}
+            />
+          ) : item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
             <CorrectionInContext
               segmentText={item.segment_text}
               startChar={item.start_char}
@@ -101,23 +122,24 @@ function WriteRow({ item, isWritten, onOpen, onMarkWritten }: RowProps) {
   )
 }
 
-interface ViewToggleProps {
-  view: View
+interface WrittenViewHeaderProps {
   writeCount: number
   writtenCount: number
-  onChange: (next: View) => void
+  onBack: () => void
 }
 
 /**
- * Asymmetric view header. The Write list is the primary surface so it
- * never gets a "tab"; the page H1 already names it. The Written archive
- * lives behind a quiet right-aligned link that flips to it (with a
- * matching back-link the other way). This kills the tab-equality of the
- * old segmented control — fewer pixels of chrome on the surface the user
- * cares about most, and the archive becomes a small reward count rather
- * than a peer destination.
+ * Header for the Written archive view only. The Write (primary) view
+ * intentionally renders NO top header so its list begins at the same
+ * vertical position as the Review inbox — chrome cohesion across the
+ * two methodology pillars. The Written archive still needs a way out,
+ * so it keeps a single "← Back to Study" link plus a small heading.
+ *
+ * The corresponding "into the archive" link lives below the list (see
+ * <ArchiveFooterLink/>), gated on writtenCount > 0. Retrospective
+ * destination, retrospective placement.
  */
-function ViewToggle({ view, writeCount, writtenCount, onChange }: ViewToggleProps) {
+function WrittenViewHeader({ writeCount, writtenCount, onBack }: WrittenViewHeaderProps) {
   const { t } = useTranslation()
   return (
     <div
@@ -126,57 +148,86 @@ function ViewToggle({ view, writeCount, writtenCount, onChange }: ViewToggleProp
       data-testid="view-toggle"
       className="flex items-center justify-between gap-3 min-h-[28px]"
     >
-      {view === 'write' ? (
-        // Write view: leading slot is empty (page H1 already says "Write");
-        // the count lives next to the nav target so it reads as one unit.
-        <span aria-hidden="true" />
-      ) : (
-        <span className="flex items-center gap-2 text-sm text-text-secondary">
-          <span
-            aria-hidden="true"
-            className="w-2 h-2 rounded-full bg-widget-write-text"
-          />
-          <span className="font-medium text-text-primary">
-            {t('writeList.archiveHeading')}
-          </span>
-          <span className="text-text-tertiary tabular-nums">{writtenCount}</span>
+      <span className="flex items-center gap-2 text-sm text-text-secondary">
+        <span
+          aria-hidden="true"
+          className="w-2 h-2 rounded-full bg-widget-write-text"
+        />
+        <span className="font-medium text-text-primary">
+          {t('writeList.archiveHeading')}
         </span>
-      )}
+        <span className="text-text-tertiary tabular-nums">{writtenCount}</span>
+      </span>
 
-      {view === 'write' ? (
-        writtenCount > 0 && (
-          <button
-            type="button"
-            data-testid="view-toggle-to-written"
-            onClick={() => onChange('written')}
-            className="
-              text-sm text-text-tertiary hover:text-text-primary
-              transition-colors inline-flex items-center gap-1
-              focus-visible:underline
-            "
-          >
-            <span className="tabular-nums">{writtenCount}</span>
-            {' '}
-            {t('writeList.archiveLink')}
-            <span aria-hidden="true">→</span>
-          </button>
-        )
-      ) : (
-        <button
-          type="button"
-          data-testid="view-toggle-to-write"
-          onClick={() => onChange('write')}
-          className="
-            text-sm text-text-tertiary hover:text-text-primary
-            transition-colors inline-flex items-center gap-1
-            focus-visible:underline
-          "
-        >
-          <span aria-hidden="true">←</span>
-          {t('writeList.backToWrite')}
-          <span className="tabular-nums text-text-tertiary">{writeCount}</span>
-        </button>
-      )}
+      <button
+        type="button"
+        data-testid="view-toggle-to-write"
+        onClick={onBack}
+        className="
+          text-sm text-text-tertiary hover:text-text-primary
+          transition-colors inline-flex items-center gap-1
+          focus-visible:underline
+        "
+      >
+        <span aria-hidden="true">←</span>
+        {t('writeList.backToWrite')}
+        <span className="tabular-nums text-text-tertiary">{writeCount}</span>
+      </button>
+    </div>
+  )
+}
+
+interface ArchiveFooterLinkProps {
+  writtenCount: number
+  onClick: () => void
+}
+
+/**
+ * Quiet pill below the Write list that takes the user into the Written
+ * archive. Replaces the old top-of-list "{n} written →" link. Gated on
+ * writtenCount > 0 so first-time users see clean alignment with Review;
+ * users with a real archive get one centred pill anchoring below the
+ * queue rather than competing with the H1 row.
+ *
+ * Carries the `view-toggle-to-written` testId for parity with the
+ * pre-redesign tests (the affordance moved; the contract didn't).
+ */
+function ArchiveFooterLink({ writtenCount, onClick }: ArchiveFooterLinkProps) {
+  const { t } = useTranslation()
+  // Split the template on {n} so the count can wear its own visual weight
+  // (semibold + tabular-nums) without us forking the i18n key into "noun
+  // before count" and "noun after count" siblings. Both EN and ES place
+  // {n} at the start of the template today; the split still works if a
+  // future language reorders it.
+  const template = t('writeList.archiveFooter')
+  const [before = '', after = ''] = template.split('{n}')
+  return (
+    <div className="flex justify-center pt-2">
+      <button
+        type="button"
+        data-testid="view-toggle-to-written"
+        onClick={onClick}
+        aria-label={t('writeList.archiveFooterAria', { n: writtenCount })}
+        className="
+          inline-flex items-center gap-2 px-3.5 py-2 rounded-full
+          border border-border-subtle bg-surface
+          text-sm text-text-tertiary hover:text-text-primary
+          hover:border-border transition-colors
+          focus-visible:underline
+        "
+      >
+        <span
+          aria-hidden="true"
+          className="w-1.5 h-1.5 rounded-full bg-widget-write-text"
+        />
+        <span>
+          {before}
+          <span className="font-semibold text-text-secondary tabular-nums">
+            {writtenCount}
+          </span>
+          {after}
+        </span>
+      </button>
     </div>
   )
 }
@@ -432,23 +483,34 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
     return true
   }
 
+  function switchView(next: View) {
+    setOpenId(null)
+    setView(next)
+  }
+
   return (
     <div className="space-y-5">
-      <ViewToggle
-        view={view}
-        writeCount={writeCount}
-        writtenCount={writtenCount}
-        onChange={next => {
-          setOpenId(null)
-          setView(next)
-        }}
-      />
+      {/*
+        Write view: NO top header — the page H1 already names the surface
+        and we want the list to start at the same vertical position as
+        /review's inbox. The archive link moved below the list (see
+        <ArchiveFooterLink/> further down).
+        Written view: header still renders so the archive has a heading
+        and a way back to the Study queue.
+      */}
+      {view === 'written' && (
+        <WrittenViewHeader
+          writeCount={writeCount}
+          writtenCount={writtenCount}
+          onBack={() => switchView('write')}
+        />
+      )}
 
       {visible.length === 0 ? (
         view === 'write' ? (
           <EmptyWrite />
         ) : (
-          <EmptyWritten writeCount={writeCount} onBack={() => setView('write')} />
+          <EmptyWritten writeCount={writeCount} onBack={() => switchView('write')} />
         )
       ) : (
         <ul className="space-y-2">
@@ -464,6 +526,19 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
             />
           ))}
         </ul>
+      )}
+
+      {/*
+        Archive footer pill — only in Write view, only when there's
+        something to archive. Carries the legacy `view-toggle-to-written`
+        testId since this is the same affordance the old top-right link
+        provided; just relocated for hierarchy reasons.
+      */}
+      {view === 'write' && writtenCount > 0 && (
+        <ArchiveFooterLink
+          writtenCount={writtenCount}
+          onClick={() => switchView('written')}
+        />
       )}
 
       <WriteSheet

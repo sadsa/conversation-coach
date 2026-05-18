@@ -9,11 +9,12 @@
 // the Written archive) keep using "write" because that's the literal
 // physical action.
 //
-// Header structure mirrors the home: H1 in font-display → methodology
-// eyebrow (Study active) → calm one-line subtitle. The eyebrow is the
-// thread that ties Practise / Review / Study together visually across
-// all three surfaces; without it the user can land here from a deep
-// link and lose the three-pillar mental model the home introduced.
+// Header structure mirrors /review exactly: H1 in font-display →
+// methodology eyebrow (Study active) → space-y-8 → list. The previous
+// calm one-liner subtitle was dropped so the list starts at the same
+// vertical position as the Review inbox; the same alignment is what
+// makes the two pillars read as one brand. Empty-state copy already
+// carries the "what lives here" framing, so nothing was lost.
 
 'use client'
 import { useState } from 'react'
@@ -39,9 +40,6 @@ export function WriteClient({ initialItems }: Props) {
           {t('write.title')}
         </h1>
         <MethodologyEyebrow active="study" />
-        <p className="text-text-secondary leading-relaxed pt-1">
-          {t('write.subtitle')}
-        </p>
       </header>
       <WriteList
         items={items}

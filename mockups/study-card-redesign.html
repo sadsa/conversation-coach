@@ -1,0 +1,1860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Study card redesign — concepts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* ─── Project tokens (light + dark, mirrored from globals.css) ───────── */
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-surface-quiet: oklch(96.5% 0.006 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-correction-text: oklch(48% 0.14 150);
+    --color-correction-bg: oklch(95% 0.04 150);
+    --color-widget-write-border: oklch(48% 0.12 160);
+    --color-widget-write-bg: oklch(94% 0.03 160);
+    --color-widget-write-text: oklch(35% 0.1 160);
+    --color-prompt-tint: oklch(48% 0.04 75);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+
+    --device-w: 360px;
+    --device-h: 740px;
+  }
+
+  .dark {
+    --color-bg: oklch(20% 0.018 265);
+    --color-surface: oklch(24% 0.018 265);
+    --color-surface-elevated: oklch(28% 0.02 265);
+    --color-surface-quiet: oklch(22% 0.018 265);
+    --color-border: oklch(36% 0.02 265);
+    --color-border-subtle: oklch(30% 0.018 265);
+    --color-text-primary: oklch(95% 0.005 75);
+    --color-text-secondary: oklch(75% 0.012 265);
+    --color-text-tertiary: oklch(58% 0.015 265);
+    --color-accent-primary: oklch(70% 0.16 285);
+    --color-correction-text: oklch(72% 0.13 150);
+    --color-correction-bg: oklch(32% 0.04 150);
+    --color-widget-write-text: oklch(72% 0.1 160);
+    --color-prompt-tint: oklch(70% 0.025 75);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: oklch(94% 0.005 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Page chrome ────────────────────────────────────────────────────── */
+  .page {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: clamp(2rem, 4vw, 4rem) clamp(1.5rem, 4vw, 3rem) 6rem;
+  }
+  .page-header {
+    max-width: 72ch;
+    margin-bottom: clamp(2.5rem, 5vw, 4rem);
+  }
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin: 0 0 1rem;
+  }
+  .page-header h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem;
+    color: var(--color-text-primary);
+  }
+  .page-header p {
+    margin: 0 0 0.5rem;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 72ch;
+  }
+  .page-header em { color: var(--color-text-primary); font-style: italic; }
+  .page-header strong { color: var(--color-text-primary); font-weight: 600; }
+  .page-header code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875rem;
+    background: var(--color-surface-elevated);
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+    color: var(--color-text-primary);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 4rem 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+  .section-lede {
+    margin: 0 0 2rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 70ch;
+  }
+
+  .concepts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(3rem, 6vw, 5rem);
+  }
+  @media (min-width: 1180px) {
+    .concepts.three { grid-template-columns: repeat(3, 1fr); align-items: start; }
+    .concepts.two { grid-template-columns: repeat(2, 1fr); align-items: start; }
+  }
+
+  .concept { display: flex; flex-direction: column; gap: 1.5rem; }
+  .concept-header { display: flex; flex-direction: column; gap: 0.5rem; }
+  .concept-id {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-accent-primary);
+  }
+  .concept h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.625rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--color-text-primary);
+  }
+  .concept .blurb {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    max-width: 44ch;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.625rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--color-text-tertiary);
+  }
+  .meta span {
+    padding: 0.4rem 0.625rem;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+  }
+  .meta .pos { color: oklch(35% 0.12 150); border-color: oklch(85% 0.06 150); }
+  .meta .neg { color: oklch(45% 0.16 25); border-color: oklch(85% 0.06 25); }
+  .meta .neu { color: var(--color-text-secondary); }
+
+  /* ─── Device frame ───────────────────────────────────────────────────── */
+  .device {
+    width: var(--device-w);
+    height: var(--device-h);
+    border-radius: 38px;
+    background: var(--color-bg);
+    box-shadow:
+      0 1px 0 oklch(100% 0 0 / 0.7) inset,
+      0 0 0 1px oklch(80% 0.01 75 / 0.7),
+      0 1px 2px oklch(40% 0.02 265 / 0.06),
+      0 24px 48px -16px oklch(40% 0.02 265 / 0.18),
+      0 6px 16px -8px oklch(40% 0.02 265 / 0.1);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .device.dark { box-shadow:
+    0 1px 0 oklch(100% 0 0 / 0.05) inset,
+    0 0 0 1px oklch(30% 0.02 265 / 0.9),
+    0 24px 48px -16px oklch(0% 0 0 / 0.4),
+    0 6px 16px -8px oklch(0% 0 0 / 0.3);
+  }
+  .device::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 24px;
+    background: oklch(15% 0.02 265);
+    border-radius: 12px;
+    z-index: 50;
+  }
+  .device-inner {
+    position: absolute;
+    inset: 56px 0 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ─── Top chrome (compact AppHeader) ─────────────────────────────────── */
+  .top-chrome {
+    padding: 0.875rem 1.25rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .top-wordmark {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+  .top-icons { display: inline-flex; gap: 0.5rem; color: var(--color-text-tertiary); }
+  .top-icons svg { width: 18px; height: 18px; }
+
+  .body-scroll {
+    flex: 1;
+    overflow: hidden;
+    padding: 1.25rem 1.25rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 0;
+  }
+
+  /* Page H1 — matches WriteClient / ReviewClient */
+  .page-h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--color-text-primary);
+  }
+  .page-h1-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .h1-trailing-link {
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .h1-trailing-link strong { color: var(--color-text-secondary); font-weight: 600; }
+
+  /* ─── Methodology eyebrow ────────────────────────────────────────────── */
+  .pillar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+  }
+  .pillar-step {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+  .pillar-step.now { color: var(--color-accent-primary); }
+  .pillar-sep { color: var(--color-text-tertiary); opacity: 0.5; font-size: 0.6875rem; }
+
+  /* ─── Alignment guides (the whole point) ─────────────────────────────── */
+  .align-guide {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right,
+      transparent 0%,
+      oklch(55% 0.2 285 / 0.6) 12%,
+      oklch(55% 0.2 285 / 0.6) 88%,
+      transparent 100%);
+    pointer-events: none;
+    z-index: 40;
+  }
+  .align-guide::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -0.875rem;
+    right: 0.5rem;
+    padding: 0.125rem 0.4rem;
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent-primary);
+    background: var(--color-bg);
+    border: 1px solid oklch(85% 0.06 285);
+    border-radius: 4px;
+  }
+
+  /* ─── Review session cards (current SessionList shape) ───────────────── */
+  /* Rounded card per row, space-y-2 between, py-4 px-5 inside, date pinned
+     top-right next to truncated title, status/duration on the line below.
+     Matches components/SessionList.tsx so Review and Study share chrome. */
+  .review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .review-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+  }
+  .review-card .title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .review-card .title {
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .review-card .title.unread {
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .review-card .title.read {
+    font-weight: 400;
+    color: var(--color-text-secondary);
+  }
+  .review-card .date {
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .review-card .meta {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .review-card.processing { background: oklch(94% 0.035 285 / 0.5); }
+  .review-card.processing .meta .status {
+    color: var(--color-accent-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .review-card.processing .spinner {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid oklch(85% 0.04 285);
+    border-top-color: var(--color-accent-primary);
+    display: inline-block;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── Study cards — shared row chrome ────────────────────────────────── */
+  .study-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .study-row {
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+    border-radius: 14px;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .study-row-body { flex: 1; min-width: 0; padding: 0.875rem 1rem; }
+  .study-row-done {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.875rem;
+    border-left: 1px solid var(--color-border-subtle);
+    color: var(--color-text-tertiary);
+  }
+  .study-row-done:hover { color: var(--color-widget-write-text); background: oklch(94% 0.03 160 / 0.4); }
+  .study-row-done svg { width: 18px; height: 18px; }
+
+  /* Variant A — "Translation pair, target hero" */
+  .card-A .prompt {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+  }
+  .card-A .prompt .bracket-en {
+    color: var(--color-text-secondary);
+    font-style: normal;
+    border-bottom: 1px dashed oklch(70% 0.01 265 / 0.6);
+    padding-bottom: 0.05rem;
+  }
+  .card-A .answer {
+    margin: 0.375rem 0 0;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    line-height: 1.35;
+    color: var(--color-text-primary);
+    letter-spacing: -0.005em;
+  }
+  .card-A .answer .bracket-target {
+    color: var(--color-correction-text);
+    font-weight: 600;
+    background: var(--color-correction-bg);
+    padding: 0.05rem 0.3rem;
+    margin: 0 -0.125rem;
+    border-radius: 4px;
+  }
+
+  /* Variant B — "Phrase pair, sentence on demand" */
+  .card-B .phrase-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+  }
+  .card-B .phrase-prompt {
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    flex-shrink: 0;
+  }
+  .card-B .phrase-arrow {
+    color: var(--color-text-tertiary);
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+  .card-B .phrase-target {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1.2;
+    color: var(--color-correction-text);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .card-B .context {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-text-tertiary);
+  }
+  .card-B .context .strike {
+    text-decoration: line-through;
+    text-decoration-color: oklch(55% 0.01 265 / 0.4);
+    margin-right: 0.125rem;
+  }
+
+  /* Variant C — "Source-attributed pair" */
+  .card-C .source {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 0.4rem;
+  }
+  .card-C .pair { display: flex; flex-direction: column; gap: 0.3rem; }
+  .card-C .pair-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    line-height: 1.35;
+  }
+  .card-C .lang-tag {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    width: 1.25rem;
+    padding-top: 0.25rem;
+  }
+  .card-C .prompt-text {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+  }
+  .card-C .prompt-text .bracket-en {
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+  .card-C .answer-text {
+    font-family: var(--font-display);
+    font-size: 1.0625rem;
+    color: var(--color-text-primary);
+    letter-spacing: -0.005em;
+  }
+  .card-C .answer-text .bracket-target {
+    color: var(--color-correction-text);
+    font-weight: 600;
+  }
+  .card-C .pair-line.answer .lang-tag {
+    color: var(--color-correction-text);
+  }
+
+  /* ─── Footer "written archive" link ──────────────────────────────────── */
+  .archive-footer {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+  }
+  .archive-footer a {
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface-quiet);
+  }
+  .archive-footer a strong { color: var(--color-text-secondary); font-weight: 600; }
+  .archive-footer .archive-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-widget-write-text);
+  }
+
+  /* ─── Bottom nav ─────────────────────────────────────────────────────── */
+  .bottom-nav {
+    display: flex;
+    align-items: stretch;
+    border-top: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+    flex-shrink: 0;
+    padding-bottom: 8px;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.625rem 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+    position: relative;
+  }
+  .nav-tab svg { width: 22px; height: 22px; }
+  .nav-tab.active { color: var(--color-accent-primary); }
+  .nav-tab .badge {
+    position: absolute;
+    top: 6px;
+    right: 50%;
+    margin-right: -18px;
+    min-width: 14px;
+    height: 14px;
+    background: var(--color-widget-write-text);
+    color: var(--color-surface);
+    border-radius: 999px;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    line-height: 1;
+    border: 1.5px solid var(--color-surface);
+  }
+
+  /* ─── Notes ──────────────────────────────────────────────────────────── */
+  .note {
+    margin: 1rem 0 0;
+    padding: 0.875rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+  }
+  .note strong { color: var(--color-text-primary); font-weight: 600; }
+  .note ul { margin: 0.375rem 0 0; padding-left: 1.125rem; }
+  .note li { margin-bottom: 0.25rem; }
+  .note code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    background: var(--color-surface-elevated);
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    color: var(--color-text-primary);
+  }
+
+  .change-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0 0.375rem 0.375rem 0;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    background: oklch(95% 0.04 75);
+    border: 1px solid oklch(80% 0.06 75);
+    color: oklch(40% 0.12 70);
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+  .change-pill.drop {
+    background: oklch(95% 0.04 25);
+    border-color: oklch(80% 0.06 25);
+    color: oklch(45% 0.16 25);
+  }
+  .change-pill.add {
+    background: oklch(95% 0.04 150);
+    border-color: oklch(80% 0.06 150);
+    color: oklch(35% 0.12 150);
+  }
+
+  .summary-card {
+    margin-top: 4rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 18px;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+  }
+  .summary-card h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.375rem;
+    margin: 0 0 1.25rem;
+    color: var(--color-text-primary);
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  .summary-grid > div { font-size: 0.875rem; line-height: 1.6; color: var(--color-text-secondary); }
+  .summary-grid h4 {
+    margin: 0 0 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .summary-grid code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+    background: var(--color-surface-elevated);
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+    color: var(--color-text-primary);
+  }
+
+  /* Dark mode device internals */
+  .device.dark .top-wordmark,
+  .device.dark .top-icons { color: var(--color-text-tertiary); }
+  .device.dark .page-h1 { color: var(--color-text-primary); }
+  .device.dark .study-row {
+    background: var(--color-surface);
+    border-color: var(--color-border-subtle);
+  }
+  .device.dark .study-row-done { border-left-color: var(--color-border-subtle); }
+  .device.dark .bottom-nav {
+    background: var(--color-surface);
+    border-top-color: var(--color-border-subtle);
+  }
+  .device.dark .card-A .answer .bracket-target {
+    background: var(--color-correction-bg);
+    color: var(--color-correction-text);
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+
+    <header class="page-header">
+      <p class="eyebrow">Study card redesign · concept 02</p>
+      <h1>The Study queue, as a stack of bilingual phrase cards.</h1>
+      <p>
+        Today every Study row shows the same thing: the source
+        sentence with the wrong fragment struck through and the
+        rewrite inserted inline. That's a great way to read a
+        <em>correction</em>; it's a noisier way to recall a
+        <em>phrase</em>. The Study surface is downstream of Review —
+        by the time the user lands here they have already chosen this
+        item, they don't need to re-litigate the mistake. What they
+        need is the corrected phrase in the language they're learning,
+        anchored to its meaning in the language they already speak.
+      </p>
+      <p>
+        Two concept moves in this round:
+      </p>
+      <p style="margin-left: 1.25rem">
+        <strong>1. Header alignment.</strong> Strip the subtitle and
+        relocate the "Written archive" link so the list starts at the
+        same vertical position as <code>/review</code>. Vertical
+        cohesion across the methodology pillars.
+      </p>
+      <p style="margin-left: 1.25rem">
+        <strong>2. Card content.</strong> Three card concepts using
+        the existing <code>flashcard_front</code> /
+        <code>flashcard_back</code> data Claude already produces — the
+        native-language sentence above the target-language sentence
+        (inverse for English learners). Each variant trades context
+        density for recall focus differently.
+      </p>
+    </header>
+
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <!-- SECTION 1 — Header alignment                                       -->
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <h2 class="section-title">Header alignment with Review</h2>
+    <p class="section-lede">
+      The list start position is the visual contract between the two
+      pillars. The row chrome already matches —
+      <code>SessionList</code> and <code>WriteList</code> both render
+      rounded-xl cards on <code>bg-surface</code> with
+      <code>space-y-2</code> between rows — but Study's list still
+      starts ~28px + 1.25rem lower than Review because of the calm
+      one-liner subtitle and the <code>ViewToggle</code> row that
+      hosts the "Written →" link. Drop both. The archive moves to a
+      quiet pill below the list — retrospective destination,
+      retrospective placement.
+    </p>
+
+    <section class="concepts two">
+
+      <!-- Review reference -->
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">/review · reference</p>
+          <h2>What the list start looks like today.</h2>
+          <p class="blurb">
+            H1 → methodology eyebrow → space-y-8 → rounded session
+            cards with the date pinned top-right. No subtitle, no
+            filter row above the list. The page H1 is the only label;
+            the list itself is the section. Study should land at the
+            same vertical position with the same card vocabulary —
+            <code>SessionList</code> and <code>WriteList</code>
+            already share row chrome (rounded-xl, border-subtle,
+            space-y-2), this concept finishes the cohesion at the
+            list-start line.
+          </p>
+        </div>
+
+        <div class="device">
+          <div class="device-inner">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll" style="position: relative;">
+              <h1 class="page-h1">Your conversations</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTISE</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">REVIEW</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">STUDY</span>
+              </div>
+
+              <div style="position: relative;">
+                <div class="align-guide" data-label="LIST STARTS HERE" style="top: 0.125rem;"></div>
+
+                <div class="review-list" style="margin-top: 0.75rem">
+                  <a class="review-card processing" href="#">
+                    <div class="title-row">
+                      <span class="title unread">Friday call with Lucía</span>
+                      <span class="date">14:32</span>
+                    </div>
+                    <div class="meta">
+                      <span class="status">
+                        <span class="spinner" aria-hidden="true"></span>
+                        Transcribing
+                      </span>
+                    </div>
+                  </a>
+                  <a class="review-card" href="#">
+                    <div class="title-row">
+                      <span class="title unread">Coffee with Mateo</span>
+                      <span class="date">Yesterday</span>
+                    </div>
+                    <div class="meta">
+                      <span>12m 14s</span>
+                    </div>
+                  </a>
+                  <a class="review-card" href="#">
+                    <div class="title-row">
+                      <span class="title read">Sunday phone call</span>
+                      <span class="date">Tue</span>
+                    </div>
+                    <div class="meta">
+                      <span>8m 02s</span>
+                    </div>
+                  </a>
+                  <a class="review-card" href="#">
+                    <div class="title-row">
+                      <span class="title read">Voice note from Ana</span>
+                      <span class="date">Mon</span>
+                    </div>
+                    <div class="meta">
+                      <span>2m 47s</span>
+                    </div>
+                  </a>
+                  <a class="review-card" href="#">
+                    <div class="title-row">
+                      <span class="title read">Café with Sofía</span>
+                      <span class="date">15 Mar</span>
+                    </div>
+                    <div class="meta">
+                      <span>14m 09s</span>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practise
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Review
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Study
+                <span class="badge">3</span>
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+              </span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <!-- Study aligned -->
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">/write · aligned</p>
+          <h2>Same vertical, archive moved to footer.</h2>
+          <p class="blurb">
+            Subtitle dropped. <code>ViewToggle</code> row dropped from
+            the top. The "Written archive" link becomes a quiet pill
+            below the list — visible only when there's something in
+            the archive, never competing with the queue for the user's
+            first glance.
+          </p>
+          <div class="meta">
+            <span class="pos">+ List starts at same vertical as Review</span>
+            <span class="pos">+ Archive still one tap away</span>
+            <span class="neu">~ Subtitle copy can live in the empty state</span>
+          </div>
+          <div style="margin-top: 0.5rem">
+            <span class="change-pill drop">subtitle removed</span>
+            <span class="change-pill drop">top toggle row removed</span>
+            <span class="change-pill add">archive footer pill</span>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device-inner">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll">
+              <h1 class="page-h1">Study</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTISE</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">REVIEW</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">STUDY</span>
+              </div>
+
+              <div style="position: relative;">
+                <div class="align-guide" data-label="LIST STARTS HERE" style="top: -0.5rem;"></div>
+
+                <div class="study-list card-A" style="margin-top: 1rem">
+                  <div class="study-row">
+                    <div class="study-row-body">
+                      <p class="prompt">I <span class="bracket-en">went</span> to the market.</p>
+                      <p class="answer"><span class="bracket-target">Fui</span> al mercado.</p>
+                    </div>
+                    <div class="study-row-done" aria-label="Mark as written">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  </div>
+                  <div class="study-row">
+                    <div class="study-row-body">
+                      <p class="prompt">I <span class="bracket-en">told him</span> the truth.</p>
+                      <p class="answer">Le dije <span class="bracket-target">la verdad</span>.</p>
+                    </div>
+                    <div class="study-row-done" aria-label="Mark as written">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  </div>
+                  <div class="study-row">
+                    <div class="study-row-body">
+                      <p class="prompt">What <span class="bracket-en">are you doing</span> here?</p>
+                      <p class="answer">¿Qué <span class="bracket-target">estás haciendo</span> acá?</p>
+                    </div>
+                    <div class="study-row-done" aria-label="Mark as written">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="archive-footer">
+                  <a href="#">
+                    <span class="archive-dot" aria-hidden="true"></span>
+                    <strong>2</strong> written · view archive →
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practise
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Review
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Study
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+              </span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <aside class="note" style="margin-top: 2.5rem">
+      <strong>Why the archive footer beats a top-of-list toggle:</strong>
+      <ul>
+        <li>The user comes to Study with a queue in mind, not an
+          archive in mind. Top-right placement made the archive a peer
+          of the queue; that's a hierarchy mismatch.</li>
+        <li>"Written" is a retrospective destination — the natural
+          time to think about it is <em>after</em> you've scanned the
+          queue. Footer placement matches the moment.</li>
+        <li>Only renders when <code>writtenCount &gt; 0</code>. New
+          users see clean alignment with Review; returning users with
+          a real archive get a single quiet pill that anchors below
+          the list.</li>
+        <li>The H1 row stays clean for a future bulk action / sort
+          control if we ever need one.</li>
+      </ul>
+    </aside>
+
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <!-- SECTION 2 — Three card concepts                                    -->
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <h2 class="section-title">Three card concepts</h2>
+    <p class="section-lede">
+      Each one uses <code>flashcard_front</code> and
+      <code>flashcard_back</code> directly from Claude's existing
+      output. The <code>[[bracketed]]</code> phrase is the focus — the
+      surrounding sentence is just enough scaffolding to anchor it.
+      The previous "strike-through-in-source-sentence" treatment moves
+      to the sheet body, where the user has tapped in for the full
+      story.
+    </p>
+
+    <section class="concepts three">
+
+      <!-- ──────── Concept A — Translation pair, target hero ───────── -->
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">Concept A · Pair, target hero</p>
+          <h2>Native prompt, target answer.</h2>
+          <p class="blurb">
+            English sentence sits at the top in a quiet italic
+            tertiary tone — it's the meaning, not the focus. The
+            Spanish sentence drops into Source Serif 4 with the
+            corrected phrase tinted and softly background-filled in
+            the brand's correction green. The eye lands on the green
+            phrase first, reads outward to anchor it in the sentence,
+            then drifts up to confirm the meaning.
+          </p>
+          <div class="meta">
+            <span class="pos">+ Closest to a real flashcard</span>
+            <span class="pos">+ Target phrase visually anchored</span>
+            <span class="neu">~ Loses the "I said this wrong" framing</span>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device-inner">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll">
+              <h1 class="page-h1">Study</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTISE</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">REVIEW</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">STUDY</span>
+              </div>
+
+              <div class="study-list card-A" style="margin-top: 0.75rem">
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">I <span class="bracket-en">went</span> to the market yesterday.</p>
+                    <p class="answer"><span class="bracket-target">Fui</span> al mercado ayer.</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">I <span class="bracket-en">told him</span> the truth.</p>
+                    <p class="answer">Le dije <span class="bracket-target">la verdad</span>.</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">What <span class="bracket-en">are you doing</span> here?</p>
+                    <p class="answer">¿Qué <span class="bracket-target">estás haciendo</span> acá?</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt"><span class="bracket-en">Do you have</span> a minute?</p>
+                    <p class="answer"><span class="bracket-target">¿Tenés</span> un minuto?</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="archive-footer">
+                <a href="#">
+                  <span class="archive-dot" aria-hidden="true"></span>
+                  <strong>2</strong> written · view archive →
+                </a>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practise
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Review
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Study
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+              </span>
+            </nav>
+          </div>
+        </div>
+
+        <aside class="note">
+          <strong>Reading order in A:</strong>
+          <ul>
+            <li>Green-tinted Spanish phrase → outward in the Spanish
+              sentence → upward to the italic English sentence.</li>
+            <li>Italic English sits in tertiary text colour — readable
+              for context but never claims focus.</li>
+            <li>Source Serif 4 on the Spanish line earns its line: it
+              treats each row as a small editorial caption rather than
+              a UI list item.</li>
+          </ul>
+        </aside>
+      </article>
+
+      <!-- ──────── Concept B — Phrase only ───────── -->
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">Concept B · Phrase only</p>
+          <h2>Just the phrase pair, sentence on tap.</h2>
+          <p class="blurb">
+            Strip the row to the two bracketed phrases. The English
+            target word sits in italic tertiary as a tiny prompt; the
+            Spanish phrase fills the row in Source Serif at full
+            weight. The original wrong→right sentence collapses into
+            a single-line "what you said" caption for scannability
+            — useful for spaced revision where the user wants density
+            over context.
+          </p>
+          <div class="meta">
+            <span class="pos">+ Highest density per screen</span>
+            <span class="pos">+ Phrase is the only thing competing for the eye</span>
+            <span class="neg">– Less anchoring for new learners</span>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device-inner">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll">
+              <h1 class="page-h1">Study</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTISE</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">REVIEW</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">STUDY</span>
+              </div>
+
+              <div class="study-list card-B" style="margin-top: 0.75rem">
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <div class="phrase-row">
+                      <span class="phrase-prompt">went</span>
+                      <span class="phrase-arrow" aria-hidden="true">→</span>
+                      <span class="phrase-target">Fui</span>
+                    </div>
+                    <p class="context"><span class="strike">Yo fui</span> al mercado</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <div class="phrase-row">
+                      <span class="phrase-prompt">told him the truth</span>
+                      <span class="phrase-arrow" aria-hidden="true">→</span>
+                      <span class="phrase-target">le dije la verdad</span>
+                    </div>
+                    <p class="context"><span class="strike">le dije a el</span> que sí</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <div class="phrase-row">
+                      <span class="phrase-prompt">are you doing</span>
+                      <span class="phrase-arrow" aria-hidden="true">→</span>
+                      <span class="phrase-target">estás haciendo</span>
+                    </div>
+                    <p class="context"><span class="strike">qué hacés</span> acá</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <div class="phrase-row">
+                      <span class="phrase-prompt">do you have</span>
+                      <span class="phrase-arrow" aria-hidden="true">→</span>
+                      <span class="phrase-target">¿tenés…?</span>
+                    </div>
+                    <p class="context"><span class="strike">tienes</span> un minuto</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <div class="phrase-row">
+                      <span class="phrase-prompt">at all</span>
+                      <span class="phrase-arrow" aria-hidden="true">→</span>
+                      <span class="phrase-target">para nada</span>
+                    </div>
+                    <p class="context"><span class="strike">no nada</span></p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="archive-footer">
+                <a href="#">
+                  <span class="archive-dot" aria-hidden="true"></span>
+                  <strong>2</strong> written · view archive →
+                </a>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practise
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Review
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Study
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+              </span>
+            </nav>
+          </div>
+        </div>
+
+        <aside class="note">
+          <strong>Reading order in B:</strong>
+          <ul>
+            <li>Spanish phrase (serif, full weight) → tiny italic
+              English prompt to its left → optional "what you said"
+              caption underneath.</li>
+            <li>The dim "what you said" line preserves the original
+              learning hook for users who like seeing the mistake; it
+              just doesn't run the row.</li>
+            <li>Best for users with a long queue who want to do a
+              quick visual revision pass without opening the sheet.</li>
+          </ul>
+        </aside>
+      </article>
+
+      <!-- ──────── Concept C — Source-attributed pair ───────── -->
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">Concept C · Source-attributed pair</p>
+          <h2>Two lines, labelled, equal weight.</h2>
+          <p class="blurb">
+            Eyebrow says where it came from
+            (<em>Coffee with Mateo · 12 Mar</em>). Then two labelled
+            lines —
+            <code>EN</code> and <code>ES</code> — sit at equal weight,
+            the corrected phrase in each is tinted in its target tone.
+            The card feels like a bilingual glossary entry rather than
+            a flashcard, which makes it less recall-focused and more
+            reference-focused.
+          </p>
+          <div class="meta">
+            <span class="pos">+ Anchors each item back to its conversation</span>
+            <span class="pos">+ Equal weight reads more "reference book"</span>
+            <span class="neg">– Tallest card; fewer items per screen</span>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device-inner">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll">
+              <h1 class="page-h1">Study</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTISE</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">REVIEW</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">STUDY</span>
+              </div>
+
+              <div class="study-list card-C" style="margin-top: 0.75rem">
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <span class="source">Coffee with Mateo · 12 Mar</span>
+                    <div class="pair">
+                      <div class="pair-line">
+                        <span class="lang-tag">EN</span>
+                        <span class="prompt-text">I <span class="bracket-en">went</span> to the market.</span>
+                      </div>
+                      <div class="pair-line answer">
+                        <span class="lang-tag">ES</span>
+                        <span class="answer-text"><span class="bracket-target">Fui</span> al mercado.</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <span class="source">Sunday phone call · 9 Mar</span>
+                    <div class="pair">
+                      <div class="pair-line">
+                        <span class="lang-tag">EN</span>
+                        <span class="prompt-text">I <span class="bracket-en">told him</span> the truth.</span>
+                      </div>
+                      <div class="pair-line answer">
+                        <span class="lang-tag">ES</span>
+                        <span class="answer-text">Le dije <span class="bracket-target">la verdad</span>.</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <span class="source">Café with Sofía · 8 Mar</span>
+                    <div class="pair">
+                      <div class="pair-line">
+                        <span class="lang-tag">EN</span>
+                        <span class="prompt-text">What <span class="bracket-en">are you doing</span>?</span>
+                      </div>
+                      <div class="pair-line answer">
+                        <span class="lang-tag">ES</span>
+                        <span class="answer-text">¿Qué <span class="bracket-target">estás haciendo</span>?</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="archive-footer">
+                <a href="#">
+                  <span class="archive-dot" aria-hidden="true"></span>
+                  <strong>2</strong> written · view archive →
+                </a>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practise
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Review
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Study
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+              </span>
+            </nav>
+          </div>
+        </div>
+
+        <aside class="note">
+          <strong>Reading order in C:</strong>
+          <ul>
+            <li>Source eyebrow → EN line (lighter) → ES line (heavier
+              + green-tinted bracket) → optional tap into sheet.</li>
+            <li>The <code>EN</code>/<code>ES</code> tags read like a
+              tiny dictionary entry; the source eyebrow turns the
+              queue into a chronologically-tagged collection rather
+              than a flat list.</li>
+            <li>Most useful for users whose Study items span many
+              conversations and want to remember which call a phrase
+              came from.</li>
+          </ul>
+        </aside>
+      </article>
+
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <!-- SECTION 3 — Dark mode + English learner inverse                    -->
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <h2 class="section-title">Dark mode + English learner inverse</h2>
+    <p class="section-lede">
+      Concept A in dark mode, plus a frame showing the same concept
+      for a New Zealand English learner — Spanish prompt above, NZ
+      English answer below. Same layout, language pair flipped. The
+      target language always sits on the bottom line; the rule is
+      "native sets the meaning, target is the thing to memorise."
+    </p>
+
+    <section class="concepts two">
+
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">Concept A · dark</p>
+          <h2>Evening Study, same rhythm.</h2>
+          <p class="blurb">
+            Warm navy ground, correction green drops chroma slightly
+            so the tinted phrase doesn't glow on dark. Pair stays the
+            same: italic English prompt above, Source Serif Spanish
+            below.
+          </p>
+        </div>
+
+        <div class="device dark">
+          <div class="device-inner dark">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll">
+              <h1 class="page-h1">Study</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTISE</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">REVIEW</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">STUDY</span>
+              </div>
+
+              <div class="study-list card-A" style="margin-top: 0.75rem">
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">I <span class="bracket-en">went</span> to the market yesterday.</p>
+                    <p class="answer"><span class="bracket-target">Fui</span> al mercado ayer.</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">I <span class="bracket-en">told him</span> the truth.</p>
+                    <p class="answer">Le dije <span class="bracket-target">la verdad</span>.</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">What <span class="bracket-en">are you doing</span> here?</p>
+                    <p class="answer">¿Qué <span class="bracket-target">estás haciendo</span> acá?</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="archive-footer">
+                <a href="#">
+                  <span class="archive-dot" aria-hidden="true"></span>
+                  <strong>2</strong> written · view archive →
+                </a>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practise
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Review
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Study
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+              </span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="concept">
+        <div class="concept-header">
+          <p class="concept-id">Concept A · English learner</p>
+          <h2>Spanish prompt, English answer.</h2>
+          <p class="blurb">
+            For an <code>en-NZ</code> learner, the pair flips: Spanish
+            sets the meaning in italic tertiary, the corrected NZ
+            English phrase fills the lower line. The "target sits on
+            the bottom line" rule holds — only the languages swap.
+          </p>
+        </div>
+
+        <div class="device">
+          <div class="device-inner">
+            <div class="top-chrome">
+              <span class="top-wordmark">CONVERSATION COACH</span>
+              <span class="top-icons" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="body-scroll">
+              <h1 class="page-h1">Estudiar</h1>
+              <div class="pillar-header" aria-label="Methodology">
+                <span class="pillar-step">PRACTICAR</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step">REVISAR</span>
+                <span class="pillar-sep" aria-hidden="true">→</span>
+                <span class="pillar-step now">ESTUDIAR</span>
+              </div>
+
+              <div class="study-list card-A" style="margin-top: 0.75rem">
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">Ayer <span class="bracket-en">fui</span> al mercado.</p>
+                    <p class="answer">Yesterday I <span class="bracket-target">went</span> to the shops.</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt"><span class="bracket-en">¿Te gustaría</span> tomar un café?</p>
+                    <p class="answer"><span class="bracket-target">Fancy</span> a coffee?</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+                <div class="study-row">
+                  <div class="study-row-body">
+                    <p class="prompt">El otro día <span class="bracket-en">salí</span> con Lucía.</p>
+                    <p class="answer">The other day I <span class="bracket-target">caught up</span> with Lucia.</p>
+                  </div>
+                  <div class="study-row-done" aria-label="Mark as written">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="archive-footer">
+                <a href="#">
+                  <span class="archive-dot" aria-hidden="true"></span>
+                  <strong>2</strong> escritas · ver archivo →
+                </a>
+              </div>
+            </div>
+
+            <nav class="bottom-nav" aria-label="Quick navigation">
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Practicar
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Revisar
+              </span>
+              <span class="nav-tab active" aria-current="page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 4h8a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/>
+                  <path d="M22 4h-8a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h9z"/>
+                </svg>
+                Estudiar
+              </span>
+              <span class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Ajustes
+              </span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <!-- SECTION 4 — Implementation                                          -->
+    <!-- ─────────────────────────────────────────────────────────────────── -->
+    <section class="summary-card">
+      <h3>Implementation checklist</h3>
+      <div class="summary-grid">
+        <div>
+          <h4>New row component</h4>
+          <ul>
+            <li>Replace <code>CorrectionInContext</code> inside
+              <code>WriteRow</code> with a new
+              <code>FlashcardRow</code> (or pick the variant we
+              commit to).</li>
+            <li>Source data: <code>item.flashcard_front</code> +
+              <code>item.flashcard_back</code> already on
+              <code>PracticeItem</code>; both contain a single
+              <code>[[bracketed]]</code> phrase per the prompts in
+              <code>lib/claude.ts</code>.</li>
+            <li>Parser: tiny helper that splits a flashcard string at
+              the first <code>[[…]]</code> pair and returns
+              <code>{ before, phrase, after }</code>. Render in
+              JSX so we never inject HTML.</li>
+            <li>Native vs target chooser: read
+              <code>targetLanguage</code> from the user metadata
+              header already in <code>middleware.ts</code> /
+              <code>getAuthenticatedUser</code>. Pass into the row as
+              a prop so the rule is centralised.</li>
+            <li><code>CorrectionInContext</code> stays for the
+              sheet body where the original-sentence framing still
+              earns its space.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Header chrome (<code>WriteClient</code> + <code>WriteList</code>)</h4>
+          <ul>
+            <li>Drop <code>&lt;p&gt;{t('write.subtitle')}&lt;/p&gt;</code>
+              from <code>WriteClient</code>'s header. Move the copy
+              into the empty state if we want it preserved.</li>
+            <li>Remove the top <code>&lt;ViewToggle&gt;</code> from
+              <code>WriteList</code>. Render archive link only as a
+              footer pill (<code>archive-footer</code> in the
+              mockup), gated on
+              <code>writtenCount &gt; 0 &amp;&amp; view === 'write'</code>.</li>
+            <li>Written view itself keeps a tiny back-link near the
+              top (the only way out of the archive), so the
+              <code>ViewToggle</code> component shrinks but doesn't
+              disappear — it just stops rendering on the primary
+              Write view.</li>
+            <li>Result: list element starts at the same vertical
+              position as the inbox on <code>/review</code>.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Fallbacks</h4>
+          <ul>
+            <li>Legacy practice items without
+              <code>flashcard_front</code> /
+              <code>flashcard_back</code> (analysis predates the
+              field): fall back to the existing
+              <code>CorrectionInContext</code> / <code>StrikeOriginal</code>
+              treatment so old rows still render meaningfully.</li>
+            <li>Flashcard string missing brackets (defensive — Claude
+              is supposed to always include them): render the whole
+              sentence in the target weight without a tinted phrase.
+              Don't blow up.</li>
+            <li>Empty state copy can absorb the calm "Pick up a saved
+              correction whenever you're ready" subtitle if we want
+              that line to live somewhere.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Out of scope</h4>
+          <ul>
+            <li>WriteSheet body — still uses the source-sentence
+              correction-in-context. Sheet is for full story; the
+              list is for recall.</li>
+            <li>Swipe-delete / undoable delete — unchanged.</li>
+            <li>Trailing fast-path "Mark as written" tap target —
+              unchanged on the row chrome; new card variants all
+              inherit it.</li>
+            <li>API / database — no schema change. Everything we need
+              is already on <code>practice_items</code>.</li>
+            <li>Importance pill — not in the list today, not added by
+              this round.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Open questions for the next pass</h4>
+          <ul>
+            <li>Concept A vs B vs C — which one earns the spot? A
+              feels right for the patient-tutor tone; B helps with a
+              long queue; C trades scan density for source
+              attribution.</li>
+            <li>Should the source attribution from C migrate into A
+              as a much quieter tertiary eyebrow above each row, or
+              stay out of the list view entirely?</li>
+            <li>Is the green background tint on the corrected phrase
+              too loud in a long list, or is the colour-as-anchor
+              worth the visual weight?</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Strings touched</h4>
+          <ul>
+            <li><code>write.subtitle</code> — drops out of the
+              populated header; can stay in the empty-state copy
+              file under a renamed key (or be retired).</li>
+            <li><code>writeList.archiveLink</code> — text moves to a
+              centred footer pill ("N written · view archive →").</li>
+            <li><code>writeList.backToWrite</code> — unchanged; still
+              the top-of-Written-view back link.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
