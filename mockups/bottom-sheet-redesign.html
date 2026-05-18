@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bottom sheet · Hush + viewport anchoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* ─── Project tokens (mirrored from app/globals.css) ────────────────── */
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-surface-quiet: oklch(96.5% 0.006 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-accent-primary-hover: oklch(50% 0.22 285);
+    --color-correction-text: oklch(48% 0.14 150);
+    --color-correction-bg: oklch(95% 0.04 150);
+    --color-widget-write-border: oklch(48% 0.12 160);
+    --color-widget-write-bg: oklch(94% 0.03 160);
+    --color-widget-write-text: oklch(35% 0.1 160);
+    --color-scrim: oklch(22% 0.025 265 / 0.55);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+
+    --device-w: 380px;
+    --device-h: 760px;
+    --nav-h: 68px;
+  }
+
+  .dark {
+    --color-bg: oklch(14% 0.02 265);
+    --color-surface: oklch(20% 0.018 265);
+    --color-surface-elevated: oklch(26% 0.016 265);
+    --color-surface-quiet: oklch(22% 0.018 265);
+    --color-border: oklch(36% 0.012 265);
+    --color-border-subtle: oklch(26% 0.01 265);
+    --color-text-primary: oklch(94% 0.008 75);
+    --color-text-secondary: oklch(72% 0.008 75);
+    --color-text-tertiary: oklch(58% 0.006 75);
+    --color-accent-primary: oklch(62% 0.18 285);
+    --color-correction-text: oklch(78% 0.14 150);
+    --color-widget-write-bg: oklch(25% 0.06 160);
+    --color-widget-write-text: oklch(80% 0.1 160);
+    --color-scrim: oklch(8% 0.015 265 / 0.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: oklch(94% 0.005 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Page chrome ────────────────────────────────────────────────────── */
+  .page {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: clamp(2rem, 4vw, 4rem) clamp(1.25rem, 3vw, 3rem) 6rem;
+  }
+  .page-header { max-width: 78ch; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0 0 1rem;
+    color: var(--color-text-primary);
+  }
+  .lede {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 70ch;
+  }
+  .lede + .lede { margin-top: 0.75rem; }
+
+  /* ─── Section + pane chrome ──────────────────────────────────────────── */
+  .section-h {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 3rem 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+  .section-lede {
+    margin: 0 0 1.75rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 72ch;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: clamp(1.5rem, 2.5vw, 2.5rem);
+    align-items: start;
+  }
+  .pane { display: flex; flex-direction: column; gap: 1rem; }
+  .pane-h {
+    display: flex; align-items: baseline; justify-content: space-between; gap: .75rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .pane-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.125rem;
+    margin: 0;
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+  }
+  .pane-tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+  .pane-tag.before { color: oklch(50% 0.16 25); }
+  .pane-tag.after  { color: oklch(45% 0.16 150); }
+
+  /* ─── Phone frame ────────────────────────────────────────────────────── */
+  .frame {
+    width: 100%;
+    max-width: var(--device-w);
+    aspect-ratio: 380 / 760;
+    margin: 0 auto;
+    background: var(--color-bg);
+    border-radius: 38px;
+    border: 1px solid oklch(78% 0.012 75);
+    box-shadow: 0 24px 60px -28px oklch(20% 0.02 265 / 0.35),
+                inset 0 0 0 6px oklch(96% 0.005 75);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .frame.dark {
+    border-color: oklch(36% 0.012 265);
+    box-shadow: 0 24px 60px -28px oklch(0% 0 0 / 0.45),
+                inset 0 0 0 6px oklch(22% 0.018 265);
+  }
+
+  /* ─── App surface under the sheet ────────────────────────────────────── */
+  .app-bg {
+    position: absolute;
+    inset: 0;
+    padding: 56px 22px 0;
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+    pointer-events: none;
+    user-select: none;
+  }
+  .app-bg .h {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+    color: var(--color-text-primary);
+    opacity: 0.55;
+    margin-bottom: 14px;
+  }
+  .app-bg .ln {
+    display: block;
+    height: 9px;
+    background: var(--color-text-tertiary);
+    opacity: 0.18;
+    border-radius: 99px;
+    margin-bottom: 12px;
+  }
+  .app-bg .ln.short { width: 55%; }
+  .app-bg .ln.mid   { width: 80%; }
+  .app-bg .ln.long  { width: 100%; }
+
+  /* ─── Bottom nav (the real one, rendered into the frame) ─────────────── */
+  .nav {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: var(--nav-h);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border-subtle);
+    display: flex;
+    z-index: 1;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+    color: var(--color-text-tertiary);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .nav-tab.active { color: var(--color-accent-primary); }
+  .nav-tab svg { width: 22px; height: 22px; }
+
+  /* Sheet (bottom-anchored variant — anchoring controlled by class below) */
+  .sheet {
+    position: absolute;
+    left: 0; right: 0;
+    background: var(--color-surface);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -18px 40px -22px oklch(0% 0 0 / 0.22);
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+  }
+  .dark .sheet {
+    background: var(--color-surface);
+    box-shadow: 0 -18px 40px -22px oklch(0% 0 0 / 0.55);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+  /* ANCHORING — the heart of the change */
+  .sheet.anchor-above-nav { bottom: var(--nav-h); max-height: 60%; }
+  .sheet.anchor-viewport  { bottom: 0;            max-height: 78%; }
+
+  .handle-row { display: flex; justify-content: center; padding: 9px 0 4px; }
+  .handle { width: 28px; height: 4px; border-radius: 99px; background: var(--color-border); opacity: 0.6; }
+
+  .ic-btn {
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px;
+    color: var(--color-text-secondary);
+    background: transparent;
+    cursor: pointer; border: 0; padding: 0;
+    transition: background .15s ease, color .15s ease;
+  }
+  .ic-btn:hover { background: var(--color-bg); color: var(--color-text-primary); }
+  .ic-btn svg { width: 18px; height: 18px; }
+  .ic-row { display: flex; align-items: center; gap: 2px; }
+
+  /* ─── HUSH content ───────────────────────────────────────────────────── */
+  .hush-body {
+    padding: 4px 24px 18px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .hush-controls {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0 4px;
+  }
+  .hush-controls .pos {
+    font-family: var(--font-display);
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+    letter-spacing: -0.005em;
+    font-variant-numeric: oldstyle-nums;
+  }
+  .hush-controls .pos .n { color: var(--color-text-primary); font-weight: 500; }
+
+  .hush-stack { padding: 4px 0 0; }
+  .hush-stack .from {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 6px;
+  }
+  .hush-stack .said {
+    margin: 0;
+    color: var(--color-text-tertiary);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.25rem;
+    line-height: 1.25;
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    text-decoration-color: oklch(55% 0.01 265 / 0.4);
+    letter-spacing: -0.005em;
+  }
+  .hush-stack .answer {
+    margin: 10px 0 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    color: var(--color-correction-text);
+    font-size: 2rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .hush-why-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin: 0 0 6px;
+  }
+  .hush-explain {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+    max-width: 38ch;
+  }
+
+  .hush-footer {
+    background: var(--color-surface-elevated);
+    padding: 14px 24px 18px;
+    border-top: 1px solid var(--color-border-subtle);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  /* When the sheet is anchored to the viewport, the footer absorbs the
+     iOS home-indicator safe area. Mocked here as extra bottom padding. */
+  .anchor-viewport .hush-footer {
+    padding-bottom: calc(18px + 12px);
+  }
+  .primary-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: 100%;
+    height: 46px;
+    padding: 0 16px;
+    border-radius: 11px;
+    background: var(--color-accent-primary);
+    color: oklch(98% 0.005 75);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border: 0;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  .primary-btn:hover { background: var(--color-accent-primary-hover); }
+  .primary-btn .lbl-display { font-family: var(--font-display); font-weight: 500; font-size: 1rem; letter-spacing: -0.005em; }
+  .primary-btn--write {
+    background: var(--color-widget-write-bg);
+    color: var(--color-widget-write-text);
+    border: 1px solid var(--color-widget-write-border);
+  }
+  .ghost-link {
+    color: var(--color-text-tertiary);
+    font-size: 0.8125rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--color-border);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  .ghost-row { display: flex; justify-content: center; }
+
+  /* ─── Pin / pointer annotation overlays ──────────────────────────────── */
+  .pin {
+    position: absolute;
+    z-index: 4;
+    pointer-events: none;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--color-text-primary);
+    background: oklch(98% 0.01 75);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 4px 10px;
+    box-shadow: 0 2px 8px -2px oklch(20% 0.02 265 / 0.18);
+    white-space: nowrap;
+  }
+  .pin.alert {
+    color: oklch(45% 0.18 25);
+    border-color: oklch(70% 0.14 25);
+    background: oklch(96% 0.025 25);
+  }
+  .pin.good {
+    color: oklch(38% 0.13 150);
+    border-color: oklch(70% 0.1 150);
+    background: oklch(95% 0.04 150);
+  }
+  .pin-line {
+    position: absolute;
+    z-index: 4;
+    border-left: 1.5px dashed oklch(60% 0.01 75);
+    pointer-events: none;
+  }
+
+  /* ─── Notes / callout ────────────────────────────────────────────────── */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: clamp(1rem, 2vw, 1.5rem);
+    margin-top: 2.5rem;
+  }
+  .note {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    padding: 1.25rem 1.25rem 1.5rem;
+  }
+  .note h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.0625rem;
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.01em;
+  }
+  .note h3 .tag {
+    display: inline-block;
+    margin-left: 6px;
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    vertical-align: middle;
+  }
+  .note p {
+    margin: 0 0 0.65rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .note ul li + li { margin-top: 0.3rem; }
+  .note ul li strong { color: var(--color-text-primary); font-weight: 600; }
+  .note code {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+    font-size: 0.85em;
+    background: var(--color-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--color-text-primary);
+  }
+
+  .dark-strip {
+    margin-top: 4rem;
+    padding: clamp(2rem, 3vw, 3rem);
+    border-radius: 24px;
+    background: oklch(14% 0.02 265);
+    color: oklch(94% 0.008 75);
+  }
+  .dark-strip h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.4rem, 2.4vw, 1.875rem);
+    margin: 0 0 0.5rem;
+    color: oklch(94% 0.008 75);
+    letter-spacing: -0.015em;
+  }
+  .dark-strip .lede { color: oklch(72% 0.008 75); max-width: 72ch; }
+  .dark-strip .grid { margin-top: 2rem; }
+  .dark-strip .pane-title { color: oklch(94% 0.008 75); }
+  .dark-strip .pane-h { border-color: oklch(26% 0.01 265); }
+
+  .callout {
+    margin-top: 3rem;
+    padding: 1.5rem 1.75rem;
+    background: var(--color-surface);
+    border-radius: 14px;
+    border: 1px solid var(--color-border-subtle);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--color-text-secondary);
+    max-width: 80ch;
+  }
+  .callout p { margin: 0 0 0.75rem; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong { color: var(--color-text-primary); font-weight: 600; }
+  .callout h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.25rem;
+    margin: 0 0 0.75rem;
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .question {
+    margin-top: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-surface-elevated);
+    border-radius: 12px;
+    border: 1px solid var(--color-border-subtle);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+  .question strong { color: var(--color-text-primary); font-weight: 600; }
+
+  /* ─── Desktop browser frame ──────────────────────────────────────────── */
+  .browser {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 14px;
+    border: 1px solid oklch(78% 0.012 75);
+    overflow: hidden;
+    position: relative;
+    background: var(--color-bg);
+    box-shadow: 0 24px 60px -28px oklch(20% 0.02 265 / 0.35);
+    isolation: isolate;
+  }
+  .browser.dark {
+    border-color: oklch(36% 0.012 265);
+    box-shadow: 0 24px 60px -28px oklch(0% 0 0 / 0.45);
+  }
+  .browser-chrome {
+    height: 32px;
+    background: oklch(94% 0.005 75);
+    border-bottom: 1px solid var(--color-border-subtle);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .browser.dark .browser-chrome {
+    background: oklch(16% 0.018 265);
+    border-bottom-color: oklch(26% 0.01 265);
+  }
+  .browser-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--color-border); }
+  .browser-url {
+    margin-left: 8px;
+    background: var(--color-surface);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    flex: 1;
+    max-width: 280px;
+  }
+  .browser-body {
+    position: relative;
+    height: calc(100% - 32px);
+    overflow: hidden;
+  }
+  /* App header bar inside browser */
+  .app-header {
+    height: 44px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    background: var(--color-surface);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .app-header .wordmark {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary);
+  }
+  .app-header .nav-pills { display: flex; gap: 16px; font-size: 12px; color: var(--color-text-tertiary); }
+  .app-header .nav-pills .active { color: var(--color-accent-primary); font-weight: 600; }
+
+  /* Transcript area underneath the desktop sheet */
+  .desk-content {
+    padding: 32px 48px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 720px;
+  }
+  .desk-content .h {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+    color: var(--color-text-primary);
+    margin: 0 0 12px;
+  }
+  .desk-content p { margin: 0 0 12px; }
+  .desk-content .highlight {
+    background: oklch(95% 0.06 85);
+    color: oklch(42% 0.1 55);
+    border-bottom: 2px solid oklch(55% 0.15 55);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  .desk-content .highlight.active {
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent-primary);
+    border-radius: 4px;
+  }
+
+  /* Desktop sheet — right-anchored full-height panel */
+  .desk-sheet {
+    position: absolute;
+    top: 44px;
+    right: 0;
+    bottom: 0;
+    width: 400px;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border-subtle);
+    box-shadow: -18px 0 40px -22px oklch(0% 0 0 / 0.15);
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+  }
+  .dark .desk-sheet,
+  .browser.dark .desk-sheet {
+    background: var(--color-surface);
+    box-shadow: -18px 0 40px -22px oklch(0% 0 0 / 0.45);
+  }
+  .desk-sheet .hush-body {
+    padding: 20px 28px 16px;
+    gap: 26px;
+  }
+  .desk-sheet .hush-stack .said { font-size: 1.375rem; }
+  .desk-sheet .hush-stack .answer { font-size: 2.25rem; }
+  .desk-sheet .hush-footer {
+    padding: 18px 28px 22px;
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header class="page-header">
+    <p class="eyebrow">DockedSheet · Hush + viewport anchoring + soft scrim</p>
+    <h1>The final shape, mobile and desktop.</h1>
+    <p class="lede">
+      Locked in: <strong style="color:var(--color-text-primary)">Hush</strong> body,
+      <strong style="color:var(--color-text-primary)">viewport anchoring</strong> on
+      mobile (sheet covers the bottom nav), and a
+      <strong style="color:var(--color-text-primary)">soft scrim</strong> dimming the
+      page underneath while the sheet is up.
+    </p>
+    <p class="lede">
+      The desktop panel inherits the same design language — Source Serif numerals,
+      "You said" eyebrow, stacked serif treatment, tinted footer shelf. Only the
+      geometry changes (right-side full-height panel instead of bottom-anchored).
+    </p>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!--  ANCHORING COMPARISON                                                 -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+
+  <h2 class="section-h">Before vs. after</h2>
+  <p class="section-lede">
+    Both frames render the actual <code style="font-family:ui-monospace,Menlo,monospace;font-size:.85em;background:var(--color-bg);padding:1px 5px;border-radius:4px">BottomNav</code>
+    component (Practise · Review · Study · Settings, with Review active). The only
+    thing that differs is the sheet's bottom edge — same content, same chrome.
+  </p>
+
+  <section class="grid">
+
+    <!-- ─────── BEFORE — anchored above nav ─────── -->
+    <article class="pane">
+      <header class="pane-h">
+        <h3 class="pane-title">Before</h3>
+        <span class="pane-tag before">anchored above the nav</span>
+      </header>
+      <div class="frame">
+        <div class="app-bg">
+          <div class="h">Coffee with Mateo</div>
+          <span class="ln long"></span>
+          <span class="ln long"></span>
+          <span class="ln mid"></span>
+          <span class="ln long"></span>
+          <span class="ln short"></span>
+          <span class="ln long"></span>
+          <span class="ln mid"></span>
+        </div>
+
+        <!-- BottomNav (visible AND tappable behind the sheet today) -->
+        <nav class="nav" aria-label="Quick navigation">
+          <div class="nav-tab">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.6V240a8,8,0,0,1-16,0V207.6A80.11,80.11,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.11,80.11,0,0,1,136,207.6Z"/></svg>
+            Practise
+          </div>
+          <div class="nav-tab active">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,96a16,16,0,0,0-16-16H184V48a16,16,0,0,0-16-16H40A16,16,0,0,0,24,48V176a8,8,0,0,0,13,6.22L72,154V184a16,16,0,0,0,16,16h93.59L219,230.22a8,8,0,0,0,5,1.78,8,8,0,0,0,8-8Zm-42.55,89.78a8,8,0,0,0-5-1.78H88V152h80a16,16,0,0,0,16-16V96h32V207.25Z"/></svg>
+            Review
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64Z"/></svg>
+            Study
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M176,80a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H184A8,8,0,0,1,176,80ZM40,88H144v16a8,8,0,0,0,16,0V56a8,8,0,0,0-16,0V72H40a8,8,0,0,0,0,16Zm176,80H120a8,8,0,0,0,0,16h96a8,8,0,0,0,0-16ZM88,144a8,8,0,0,0-8,8v16H40a8,8,0,0,0,0,16H80v16a8,8,0,0,0,16,0V152A8,8,0,0,0,88,144Z"/></svg>
+            Settings
+          </div>
+        </nav>
+
+        <!-- Sheet anchored ABOVE the nav -->
+        <aside class="sheet anchor-above-nav">
+          <div class="handle-row"><span class="handle"></span></div>
+          <div class="hush-body">
+            <div class="hush-controls">
+              <span class="pos"><span class="n">3</span> of 12</span>
+              <div class="ic-row">
+                <button class="ic-btn"  aria-label="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <button class="ic-btn"  aria-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                <button class="ic-btn"  aria-label="close" style="margin-left:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+            </div>
+            <div class="hush-stack">
+              <div class="from">You said</div>
+              <p class="said">como soy</p>
+              <p class="answer">como me</p>
+            </div>
+            <p class="hush-explain">
+              In Rioplatense Spanish you use <em>me</em> as the reflexive
+              pronoun after verbs like <em>llamar</em>.
+            </p>
+          </div>
+          <div class="hush-footer">
+            <button class="primary-btn"><span class="lbl-display">Save to my Study list</span></button>
+            <div class="ghost-row"><button class="ghost-link">Not useful — hide it</button></div>
+          </div>
+        </aside>
+
+        <!-- Annotation pins -->
+        <div class="pin alert" style="left:18px;bottom:90px">awkward gap — sheet floats above nav</div>
+      </div>
+    </article>
+
+    <!-- ─────── AFTER — anchored to viewport ─────── -->
+    <article class="pane">
+      <header class="pane-h">
+        <h3 class="pane-title">After</h3>
+        <span class="pane-tag after">anchored to the viewport</span>
+      </header>
+      <div class="frame">
+        <div class="app-bg">
+          <div class="h">Coffee with Mateo</div>
+          <span class="ln long"></span>
+          <span class="ln long"></span>
+          <span class="ln mid"></span>
+          <span class="ln long"></span>
+          <span class="ln short"></span>
+          <span class="ln long"></span>
+          <span class="ln mid"></span>
+        </div>
+
+        <!-- BottomNav stays mounted but the sheet paints over it. -->
+        <nav class="nav" aria-label="Quick navigation" style="opacity:.3;z-index:0">
+          <div class="nav-tab">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176Z"/></svg>
+            Practise
+          </div>
+          <div class="nav-tab active">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,96a16,16,0,0,0-16-16H184V48a16,16,0,0,0-16-16H40A16,16,0,0,0,24,48V176a8,8,0,0,0,13,6.22L72,154V184a16,16,0,0,0,16,16h93.59L219,230.22a8,8,0,0,0,5,1.78,8,8,0,0,0,8-8Z"/></svg>
+            Review
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48Z"/></svg>
+            Study
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 256 256" fill="currentColor"><path d="M176,80a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H184A8,8,0,0,1,176,80Z"/></svg>
+            Settings
+          </div>
+        </nav>
+
+        <!-- SCRIM — soft dim between page and sheet -->
+        <div style="position:absolute;inset:0;background:var(--color-scrim);opacity:.5;z-index:1" aria-hidden="true"></div>
+
+        <!-- Sheet anchored to viewport — covers the nav, sits above scrim -->
+        <aside class="sheet anchor-viewport" style="z-index:2">
+          <div class="handle-row"><span class="handle"></span></div>
+          <div class="hush-body">
+            <div class="hush-controls">
+              <span class="pos"><span class="n">3</span> of 12</span>
+              <div class="ic-row">
+                <button class="ic-btn"  aria-label="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <button class="ic-btn"  aria-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                <button class="ic-btn"  aria-label="close" style="margin-left:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+            </div>
+            <div class="hush-stack">
+              <div class="from">You said</div>
+              <p class="said">como soy</p>
+              <p class="answer">como me</p>
+            </div>
+            <p class="hush-explain">
+              In Rioplatense Spanish you use <em>me</em> as the reflexive
+              pronoun after verbs like <em>llamar</em>. <em>Soy</em> would mean
+              "I am", which doesn't fit the sentence.
+            </p>
+          </div>
+          <div class="hush-footer">
+            <button class="primary-btn"><span class="lbl-display">Save to my Study list</span></button>
+            <div class="ghost-row"><button class="ghost-link">Not useful — hide it</button></div>
+          </div>
+        </aside>
+
+        <div class="pin good" style="left:18px;bottom:14px">primary action in the thumb zone</div>
+        <div class="pin" style="right:14px;top:78px">+4rem of body height recovered</div>
+      </div>
+    </article>
+
+  </section>
+
+  <section class="notes-grid">
+    <article class="note">
+      <h3>What changes <span class="tag">code</span></h3>
+      <p>
+        In <code>DockedSheet.tsx</code> the mobile anchor flips from
+        <code>bottom-[calc(4rem+env(safe-area-inset-bottom))]</code> to
+        <code>bottom-0</code>.
+      </p>
+      <ul>
+        <li><strong>Footer absorbs the safe area</strong> — the sheet now touches the viewport edge, so the iOS home-indicator inset moves from the bottom nav onto the sheet's footer (<code>pb-[max(1.25rem,env(safe-area-inset-bottom))]</code> is already on the body; the new footer needs the same).</li>
+        <li><strong>Mobile max-height can grow</strong> from <code>60vh / 75vh</code> to <code>~78vh</code>, since we just recovered ~64px of available height.</li>
+        <li><strong>BottomNav stays mounted</strong> — no <code>display:none</code>, no remount on open/close. The sheet's <code>z-index: 20</code> already paints over the nav's <code>z-index: 30</code> ❶, so we bump the sheet to <code>z-index: 40</code>.</li>
+      </ul>
+      <p style="font-size:.8125rem;color:var(--color-text-tertiary);margin-top:.75rem">
+        ❶ Actually <code>BottomNav</code> is currently z-30 and the sheet is z-20, which means today the sheet would paint <em>behind</em> the nav if it ever overlapped — the only reason it doesn't is because of the <code>bottom-</code> offset. Anchoring change forces a z-index revisit either way.
+      </p>
+    </article>
+
+    <article class="note">
+      <h3>Why this is right <span class="tag">interaction</span></h3>
+      <p>
+        The nav is a "where am I, where can I go" affordance. While the sheet is open,
+        the user is committed to <em>this</em> correction — nav targets are the wrong
+        affordance to surface, and the gap above the nav today reads as a layout bug,
+        not a deliberate frame.
+      </p>
+      <ul>
+        <li>Matches the iOS / Android system bottom-sheet pattern (sheets cover system chrome while open).</li>
+        <li>Primary action ("Save to my Study list") moves into the natural thumb zone instead of floating mid-screen.</li>
+        <li>Closes the visual seam between the sheet's bottom edge and the nav's top edge — two horizontal rules within ~10px of each other today.</li>
+      </ul>
+    </article>
+
+    <article class="note">
+      <h3>What doesn't change <span class="tag">scope</span></h3>
+      <p>
+        Everything outside the bottom anchor.
+      </p>
+      <ul>
+        <li><strong>Desktop</strong> anchoring is untouched — sheet still slides in from the right, full-height, 400px wide.</li>
+        <li><strong>No scrim.</strong> Brand context: sheets accompany, modals interrupt. Covering the nav doesn't make it modal — the rest of the underlying page is still tappable for outside-close.</li>
+        <li><strong>Outside-tap dismiss</strong> still works — the document-level pointer handler in <code>DockedSheet</code> closes on any tap that isn't inside the sheet or matching <code>preserveOutsideSelector</code>. Tapping where the (covered) nav <em>used</em> to be will still register as inside the sheet and not dismiss.</li>
+      </ul>
+    </article>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!--  DARK MODE PARITY                                                     -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+
+  <section class="dark-strip dark">
+    <p class="eyebrow" style="color:oklch(58% 0.006 75)">Dark mode parity</p>
+    <h2>Same Hush, same anchoring, same hierarchy.</h2>
+    <p class="lede">
+      The serif numerals and italic "you said" stay legible against warm navy because
+      they carry their own weight — they aren't relying on a tertiary tone alone.
+      Footer shelf is <code style="font-family:ui-monospace,Menlo,monospace;font-size:.85em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;color:oklch(94% 0.008 75)">surface-elevated</code>,
+      one step up from the body — same lift the light version uses.
+    </p>
+
+    <div class="grid">
+
+      <article class="pane">
+        <header class="pane-h" style="border-color:oklch(26% 0.01 265)">
+          <h3 class="pane-title" style="color:oklch(94% 0.008 75)">After · dark</h3>
+          <span class="pane-tag after" style="color:oklch(75% 0.14 150)">anchored to viewport</span>
+        </header>
+        <div class="frame dark">
+          <div class="app-bg">
+            <div class="h" style="color:oklch(94% 0.008 75);opacity:.55">Coffee with Mateo</div>
+            <span class="ln long"></span>
+            <span class="ln long"></span>
+            <span class="ln mid"></span>
+            <span class="ln long"></span>
+            <span class="ln short"></span>
+            <span class="ln long"></span>
+            <span class="ln mid"></span>
+          </div>
+          <nav class="nav" aria-label="Quick navigation" style="opacity:.3;z-index:0">
+            <div class="nav-tab">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176Z"/></svg>
+              Practise
+            </div>
+            <div class="nav-tab active">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,96a16,16,0,0,0-16-16H184V48a16,16,0,0,0-16-16H40A16,16,0,0,0,24,48V176a8,8,0,0,0,13,6.22L72,154V184a16,16,0,0,0,16,16h93.59L219,230.22a8,8,0,0,0,5,1.78,8,8,0,0,0,8-8Z"/></svg>
+              Review
+            </div>
+            <div class="nav-tab">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48Z"/></svg>
+              Study
+            </div>
+            <div class="nav-tab">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M176,80a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H184A8,8,0,0,1,176,80Z"/></svg>
+              Settings
+            </div>
+          </nav>
+          <div style="position:absolute;inset:0;background:var(--color-scrim);opacity:.6;z-index:1" aria-hidden="true"></div>
+          <aside class="sheet anchor-viewport" style="z-index:2">
+            <div class="handle-row"><span class="handle"></span></div>
+            <div class="hush-body">
+              <div class="hush-controls">
+                <span class="pos"><span class="n">3</span> of 12</span>
+                <div class="ic-row">
+                  <button class="ic-btn"  aria-label="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button class="ic-btn"  aria-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button class="ic-btn"  aria-label="close" style="margin-left:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="hush-stack">
+                <div class="from">You said</div>
+                <p class="said">como soy</p>
+                <p class="answer">como me</p>
+              </div>
+              <p class="hush-explain">
+                In Rioplatense Spanish you use <em>me</em> as the reflexive
+                pronoun after verbs like <em>llamar</em>.
+              </p>
+            </div>
+            <div class="hush-footer">
+              <button class="primary-btn"><span class="lbl-display">Save to my Study list</span></button>
+              <div class="ghost-row"><button class="ghost-link">Not useful — hide it</button></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="pane">
+        <header class="pane-h" style="border-color:oklch(26% 0.01 265)">
+          <h3 class="pane-title" style="color:oklch(94% 0.008 75)">WriteSheet · dark</h3>
+          <span class="pane-tag after" style="color:oklch(75% 0.14 150)">on /write</span>
+        </header>
+        <div class="frame dark">
+          <div class="app-bg">
+            <div class="h" style="color:oklch(94% 0.008 75);opacity:.55">Study</div>
+            <span class="ln long"></span>
+            <span class="ln mid"></span>
+            <span class="ln long"></span>
+            <span class="ln long"></span>
+            <span class="ln short"></span>
+            <span class="ln mid"></span>
+            <span class="ln long"></span>
+          </div>
+          <nav class="nav" aria-label="Quick navigation" style="opacity:.3;z-index:0">
+            <div class="nav-tab">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176Z"/></svg>
+              Practise
+            </div>
+            <div class="nav-tab">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,96a16,16,0,0,0-16-16H184V48a16,16,0,0,0-16-16H40A16,16,0,0,0,24,48V176a8,8,0,0,0,13,6.22L72,154V184a16,16,0,0,0,16,16h93.59L219,230.22a8,8,0,0,0,5,1.78,8,8,0,0,0,8-8Z"/></svg>
+              Review
+            </div>
+            <div class="nav-tab active">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48Z"/></svg>
+              Study
+            </div>
+            <div class="nav-tab">
+              <svg viewBox="0 0 256 256" fill="currentColor"><path d="M176,80a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H184A8,8,0,0,1,176,80Z"/></svg>
+              Settings
+            </div>
+          </nav>
+          <div style="position:absolute;inset:0;background:var(--color-scrim);opacity:.6;z-index:1" aria-hidden="true"></div>
+          <aside class="sheet anchor-viewport" style="z-index:2">
+            <div class="handle-row"><span class="handle"></span></div>
+            <div class="hush-body">
+              <div class="hush-controls">
+                <span class="pos"><span class="n">7</span> of 24</span>
+                <div class="ic-row">
+                  <button class="ic-btn"  aria-label="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button class="ic-btn"  aria-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button class="ic-btn"  aria-label="close" style="margin-left:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="hush-stack">
+                <div class="from">From Coffee with Mateo</div>
+                <p class="said">yo fui</p>
+                <p class="answer">fui</p>
+              </div>
+              <p class="hush-explain">
+                The subject pronoun <em>yo</em> isn't needed when the verb
+                already conjugates for first person.
+              </p>
+            </div>
+            <div class="hush-footer">
+              <button class="primary-btn primary-btn--write"><span class="lbl-display">Mark as written</span></button>
+              <div class="ghost-row"><button class="ghost-link">More actions</button></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!--  DESKTOP                                                              -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+
+  <h2 class="section-h">Desktop · same design patterns, different geometry</h2>
+  <p class="section-lede">
+    On desktop the sheet is still a side panel — slides in from the right, full
+    height between the app header and the bottom edge, 400px wide. The chrome and
+    type voice are identical to mobile: floating pagination + controls at the top
+    of the body, "You said" eyebrow, italic strike, large serif answer,
+    explanation, tinted footer shelf. The user can still reference the transcript
+    on the left while reading the correction on the right.
+  </p>
+
+  <section style="margin-top:2rem">
+    <article class="pane">
+      <header class="pane-h">
+        <h3 class="pane-title">Desktop · /sessions/[id]</h3>
+        <span class="pane-tag after">right-anchored Hush panel</span>
+      </header>
+      <div class="browser">
+        <div class="browser-chrome">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <div class="browser-url">conversation-coach.app/sessions/abc123</div>
+        </div>
+        <div class="browser-body">
+          <header class="app-header">
+            <span class="wordmark">Conversation Coach</span>
+            <div class="nav-pills">
+              <span>Practise</span>
+              <span class="active">Review</span>
+              <span>Study</span>
+              <span>Settings</span>
+            </div>
+          </header>
+          <div class="desk-content">
+            <p class="h">Coffee with Mateo</p>
+            <p>
+              …entonces le dije que mañana no podía porque tengo una reunión
+              con el dentista, y me dijo que <span class="highlight active">como soy</span>
+              tan ocupado que nunca tenemos tiempo de vernos…
+            </p>
+            <p>
+              Le respondí que igual podíamos juntarnos el sábado en el café
+              de la esquina, y ella dijo que perfecto, que <span class="highlight">le había gustado</span>
+              mucho la última vez…
+            </p>
+            <p>
+              Después hablamos un rato más sobre el viaje a Bariloche que
+              está planeando con su hermana. Dice que van a esquiar y
+              después <span class="highlight">comeran asado</span> con unos amigos…
+            </p>
+          </div>
+
+          <!-- Desktop sheet — no scrim on desktop (see note below) -->
+          <aside class="desk-sheet">
+            <div class="hush-body">
+              <div class="hush-controls">
+                <span class="pos"><span class="n">3</span> of 12</span>
+                <div class="ic-row">
+                  <button class="ic-btn" aria-label="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button class="ic-btn" aria-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button class="ic-btn" aria-label="close" style="margin-left:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="hush-stack">
+                <div class="from">You said</div>
+                <p class="said">como soy</p>
+                <p class="answer">como me</p>
+              </div>
+              <p class="hush-explain">
+                In Rioplatense Spanish you use <em>me</em> as the reflexive
+                pronoun after verbs like <em>llamar</em>. <em>Soy</em> would mean
+                "I am", which doesn't fit the sentence.
+              </p>
+            </div>
+            <div class="hush-footer" style="margin-top:auto">
+              <button class="primary-btn"><span class="lbl-display">Save to my Study list</span></button>
+              <div class="ghost-row"><button class="ghost-link">Not useful — hide it</button></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="notes-grid">
+    <article class="note">
+      <h3>Same design language <span class="tag">cohesion</span></h3>
+      <p>
+        Every type and chrome decision from mobile Hush carries over.
+      </p>
+      <ul>
+        <li><strong>Floating controls.</strong> "3 of 12" in Source Serif, prev/next/close icon buttons. No header bar, no border-bottom — the controls sit inside the body padding.</li>
+        <li><strong>Sentence-first body.</strong> "You said" eyebrow, italic struck-through "como soy", large serif "como me" as the answer. Slightly larger sizes than mobile (2.25rem vs 2rem on the answer) because we have the room.</li>
+        <li><strong>Tinted footer shelf.</strong> <code>surface-elevated</code> background, no top border on mobile; on desktop we keep a single top border because the panel is taller and the footer needs to anchor.</li>
+      </ul>
+    </article>
+
+    <article class="note">
+      <h3>What's different <span class="tag">geometry</span></h3>
+      <p>
+        The mechanics adapt to the desktop frame; the voice doesn't.
+      </p>
+      <ul>
+        <li><strong>No drag handle.</strong> Already true today — no swipe-down gesture to hint at on desktop. The mobile handle stays mobile-only (<code>md:hidden</code>).</li>
+        <li><strong>Slides in from the right</strong> using the existing <code>sheet-in-right</code> keyframe. Bottom safe-area is irrelevant — the panel sits inside the browser window, not against an OS edge.</li>
+        <li><strong>Footer sticky to the bottom of the panel</strong> via <code>margin-top:auto</code> inside the column flex layout. If the body is short, the footer still hugs the bottom — same anchor on every item.</li>
+      </ul>
+    </article>
+
+    <article class="note">
+      <h3>One sub-decision <span class="tag">desktop scrim</span></h3>
+      <p>
+        Mobile gets the soft scrim because the sheet replaces most of the
+        viewport. <strong>Desktop is different</strong>: the right panel is
+        meant to sit <em>alongside</em> the transcript so you can still read
+        the source line while reviewing the correction.
+      </p>
+      <ul>
+        <li><strong>Recommendation: no scrim on desktop.</strong> A dim on the left side would actively work against why we picked a side panel over a centered modal in the first place. The transcript is the source of truth — it should stay legible.</li>
+        <li><strong>Rule we'd land on:</strong> scrim when the sheet REPLACES the page (mobile), no scrim when it sits ALONGSIDE (desktop).</li>
+      </ul>
+      <p style="margin-top:.75rem">Confirm and I'll wire it that way. Say the word and we'll add desktop scrim too if you want full parity.</p>
+    </article>
+  </section>
+
+  <aside class="callout" style="background:oklch(95% 0.04 150);border-color:oklch(80% 0.06 150);color:oklch(28% 0.08 150)">
+    <h2 style="color:oklch(22% 0.1 150)">What I'll ship</h2>
+    <p style="color:oklch(28% 0.08 150)">
+      <strong style="color:oklch(22% 0.1 150)">Decisions locked:</strong> Hush body
+      shape, viewport anchoring on mobile (sheet covers the bottom nav), soft scrim
+      on mobile, same design language on desktop right-side panel.
+    </p>
+    <p style="color:oklch(28% 0.08 150)">
+      <strong style="color:oklch(22% 0.1 150)">Changes:</strong>
+      <code style="background:oklch(98% 0.01 150);color:oklch(28% 0.08 150)">DockedSheet.tsx</code>
+      gets new mobile anchor (<code style="background:oklch(98% 0.01 150);color:oklch(28% 0.08 150)">bottom-0</code>),
+      a scrim element behind it on mobile only (using
+      <code style="background:oklch(98% 0.01 150);color:oklch(28% 0.08 150)">--color-scrim</code>
+      from your tokens), z-index bump above
+      <code style="background:oklch(98% 0.01 150);color:oklch(28% 0.08 150)">BottomNav</code>,
+      and the footer safe-area inset.
+      <code style="background:oklch(98% 0.01 150);color:oklch(28% 0.08 150)">AnnotationSheet</code>
+      and <code style="background:oklch(98% 0.01 150);color:oklch(28% 0.08 150)">WriteSheet</code>
+      pick up the new Hush content shape — header content moves into the body as
+      floating controls, the stacked serif treatment replaces the inline strike +
+      arrow, footer becomes the tinted shelf.
+    </p>
+    <p style="color:oklch(28% 0.08 150)">
+      <strong style="color:oklch(22% 0.1 150)">One question still open:</strong>
+      desktop scrim? My read above is no (the side panel exists so you can keep
+      reading the transcript). Say the word either way and I'll start.
+    </p>
+  </aside>
+
+</main>
+</body>
+</html>

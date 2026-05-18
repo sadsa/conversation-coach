@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sheet improvements · Critique follow-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,ital,wght@8..60,0,400;8..60,0,500;8..60,0,600;8..60,1,400;8..60,1,500&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* ─── Tokens (mirrored from app/globals.css) ────────────────────────── */
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-correction-text: oklch(48% 0.14 150);
+    --color-correction-bg: oklch(95% 0.04 150);
+    --color-widget-write-border: oklch(48% 0.12 160);
+    --color-widget-write-bg: oklch(94% 0.03 160);
+    --color-widget-write-text: oklch(35% 0.1 160);
+    --color-pill-amber-text: oklch(48% 0.12 55);
+    --color-scrim: oklch(22% 0.025 265 / 0.55);
+
+    /* P2 proposal — naturalness needs its own token rather than borrowing amber */
+    --color-naturalness-underline: oklch(55% 0.06 250);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+
+    --device-w: 380px;
+    --device-h: 720px;
+    --nav-h: 64px;
+
+    --gap-section: clamp(3rem, 5vw, 4.5rem);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: oklch(94% 0.005 75);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Page chrome ────────────────────────────────────────────────────── */
+  .page {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: clamp(2rem, 4vw, 4rem) clamp(1.25rem, 3vw, 3rem) 6rem;
+  }
+  .page-header { max-width: 80ch; margin-bottom: var(--gap-section); }
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0 0 1rem;
+    color: var(--color-text-primary);
+  }
+  .lede {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 70ch;
+  }
+  .lede + .lede { margin-top: 0.75rem; }
+
+  /* ─── Scorecard recap ────────────────────────────────────────────────── */
+  .scorecard {
+    margin-top: 2rem;
+    padding: 1.5rem 1.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    max-width: 720px;
+  }
+  .scorecard h2 {
+    font-family: var(--font-display);
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+  }
+  .scorecard .scoreline {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 0 0 0.75rem;
+  }
+  .scorecard .scoreline .big {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    letter-spacing: -0.015em;
+  }
+  .scorecard .scoreline .label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+  .scorecard ul {
+    margin: 0;
+    padding-left: 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+  .scorecard ul li + li { margin-top: 0.25rem; }
+
+  /* ─── Section + pane chrome ──────────────────────────────────────────── */
+  .section {
+    margin-top: var(--gap-section);
+  }
+  .section-h {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+  .section-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin: 0 0 0.5rem;
+  }
+  .sev-pill {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    background: oklch(95% 0.04 285);
+    color: oklch(40% 0.15 285);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    font-size: 0.65rem;
+  }
+  .sev-pill.p2 {
+    background: oklch(95% 0.03 75);
+    color: oklch(40% 0.1 75);
+  }
+  .section-lede {
+    margin: 0 0 1.75rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 78ch;
+  }
+
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 2rem;
+  }
+  .pair.three {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+
+  .pane {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 18px;
+    padding: 1.5rem 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .pane-h {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .pane-h h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.0625rem;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .pane-h .tag {
+    font-size: 0.625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    font-weight: 600;
+  }
+  .pane-h .tag.before { color: oklch(48% 0.12 30); }
+  .pane-h .tag.after { color: oklch(40% 0.12 160); }
+  .pane-h .tag.optionA { color: oklch(40% 0.14 285); }
+  .pane-h .tag.optionB { color: oklch(40% 0.14 200); }
+
+  .pane-note {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+  .pane-note strong { color: var(--color-text-primary); }
+  .pane-note code {
+    background: var(--color-bg);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ─── Device frame (mobile) ──────────────────────────────────────────── */
+  .device-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .device {
+    width: var(--device-w);
+    height: var(--device-h);
+    background: var(--color-bg);
+    border-radius: 38px;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 oklch(80% 0.01 75) inset,
+      0 0 0 1px oklch(80% 0.01 75),
+      0 18px 40px -22px rgba(0,0,0,0.18);
+    position: relative;
+  }
+  .device .status-bar {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.02em;
+  }
+  .device .app-header {
+    height: 52px;
+    padding: 0 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .device .page-body {
+    padding: 1.25rem 1.25rem 5rem;
+    overflow: hidden;
+    position: relative;
+    height: calc(var(--device-h) - 36px - 52px);
+  }
+  .device .page-body .transcript-line {
+    margin: 0 0 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+  }
+  .device .page-body .transcript-line mark {
+    background: oklch(95% 0.04 150);
+    color: oklch(35% 0.14 150);
+    border-bottom: 1.5px solid oklch(55% 0.14 150);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  .device .bottom-nav {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: var(--nav-h);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 30;
+  }
+  .device .bottom-nav .tab {
+    font-size: 0.6875rem;
+    color: var(--color-text-tertiary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .device .bottom-nav .tab.active { color: oklch(55% 0.2 285); }
+  .device .bottom-nav .tab svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ─── Scrim layer ─────────────────────────────────────────────────────── */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--color-scrim);
+    z-index: 30;
+  }
+  .scrim.soft {
+    background: oklch(22% 0.025 265 / 0.35);
+  }
+
+  /* ─── Sheet (mobile, bottom-anchored) ────────────────────────────────── */
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    background: var(--color-surface);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    box-shadow: 0 -18px 40px -22px rgba(0,0,0,0.22);
+    display: flex;
+    flex-direction: column;
+    max-height: 78%;
+  }
+  .sheet .handle {
+    display: flex;
+    justify-content: center;
+    padding: 0.625rem 0 0.25rem;
+  }
+  .sheet .handle span {
+    width: 32px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-border);
+    opacity: 0.6;
+  }
+  .sheet .sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem 0.5rem;
+  }
+  .sheet .sheet-header .pos {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.02em;
+    margin-right: auto;
+  }
+  .sheet .sheet-header .icons {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .sheet .sheet-header button {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+  .sheet .sheet-header button:hover { background: var(--color-bg); }
+  .sheet .sheet-header button svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .sheet .sheet-body {
+    padding: 0.5rem 1.25rem 1rem;
+    overflow: hidden;
+  }
+  .sheet .sheet-footer {
+    padding: 0.875rem 1.25rem 1.125rem;
+    border-top: 1px solid var(--color-border-subtle);
+    background: var(--color-surface-elevated);
+  }
+
+  /* ─── Hush stack ─────────────────────────────────────────────────────── */
+  .hush-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    line-height: 1.2;
+  }
+  .hush-strike {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.0625rem;
+    line-height: 1.2;
+    color: var(--color-text-tertiary);
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    text-decoration-color: oklch(55% 0.01 265 / 0.4);
+    letter-spacing: -0.005em;
+    margin: 0.375rem 0 0;
+  }
+  .hush-answer {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.875rem;
+    line-height: 1.1;
+    color: var(--color-correction-text);
+    letter-spacing: -0.02em;
+    margin: 0.625rem 0 0;
+  }
+  .hush-naturalness {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1.25;
+    color: var(--color-text-primary);
+    margin: 0.375rem 0 0;
+  }
+  .hush-naturalness .frag {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+  .hush-naturalness .frag.amber {
+    text-decoration-color: oklch(55% 0.12 75 / 0.7);
+  }
+  .hush-naturalness .frag.neutral {
+    text-decoration-color: var(--color-naturalness-underline);
+  }
+
+  .explanation {
+    margin: 1.25rem 0 0;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+  }
+
+  /* ─── Action region styles ───────────────────────────────────────────── */
+  .actions-current {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .actions-fixed {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .primary-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 10px;
+    border: 1px solid oklch(55% 0.2 285);
+    background: oklch(55% 0.2 285);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+  }
+  .not-useful-row {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .not-useful-link {
+    background: transparent;
+    border: 0;
+    padding: 0.25rem 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-text-tertiary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .not-useful-button {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .not-useful-button:hover {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+  .not-useful-iconbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 0;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .not-useful-iconbtn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .not-useful-iconbtn:hover {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  /* ─── "From <session>" eyebrow variants ──────────────────────────────── */
+  .from-line-cramped {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    line-height: 1.2;
+    margin: 0;
+  }
+  .from-line-cramped a {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--color-border-subtle);
+  }
+  .from-stack { margin: 0; }
+  .from-stack .from-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    line-height: 1.2;
+  }
+  .from-stack a {
+    display: inline-block;
+    margin-top: 0.125rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: oklch(55% 0.01 265 / 0.4);
+  }
+  .from-stack a:hover {
+    color: var(--color-text-primary);
+    text-decoration-color: var(--color-text-secondary);
+  }
+
+  /* ─── Focus diagram ──────────────────────────────────────────────────── */
+  .focus-diagram {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .focus-strip {
+    position: relative;
+    padding: 0.875rem 1rem;
+    border-radius: 10px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border-subtle);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+  }
+  .focus-strip strong { color: var(--color-text-primary); }
+  .focus-strip.escape {
+    border-color: oklch(60% 0.12 30 / 0.5);
+    background: oklch(98% 0.018 30);
+    color: oklch(40% 0.12 30);
+  }
+  .focus-strip.contained {
+    border-color: oklch(50% 0.14 160 / 0.5);
+    background: oklch(96% 0.03 160);
+    color: oklch(30% 0.12 160);
+  }
+
+  /* ─── Decision callout ───────────────────────────────────────────────── */
+  .callout {
+    margin-top: 2rem;
+    padding: 1.25rem 1.5rem;
+    background: oklch(96% 0.04 285);
+    border: 1px solid oklch(78% 0.06 285);
+    border-radius: 12px;
+    color: oklch(28% 0.12 285);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+  .callout strong { font-weight: 700; }
+  .callout code {
+    background: white;
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  .footnotes {
+    margin-top: var(--gap-section);
+    padding: 1.5rem 1.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .footnotes h2 {
+    font-family: var(--font-display);
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .footnotes ul {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+  .footnotes ul li + li { margin-top: 0.35rem; }
+
+  /* ─── Inline annotation (the explainer-text under a pane) ───────────── */
+  .annotation {
+    background: var(--color-bg);
+    border-left: 2px solid var(--color-border);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+  }
+  .annotation strong { color: var(--color-text-primary); }
+  .annotation.win {
+    border-left-color: oklch(50% 0.14 160);
+    background: oklch(96% 0.025 160);
+    color: oklch(28% 0.1 160);
+  }
+  .annotation.warn {
+    border-left-color: oklch(55% 0.14 30);
+    background: oklch(98% 0.015 30);
+    color: oklch(38% 0.12 30);
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="page-header">
+    <p class="eyebrow">Critique follow-up</p>
+    <h1>Sheet system — proposed fixes</h1>
+    <p class="lede">
+      The Hush direction landed cleanly (<strong>33/40</strong> on Nielsen's
+      heuristics, no AI-slop signatures, zero detector hits). The remaining
+      gaps are three P1 items and three P2 items. Every fix below is a small
+      surgical pass — none of them ask the design to start over.
+    </p>
+
+    <div class="scorecard">
+      <h2>Where the score went</h2>
+      <p class="scoreline">
+        <span class="big">33</span>
+        <span class="label">/ 40 · Very Good · single tonal coherence
+        issue + a handful of polish moments</span>
+      </p>
+      <ul>
+        <li>Strongest at <em>User control &amp; freedom</em> and
+          <em>Aesthetic and minimalist design</em> (4 each).</li>
+        <li>Weakest at <em>Consistency &amp; standards</em> — one rogue
+          <code>border-t</code> in <code>AnnotationCard</code> contradicts the
+          otherwise-borderless Hush chrome.</li>
+        <li>Mobile scrim contradicts <code>.impeccable.md</code> line 94
+          (&ldquo;no backdrop. Modals interrupt; sheets accompany&rdquo;) —
+          either the doc or the code has to give.</li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- P1 · Mobile scrim ↔ brand doc                                        -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <section class="section">
+    <p class="section-eyebrow">P1 · Tonal coherence <span class="sev-pill">P1</span></p>
+    <h2 class="section-h">Resolve the mobile scrim / brand-doc contradiction</h2>
+    <p class="section-lede">
+      <code>.impeccable.md</code> line 94 says verbatim: &ldquo;<em>no backdrop.
+      Modals interrupt; sheets accompany.</em>&rdquo; The shipped
+      <code>DockedSheet</code> renders a <code>bg-scrim</code> overlay on mobile.
+      The next person to read the brand doc will get one rule; the next person
+      to read the code will get another. Pick one. Both below are defensible —
+      they just need an explicit decision.
+    </p>
+
+    <div class="pair">
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Option A — keep the scrim, update the doc</h3>
+          <span class="tag optionA">Recommended</span>
+        </div>
+
+        <div class="device-wrap">
+          <div class="device">
+            <div class="status-bar">9:41</div>
+            <div class="app-header">
+              <span>Review</span>
+              <span style="font-size:0.875rem; color: var(--color-text-tertiary);">⋯</span>
+            </div>
+            <div class="page-body">
+              <p class="transcript-line">Ayer fui al mercado y compré…</p>
+              <p class="transcript-line"><mark>como soy</mark> bastante goloso, también traje dulces.</p>
+              <p class="transcript-line">Después me encontré con María en la esquina y…</p>
+            </div>
+            <div class="bottom-nav">
+              <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Practise</span>
+              <span class="tab active"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Review</span>
+              <span class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Study</span>
+              <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.6-2.7l1.6-1.3-1.7-3-2 .9a7 7 0 0 0-2.3-1.3L13.5 3h-3l-.5 1.6A7 7 0 0 0 7.7 6L5.7 5l-1.7 3 1.6 1.3A7 7 0 0 0 5 12c0 .9.2 1.8.6 2.7L4 16l1.7 3 2-.9a7 7 0 0 0 2.3 1.3l.5 1.6h3l.5-1.6a7 7 0 0 0 2.3-1.3l2 .9 1.7-3-1.6-1.3c.4-.9.6-1.8.6-2.7Z"/></svg>Settings</span>
+            </div>
+
+            <div class="scrim"></div>
+
+            <div class="sheet">
+              <div class="handle"><span></span></div>
+              <div class="sheet-header">
+                <span class="pos">2 of 5</span>
+                <div class="icons">
+                  <button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="sheet-body">
+                <div class="hush-eyebrow">You said</div>
+                <p class="hush-strike">como soy</p>
+                <p class="hush-answer">como me</p>
+                <p class="explanation">In Rioplatense Spanish, the construction
+                  &ldquo;como me&rdquo; uses the reflexive pronoun to mean
+                  &ldquo;since I'm.&rdquo;</p>
+                <div class="actions-fixed">
+                  <button class="primary-btn">Save to my Study list</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="pane-note">
+          <strong>Why it works</strong>: scrim absorbs accidental nav-tab taps,
+          focuses attention on the active correction, matches the iOS / Android
+          system bottom-sheet pattern. The brand-doc principle was written
+          before the viewport-anchoring change — when the sheet sat above the
+          nav, no scrim was needed because the nav was always visible. With
+          the sheet now covering the nav, the scrim earns its keep.
+        </p>
+        <div class="annotation">
+          <strong>Doc edit</strong>: <code>.impeccable.md</code> line 94 becomes
+          <em>&ldquo;…no backdrop on desktop, where the panel accompanies the
+          page; a soft scrim on mobile, where the sheet occupies the viewport
+          and the bottom nav is hidden behind it.&rdquo;</em>
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Option B — drop the scrim, honour the principle literally</h3>
+          <span class="tag optionB">Alternative</span>
+        </div>
+
+        <div class="device-wrap">
+          <div class="device">
+            <div class="status-bar">9:41</div>
+            <div class="app-header">
+              <span>Review</span>
+              <span style="font-size:0.875rem; color: var(--color-text-tertiary);">⋯</span>
+            </div>
+            <div class="page-body">
+              <p class="transcript-line">Ayer fui al mercado y compré…</p>
+              <p class="transcript-line"><mark>como soy</mark> bastante goloso, también traje dulces.</p>
+              <p class="transcript-line">Después me encontré con María en la esquina y…</p>
+            </div>
+            <div class="bottom-nav">
+              <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Practise</span>
+              <span class="tab active"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Review</span>
+              <span class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Study</span>
+              <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>Settings</span>
+            </div>
+
+            <!-- No scrim — sheet rides over the nav with shadow alone -->
+
+            <div class="sheet">
+              <div class="handle"><span></span></div>
+              <div class="sheet-header">
+                <span class="pos">2 of 5</span>
+                <div class="icons">
+                  <button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="sheet-body">
+                <div class="hush-eyebrow">You said</div>
+                <p class="hush-strike">como soy</p>
+                <p class="hush-answer">como me</p>
+                <p class="explanation">In Rioplatense Spanish, the construction
+                  &ldquo;como me&rdquo; uses the reflexive pronoun to mean
+                  &ldquo;since I'm.&rdquo;</p>
+                <div class="actions-fixed">
+                  <button class="primary-btn">Save to my Study list</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="pane-note">
+          <strong>Why it works</strong>: the brand principle stays literal —
+          sheets accompany, never interrupt. The sheet's shadow + the
+          <code>z-40</code> stack do the visual lifting that the scrim was
+          doing.
+        </p>
+        <div class="annotation warn">
+          <strong>Trade-off</strong>: without a scrim, accidental taps on
+          half-visible page content beside the sheet bottom margin can still
+          land. Less mobile-conventional — most users expect a dim layer when
+          a sheet is up.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>My recommendation</strong>: Option A. The brand doc was written
+      when sheets sat above the nav (so the nav was always visible underneath).
+      The viewport-anchoring change in this pass shifted the metaphor — the
+      sheet now occupies the page on mobile, accompanies on desktop. The
+      principle hasn't changed; the boundary it draws has. The doc edit is
+      one paragraph; the alternative is rewriting a working interaction model.
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- P1 · Leftover border-t in AnnotationCard                              -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <section class="section">
+    <p class="section-eyebrow">P1 · Consistency <span class="sev-pill">P1</span></p>
+    <h2 class="section-h">Drop the leftover divider in AnnotationCard</h2>
+    <p class="section-lede">
+      Hush removed every other horizontal divider from the sheet (header lost
+      its <code>border-b</code>, body relies on padding, footer is the one
+      explicitly-bordered surface). One <code>border-t border-border</code>
+      remains inside the card body above the action region. It reads as a
+      half-committed call.
+    </p>
+
+    <div class="pair">
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Before</h3>
+          <span class="tag before">Current</span>
+        </div>
+
+        <div class="device-wrap">
+          <div class="device" style="--device-h:560px;">
+            <div class="sheet" style="position:static; max-height:none; box-shadow:none; border-radius:0;">
+              <div class="handle"><span></span></div>
+              <div class="sheet-header">
+                <span class="pos">2 of 5</span>
+                <div class="icons">
+                  <button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="sheet-body">
+                <div class="hush-eyebrow">You said</div>
+                <p class="hush-strike">como soy</p>
+                <p class="hush-answer">como me</p>
+                <p class="explanation">Use the reflexive pronoun &ldquo;me&rdquo;
+                  here — in Rioplatense Spanish it's the natural way to say
+                  &ldquo;since I'm.&rdquo;</p>
+                <div class="actions-current">
+                  <button class="primary-btn">Save to my Study list</button>
+                  <div class="not-useful-row">
+                    <button class="not-useful-link">Not useful — hide it</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="annotation warn">
+          The <strong>thin horizontal line</strong> above &ldquo;Save to my
+          Study list&rdquo; is the only divider left in the sheet body. The
+          Hush direction removed every other one; this one survived.
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>After</h3>
+          <span class="tag after">Proposed</span>
+        </div>
+
+        <div class="device-wrap">
+          <div class="device" style="--device-h:560px;">
+            <div class="sheet" style="position:static; max-height:none; box-shadow:none; border-radius:0;">
+              <div class="handle"><span></span></div>
+              <div class="sheet-header">
+                <span class="pos">2 of 5</span>
+                <div class="icons">
+                  <button><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  <button><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+              </div>
+              <div class="sheet-body">
+                <div class="hush-eyebrow">You said</div>
+                <p class="hush-strike">como soy</p>
+                <p class="hush-answer">como me</p>
+                <p class="explanation">Use the reflexive pronoun &ldquo;me&rdquo;
+                  here — in Rioplatense Spanish it's the natural way to say
+                  &ldquo;since I'm.&rdquo;</p>
+                <div class="actions-fixed" style="margin-top:1.75rem;">
+                  <button class="primary-btn">Save to my Study list</button>
+                  <div class="not-useful-row">
+                    <button class="not-useful-link">Not useful — hide it</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="annotation win">
+          The <strong>border removed</strong>, replaced by a single tier of
+          whitespace (<code>margin-top: 1.75rem</code>). The primary button's
+          full-width visual mass is its own separator — no painted line needed.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- P2 · "From" eyebrow in WriteSheet                                     -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <section class="section">
+    <p class="section-eyebrow">P2 · Typography &amp; affordance <span class="sev-pill p2">P2</span></p>
+    <h2 class="section-h">Split the &ldquo;From <em>&lt;session&gt;</em>&rdquo; eyebrow into two lines</h2>
+    <p class="section-lede">
+      Currently a single <code>&lt;p&gt;</code> in <code>WriteSheet</code> mixes
+      tracked-uppercase tertiary text with an inline link that overrides
+      case, weight, tracking, size and colour. The link visually fights the
+      eyebrow it's nested inside, and the <code>decoration-border-subtle</code>
+      underline barely registers as interactive.
+    </p>
+
+    <div class="pair">
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Before</h3>
+          <span class="tag before">Current</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <p class="from-line-cramped">
+            From&nbsp;<a href="#">Cafe with María</a>
+          </p>
+          <div style="margin-top: 1rem;">
+            <div class="hush-eyebrow">You said</div>
+            <p class="hush-strike">yo fui</p>
+            <p class="hush-answer">fui</p>
+          </div>
+        </div>
+        <div class="annotation warn">
+          The link is 12px lowercase non-tracked, sitting flush against an 11px
+          tracked-uppercase &ldquo;From&rdquo;. Two visual languages on one
+          line. The underline (<code>decoration-border-subtle</code>) is
+          barely visible against warm cream — first-time users won't read it
+          as a link.
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>After</h3>
+          <span class="tag after">Proposed</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <div class="from-stack">
+            <p class="from-eyebrow">From</p>
+            <a href="#">Cafe with María</a>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <div class="hush-eyebrow">You said</div>
+            <p class="hush-strike">yo fui</p>
+            <p class="hush-answer">fui</p>
+          </div>
+        </div>
+        <div class="annotation win">
+          Each style now lives on the element it actually applies to.
+          &ldquo;From&rdquo; reads as eyebrow; the title reads as a clear,
+          tappable link (<code>decoration-text-tertiary/40</code>, hovers to
+          <code>text-secondary</code>). Two ranks of size, two voices, one
+          clean stack.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- P2 · Amber on naturalness                                             -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <section class="section">
+    <p class="section-eyebrow">P2 · Colour semantics <span class="sev-pill p2">P2</span></p>
+    <h2 class="section-h">Stop using amber for naturalness annotations</h2>
+    <p class="section-lede">
+      <code>.impeccable.md</code> line 91: <em>&ldquo;Amber (hue 70) reserved
+      for warnings only — pipeline warnings, late-session timer fill. Never
+      decorative.&rdquo;</em> The naturalness branch of <code>HushStack</code>
+      currently underlines the wrong fragment with <code>pill-amber/60</code>.
+      A naturalness annotation isn't a warning — it's &ldquo;this is awkward
+      Spanish.&rdquo; Users trained on the rest of the app will read amber
+      as caution.
+    </p>
+
+    <div class="pair">
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Before — amber underline</h3>
+          <span class="tag before">Current</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <div class="hush-eyebrow">You said</div>
+          <p class="hush-naturalness">
+            Sería <span class="frag amber">muy bueno</span> si vienes mañana.
+          </p>
+          <p class="explanation" style="margin-top:1rem;">
+            More natural in Rioplatense: &ldquo;estaría buenísimo&rdquo; or
+            &ldquo;estaría re bueno&rdquo;.
+          </p>
+        </div>
+        <div class="annotation warn">
+          Amber reads as <strong>warning</strong> elsewhere in the app
+          (pipeline errors, session timer running out). Re-using it
+          decoratively here teaches the eye the wrong lesson.
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>After — dedicated token + accurate eyebrow</h3>
+          <span class="tag after">Proposed</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <div class="hush-eyebrow">Sounds off</div>
+          <p class="hush-naturalness">
+            Sería <span class="frag neutral">muy bueno</span> si vienes mañana.
+          </p>
+          <p class="explanation" style="margin-top:1rem;">
+            More natural in Rioplatense: &ldquo;estaría buenísimo&rdquo; or
+            &ldquo;estaría re bueno&rdquo;.
+          </p>
+        </div>
+        <div class="annotation win">
+          New token <code>--color-naturalness-underline</code> sits between
+          tertiary and the violet accent — quiet, not warning-coded. The
+          eyebrow also changes from &ldquo;You said&rdquo; to <strong>&ldquo;Sounds
+          off&rdquo;</strong> since there's no rewrite to introduce; the
+          eyebrow now matches what's actually being shown.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- P2 · "Not useful" affordance                                          -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <section class="section">
+    <p class="section-eyebrow">P2 · Affordance clarity <span class="sev-pill p2">P2</span></p>
+    <h2 class="section-h">Make &ldquo;Not useful&rdquo; readable as a button</h2>
+    <p class="section-lede">
+      The current secondary affordance is an underlined text-link, right-aligned
+      under the full-width primary. Visually it reads like a footnote — the
+      Jordan persona (first-timer) won't recognise it as interactive. Two
+      possible upgrades, both quieter than the primary but more obviously a
+      button.
+    </p>
+
+    <div class="pair three">
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Current</h3>
+          <span class="tag before">Reference</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <button class="primary-btn" style="margin-bottom:0.75rem;">Save to my Study list</button>
+          <div class="not-useful-row">
+            <button class="not-useful-link">Not useful — hide it</button>
+          </div>
+        </div>
+        <div class="annotation warn">
+          Underlined text-link, right-aligned. Reads like a footnote
+          reference, not a control. Tap target is tiny.
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Option A — quiet ghost button</h3>
+          <span class="tag optionA">Recommended</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <button class="primary-btn" style="margin-bottom:0.75rem;">Save to my Study list</button>
+          <div class="not-useful-row" style="justify-content:flex-end;">
+            <button class="not-useful-button">Not useful</button>
+          </div>
+        </div>
+        <div class="annotation win">
+          1px subtle border + pill shape + 500-weight text. Reads as
+          interactive without competing with the primary's filled weight.
+          Copy shortens to two words — the explanation lives in the
+          aria-label.
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Option B — icon + label, left-aligned</h3>
+          <span class="tag optionB">Alternative</span>
+        </div>
+        <div style="padding: 1.5rem 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 12px;">
+          <button class="primary-btn" style="margin-bottom:0.75rem;">Save to my Study list</button>
+          <div style="display:flex; justify-content:flex-start;">
+            <button class="not-useful-iconbtn">
+              <svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/></svg>
+              Not useful
+            </button>
+          </div>
+        </div>
+        <div class="annotation">
+          Icon (eye-off) carries the affordance; left-aligned reads as a
+          peer secondary rather than a footnote. Slightly more visual weight
+          than Option A — pick this if first-time discoverability is
+          the higher priority than absolute restraint.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- P1 · Focus trap diagram                                               -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <section class="section">
+    <p class="section-eyebrow">P1 · Accessibility <span class="sev-pill">P1</span></p>
+    <h2 class="section-h">Add a focus trap + aria-modal on mobile</h2>
+    <p class="section-lede">
+      The mobile scrim absorbs pointer events but doesn't intercept Tab. A
+      keyboard user opens the sheet, the cursor lands on the primary button
+      (good), they press Tab to explore — and walk out of the sheet into
+      transcript marks they can't see. Screen readers face the same gap: the
+      <code>&lt;aside role=&quot;complementary&quot;&gt;</code> doesn't claim
+      modal status, so the rest of the page stays in the AT tree.
+    </p>
+
+    <div class="pair">
+      <div class="pane">
+        <div class="pane-h">
+          <h3>Before — focus escapes</h3>
+          <span class="tag before">Current</span>
+        </div>
+        <div class="focus-diagram">
+          <div class="focus-strip">
+            <strong>Sheet</strong> · primary button (focused)
+          </div>
+          <div class="focus-strip">
+            <strong>Sheet</strong> · &ldquo;Not useful&rdquo; secondary
+          </div>
+          <div class="focus-strip">
+            <strong>Sheet</strong> · close icon
+          </div>
+          <div class="focus-strip escape">
+            ⚠ Tab escapes here — into transcript marks behind the scrim
+          </div>
+          <div class="focus-strip escape">
+            ⚠ ...and into the bottom nav, hidden under the scrim
+          </div>
+        </div>
+        <p class="pane-note">
+          No <code>aria-modal</code>. No focus trap. Tab cycles into invisible
+          page content — disorienting for keyboard and screen-reader users.
+        </p>
+      </div>
+
+      <div class="pane">
+        <div class="pane-h">
+          <h3>After — focus contained</h3>
+          <span class="tag after">Proposed</span>
+        </div>
+        <div class="focus-diagram">
+          <div class="focus-strip contained">
+            <strong>Sheet</strong> · primary button (focused on open)
+          </div>
+          <div class="focus-strip contained">
+            <strong>Sheet</strong> · &ldquo;Not useful&rdquo; secondary
+          </div>
+          <div class="focus-strip contained">
+            <strong>Sheet</strong> · close icon
+          </div>
+          <div class="focus-strip contained">
+            ↻ Tab loops back to the primary button — focus stays inside
+          </div>
+          <div class="focus-strip" style="opacity:0.5;">
+            <strong>Page content</strong> · removed from the AT tree via
+            <code>aria-modal=&quot;true&quot;</code>
+          </div>
+        </div>
+        <p class="pane-note">
+          Add <code>role=&quot;dialog&quot;</code> +
+          <code>aria-modal=&quot;true&quot;</code> to the
+          <code>&lt;aside&gt;</code> on mobile. Implement a Tab/Shift-Tab
+          focus trap (small <code>useEffect</code>, ~25 lines, or pull in
+          <code>focus-trap-react</code>). The page beneath drops out of the
+          AT tree — screen readers correctly understand the sheet is the
+          current focus context.
+        </p>
+        <div class="annotation win">
+          Desktop side-panel can keep the current behaviour (sheet
+          <em>accompanies</em> the page, not blocks it) — apply trap +
+          <code>aria-modal</code> only when the mobile scrim is present.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- Footnotes                                                             -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div class="footnotes">
+    <h2>Minor observations (one-line polish, do once we're inside the file)</h2>
+    <ul>
+      <li><strong>Shadow tokens</strong>: the sheet's
+        <code>shadow-[0_-18px_40px_-22px_rgba(0,0,0,0.22)]</code> is a fixed
+        rgba — doesn't follow the warm-cream / warm-navy split. Move to a
+        token (<code>--shadow-sheet-up</code> / <code>--shadow-sheet-side</code>)
+        tuned twice.</li>
+      <li><strong>Naturalness <code>sr-only</code> repeat</strong>: HushStack
+        line 63 emits <code>&lt;span class=&quot;sr-only&quot;&gt;&nbsp;—&nbsp;original&lt;/span&gt;</code> in the
+        naturalness branch. The original is already in the visible
+        <code>&lt;p&gt;</code> above. Screen readers hear it twice. Drop the
+        span.</li>
+      <li><strong>Drag handle redundancy</strong>: 32px width + 60% opacity is
+        two reductions stacked. Pick one — at 32×4px it can carry full
+        opacity without screaming.</li>
+      <li><strong>Body spacing rhythm</strong>: <code>space-y-6</code> (24px)
+        sits between the brand's stated 32px (between sections) and 12px
+        (within). Decide which rhythm wins — the answer is probably 32px
+        between the hush stack / explanation / action region, and 12px
+        within the hush stack itself.</li>
+      <li><strong>Retry button context</strong>: error block's retry button
+        has no <code>aria-describedby</code> pointing at the error message.
+        Screen readers hear &ldquo;Retry. Button.&rdquo; — retry what? One
+        attribute, 5 seconds.</li>
+    </ul>
+  </div>
+
+  <div class="callout" style="margin-top: 2rem;">
+    <strong>Recommended shipping order</strong>: bundle the P1 trio
+    (scrim/doc, border-t removal, focus trap) into one pass — they're the
+    coherence + safety story. P2s can ship as a follow-up polish PR or be
+    folded into the same pass if you want to close everything in one go. The
+    minor observations slot in alongside whichever PR opens the relevant
+    files.
+  </div>
+</main>
+</body>
+</html>

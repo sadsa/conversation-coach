@@ -37,6 +37,7 @@ import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { buttonStyles } from '@/components/Button'
 import { Icon } from '@/components/Icon'
+import { HushStack } from '@/components/HushStack'
 interface Props {
   annotation: Annotation
   sessionId: string
@@ -237,25 +238,21 @@ export function AnnotationCard({
 
   return (
     <div
-      className={`space-y-5 transition-opacity duration-200 ${isUnhelpful ? 'opacity-60' : 'opacity-100'}`}
+      className={`space-y-6 transition-opacity duration-200 ${isUnhelpful ? 'opacity-60' : 'opacity-100'}`}
       data-unhelpful={isUnhelpful || undefined}
     >
-      {/* Wrong → right pair. The "wrong" fragment used to sit inside a red
-          error-surface chip, which read as scolding for what is by definition
-          a learning moment — directly at odds with the "patient, encouraging"
-          brand. We now use a pencil-mark treatment instead: tertiary tone +
-          line-through, like a teacher's softly struck draft, with the
-          correction carrying the visual weight (font-display + correction
-          token) so the eye lands on the *answer*, not on the mistake. */}
-      <p className="text-base md:text-lg leading-relaxed">
-        <span className="text-text-tertiary line-through decoration-text-tertiary/50 decoration-2 underline-offset-2">
-          {annotation.original}
-        </span>
-        <span className="mx-2 text-text-tertiary" aria-hidden="true">→</span>
-        <span className="font-display font-medium text-xl md:text-2xl text-correction">
-          {annotation.correction}
-        </span>
-      </p>
+      {/* Hush stack — sentence-first body. Eyebrow flips to "Sounds off" for
+          naturalness annotations (no rewrite); the body in that case shows the
+          flagged fragment with the quiet steel-blue `naturalness-underline`
+          token rather than a strike-through, so "You said" would promise a
+          rewrite the user won't find. Grammar annotations keep "You said". */}
+      <HushStack
+        eyebrow={annotation.correction === null
+          ? t('sheet.eyebrowSoundsOff')
+          : t('sheet.eyebrowYouSaid')}
+        original={annotation.original}
+        correction={annotation.correction}
+      />
 
       <p className="text-text-secondary leading-relaxed text-base">
         {annotation.explanation}
@@ -263,13 +260,19 @@ export function AnnotationCard({
 
 
       {/* Action region — primary verb above, quiet secondary below. The
-          primary carries `data-initial-focus` so DockedSheet's open lifecycle
-          puts the cursor on the action the user is here for, not on Close.
-          The post-save outcome hint that used to sit here was distilled
-          into the button's own saved-state copy ("Added to my Study list").
-          The hidden-state caption stays — without it the only feedback is
-          the card-wide opacity fade, which reads as "loading" by itself. */}
-      <div className="pt-4 border-t border-border space-y-3">
+          `border-t` divider that used to live here was retired — the Hush
+          direction relies on whitespace + the primary button's visual mass
+          for separation, and a single divider inside an otherwise-borderless
+          body read as half-committed. The hidden-state caption stays — without
+          it the only feedback is the card-wide opacity fade, which reads as
+          "loading" by itself.
+
+          The primary carries `data-initial-focus` so DockedSheet's open
+          lifecycle puts the cursor on the action the user is here for. The
+          "Not useful" secondary is a quiet ghost button (1px border, pill
+          shape, 500-weight) instead of an underlined text-link — readable
+          as interactive without competing with the filled primary above. */}
+      <div className="pt-7 space-y-3">
         {isUnhelpful && (
           <p className="text-sm text-text-tertiary leading-snug">
             {t('annotation.unhelpfulHint')}
@@ -308,7 +311,14 @@ export function AnnotationCard({
             disabled={busy !== null}
             aria-label={secondaryAria}
             aria-pressed={isUnhelpful}
-            className="text-sm text-text-tertiary hover:text-text-secondary underline underline-offset-2 hover:no-underline disabled:opacity-50 px-1 py-0.5 rounded"
+            className="
+              px-3 py-1.5 text-sm font-medium
+              text-text-secondary hover:text-text-primary
+              bg-surface hover:bg-bg
+              border border-border-subtle hover:border-border
+              rounded-lg transition-colors
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
           >
             {secondaryLabel}
           </button>
@@ -318,7 +328,10 @@ export function AnnotationCard({
       <div role="status" aria-live="polite" className="min-h-[1rem]">
         {errorMessage && (
           <div className="rounded-lg border border-status-error/30 bg-error-container px-3 py-2 space-y-1.5">
-            <p className="text-status-error text-sm leading-snug">{errorMessage}</p>
+            {/* `aria-describedby` ties the retry button to the error message
+                above it — screen readers announce "Retry. <error message>"
+                rather than a context-free "Retry. Button." */}
+            <p id={`ann-err-${annotation.id}`} className="text-status-error text-sm leading-snug">{errorMessage}</p>
             {isOffline && (
               <p className="text-text-tertiary text-xs leading-snug">{t('annotation.offlineNote')}</p>
             )}
@@ -327,6 +340,7 @@ export function AnnotationCard({
                 type="button"
                 onClick={handleRetry}
                 disabled={busy !== null}
+                aria-describedby={`ann-err-${annotation.id}`}
                 className="text-status-error text-sm font-medium hover:underline disabled:opacity-50 px-1 py-0.5 rounded"
               >
                 {t('annotation.retry')}

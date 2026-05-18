@@ -174,7 +174,7 @@ describe('WriteSheet — overflow menu', () => {
       await userEvent.keyboard('{Escape}')
     })
     expect(screen.queryByTestId('sheet-delete')).not.toBeInTheDocument()
-    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })
 
@@ -195,39 +195,84 @@ describe('WriteSheet — Enter shortcut on the primary action', () => {
   })
 })
 
-describe('WriteSheet — correction in context (combined block)', () => {
-  it('renders the sheet-scoped correction-in-context block when segment data is present', () => {
+describe('WriteSheet — Hush stack body', () => {
+  // The body renders the shared `<HushStack>` treatment — a tracked-uppercase
+  // eyebrow, the italic struck original, and the large serif answer below.
+  // The older CorrectionInContext block (with surrounding sentence context)
+  // is gone: the sheet trades context for visual calm, and the source link
+  // above is the user's path back to the full sentence on /sessions/[id].
+
+  it('renders the "You said" eyebrow above the original for grammar items', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
-    const block = screen.getByTestId(`correction-in-context-sheet-${baseItem.id}`)
-    // Sentence (struck wrong + inline rewrite) all in one paragraph: this
-    // is the layout change that lets us drop the standalone context block.
-    expect(block).toBeInTheDocument()
-    expect(within(block).getByText('Yo fui')).toBeInTheDocument()
-    expect(within(block).getByText('Fui')).toBeInTheDocument()
+    expect(screen.getByText(/you said/i)).toBeInTheDocument()
   })
 
-  it('renders the correction in context without a border frame', () => {
-    render(<WriteSheet item={baseItem} {...noopProps} />)
-    // The left-border wrapper was removed (Option C layout pass) — the
-    // correction block now relies on spacing + weight contrast alone.
-    const inner = screen.getByTestId(`correction-in-context-sheet-${baseItem.id}`)
-    expect(inner).toBeInTheDocument()
-    expect(inner.parentElement!.className).not.toMatch(/border-l/)
+  it('flips the eyebrow to "Sounds off" for naturalness items (no rewrite)', () => {
+    // Naturalness annotations have `correction === null`. The Hush stack
+    // shows the flagged fragment with a quiet underline and no answer line,
+    // so "You said" would promise a rewrite that doesn't exist. "Sounds off"
+    // matches what the body actually shows.
+    render(
+      <WriteSheet
+        item={{ ...baseItem, type: 'naturalness', correction: null }}
+        {...noopProps}
+      />,
+    )
+    expect(screen.getByText(/sounds off/i)).toBeInTheDocument()
+    expect(screen.queryByText(/you said/i)).not.toBeInTheDocument()
   })
 
-  it('falls back to the bare strike pair when segment data is null', () => {
+  it('renders the original and correction lines on segment-data-present items', () => {
+    render(<WriteSheet item={baseItem} {...noopProps} />)
+    const sheet = screen.getByRole('dialog')
+    expect(within(sheet).getByText('Yo fui')).toBeInTheDocument()
+    expect(within(sheet).getByText('Fui')).toBeInTheDocument()
+  })
+
+  it('renders the original and correction lines on segment-data-null items', () => {
+    // Hush stack doesn't depend on segment data — both branches render the
+    // same shape. Kept as a regression guard: legacy / pre-enrichment rows
+    // should still surface the wrong → right pair without the surrounding
+    // sentence.
     render(
       <WriteSheet
         item={{ ...baseItem, segment_text: null, start_char: null, end_char: null }}
         {...noopProps}
       />,
     )
-    expect(screen.queryByTestId(`correction-in-context-sheet-${baseItem.id}`)).not.toBeInTheDocument()
-    // Both halves of the correction still surface so the user sees the fix
-    // even without the surrounding sentence to anchor on.
-    const sheet = screen.getByRole('complementary')
+    const sheet = screen.getByRole('dialog')
     expect(within(sheet).getByText('Yo fui')).toBeInTheDocument()
     expect(within(sheet).getByText('Fui')).toBeInTheDocument()
+  })
+
+  it('does not render a border-framed correction block (the old layout)', () => {
+    const { container } = render(<WriteSheet item={baseItem} {...noopProps} />)
+    // The body intentionally relies on spacing + weight contrast alone now;
+    // a re-introduced border-l around the correction would be a regression.
+    const borderLeftElements = container.querySelectorAll('aside [class*="border-l"]')
+    // `md:border-l` on the aside itself is fine — that's the desktop sheet
+    // chrome. Anything *inside* the aside with a border-left is suspect.
+    borderLeftElements.forEach(el => {
+      expect(el).toBe(container.querySelector('aside'))
+    })
+  })
+})
+
+describe('WriteSheet — source link', () => {
+  // The "From" prefix idea was retired — the bare session title link sits
+  // ABOVE the Hush stack with a stronger underline so it reads as
+  // interactive without needing a separate label.
+
+  it('does not render any "From" eyebrow text', () => {
+    render(<WriteSheet item={baseItem} {...noopProps} />)
+    expect(screen.queryByText(/^from\s*$/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^from\s+/i)).not.toBeInTheDocument()
+  })
+
+  it('renders the session title as a bare link (no chrome prefix)', () => {
+    render(<WriteSheet item={baseItem} {...noopProps} />)
+    const link = screen.getByTestId('sheet-source-link')
+    expect(link.textContent?.trim()).toBe(baseItem.session_title)
   })
 })
 

@@ -26,8 +26,7 @@ import { Icon } from '@/components/Icon'
 import { DockedSheet } from '@/components/DockedSheet'
 import { IconButton } from '@/components/IconButton'
 import { NavHint } from '@/components/NavHint'
-import { StrikeOriginal } from '@/components/StrikeOriginal'
-import { CorrectionInContext } from '@/components/CorrectionInContext'
+import { HushStack } from '@/components/HushStack'
 import { buttonStyles } from '@/components/Button'
 import type { PracticeItem } from '@/lib/types'
 
@@ -300,35 +299,42 @@ export function WriteSheet({
     >
       <NavHint />
       <div className="space-y-6">
-        {/* Session title + correction grouped tightly: WHERE → WHAT */}
-        <div className="space-y-2">
-          {item.session_title && item.session_title.trim() !== '' && (
-            <Link
-              href={`/sessions/${item.session_id}`}
-              data-testid="sheet-source-link"
-              className="block text-xs text-text-tertiary hover:text-text-secondary transition-colors truncate"
-            >
-              {item.session_title}
-            </Link>
-          )}
-          {item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
-            <CorrectionInContext
-              segmentText={item.segment_text}
-              startChar={item.start_char}
-              endChar={item.end_char}
-              original={item.original}
-              correction={item.correction}
-              size="sheet"
-              testId={`correction-in-context-sheet-${item.id}`}
-            />
-          ) : (
-            <StrikeOriginal
-              original={item.original}
-              correction={item.correction}
-              size="sheet"
-            />
-          )}
-        </div>
+        {/* Source link — bare session title, no "From" prefix. The earlier
+            "FROM <session>" eyebrow treatment mixed two visual languages on
+            one line (tracked-uppercase tertiary + cased linked text) and the
+            decoration-border-subtle underline barely registered as
+            interactive. We dropped the prefix entirely; the link's stronger
+            underline + cursor change carry the "tap to revisit source"
+            affordance on their own. When the item has no session_title
+            (legacy / pre-enrichment row), nothing renders here. */}
+        {item.session_title && item.session_title.trim() !== '' ? (
+          <Link
+            href={`/sessions/${item.session_id}`}
+            data-testid="sheet-source-link"
+            className="
+              inline-block text-sm font-medium leading-snug
+              text-text-secondary hover:text-text-primary transition-colors
+              underline underline-offset-2
+              decoration-text-tertiary/40 hover:decoration-text-secondary
+            "
+          >
+            {item.session_title}
+          </Link>
+        ) : null}
+
+        {/* Hush stack — replaces the older CorrectionInContext block. Trades
+            surrounding-sentence context for a calmer, sentence-first layout;
+            the session source link above is the user's path back to the
+            full context on /sessions/[id]. Eyebrow flips to "Sounds off"
+            for naturalness items (no rewrite) so it matches what the body
+            actually shows. */}
+        <HushStack
+          eyebrow={item.correction === null
+            ? t('sheet.eyebrowSoundsOff')
+            : t('sheet.eyebrowYouSaid')}
+          original={item.original}
+          correction={item.correction}
+        />
 
         <p className="text-text-secondary leading-relaxed text-base">
           {item.explanation}
@@ -339,7 +345,10 @@ export function WriteSheet({
       <div role="status" aria-live="polite" className="mt-4 min-h-[1rem]">
         {errorMessage && (
           <div className="rounded-lg border border-status-error/30 bg-error-container px-3 py-2 space-y-1.5">
-            <p className="text-status-error text-sm leading-snug">{errorMessage}</p>
+            {/* `aria-describedby` links the retry button to the error message,
+                so screen readers announce the cause when the focused control
+                is the retry. Same pattern as AnnotationCard. */}
+            <p id={`ws-err-${item.id}`} className="text-status-error text-sm leading-snug">{errorMessage}</p>
             {typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine && (
               <p className="text-text-tertiary text-xs leading-snug">{t('annotation.offlineNote')}</p>
             )}
@@ -348,6 +357,7 @@ export function WriteSheet({
                 type="button"
                 onClick={handleRetry}
                 disabled={busyAction !== null}
+                aria-describedby={`ws-err-${item.id}`}
                 className="text-status-error text-sm font-medium hover:underline disabled:opacity-50 px-1 py-0.5 rounded"
               >
                 {t('annotation.retry')}

@@ -54,6 +54,7 @@ const config: Config = {
         "accent-primary-hover": "var(--color-accent-primary-hover)",
         "pill-violet": "var(--color-pill-violet-text)",
         "pill-amber": "var(--color-pill-amber-text)",
+        "naturalness-underline": "var(--color-naturalness-underline)",
         "pill-inactive-border": "var(--color-pill-not-written-border)",
         "pill-inactive": "var(--color-pill-not-written-text)",
         "pill-rank1": "var(--color-pill-rank1-bg)",

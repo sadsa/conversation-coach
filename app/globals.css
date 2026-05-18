@@ -27,6 +27,14 @@
     --color-accent-primary-hover: oklch(50% 0.22 285);
     --color-pill-violet-text: oklch(45% 0.16 300);
     --color-pill-amber-text: oklch(48% 0.12 55);
+    /* Naturalness annotations — the "this reads off" underline in
+       `HushStack`'s no-rewrite branch. Sits between text-tertiary and
+       accent: enough chroma to read as deliberate, low enough lightness
+       to not compete with the body text it underlines. Deliberately a
+       cool steel-blue rather than amber — amber is reserved for warnings
+       elsewhere in the app, and a naturalness annotation isn't a warning,
+       it's a "softly notice this" cue. */
+    --color-naturalness-underline: oklch(55% 0.06 250);
     --color-pill-not-written-border: oklch(78% 0.01 75);
     --color-pill-not-written-text: oklch(55% 0.01 265);
     --color-pill-rank1-bg: oklch(94% 0.04 25);
@@ -111,6 +119,10 @@
     --color-accent-primary-hover: oklch(68% 0.16 285);
     --color-pill-violet-text: oklch(80% 0.1 300);
     --color-pill-amber-text: oklch(85% 0.12 85);
+    /* Naturalness underline (dark) — chroma drops as lightness rises so the
+       quiet steel-blue stays readable against the warm navy surface without
+       reading garish. */
+    --color-naturalness-underline: oklch(72% 0.04 250);
     --color-pill-not-written-border: oklch(36% 0.01 265);
     --color-pill-not-written-text: oklch(65% 0.008 75);
     --color-pill-rank1-bg: oklch(28% 0.1 25);

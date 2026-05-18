@@ -392,6 +392,21 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'sheet.position': '{n} of {total}',
     'sheet.navHintFirst': 'Tip — use ← → or swipe between corrections.',
     'sheet.navHintDismiss': 'Got it',
+    // Hush-stack eyebrows. The sheet body opens with a tiny tracked-uppercase
+    // label that names what the user is looking at before the original /
+    // correction lines drop below it. `youSaid` is used on AnnotationSheet
+    // (in-context review on the transcript page); `from` is the prefix on
+    // WriteSheet's source link so the session title reads as the answer to
+    // "from where?". Keeping the prefix outside the link itself satisfies
+    // the WriteSheet.test contract that the link's textContent is the
+    // session title alone.
+    'sheet.eyebrowYouSaid': 'You said',
+    // Naturalness annotations (no rewrite — `correction === null`) get a
+    // different eyebrow than grammar fixes. "Sounds off" matches what the
+    // body actually shows: a flagged fragment with a quiet underline, no
+    // struck-through original, no answer line below. "You said" promises a
+    // rewrite the user won't find.
+    'sheet.eyebrowSoundsOff': 'Sounds off',
 
     // Identify page
     'identify.loading': 'Loading…',
@@ -412,9 +427,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.savedPrimary': 'Added to my Study list',
     'annotation.savePrimaryAria': 'Save this correction to your Study list',
     'annotation.savedPrimaryAria': 'Remove this correction from your Study list',
-    // Quiet secondary "this correction wasn't useful" affordance
-    'annotation.notUseful': 'Not useful — hide it',
-    'annotation.notUsefulRestore': 'Restore this correction',
+    // Quiet secondary "this correction wasn't useful" affordance. Visible
+    // labels are short (two words / one word) because the affordance is a
+    // quiet ghost button sitting under a full-width primary — the
+    // explanation rides in the `aria-label` for screen readers and tooltip
+    // hover. Longer visible copy ("Not useful — hide it") drew the eye away
+    // from the primary save action.
+    'annotation.notUseful': 'Not useful',
+    'annotation.notUsefulRestore': 'Restore',
     'annotation.notUsefulAria': 'Mark as not useful and hide from the transcript',
     'annotation.notUsefulRestoreAria': 'Restore this correction',
     // Hidden-state caption — kept so the visual fade isn't the only signal.
@@ -913,6 +933,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'sheet.position': '{n} de {total}',
     'sheet.navHintFirst': 'Tip — usá ← → o deslizá para moverte entre correcciones.',
     'sheet.navHintDismiss': 'Entendido',
+    'sheet.eyebrowYouSaid': 'Dijiste',
+    'sheet.eyebrowSoundsOff': 'Suena raro',
 
     // Identify page
     'identify.loading': 'Cargando…',
@@ -933,9 +955,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.savedPrimary': 'Agregada a mi lista de Estudiar',
     'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Estudiar',
     'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Estudiar',
-    // Quiet secondary "this correction wasn't useful" affordance
-    'annotation.notUseful': 'Poco útil — ocultarla',
-    'annotation.notUsefulRestore': 'Restaurar esta corrección',
+    // Quiet secondary "this correction wasn't useful" affordance. Visible
+    // labels are short — la explicación va en el `aria-label`.
+    'annotation.notUseful': 'Poco útil',
+    'annotation.notUsefulRestore': 'Restaurar',
     'annotation.notUsefulAria': 'Marcar como poco útil y ocultarla de la transcripción',
     'annotation.notUsefulRestoreAria': 'Restaurar esta corrección',
     // Subtítulo del estado oculto — sin él, lo único que indica el cambio

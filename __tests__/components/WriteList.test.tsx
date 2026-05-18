@@ -217,7 +217,7 @@ describe('WriteList — fast-path mark-written from the row', () => {
       await userEvent.click(screen.getByTestId(`row-mark-written-${grammarItem.id}`))
     })
 
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(mockFetch).toHaveBeenCalledWith(
       `/api/practice-items/${grammarItem.id}`,
       expect.objectContaining({
@@ -257,13 +257,13 @@ describe('WriteList — no swipe / bulk machinery', () => {
 describe('WriteList — review sheet', () => {
   it('does not show the sheet by default', () => {
     render(<WriteList items={[grammarItem]} />)
-    expect(screen.queryByRole('complementary', { name: /review saved correction/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /review saved correction/i })).not.toBeInTheDocument()
   })
 
   it('opens the sheet when the row body is clicked', async () => {
     render(<WriteList items={[grammarItem]} />)
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    expect(screen.getByRole('complementary', { name: /review saved correction/i })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /review saved correction/i })).toBeInTheDocument()
   })
 
   it('shows the explanation inside the sheet', async () => {
@@ -272,18 +272,26 @@ describe('WriteList — review sheet', () => {
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
   })
 
-  it('renders the sheet-scoped correction-in-context block', async () => {
+  it('renders the Hush stack (You said + original + correction) inside the sheet', async () => {
+    // The CorrectionInContext block was retired from the sheet body when
+    // WriteSheet adopted the Hush direction — the sheet now opens with a
+    // tracked-uppercase "You said" eyebrow, the italic struck original, and
+    // a large serif answer below. Surrounding-sentence context lives back
+    // on /sessions/[id] via the source link above the stack.
     render(<WriteList items={[grammarItem]} />)
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    expect(screen.getByTestId(`correction-in-context-sheet-${grammarItem.id}`)).toBeInTheDocument()
+    const sheet = screen.getByRole('dialog', { name: /review saved correction/i })
+    expect(within(sheet).getByText(/you said/i)).toBeInTheDocument()
+    expect(within(sheet).getByText(grammarItem.original)).toBeInTheDocument()
+    expect(within(sheet).getByText(grammarItem.correction!)).toBeInTheDocument()
   })
 
   it('closes when Escape is pressed', async () => {
     render(<WriteList items={[grammarItem]} />)
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
-    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('navigates to the next item with the Next button', async () => {
@@ -458,7 +466,7 @@ describe('WriteList — auto-advance from the sheet', () => {
     })
 
     // Sheet stays open on the next item rather than closing — Gmail-style.
-    expect(screen.getByRole('complementary')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Use indicative for asserted facts.')).toBeInTheDocument()
   })
 
@@ -471,6 +479,6 @@ describe('WriteList — auto-advance from the sheet', () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
 
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
