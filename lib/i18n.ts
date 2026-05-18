@@ -270,7 +270,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Delete',
     'session.deleteTitle': 'Delete conversation?',
-    'session.deleteWarning': 'will be permanently deleted, along with all its corrections and any you\'ve saved to your Write list.',
+    'session.deleteWarning': 'will be permanently deleted, along with all its corrections and any you\'ve saved to your Study list.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
     'session.noSessions': 'No conversations yet.',
@@ -404,12 +404,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Annotation card — primary save action. The saved-state label spells
     // out the destination so the button itself is the receipt; we used to
-    // pair it with a separate "Added to your Write list" hint paragraph
-    // underneath, which was redundant.
-    'annotation.savePrimary': 'Save to my Write list',
-    'annotation.savedPrimary': 'Added to my Write list',
-    'annotation.savePrimaryAria': 'Save this correction to your Write list',
-    'annotation.savedPrimaryAria': 'Remove this correction from your Write list',
+    // pair it with a separate "Added to your Study list" hint paragraph
+    // underneath, which was redundant. The surface is named "Study" in
+    // the brand vocabulary (matches /write's H1 and the bottom nav);
+    // the URL keeps `/write` for stability per CLAUDE.md.
+    'annotation.savePrimary': 'Save to my Study list',
+    'annotation.savedPrimary': 'Added to my Study list',
+    'annotation.savePrimaryAria': 'Save this correction to your Study list',
+    'annotation.savedPrimaryAria': 'Remove this correction from your Study list',
     // Quiet secondary "this correction wasn't useful" affordance
     'annotation.notUseful': 'Not useful — hide it',
     'annotation.notUsefulRestore': 'Restore this correction',
@@ -443,13 +445,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} corrections to write down',
     'home.toWriteDownOne': '1 correction to write down',
 
-    // Write page (the queue of saved corrections waiting to be written down)
+    // Study page (the queue of saved corrections waiting to be written down)
     //
-    // Surface name reads as "Study" — the methodology pillar the home
-    // redesign established and the bottom-nav matches. The route stays
-    // `/write` for URL stability per CLAUDE.md; only the visible label
-    // shifts. Internal verbs ("write down", "Mark as written", "Written
-    // archive") still use "write" — that's the literal action on paper,
+    // Surface name is "Study" — the methodology pillar the home redesign
+    // established and the bottom-nav matches. The route stays `/write`
+    // for URL stability per CLAUDE.md; only the visible label shifts.
+    // Internal verbs ("write down", "Mark as written", "Written archive")
+    // still use "write" because that's the literal action on paper,
     // separate from the surface name.
     'write.title': 'Study',
     // Subtitle stays visible above the queue (not only when empty) — a
@@ -458,21 +460,27 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.loading': 'Loading…',
     'write.error': 'Error: {msg}',
 
-    // Write list — view toggle (asymmetric: Write is the primary surface,
+    // Study list — view toggle (asymmetric: Study is the primary surface,
     // Written is a quiet archive link rather than a peer tab).
     'writeList.viewLabel': 'Saved corrections',
-    'writeList.tabWrite': 'Write',
+    'writeList.tabWrite': 'Study',
     'writeList.tabWritten': 'Written',
     'writeList.archiveHeading': 'Written',
     'writeList.archiveLink': 'written',
-    'writeList.backToWrite': 'Back to Write',
+    // Footer pill that replaces the old top-of-list "{n} written →" link.
+    // Lives below the queue (retrospective destination, retrospective
+    // placement) and only renders when writtenCount > 0. Visible label;
+    // separate aria label so the count gets read as a number not a noun.
+    'writeList.archiveFooter': '{n} written · view archive →',
+    'writeList.archiveFooterAria': 'View {n} written corrections in the archive',
+    'writeList.backToWrite': 'Back to Study',
     'writeList.markDoneShort': 'Done',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Open a conversation to save more →',
     'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as written.',
     'writeList.emptyWrittenCaption': 'Items you\'ve written down land here, faded so they don\'t crowd the queue.',
-    'writeList.emptyWrittenCta': '← Back to Write ({count})',
-    'writeList.emptyWrittenNoQueue': 'Nothing in your Write queue either — open a conversation to save your first correction.',
+    'writeList.emptyWrittenCta': '← Back to Study ({count})',
+    'writeList.emptyWrittenNoQueue': 'Nothing in your Study queue either — open a conversation to save your first correction.',
     'writeList.markRowAria': 'Mark "{original}" as written',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
@@ -483,7 +491,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeList.markWrittenError': 'Couldn\'t update — try again.',
     'writeList.importanceToggleAria': 'Toggle importance explanation',
 
-    // Write review sheet (docked)
+    // Study review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
     // Primary action — verb-first, with destination spelled out so the user
     // knows where the item is going. Busy variant keeps focus while the
@@ -491,9 +499,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.markWritten': 'Mark as written',
     'writeSheet.markWrittenBusy': 'Marking…',
     'writeSheet.markWrittenAria': 'Mark this correction as written down on paper',
-    'writeSheet.moveBack': 'Move back to Write list',
+    'writeSheet.moveBack': 'Move back to Study list',
     'writeSheet.moveBackBusy': 'Moving back…',
-    'writeSheet.moveBackAria': 'Move this correction back to the Write list',
+    'writeSheet.moveBackAria': 'Move this correction back to the Study list',
     // Overflow menu — Delete is undoable for 5 seconds via the toast, so the
     // copy is reassuring rather than threatening.
     'writeSheet.moreActionsAria': 'More actions',
@@ -785,7 +793,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Eliminar',
     'session.deleteTitle': '¿Eliminar conversación?',
-    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus correcciones y las que guardaste en tu lista de Anotar.',
+    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus correcciones y las que guardaste en tu lista de Estudiar.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
     'session.noSessions': 'Todavía no hay conversaciones.',
@@ -918,11 +926,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Annotation card — primary save action. La etiqueta del estado
     // "guardada" ya menciona el destino, así que el botón funciona como
     // confirmación por sí solo y eliminamos el cartel separado que decía
-    // "Agregada a tu lista".
-    'annotation.savePrimary': 'Guardar en mi lista',
-    'annotation.savedPrimary': 'Agregada a mi lista',
-    'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Anotar',
-    'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Anotar',
+    // "Agregada a tu lista". El nombre de la superficie es "Estudiar"
+    // (coincide con el H1 de /write y la nav inferior); la URL `/write`
+    // se mantiene por estabilidad según CLAUDE.md.
+    'annotation.savePrimary': 'Guardar en mi lista de Estudiar',
+    'annotation.savedPrimary': 'Agregada a mi lista de Estudiar',
+    'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Estudiar',
+    'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Estudiar',
     // Quiet secondary "this correction wasn't useful" affordance
     'annotation.notUseful': 'Poco útil — ocultarla',
     'annotation.notUsefulRestore': 'Restaurar esta corrección',
@@ -957,7 +967,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} correcciones para anotar',
     'home.toWriteDownOne': '1 corrección para anotar',
 
-    // Write page (la cola de correcciones guardadas para anotar).
+    // Página Estudiar (la cola de correcciones guardadas para anotar).
     //
     // El nombre de la superficie es "Estudiar" — el pilar de la
     // metodología que estableció el rediseño de la home y que la nav
@@ -973,21 +983,24 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.loading': 'Cargando…',
     'write.error': 'Error: {msg}',
 
-    // Write list — alternancia de vistas (Anotar es la superficie principal,
-    // Escritos vive como link discreto al archivo, no como pestaña par).
+    // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
+    // principal, Escritos vive como link discreto al archivo, no como
+    // pestaña par).
     'writeList.viewLabel': 'Correcciones guardadas',
-    'writeList.tabWrite': 'Anotar',
+    'writeList.tabWrite': 'Estudiar',
     'writeList.tabWritten': 'Escritos',
     'writeList.archiveHeading': 'Escritos',
     'writeList.archiveLink': 'escritos',
-    'writeList.backToWrite': 'Volver a Anotar',
+    'writeList.archiveFooter': '{n} escritos · ver archivo →',
+    'writeList.archiveFooterAria': 'Ver {n} correcciones escritas en el archivo',
+    'writeList.backToWrite': 'Volver a Estudiar',
     'writeList.markDoneShort': 'Listo',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Abrí una conversación para guardar más →',
     'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
     'writeList.emptyWrittenCaption': 'Lo que ya anotaste cae acá, atenuado para que no llene la cola.',
-    'writeList.emptyWrittenCta': '← Volver a Anotar ({count})',
-    'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Anotar — abrí una conversación para guardar tu primera corrección.',
+    'writeList.emptyWrittenCta': '← Volver a Estudiar ({count})',
+    'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Estudiar — abrí una conversación para guardar tu primera corrección.',
     'writeList.markRowAria': 'Marcar "{original}" como escrito',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
@@ -1005,9 +1018,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.markWritten': 'Marcar como escrito',
     'writeSheet.markWrittenBusy': 'Marcando…',
     'writeSheet.markWrittenAria': 'Marcar esta corrección como escrita en papel',
-    'writeSheet.moveBack': 'Volver a la lista de Anotar',
+    'writeSheet.moveBack': 'Volver a la lista de Estudiar',
     'writeSheet.moveBackBusy': 'Volviendo…',
-    'writeSheet.moveBackAria': 'Devolver esta corrección a la lista de Anotar',
+    'writeSheet.moveBackAria': 'Devolver esta corrección a la lista de Estudiar',
     // Menú de acciones secundarias — Eliminar se puede deshacer 5 segundos
     'writeSheet.moreActionsAria': 'Más acciones',
     'writeSheet.deleteLabel': 'Eliminar',

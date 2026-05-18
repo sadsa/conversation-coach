@@ -49,13 +49,13 @@ describe('AnnotationCard — content', () => {
 describe('AnnotationCard — saved + hidden state cues', () => {
   it('renders no extra hint paragraph in the neutral state', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
-    expect(screen.queryByText(/added to write list/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/added to study list/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/hidden from your transcript/i)).not.toBeInTheDocument()
   })
 
   it('moves the saved confirmation into the primary button itself', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} practiceItemId="pi-1" />)
-    expect(screen.getByRole('button', { name: /remove this correction from your write list/i })).toHaveTextContent(/added to write list/i)
+    expect(screen.getByRole('button', { name: /remove this correction from your study list/i })).toHaveTextContent(/added to (my )?study list/i)
     // No secondary "View list" link / hint paragraph anymore — the button is the receipt.
     expect(screen.queryByRole('link', { name: /view list/i })).not.toBeInTheDocument()
   })
@@ -76,7 +76,7 @@ describe('AnnotationCard — written-down UI is gone', () => {
 describe('AnnotationCard — primary save action', () => {
   it('marks the primary button with data-initial-focus so the sheet can focus it on open', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
-    const primary = screen.getByRole('button', { name: /save this correction to your write list/i })
+    const primary = screen.getByRole('button', { name: /save this correction to your study list/i })
     expect(primary).toHaveAttribute('data-initial-focus')
   })
 
@@ -87,7 +87,7 @@ describe('AnnotationCard — primary save action', () => {
     } as Response)
     const onAnnotationAdded = vi.fn()
     render(<AnnotationCard annotation={annotation} {...defaultProps} onAnnotationAdded={onAnnotationAdded} />)
-    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your study list/i }))
     expect(onAnnotationAdded).toHaveBeenCalledWith('ann-1', 'pi-1')
   })
 
@@ -95,7 +95,7 @@ describe('AnnotationCard — primary save action', () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
     const onAnnotationRemoved = vi.fn()
     render(<AnnotationCard annotation={annotation} {...defaultProps} practiceItemId="pi-1" onAnnotationRemoved={onAnnotationRemoved} />)
-    await userEvent.click(screen.getByRole('button', { name: /remove this correction from your write list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /remove this correction from your study list/i }))
     expect(global.fetch).toHaveBeenCalledWith('/api/practice-items/pi-1', { method: 'DELETE' })
     expect(onAnnotationRemoved).toHaveBeenCalledWith('ann-1')
   })
@@ -107,7 +107,7 @@ describe('AnnotationCard — primary save action', () => {
       return { ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response
     })
     render(<AnnotationCard annotation={annotation} {...defaultProps} />)
-    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your study list/i }))
     expect(capturedBody.annotation_id).toBe('ann-1')
     expect(capturedBody.sub_category).toBe('subjunctive')
     expect(capturedBody.original).toBe('Yo fui')
@@ -132,7 +132,7 @@ describe('AnnotationCard — primary save action', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your study list/i }))
 
     expect(fetchSpy).toHaveBeenNthCalledWith(1, '/api/annotations/ann-1', expect.objectContaining({
       method: 'PATCH',
@@ -167,7 +167,7 @@ describe('AnnotationCard — quiet "Not useful" action', () => {
     }))
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', true)
     // Save button still present, secondary now in the "restore" mode.
-    expect(screen.getByRole('button', { name: /save this correction to your write list/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save this correction to your study list/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /restore this correction/i })).toHaveAttribute('aria-pressed', 'true')
   })
 
@@ -262,7 +262,7 @@ describe('AnnotationCard — Retry on error', () => {
     const onAnnotationAdded = vi.fn()
     render(<AnnotationCard annotation={annotation} {...defaultProps} onAnnotationAdded={onAnnotationAdded} />)
 
-    await userEvent.click(screen.getByRole('button', { name: /save this correction to your write list/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your study list/i }))
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /retry/i }))

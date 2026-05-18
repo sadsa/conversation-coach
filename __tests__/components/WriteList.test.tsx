@@ -77,7 +77,7 @@ describe('WriteList — rows', () => {
   })
 })
 
-describe('WriteList — view toggle (asymmetric Write surface + Written archive link)', () => {
+describe('WriteList — view toggle (asymmetric Study surface + Written archive link)', () => {
   it('defaults to the Write view and hides written items', () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
     expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
@@ -111,11 +111,11 @@ describe('WriteList — view toggle (asymmetric Write surface + Written archive 
     expect(screen.getByTestId(`write-row-${writtenItem.id}`)).toBeInTheDocument()
   })
 
-  it('shows a "Back to Write" link in the Written view that returns to the queue', async () => {
+  it('shows a "Back to Study" link in the Written view that returns to the queue', async () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
     await userEvent.click(screen.getByTestId('view-toggle-to-written'))
     const back = screen.getByTestId('view-toggle-to-write')
-    expect(back).toHaveTextContent(/back to write/i)
+    expect(back).toHaveTextContent(/back to study/i)
 
     await userEvent.click(back)
     expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
@@ -153,15 +153,15 @@ describe('WriteList — empty states', () => {
     // on if they came from a deep link.
     render(<WriteList items={[grammarItem]} initialView="written" />)
     expect(screen.getByText(/items you've written down land here/i)).toBeInTheDocument()
-    // CTA points back to the Write queue (with its count) so the user
+    // CTA points back to the Study queue (with its count) so the user
     // never gets stranded in an empty archive.
-    expect(screen.getByRole('button', { name: /back to write \(1\)/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /back to study \(1\)/i })).toBeInTheDocument()
   })
 
   it('shows the no-queue Written empty state when both views are empty', () => {
     render(<WriteList items={[]} initialView="written" />)
-    expect(screen.getByText(/nothing in your write queue either/i)).toBeInTheDocument()
-    // The empty-state itself does not offer a "back to write" CTA when
+    expect(screen.getByText(/nothing in your study queue either/i)).toBeInTheDocument()
+    // The empty-state itself does not offer a "back to study" CTA when
     // the other side is also empty — the ViewToggle still provides
     // navigation, but the empty card stays purely informational.
     const emptyCard = screen.getByText(/items you've written down/i).closest('div')!

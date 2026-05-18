@@ -3,10 +3,10 @@
 // One annotation rendered in the docked AnnotationSheet. After the design
 // rework the card carries a deliberate hierarchy:
 //
-//   1. A primary "Save to my Write list" button (shared `<Button>`) — the
+//   1. A primary "Save to my Study list" button (shared `<Button>`) — the
 //      one action the user is here for. Verb-first, full-width on mobile,
 //      gets initial focus when the sheet opens (`data-initial-focus`), and
-//      flips to an "Added to write list" confirmation after a save. The
+//      flips to an "Added to my Study list" confirmation after a save. The
 //      saved-state label carries the destination itself so we don't need a
 //      separate hint paragraph below — the button IS the receipt.
 //   2. A quiet text "Not useful — hide it" affordance underneath. Same
@@ -266,7 +266,7 @@ export function AnnotationCard({
           primary carries `data-initial-focus` so DockedSheet's open lifecycle
           puts the cursor on the action the user is here for, not on Close.
           The post-save outcome hint that used to sit here was distilled
-          into the button's own saved-state copy ("Added to write list").
+          into the button's own saved-state copy ("Added to my Study list").
           The hidden-state caption stays — without it the only feedback is
           the card-wide opacity fade, which reads as "loading" by itself. */}
       <div className="pt-4 border-t border-border space-y-3">

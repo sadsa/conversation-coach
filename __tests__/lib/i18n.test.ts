@@ -112,11 +112,11 @@ describe('home.* methodology eyebrow + three doors', () => {
 
 describe('annotation action i18n keys', () => {
   it('annotation.savePrimary exists in both langs', () => {
-    expect(t('annotation.savePrimary', 'en')).toBe('Save to my Write list')
-    expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista')
+    expect(t('annotation.savePrimary', 'en')).toBe('Save to my Study list')
+    expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista de Estudiar')
   })
   it('annotation.savedPrimary names the destination so the button itself is the receipt', () => {
-    expect(t('annotation.savedPrimary', 'en')).toMatch(/added to (my )?write list/i)
+    expect(t('annotation.savedPrimary', 'en')).toMatch(/added to (my )?study list/i)
     expect(t('annotation.savedPrimary', 'es')).toMatch(/agregada/i)
   })
   it('annotation.notUseful is the quiet secondary action label', () => {
@@ -154,10 +154,10 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.stateSaved', 'en')).toBe('annotation.stateSaved')
     expect(t('annotation.stateUnhelpful', 'en')).toBe('annotation.stateUnhelpful')
   })
-  it('writeList.tabWrite reads "Write" in en (matches the page name)', () => {
-    expect(t('writeList.tabWrite', 'en')).toBe('Write')
+  it('writeList.tabWrite reads "Study" in en (matches the page name + nav label)', () => {
+    expect(t('writeList.tabWrite', 'en')).toBe('Study')
   })
-  it('writeList.tabWritten reads "Written" in en (Write \u2192 Written symmetry)', () => {
+  it('writeList.tabWritten reads "Written" in en (Study \u2192 Written symmetry)', () => {
     expect(t('writeList.tabWritten', 'en')).toBe('Written')
   })
   it('writeList.tabWritten exists in es', () => {
@@ -175,8 +175,8 @@ describe('annotation action i18n keys', () => {
     expect(t('writeSheet.moveBackBusy', 'es')).not.toBe('writeSheet.moveBackBusy')
   })
   it('writeSheet.moveBack now spells out the destination', () => {
-    expect(t('writeSheet.moveBack', 'en')).toMatch(/write list/i)
-    expect(t('writeSheet.moveBack', 'es')).toMatch(/anotar/i)
+    expect(t('writeSheet.moveBack', 'en')).toMatch(/study list/i)
+    expect(t('writeSheet.moveBack', 'es')).toMatch(/estudiar/i)
   })
   it('writeSheet overflow + delete copy exists in both langs', () => {
     expect(t('writeSheet.moreActionsAria', 'en')).not.toBe('writeSheet.moreActionsAria')
