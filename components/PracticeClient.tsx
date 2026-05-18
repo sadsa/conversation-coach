@@ -64,6 +64,7 @@ import {
   buildPracticeSystemPrompt,
   FLASH_LIVE_MODEL,
 } from '@/lib/voice-agent'
+import { connectAssemblyAIStream, type AssemblyAIStream } from '@/lib/assemblyai-stream'
 import { buildPersonaSystemPrompt } from '@/lib/persona'
 import { playRingtone, type Ringtone } from '@/lib/ringtone'
 import { Button } from '@/components/Button'
@@ -152,6 +153,30 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   const [isRerolling, setIsRerolling] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
+  // Parallel STT (AssemblyAI Universal-3 Pro Streaming) — sources the
+  // displayed user-bubble text. Gemini Live still drives the conversation
+  // (turn detection, agent response, persona, TTS); the mic frames are
+  // teed via `onMicPcm` so both engines see the same audio. See the
+  // /debug/transcribe-compare experiment for the decision history —
+  // AssemblyAI handles NZ-accented Spanish + English meaningfully better
+  // than Gemini's built-in inputAudioTranscription.
+  const assemblyStreamRef = useRef<AssemblyAIStream | null>(null)
+  // Index into `turnsRef.current` of the in-flight user bubble (the one
+  // being filled by AssemblyAI partials and finals). Null between turns.
+  // Drives both the "…" placeholder lifecycle and the AssemblyAI partial-
+  // to-final replacement.
+  const placeholderTurnIndexRef = useRef<number | null>(null)
+  // True once any user-role bubble (partial, final, OR placeholder) has been
+  // emitted in the *current* exchange. Prevents Gemini's `onModelTurnStart`
+  // from inserting a stranded second placeholder once AssemblyAI has
+  // already surfaced a bubble for the same utterance. Reset on `onTurnComplete`.
+  const userBubbleEmittedThisTurnRef = useRef(false)
+  // True if the user has produced any audible mic input (RMS above the
+  // ambient floor) since the last `onTurnComplete`. Distinguishes a real
+  // user utterance from a model-initiated turn (call-mode opener,
+  // unprompted follow-up) — only the former should trigger a "…"
+  // placeholder when `onModelTurnStart` fires.
+  const userAudibleSinceLastTurnRef = useRef(false)
   const turnsRef = useRef<TranscriptTurn[]>([])
   const frozenTurnsRef = useRef<TranscriptTurn[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -184,6 +209,13 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     return () => {
       isMountedRef.current = false
       agentRef.current?.disconnect()
+      // Same idempotent disconnect pattern as the agent — covers all
+      // unmount paths (parent flipping back to doors, route change, dev
+      // strict-mode double-invoke). Mirror of the cleanup in onStateChange
+      // ('ended') and onError.
+      assemblyStreamRef.current?.disconnect()
+      assemblyStreamRef.current = null
+      placeholderTurnIndexRef.current = null
       if (timerRef.current) clearInterval(timerRef.current)
       if (endingTimeoutRef.current) clearTimeout(endingTimeoutRef.current)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
@@ -408,6 +440,108 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     }, 1000)
   }, [t])
 
+  /** AssemblyAI Turn handler. One bubble per user utterance, regardless
+   *  of how many partials it receives — `placeholderTurnIndexRef` tracks
+   *  the in-flight slot. The slot exists until either (a) we get a final
+   *  (then locked + ref cleared) or (b) `onTurnComplete` cleans up a
+   *  stranded placeholder. Empty turns are filtered upstream so we only
+   *  ever see meaningful text here. */
+  const handleAssemblyAITurn = useCallback((text: string, isFinal: boolean) => {
+    if (!isMountedRef.current) return
+    if (placeholderTurnIndexRef.current !== null) {
+      // Update the in-flight bubble (placeholder from onModelTurnStart, or
+      // a partial from a previous AssemblyAI tick). Partials → partials →
+      // final all flow into the same slot, replacing text in place. Spread
+      // to a fresh array reference so React re-renders the list.
+      const idx = placeholderTurnIndexRef.current
+      const next = [...turnsRef.current]
+      next[idx] = { ...next[idx], text, pending: !isFinal }
+      turnsRef.current = next
+      setLiveTurns(next)
+      if (isFinal) placeholderTurnIndexRef.current = null
+    } else {
+      // No in-flight bubble — first AssemblyAI event of this turn AND no
+      // placeholder was pre-emitted by onModelTurnStart. Common case for
+      // normal-length utterances where AssemblyAI's first partial beats
+      // Gemini's end-of-turn VAD.
+      const turn: TranscriptTurn = {
+        role: 'user', text, wallMs: Date.now(), pending: !isFinal,
+      }
+      turnsRef.current = [...turnsRef.current, turn]
+      setLiveTurns(turnsRef.current)
+      if (!isFinal) placeholderTurnIndexRef.current = turnsRef.current.length - 1
+    }
+    userBubbleEmittedThisTurnRef.current = true
+  }, [])
+
+  /** Gemini "model just started replying" callback — drops a "…"
+   *  placeholder for the user's bubble when:
+   *    1. The user has actually spoken this cycle (RMS above floor).
+   *    2. No user bubble has been emitted yet for this cycle (otherwise
+   *       AssemblyAI already surfaced one and the placeholder would be a
+   *       stranded duplicate).
+   *    3. No partial bubble is currently in flight (otherwise it IS the
+   *       placeholder already).
+   *
+   *  Skipping conditions 1–3 was the source of two regressions visible in
+   *  the May 18 screenshot: model-initiated turns (call openers) gained a
+   *  stranded "…" bubble, and AssemblyAI's in-flight partial got
+   *  prematurely promoted to final (rendering as two bubbles for the
+   *  same utterance — e.g. "I'll try—" then "I'll try."). */
+  const handleModelTurnStart = useCallback(() => {
+    if (!isMountedRef.current) return
+    if (!userAudibleSinceLastTurnRef.current) return
+    if (userBubbleEmittedThisTurnRef.current) return
+    if (placeholderTurnIndexRef.current !== null) return
+    const turn: TranscriptTurn = {
+      role: 'user', text: '', wallMs: Date.now(), pending: true,
+    }
+    turnsRef.current = [...turnsRef.current, turn]
+    placeholderTurnIndexRef.current = turnsRef.current.length - 1
+    userBubbleEmittedThisTurnRef.current = true
+    setLiveTurns(turnsRef.current)
+  }, [])
+
+  /** End-of-exchange cleanup — fires once Gemini reports `turnComplete`
+   *  (model finished its reply). Two responsibilities:
+   *    1. Settle any in-flight placeholder. If it has partial text, lock
+   *       it as final so it doesn't render italic indefinitely. If it's
+   *       still empty, drop the bubble — AssemblyAI never delivered for
+   *       this exchange (rare; usually a very-short utterance that
+   *       AssemblyAI didn't pick up, or a model-initiated cycle where the
+   *       user-audible signal misfired).
+   *    2. Reset the per-cycle flags so the next user turn starts clean. */
+  const handleTurnComplete = useCallback(() => {
+    if (!isMountedRef.current) return
+    if (placeholderTurnIndexRef.current !== null) {
+      const idx = placeholderTurnIndexRef.current
+      const old = turnsRef.current[idx]
+      const next = [...turnsRef.current]
+      if (!old.text.trim()) {
+        next.splice(idx, 1)
+      } else {
+        next[idx] = { ...old, pending: false }
+      }
+      turnsRef.current = next
+      setLiveTurns(next)
+      placeholderTurnIndexRef.current = null
+    }
+    userBubbleEmittedThisTurnRef.current = false
+    userAudibleSinceLastTurnRef.current = false
+  }, [])
+
+  /** Tears down the AssemblyAI side independently of Gemini. Called from
+   *  every place the Gemini agent gets disconnected so the two stay in
+   *  step — unmount, endSession, reconnect, error paths. Safe to call
+   *  multiple times; the underlying disconnect is idempotent. */
+  const disconnectAssemblyAI = useCallback(() => {
+    assemblyStreamRef.current?.disconnect()
+    assemblyStreamRef.current = null
+    placeholderTurnIndexRef.current = null
+    userBubbleEmittedThisTurnRef.current = false
+    userAudibleSinceLastTurnRef.current = false
+  }, [])
+
   const submitTurns = useCallback(async (turns: TranscriptTurn[]) => {
     const userTurns = turns.filter(turn => turn.role === 'user')
     if (userTurns.length === 0) {
@@ -439,16 +573,31 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     agentRef.current?.flush()
     agentRef.current?.disconnect()
     agentRef.current = null
+    // Disconnect AssemblyAI alongside Gemini. The Terminate frame inside
+    // disconnect ensures we're billed for actual recorded duration, not
+    // the full idle-timeout window.
+    disconnectAssemblyAI()
+    // Settle any in-flight user bubble: drop empty placeholders (the user
+    // never spoke for that turn — typically a stranded "…" from
+    // onModelTurnStart) and lock partial-text bubbles in as final so the
+    // review screen doesn't render italic text indefinitely. Doing this
+    // here (rather than in submitTurns) means the user sees the same
+    // settled transcript on review that they'll save.
+    const settled = turnsRef.current
+      .filter(turn => !turn.pending || turn.text.trim() !== '')
+      .map(turn => turn.pending ? { ...turn, pending: false } : turn)
+    turnsRef.current = settled
+    setLiveTurns(settled)
     // Nothing was said — skip the save/discard prompt and return to the
     // home doors. The session was effectively a no-op; treating it like a
     // dismiss is the gentlest exit.
-    if (turnsRef.current.length === 0) {
+    if (settled.length === 0) {
       onExitRef.current()
       return
     }
-    frozenTurnsRef.current = [...turnsRef.current]
+    frozenTurnsRef.current = [...settled]
     setPracticeState('review')
-  }, [])
+  }, [disconnectAssemblyAI])
 
   const confirmSave = useCallback(() => {
     submitTurns(frozenTurnsRef.current)
@@ -486,6 +635,16 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
       ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
       : buildPracticeSystemPrompt(targetLanguage)
     try {
+      // Drop any leftover AssemblyAI stream from the previous session
+      // before opening a fresh one. Order matters: the new stream must be
+      // ready BEFORE Gemini starts streaming mic frames, otherwise the
+      // first hundred-or-so milliseconds of user audio aren't transcribed.
+      disconnectAssemblyAI()
+      const assemblyStream = await connectAssemblyAIStream(
+        { onTurn: handleAssemblyAITurn },
+        { language: targetLanguage },
+      )
+      assemblyStreamRef.current = assemblyStream
       const agent = await connect(
         targetLanguage,
         {
@@ -497,27 +656,49 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
             } else if (s === 'ended') {
               if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
               agentRef.current = null
+              disconnectAssemblyAI()
             }
           },
           onError: (msg) => {
             if (!isMountedRef.current) return
             const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
             setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+            disconnectAssemblyAI()
             // Restore review state so the user can still save what they had.
             frozenTurnsRef.current = restoredTurns
             setPracticeState('review')
           },
-          onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
+          onUserAudio: (rms) => {
+            userRmsRef.current = Math.max(userRmsRef.current, rms)
+            // Once the floor is crossed in a given exchange, latch the
+            // flag — it gates whether onModelTurnStart inserts a "…"
+            // placeholder, so we want to err on "user did speak". Reset
+            // happens at `onTurnComplete`.
+            if (rms > RMS_FLOOR) userAudibleSinceLastTurnRef.current = true
+          },
           onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
+          // Tee mic PCM into AssemblyAI in parallel with Gemini. The push
+          // is non-blocking (it just memcopies into a 100ms-chunk buffer)
+          // so Gemini's send-path cadence is unchanged.
+          onMicPcm: (samples) => assemblyStreamRef.current?.pushPcm(samples),
+          onModelTurnStart: handleModelTurnStart,
+          onTurnComplete: handleTurnComplete,
           onTranscript: (role, text) => {
             if (!isMountedRef.current) return
+            // With `inputTranscription: false` Gemini only emits model
+            // turns. Ignore any stray user-role transcript defensively.
+            if (role !== 'model') return
             const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
-            turnsRef.current.push(turn)
-            setLiveTurns(prev => [...prev, turn])
+            turnsRef.current = [...turnsRef.current, turn]
+            setLiveTurns(turnsRef.current)
           },
         },
       {
         transcription: true,
+        // Source the user-bubble text from AssemblyAI Universal-3 Pro
+        // instead of Gemini's `inputTranscription`. Model bubble still
+        // comes from Gemini's outputTranscription.
+        inputTranscription: false,
         systemPrompt,
         // Both modes are on the flash-live model — call mode used to pin
         // NATIVE_AUDIO_MODEL for richer intonation but the end-of-turn pauses
@@ -532,11 +713,12 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
       if (!isMountedRef.current) return
       const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
       setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+      disconnectAssemblyAI()
       // Restore review state so the user can still save what they had.
       frozenTurnsRef.current = restoredTurns
       setPracticeState('review')
     }
-  }, [practiceState, elapsed, mode, persona, targetLanguage, t, startTimer])
+  }, [practiceState, elapsed, mode, persona, targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
 
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
@@ -589,13 +771,26 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
 
   /** Core connect helper shared by chat-mode start, call-mode start, and
    *  reroll. Wires all the standard callbacks (RMS, transcript, state) and
-   *  hands the persona-specific bits through as connect() options. Throws
-   *  on failure; caller is responsible for the error UX (different per flow
-   *  — chat falls back to idle, reroll falls back to previous call). */
+   *  hands the persona-specific bits through as connect() options. Also
+   *  opens the parallel AssemblyAI stream which sources the user-bubble
+   *  text — see `lib/assemblyai-stream.ts`. Throws on failure; caller is
+   *  responsible for the error UX (different per flow — chat falls back to
+   *  idle, reroll falls back to previous call). */
   const connectAgent = useCallback(async (activePersona: Persona | null): Promise<VoiceAgent> => {
     const systemPrompt = activePersona
       ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
       : buildPracticeSystemPrompt(targetLanguage)
+
+    // Open AssemblyAI BEFORE Gemini so it's ready to accept mic frames the
+    // instant voice-agent.ts starts emitting them via onMicPcm. The 100ms
+    // chunk buffer means we wouldn't actually lose the very first frame,
+    // but reserving the connection up front keeps the cadence honest.
+    disconnectAssemblyAI()
+    const assemblyStream = await connectAssemblyAIStream(
+      { onTurn: handleAssemblyAITurn },
+      { language: targetLanguage },
+    )
+    assemblyStreamRef.current = assemblyStream
 
     return connect(
       targetLanguage,
@@ -608,6 +803,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
           } else if (s === 'ended') {
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
             agentRef.current = null
+            disconnectAssemblyAI()
             // Defensive: if 'ended' arrives while still connecting (i.e.
             // the session never reached active), exit back to the home doors
             // so the UI doesn't sit on the connecting screen forever. Voice-
@@ -626,19 +822,39 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
           if (!isMountedRef.current) return
           const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
           setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+          disconnectAssemblyAI()
           onExitRef.current()
         },
-        onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
+        onUserAudio: (rms) => {
+          userRmsRef.current = Math.max(userRmsRef.current, rms)
+          // See the matching comment in `resumeSession`: latch this on
+          // the first RMS cross above the floor, reset on turnComplete.
+          if (rms > RMS_FLOOR) userAudibleSinceLastTurnRef.current = true
+        },
         onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
+        // Tee mic PCM into AssemblyAI. Non-blocking memcopy into a 100ms-
+        // chunk buffer; Gemini's send-path cadence is unaffected.
+        onMicPcm: (samples) => assemblyStreamRef.current?.pushPcm(samples),
+        onModelTurnStart: handleModelTurnStart,
+        onTurnComplete: handleTurnComplete,
         onTranscript: (role, text) => {
           if (!isMountedRef.current) return
+          // User-bubble text comes from AssemblyAI. Gemini's input
+          // transcription is disabled in this connect call, but ignore
+          // user-role transcripts defensively in case the option ever
+          // gets re-enabled and we forget to update this handler.
+          if (role !== 'model') return
           const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
-          turnsRef.current.push(turn)
-          setLiveTurns(prev => [...prev, turn])
+          turnsRef.current = [...turnsRef.current, turn]
+          setLiveTurns(turnsRef.current)
         },
       },
       {
         transcription: true,
+        // User-bubble text is sourced from AssemblyAI Universal-3 Pro via
+        // the parallel stream above. We still want Gemini's output
+        // transcription for the model bubble, hence transcription: true.
+        inputTranscription: false,
         systemPrompt,
         // Both modes use the flash-live model. Call mode previously used
         // NATIVE_AUDIO_MODEL for emotional intonation, but the longer
@@ -656,7 +872,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
         voiceName: activePersona?.voiceName,
       },
     )
-  }, [targetLanguage, t, startTimer])
+  }, [targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
 
   // Persona fetch promise — kicked off on mount in call mode so the network
   // round trip happens during the ring (target: persona ready by the time
@@ -772,6 +988,11 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
     agentRef.current?.disconnect()
     agentRef.current = null
+    // Drop the AssemblyAI stream too — `answerCall` re-opens a fresh one
+    // for the new caller via `connectAgent`. Leaving the previous stream
+    // alive would tee the new caller's audio into it and surface bubbles
+    // attributed to a hung-up session.
+    disconnectAssemblyAI()
 
     // Full reset — fresh 5-min budget, blank transcript. Matches the
     // metaphor: hang up → another call comes in, start over.
@@ -793,7 +1014,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     personaPromiseRef.current = fetchPersona()
     setPracticeState('incoming')
     setIsRerolling(false)
-  }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, t])
+  }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, t, disconnectAssemblyAI])
 
   // Retry from the error state. If we collected user speech, re-submit;
   // otherwise the connection itself failed before any turns landed — bail
@@ -1096,9 +1317,20 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
                   ${turn.role === 'user'
                     ? 'rounded-2xl bg-accent-chip text-on-accent-chip'
                     : 'rounded-2xl bg-surface-elevated text-text-primary ring-1 ring-border-subtle'}
+                  ${turn.pending ? 'opacity-80 italic' : ''}
                 `}
               >
-                {turn.text}
+                {turn.pending && !turn.text.trim() ? (
+                  // Three-dots placeholder while AssemblyAI catches up — Gemini's
+                  // VAD often decides the user finished speaking ~500ms before
+                  // AssemblyAI's punctuation-based final lands, and without this
+                  // the user would see the agent reply with no transcript of
+                  // their own turn yet. Animation cycles the three dots so it
+                  // reads as "thinking" rather than a frozen ellipsis.
+                  <TypingDots />
+                ) : (
+                  turn.text
+                )}
               </p>
             </motion.div>
           )
@@ -1284,5 +1516,23 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
 
       {toast && <Toast message={toast} />}
     </div>
+  )
+}
+
+/**
+ * Three-dot "typing" indicator for the user-bubble placeholder. Rendered
+ * inside the existing pill so its sizing + colour come from the parent —
+ * no need to recolour for accent-chip variants. Animation uses CSS
+ * `animation-delay` offsets rather than framer-motion to stay cheap (the
+ * indicator can render every turn) and to keep working under
+ * reduced-motion (the dots simply hold their mid-frame opacity).
+ */
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1" aria-label="Transcribing">
+      <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:0ms]" />
+      <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:300ms]" />
+    </span>
   )
 }

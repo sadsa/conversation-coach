@@ -10,11 +10,64 @@ export interface VoiceAgentCallbacks {
   onUserAudio?: (rms: number) => void
   onAgentAudio?: (rms: number) => void
   onTranscript?: (role: 'user' | 'model', text: string) => void
+  /**
+   * Fires synchronously for every PCM16 frame the mic worklet emits — even
+   * before Gemini's WebSocket finishes its handshake. The Int16Array is a
+   * fresh copy owned by the caller (safe to retain).
+   *
+   * Wired up for parallel STT: PracticeClient tees these into AssemblyAI
+   * Universal-3 Pro Streaming for the displayed user transcript, because
+   * Gemini Live's `inputAudioTranscription` mishears NZ-accented speech
+   * (Spanish-with-NZ-accent in particular — see the
+   * `/debug/transcribe-compare` experiment). Gemini still receives the
+   * same frames from the production send-path and drives the conversation
+   * (turn detection, agent response, persona, TTS) — the tee is downstream
+   * of capture and has zero effect on what Gemini hears.
+   */
+  onMicPcm?: (samples: Int16Array) => void
+  /**
+   * Fires once per turn when the first audio chunk from the model arrives.
+   * Lets the UI react to "user finished, model is responding" without
+   * polling RMS or waiting for the parallel STT's final transcript — e.g.
+   * inserting a "…" placeholder for the user's bubble while AssemblyAI is
+   * still finalising the transcription.
+   *
+   * The internal flag resets on `serverContent.turnComplete` so each new
+   * exchange fires it again.
+   *
+   * NOTE: This also fires when the model speaks first (no preceding user
+   * turn — e.g. call-mode opener, agent follow-ups). Consumers that use
+   * it to insert a "user turn placeholder" should also gate on a
+   * separate user-spoke-this-cycle signal, or they'll attribute model-
+   * initiated turns to the user.
+   */
+  onModelTurnStart?: () => void
+  /**
+   * Fires once per turn when the model signals `serverContent.turnComplete`
+   * — i.e. the model has finished its reply. The natural "end of
+   * exchange" boundary for resetting per-turn UI state (clearing
+   * placeholder refs, "user audible this cycle" flags, etc.) so the
+   * next user turn starts from a clean slate.
+   *
+   * Fires even when `transcription: false` — we still want consumers to
+   * be able to detect end-of-exchange independent of the transcription
+   * option.
+   */
+  onTurnComplete?: () => void
 }
 
 export interface ConnectOptions {
   /** When true, enables Gemini Live input + output transcription callbacks. */
   transcription?: boolean
+  /**
+   * When false (and `transcription` is true), Gemini's input audio
+   * transcription is NOT requested at setup, so no user-role transcripts
+   * are emitted. Use when the user-bubble text is sourced from a parallel
+   * STT (AssemblyAI U3 Pro in PracticeClient) — saves the Gemini-side
+   * transcription cost and removes the temptation to double-attribute the
+   * same turn from two sources. Defaults to true for backward compat.
+   */
+  inputTranscription?: boolean
   /** Override the system prompt sent to Gemini on connect. */
   systemPrompt?: string
   /** Override the prebuilt voice name (defaults to NEXT_PUBLIC_GOOGLE_VOICE
@@ -334,17 +387,28 @@ export async function connect(
     }
   }
 
-  // Stream mic audio once the session is ready.
+  // Stream mic audio. We deliberately do NOT short-circuit on
+  // `!ready` (i.e. Gemini setupComplete still pending) — `onMicPcm` and
+  // `onUserAudio` callers (parallel STT, mic-level indicators) should
+  // see frames as soon as the worklet emits them. The Gemini-specific
+  // send is gated below.
   worklet.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
-    if (disposed || !ready || ws.readyState !== WebSocket.OPEN) return
-    const bytes = new Uint8Array(e.data)
-    // Emit RMS from the same PCM16 buffer so the indicator is driven by the
-    // exact bytes being sent. When muted, audioTrack.enabled = false silences
-    // the worklet output, so RMS naturally reads ~0.
-    if (callbacks.onUserAudio) {
+    if (disposed) return
+
+    // Emit RMS from the PCM16 buffer so the indicator is driven by the
+    // exact bytes that are about to be sent. When muted, audioTrack.enabled
+    // = false silences the worklet output, so RMS naturally reads ~0.
+    // (The Int16Array used here owns a copy via `slice(0)` so the
+    // downstream send-path's view of `e.data` is unaffected.)
+    if (callbacks.onUserAudio || callbacks.onMicPcm) {
       const samples = new Int16Array(e.data.slice(0))
-      callbacks.onUserAudio(pcm16Rms(samples))
+      callbacks.onUserAudio?.(pcm16Rms(samples))
+      callbacks.onMicPcm?.(samples)
     }
+
+    // Gemini Live — gated on setupComplete + open WS.
+    if (!ready || ws.readyState !== WebSocket.OPEN) return
+    const bytes = new Uint8Array(e.data)
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     const b64 = btoa(binary)
@@ -363,6 +427,12 @@ export async function connect(
   // Set to true the first time we see model output so the user bubble appears
   // before the agent starts speaking, not after it finishes.
   let userFlushedForTurn = false
+  // Tracks whether we've fired `onModelTurnStart` for the current turn.
+  // Reset on `serverContent.turnComplete`. Lets consumers (PracticeClient)
+  // insert a transient "…" placeholder for the user bubble the instant the
+  // model starts replying, without polling RMS or waiting for AssemblyAI's
+  // final transcript to arrive.
+  let modelTurnStartFiredForTurn = false
 
   ws.addEventListener('open', () => {
     if (disposed) return
@@ -391,8 +461,13 @@ export async function connect(
         systemInstruction: {
           parts: [{ text: options.systemPrompt ?? buildPracticeSystemPrompt(targetLanguage) }],
         },
+        // Input transcription is opt-out via `inputTranscription: false`
+        // when a parallel STT is sourcing the user-bubble text (see the
+        // option's docs). Output transcription is always on when
+        // `transcription: true` because we still need it to drive model-
+        // bubble text and the "model started responding" signal.
         ...(options.transcription ? {
-          inputAudioTranscription: {},
+          ...(options.inputTranscription === false ? {} : { inputAudioTranscription: {} }),
           outputAudioTranscription: {},
         } : {}),
       },
@@ -470,6 +545,13 @@ export async function connect(
     }
 
     if (serverContent?.modelTurn?.parts) {
+      // Fire the "model turn started" hook once per turn before processing
+      // chunks. The signal is what tells PracticeClient to drop a "…"
+      // placeholder bubble in for the user while AssemblyAI catches up.
+      if (!modelTurnStartFiredForTurn) {
+        modelTurnStartFiredForTurn = true
+        callbacks.onModelTurnStart?.()
+      }
       for (const part of serverContent.modelTurn.parts) {
         if (!part.inlineData?.data) continue
         // Decode base64 PCM16 and schedule playback at 24 kHz.
@@ -511,16 +593,25 @@ export async function connect(
     // turnComplete — model's turn done; flush remaining buffers and reset
     // the per-turn flush flag so the next exchange starts fresh.
     const turnComplete = (msg as { serverContent?: { turnComplete?: boolean } }).serverContent?.turnComplete
-    if (options.transcription && turnComplete) {
-      if (userTranscriptBuffer.trim()) {
-        callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
-        userTranscriptBuffer = ''
+    if (turnComplete) {
+      if (options.transcription) {
+        if (userTranscriptBuffer.trim()) {
+          callbacks.onTranscript?.('user', userTranscriptBuffer.trim())
+          userTranscriptBuffer = ''
+        }
+        if (modelTranscriptBuffer.trim()) {
+          callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
+          modelTranscriptBuffer = ''
+        }
+        userFlushedForTurn = false
       }
-      if (modelTranscriptBuffer.trim()) {
-        callbacks.onTranscript?.('model', modelTranscriptBuffer.trim())
-        modelTranscriptBuffer = ''
-      }
-      userFlushedForTurn = false
+      // Reset regardless of transcription option — both callbacks below
+      // and `onModelTurnStart` should fire fresh on the next turn either
+      // way. The end-of-exchange callback fires AFTER the flush so any
+      // consumer that wants to lock pending placeholders sees a settled
+      // user-turn shape.
+      modelTurnStartFiredForTurn = false
+      callbacks.onTurnComplete?.()
     }
 
     const error = (msg as { error?: { message?: string } }).error

@@ -455,4 +455,19 @@
     20%, 40%      { transform: rotate(14deg); }
   }
 
+  /* "Typing" indicator inside the user's transcript bubble while AssemblyAI
+     is still finalising the transcription. Each of the three dots gets a
+     150ms / 300ms `animation-delay` (set inline at the call site) so the
+     wave reads as a single ripple, not three independent flashes. The
+     mid-frame opacity is high enough that reduced-motion users (the
+     global `prefers-reduced-motion` rule clamps `animation-duration` to
+     near-zero) still see a visible static row of dots. */
+  @keyframes typing-dot {
+    0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+    30%           { opacity: 1;    transform: translateY(-2px); }
+  }
+  .animate-typing-dot {
+    animation: typing-dot 1.05s ease-in-out infinite;
+  }
+
 }

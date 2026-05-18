@@ -53,6 +53,15 @@ export interface TranscriptTurn {
   role: 'user' | 'model'
   text: string
   wallMs: number  // Date.now() when the turn completed — used for segment timestamps
+  /**
+   * Client-side flag for the live transcript UI. `true` means the bubble
+   * is a placeholder or in-flight partial waiting on a final transcript
+   * (e.g. AssemblyAI hasn't emitted `end_of_turn: true` yet). Stripped
+   * before submission to /api/practice-sessions — by the time the user
+   * confirms save, the live stream has either finalised the turn or it's
+   * been dropped. The server type tolerates the field but ignores it.
+   */
+  pending?: boolean
 }
 
 export const SUB_CATEGORIES = [
