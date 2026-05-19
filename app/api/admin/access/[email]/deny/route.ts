@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getAuthenticatedUser } from '@/lib/auth'
+import { createServerClient } from '@/lib/supabase-server'
+import { log } from '@/lib/logger'
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { email: string } }
+) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL?.toLowerCase()
+  if (!OWNER_EMAIL || user.email?.toLowerCase() !== OWNER_EMAIL) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const email = decodeURIComponent(params.email).toLowerCase()
+  const db = createServerClient()
+
+  const { error } = await db
+    .from('allowed_users')
+    .update({ status: 'denied' })
+    .eq('email', email)
+
+  if (error) {
+    log.error('admin/deny: db update failed', { email, error: error.message })
+    return NextResponse.json({ error: 'DB error' }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, status: 'denied' })
+}

@@ -179,3 +179,24 @@ export async function loadPracticeItems(
     }
   })
 }
+
+export interface AllowedUserRow {
+  email: string
+  status: 'pending' | 'approved' | 'denied'
+  name: string | null
+  avatar_url: string | null
+  source: string | null
+  requested_at: string
+  approved_at: string | null
+  user_id: string | null
+}
+
+export async function loadAllowedUsers(): Promise<AllowedUserRow[]> {
+  const db = createServerClient()
+  const { data, error } = await db
+    .from('allowed_users')
+    .select('email, status, name, avatar_url, source, requested_at, approved_at, user_id')
+    .order('requested_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as AllowedUserRow[]
+}

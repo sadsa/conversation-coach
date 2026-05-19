@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { log } from '@/lib/logger'
 
-const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/api/webhooks']
+const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/pending-approval', '/api/webhooks']
 
 /**
  * Header names used to forward the verified user identity from middleware
@@ -93,13 +93,23 @@ export async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  const allowedEmails = (process.env.ALLOWED_EMAILS ?? '')
-    .split(',')
-    .map(e => e.trim())
-    .filter(Boolean)
-
-  if (!allowedEmails.includes(user.email ?? '')) {
+  const email = user.email?.toLowerCase()
+  if (!email) {
     return NextResponse.redirect(new URL('/access-denied', request.url))
+  }
+
+  const { data: rows } = await supabase.rpc('get_access_status', { email_in: email })
+  const status = (rows as Array<{ status: string }> | null)?.[0]?.status ?? null
+
+  switch (status) {
+    case 'approved':
+      break
+    case 'pending':
+      return NextResponse.redirect(new URL('/pending-approval', request.url))
+    case 'denied':
+      return NextResponse.redirect(new URL('/access-denied', request.url))
+    default:
+      return NextResponse.redirect(new URL('/pending-approval', request.url))
   }
 
   // Capture any Set-Cookie headers that setAll() wrote during getUser() (token refresh).

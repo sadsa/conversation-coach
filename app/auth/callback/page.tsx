@@ -53,7 +53,19 @@ function AuthCallbackContent() {
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (event === 'SIGNED_IN' && session) redirect(session)
+      if (event === 'SIGNED_IN' && session) {
+        // Fire-and-forget: notify the admin if this is a fresh pending user.
+        // 204 always returned, so we don't await or handle errors.
+        const email = session.user.email
+        if (email) {
+          fetch('/api/access-request/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          }).catch(() => {/* best-effort */})
+        }
+        redirect(session)
+      }
     })
 
     // Fallback: redirect immediately when there is an already-valid session (e.g.

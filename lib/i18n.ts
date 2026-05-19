@@ -148,13 +148,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.coachLabel': 'Coach',
 
     // Auth — login page
-    'auth.signInTitle': 'Sign in with your email',
+    'auth.signInTitle': 'Sign in',
+    'auth.welcomeBack': 'Welcome back',
+    'auth.continueWithGoogle': 'Continue with Google',
+    'auth.orUseEmail': 'or use email',
     'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
     'auth.emailLabel': 'Email',
     'auth.emailPlaceholder': 'you@example.com',
     'auth.submit': 'Email me a sign-in link',
     'auth.submitting': 'Sending…',
-    'auth.invitedNote': "Invite-only — we'll send a sign-in link to your inbox, no password needed.",
+    'auth.requestAccessNote': "New here? Sign in with Google or your email and I'll review your request within a day.",
     'auth.linkSentTo': 'We sent a sign-in link to {email}.',
     'auth.linkSentNote':
       "Open it on this device to sign in. Check your spam if you don't see it in a few minutes.",
@@ -169,6 +172,28 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'auth.error.invalidEmail':
       "We couldn't send to that address. Double-check it and try again.",
     'auth.error.generic': "We couldn't send the link — please try again.",
+
+    // Pending approval page
+    'pending.title': 'Your access request is in',
+    'pending.body': "I review new sign-ups personally — usually within a day. You'll get an email with a one-click sign-in link the moment you're approved. No need to come back here.",
+    'pending.requestedAs': 'Requested as',
+    'pending.signOut': 'Sign out',
+
+    // Admin page
+    'admin.eyebrow': 'Admin',
+    'admin.title': 'Access requests',
+    'admin.pending': 'Pending',
+    'admin.approved': 'Approved',
+    'admin.denied': 'Denied',
+    'admin.approve': 'Approve',
+    'admin.deny': 'Deny',
+    'admin.requestedAgo': 'Requested {ago}',
+    'admin.viaGoogle': 'Google',
+    'admin.viaEmail': 'Email link',
+    'admin.nameUnknown': 'No name yet',
+    'admin.emptyDenied': 'No denied users',
+    'admin.waiting': '{n} waiting',
+    'admin.testers': '{n} testers',
 
     // Access denied
     'accessDenied.title': 'Access required',
@@ -702,13 +727,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.coachLabel': 'Coach',
 
     // Auth — login page
-    'auth.signInTitle': 'Iniciá sesión con tu correo',
+    'auth.signInTitle': 'Iniciá sesión',
+    'auth.welcomeBack': 'Hola de nuevo',
+    'auth.continueWithGoogle': 'Continuar con Google',
+    'auth.orUseEmail': 'o usar correo',
     'auth.signInSubtitle': 'Iniciá sesión para revisar tus conversaciones grabadas.',
     'auth.emailLabel': 'Correo electrónico',
     'auth.emailPlaceholder': 'vos@ejemplo.com',
     'auth.submit': 'Enviame un enlace de inicio',
     'auth.submitting': 'Enviando…',
-    'auth.invitedNote': 'Solo por invitación — te enviamos un enlace de inicio, sin contraseña.',
+    'auth.requestAccessNote': 'Sos nuevo acá? Iniciá sesión con Google o tu correo y reviso tu solicitud en el día.',
     'auth.linkSentTo': 'Te enviamos un enlace de inicio a {email}.',
     'auth.linkSentNote':
       'Abrilo en este dispositivo para iniciar sesión. Revisá spam si no lo ves en unos minutos.',
@@ -723,6 +751,28 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'auth.error.invalidEmail':
       'No pudimos enviar a esa dirección. Revisala e intentá de nuevo.',
     'auth.error.generic': 'No pudimos enviar el enlace — por favor intentá de nuevo.',
+
+    // Pending approval page
+    'pending.title': 'Tu solicitud de acceso está recibida',
+    'pending.body': 'Reviso los nuevos registros personalmente — generalmente en el día. Te llega un correo con un enlace de un click en cuanto te apruebe. No hace falta que vuelvas acá.',
+    'pending.requestedAs': 'Solicitado como',
+    'pending.signOut': 'Cerrar sesión',
+
+    // Admin page
+    'admin.eyebrow': 'Admin',
+    'admin.title': 'Solicitudes de acceso',
+    'admin.pending': 'Pendientes',
+    'admin.approved': 'Aprobados',
+    'admin.denied': 'Denegados',
+    'admin.approve': 'Aprobar',
+    'admin.deny': 'Denegar',
+    'admin.requestedAgo': 'Solicitado {ago}',
+    'admin.viaGoogle': 'Google',
+    'admin.viaEmail': 'Enlace de correo',
+    'admin.nameUnknown': 'Sin nombre todavía',
+    'admin.emptyDenied': 'Sin usuarios denegados',
+    'admin.waiting': '{n} esperando',
+    'admin.testers': '{n} testers',
 
     // Access denied
     'accessDenied.title': 'Acceso requerido',

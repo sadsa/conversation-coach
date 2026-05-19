@@ -75,25 +75,25 @@ self.addEventListener('push', (e) => {
     console.warn('[sw] push: invalid JSON payload')
     return
   }
-  const { title, body, sessionId } = payload
+  const { title, body, sessionId, url } = payload
   e.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon: '/icon.svg',
       badge: '/icon.svg',
       vibrate: [200, 100, 200],
-      data: { sessionId },
+      data: { sessionId, url },
     })
   )
 })
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close()
-  const { sessionId } = e.notification.data ?? {}
-  if (!sessionId) return
+  const target = e.notification.data?.url
+    ?? (e.notification.data?.sessionId ? `/sessions/${e.notification.data.sessionId}` : null)
+  if (!target) return
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      const target = `/sessions/${sessionId}`
       for (const client of clientList) {
         if (client.url.includes(target) && 'focus' in client) return client.focus()
       }
