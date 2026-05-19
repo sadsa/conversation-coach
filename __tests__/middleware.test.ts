@@ -148,6 +148,12 @@ describe('middleware', () => {
     expect(mockGetUser).not.toHaveBeenCalled()
   })
 
+  it('passes /api/access-request/notify through without calling getUser (pending user must reach it)', async () => {
+    const res = await middleware(makeRequest('/api/access-request/notify'))
+    expect(res.status).toBe(200)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
   it('calls rpc with lowercased email', async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { email: 'UPPER@EXAMPLE.COM' } } })
     rpcApproved()

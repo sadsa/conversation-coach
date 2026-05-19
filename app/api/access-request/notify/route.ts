@@ -3,8 +3,9 @@ import { createServerClient } from '@/lib/supabase-server'
 import { sendAdminPush } from '@/lib/push'
 import { log } from '@/lib/logger'
 
-// 60-second window: defends against double-fire on page reloads
-const FRESH_WINDOW_MS = 60_000
+// 5-minute window: defends against double-fire on page reloads while
+// giving OAuth flows enough time to complete
+const FRESH_WINDOW_MS = 5 * 60_000
 
 export async function POST(request: NextRequest) {
   let body: { email?: string }
