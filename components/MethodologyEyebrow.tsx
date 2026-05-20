@@ -1,28 +1,47 @@
 // components/MethodologyEyebrow.tsx
 //
-// Small "Practise → Review → Study" row that sits beneath the page H1
-// on /, /review, and /write. Names the three-pillar methodology and
-// shows the user where they are inside it.
+// The orientation strip that sits beneath the page H1 on /, /review, and
+// /write. Names the three pillars of the methodology and shows which one
+// the user is currently inside.
 //
-// Behaviour rules:
-//   - The active pillar renders as a non-interactive <span> in accent.
-//     The other two render as <Link>s to their routes.
-//   - Each pillar wears `py-1 -my-1 px-1.5 -mx-1.5` so the visible
-//     glyph stays at 11px but the hit area reaches WCAG-AA 24×24pt.
-//     The eyebrow reads as a tight decorative row visually while
-//     staying thumb-friendly on a phone.
+// Surface shape: a numbered step rail, NOT the older arrow-text row.
+//
+//        ●───────○───────○
+//        1       2       3
+//     PRACTISE REVIEW  STUDY
+//
+//   - Each step is a circular numbered node + uppercase label below.
+//   - A thin rail line passes behind the nodes, hidden under the circles
+//     and visible in the two gaps between them.
+//   - The active step's circle is filled with `accent-primary` and wears
+//     a soft `accent-chip` halo (the same chip tint used by the door
+//     icon tiles, so the visual language carries between rail and
+//     content). The active label renders in `accent-primary`.
+//   - Inactive steps render as outlined circles with `text-tertiary`
+//     labels; they're real `<Link>`s to their routes so deep-link nav
+//     between pillars stays one-tap.
+//
+// A11y rules to preserve (covered by PractiseClient + ReviewClient
+// tests):
+//   - The active label element carries `aria-current="page"` directly
+//     on the element that holds the text node — tests use
+//     `getByText(label).toHaveAttribute('aria-current', 'page')`, so
+//     don't bury the text deeper than that.
+//   - Each inactive label sits inside an `<a>` (Link) so
+//     `getByText(label).closest('a')` resolves to the right href.
+//   - The nav carries an `aria-label` (translated `home.pillarAria`) so
+//     screen readers announce it as "Methodology navigation" rather
+//     than another anonymous nav.
+//
+// Hit area: each Step uses py-1.5 px-2 + flex-1, giving roughly a
+// 110×52px tap target on a typical 360px-wide phone — comfortably past
+// the WCAG 44×44 floor without inflating the visible rail.
 //
 // History: an earlier version surfaced a numeric "study count" badge
-// beside the Study pillar when corrections were waiting. The badge was
-// dropped — it duplicated a signal the bottom-nav already carries, and
-// it added a second active-attention cue to a row whose job is purely
-// orientation (where am I inside the methodology?). The eyebrow now
-// stays a calm three-word teaching strip; the queue length lives in
-// one place (the nav).
-//
-// The route stays `/write` (URL stability per CLAUDE.md); only the
-// visible label reads as "Study" — the methodology vocabulary the home
-// redesign established.
+// beside the Study pillar; it was dropped because the bottom-nav
+// already carries that signal and a second active-attention cue
+// fought the eyebrow's orientation job. We do not reintroduce counts
+// here — the rail's job stays purely orientation.
 
 'use client'
 import Link from 'next/link'
@@ -46,38 +65,93 @@ const PILLAR_LABEL_KEY: Record<Pillar, string> = {
   study: 'home.pillarStudy',
 }
 
-// Shared padding rule: visible chip stays 11px but expands the hit
-// rectangle out by 4px vertical / 6px horizontal via negative margins.
-// Keeps the eyebrow looking like one tight line while each item is
-// thumb-friendly.
-const HIT_AREA = 'py-1 -my-1 px-1.5 -mx-1.5 rounded'
+// Ordered list — render order is the methodology order. Step number is
+// `index + 1`, not stored separately, so we never get a "PRACTISE 2,
+// REVIEW 1" desync between order and numbering.
+const PILLARS: ReadonlyArray<Pillar> = ['practise', 'review', 'study']
+
+// Shared layout for the inner content of each step (circle + label).
+// Lives outside renderStep because it's identical between the active
+// span and the inactive Link branches.
+const STEP_LAYOUT =
+  'flex-1 flex flex-col items-center gap-1.5 py-1.5 px-2 rounded relative z-10'
+
+const CIRCLE_BASE =
+  'w-7 h-7 rounded-full flex items-center justify-center ' +
+  'text-[0.6875rem] font-bold tabular-nums leading-none ' +
+  'transition-colors'
+
+const LABEL_BASE =
+  'text-[0.6875rem] font-semibold tracking-[0.12em] uppercase leading-none ' +
+  'transition-colors'
 
 export function MethodologyEyebrow({ active }: Props) {
   const { t } = useTranslation()
 
-  function renderPillar(pillar: Pillar) {
+  function renderStep(pillar: Pillar, index: number) {
     const isActive = pillar === active
     const label = t(PILLAR_LABEL_KEY[pillar])
+    const num = index + 1
+
+    const circle = (
+      <span
+        className={
+          CIRCLE_BASE +
+          ' ' +
+          (isActive
+            ? 'bg-accent-primary text-white ring-4 ring-accent-chip'
+            : 'bg-bg border-[1.5px] border-border text-text-tertiary ' +
+              'group-hover:border-text-secondary group-hover:text-text-secondary')
+        }
+        aria-hidden="true"
+      >
+        {num}
+      </span>
+    )
+
+    const labelEl = (
+      <span
+        // Active step carries aria-current here so screen readers
+        // announce "current page" alongside the pillar name. Tests
+        // assert this attribute on the text element itself; if you
+        // refactor to put the label inside an inner span, move the
+        // attribute with it.
+        aria-current={isActive ? 'page' : undefined}
+        className={
+          LABEL_BASE +
+          ' ' +
+          (isActive
+            ? 'text-accent-primary'
+            : 'text-text-tertiary group-hover:text-text-secondary')
+        }
+      >
+        {label}
+      </span>
+    )
 
     if (isActive) {
+      // Non-interactive wrapper for the current step. Span (not Link)
+      // so a tap on the current pillar doesn't navigate to itself.
       return (
-        <span className={`text-accent-primary ${HIT_AREA}`} aria-current="page">
-          {label}
+        <span key={pillar} className={STEP_LAYOUT}>
+          {circle}
+          {labelEl}
         </span>
       )
     }
 
     return (
       <Link
+        key={pillar}
         href={PILLAR_HREF[pillar]}
-        className={`
-          text-text-tertiary hover:text-text-primary transition-colors
-          focus-visible:outline-none focus-visible:ring-2
-          focus-visible:ring-accent-primary focus-visible:ring-offset-2
-          ${HIT_AREA}
-        `}
+        className={
+          'group ' + STEP_LAYOUT +
+          ' focus-visible:outline-none focus-visible:ring-2' +
+          ' focus-visible:ring-accent-primary focus-visible:ring-offset-2'
+        }
       >
-        {label}
+        {circle}
+        {labelEl}
       </Link>
     )
   }
@@ -85,16 +159,24 @@ export function MethodologyEyebrow({ active }: Props) {
   return (
     <nav
       aria-label={t('home.pillarAria')}
-      className="
-        flex items-center gap-2 flex-wrap pt-1.5
-        text-[0.6875rem] font-semibold tracking-[0.14em] uppercase
-      "
+      className="relative flex items-start justify-between pt-1.5"
     >
-      {renderPillar('practise')}
-      <span aria-hidden="true" className="text-text-tertiary/50">→</span>
-      {renderPillar('review')}
-      <span aria-hidden="true" className="text-text-tertiary/50">→</span>
-      {renderPillar('study')}
+      {/* Connecting rail. Sits behind the nodes (z-0) so the opaque
+          circles draw on top, leaving only the two between-node gaps
+          visible. The 16.6667% inset on each side places the line's
+          endpoints at the centers of the first and last circles —
+          each step uses flex-1 (33.33% wide) with the circle
+          centered, so the circle center sits one-sixth in from each
+          edge. top-[28px] = nav pt-1.5 (6px) + step py-1.5 (6px) +
+          circle radius (14px). If you change any of those three,
+          recompute. */}
+      <span
+        aria-hidden="true"
+        style={{ left: '16.6667%', right: '16.6667%' }}
+        className="absolute top-[28px] h-px bg-border-subtle pointer-events-none"
+      />
+
+      {PILLARS.map((pillar, index) => renderStep(pillar, index))}
     </nav>
   )
 }

@@ -219,11 +219,17 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // that used to be a quiet text-row CTA, treating it as a peer way to
     // start the methodology.
     'home.title': 'Conversation Coach',
-    // Greeting tagline shown under the time-of-day "Buenos días". Drives
-    // the user straight into the three modes — replaces the older
-    // home.firstRunSubtitle which described the WhatsApp share fallback
-    // (that's now its own door in the modes grid).
+    // Greeting tagline shown under the time-of-day "Buenos días". Kept
+    // as a translation key even though the on-screen H2 was retired
+    // (the methodology rail + the three doors are self-evident on
+    // /). Worth keeping the entry — it's tiny, and `t()` returning the
+    // key as a fallback would otherwise surface as ugly UI on any
+    // future surface that tries to reuse it.
     'home.subhead': 'How do you want to practise?',
+    // Accessible label for the <section> that wraps the three doors.
+    // Used as `aria-label` so screen-reader users get a verbal cue
+    // about the group, but it is NOT rendered visually anywhere.
+    'home.modesAria': 'Practice modes',
     // Peak-end beat shown once when the user lands on / from onboarding
     // completion (via ?welcome=true). Auto-dismisses after ~3s.
     'home.welcomeBeat': 'All set. Ready when you are.',
@@ -797,6 +803,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // una nota de voz.
     'home.title': 'Entrenador de conversación',
     'home.subhead': '¿Cómo querés practicar?',
+    'home.modesAria': 'Modos de práctica',
     'home.welcomeBeat': 'Todo listo. Empezá cuando quieras.',
 
     // Eyebrow de metodología — pequeña fila "Practicar · Revisar · Estudiar"

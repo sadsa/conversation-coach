@@ -193,31 +193,21 @@ export function PractiseClient(_props: Props) {
           `cc-call-pulse` ring on the active call screen so the visual
           language is continuous). Chat and Share take quieter neutral
           surfaces so Call is the visually loudest door without
-          overpowering the page. Labelled via `aria-labelledby` rather
-          than aria-label so the visible H2 isn't read twice.
+          overpowering the page.
 
-          The H2 ("How do you want to practise?") lives INSIDE the
-          section, not in the header above — it's the question the
-          cards answer, so it groups with them (proximity = meaning).
-          The wrapper's space-y-8 already gives a 32px break between
-          the orientation header (greeting + eyebrow) and this action
-          block; the H2 then sits with 24px of air before the first
-          card, and the three cards stay tight at space-y-3 between
-          themselves. Varied rhythm: tight inside the cards, generous
-          moment around the question. */}
-      <section aria-labelledby="practise-question" className="space-y-6">
-        {/* H2 prompt for the doors below. Promoted from <p> so screen
-            reader heading navigation surfaces it, and so the section
-            can `aria-labelledby` this id without duplicating the
-            visible text in an aria-label. */}
-        <h2
-          id="practise-question"
-          className="text-base font-normal text-text-secondary leading-relaxed"
-        >
-          {t('home.subhead')}
-        </h2>
-
-        <div className="space-y-3">
+          The "How do you want to practise?" H2 that used to sit above
+          these cards was dropped — once the user is on the Practise
+          home, the methodology rail above already names where they
+          are and the three doors are self-evidently practice modes.
+          The dropped question reclaims ~40px of vertical air without
+          losing meaning. The `space-y-8` on the page wrapper gives
+          32px between the rail and the first door; the doors
+          themselves stay tight at space-y-3. Varied rhythm: tight
+          inside the door cluster, generous around it. */}
+      <section
+        aria-label={t('home.modesAria')}
+        className="space-y-3"
+      >
         {/* Pick up a call — starts a Gemini Live call session in-place.
             <button> (not <Link>) because there's no URL to navigate to;
             the parent renders <PracticeClient> when activeMode flips. The
@@ -290,7 +280,6 @@ export function PractiseClient(_props: Props) {
           </div>
           <ChevronRight />
         </Link>
-        </div>
       </section>
     </div>
   )
