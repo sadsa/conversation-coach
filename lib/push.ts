@@ -50,13 +50,6 @@ export async function sendSessionReadyPush(sessionId: string, title: string): Pr
   log.info('push: session-ready sent', { sessionId })
 }
 
-/** Admin notification when a new pending access request arrives. */
-export async function sendAdminPush(args: { title: string; body: string; url: string }): Promise<void> {
-  const payload = JSON.stringify(args)
-  await sendToOwnerDevice(payload)
-  log.info('push: admin notification sent', { url: args.url })
-}
-
 /** @deprecated Use sendSessionReadyPush. Kept for call-site backwards compat. */
 export async function sendPushNotification(sessionId: string, title: string): Promise<void> {
   await sendSessionReadyPush(sessionId, title)

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase-server', () => ({ createServerClient: vi.fn() }))
-vi.mock('@/lib/push', () => ({ sendAdminPush: vi.fn() }))
+vi.mock('@/lib/email', () => ({ sendAdminNotification: vi.fn() }))
 vi.mock('@/lib/logger', () => ({ log: { error: vi.fn(), info: vi.fn() } }))
 
 import { createServerClient } from '@/lib/supabase-server'
-import { sendAdminPush } from '@/lib/push'
+import { sendAdminNotification } from '@/lib/email'
 import { POST } from '@/app/api/access-request/notify/route'
 
 function makeRequest(body: unknown) {
@@ -17,7 +17,7 @@ function makeRequest(body: unknown) {
   })
 }
 
-function makeDb(row: { status: string; requested_at: string; source: string } | null) {
+function makeDb(row: { status: string; requested_at: string; source: string; name?: string } | null) {
   return {
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
@@ -34,7 +34,7 @@ beforeEach(() => {
 })
 
 describe('POST /api/access-request/notify', () => {
-  it('fires sendAdminPush for a fresh pending row', async () => {
+  it('sends admin notification for a fresh pending row', async () => {
     const recentTime = new Date(Date.now() - 5000).toISOString()
     vi.mocked(createServerClient).mockReturnValue(makeDb({
       status: 'pending',
@@ -44,14 +44,10 @@ describe('POST /api/access-request/notify', () => {
 
     const res = await POST(makeRequest({ email: 'test@example.com' }))
     expect(res.status).toBe(204)
-    expect(sendAdminPush).toHaveBeenCalledOnce()
-    const call = vi.mocked(sendAdminPush).mock.calls[0][0]
-    expect(call.title).toBe('New access request')
-    expect(call.url).toBe('/admin')
-    expect(call.body).toContain('Google')
+    expect(sendAdminNotification).toHaveBeenCalledOnce()
   })
 
-  it('does not fire push for approved user', async () => {
+  it('does not send notification for approved user', async () => {
     vi.mocked(createServerClient).mockReturnValue(makeDb({
       status: 'approved',
       requested_at: new Date(Date.now() - 5000).toISOString(),
@@ -60,11 +56,11 @@ describe('POST /api/access-request/notify', () => {
 
     const res = await POST(makeRequest({ email: 'approved@example.com' }))
     expect(res.status).toBe(204)
-    expect(sendAdminPush).not.toHaveBeenCalled()
+    expect(sendAdminNotification).not.toHaveBeenCalled()
   })
 
-  it('does not fire push when row is older than 60 seconds (debounce)', async () => {
-    const oldTime = new Date(Date.now() - 90_000).toISOString()
+  it('does not send notification when row is older than 5 minutes (debounce)', async () => {
+    const oldTime = new Date(Date.now() - 6 * 60_000).toISOString() // 6 minutes old
     vi.mocked(createServerClient).mockReturnValue(makeDb({
       status: 'pending',
       requested_at: oldTime,
@@ -72,13 +68,13 @@ describe('POST /api/access-request/notify', () => {
     }) as any)
 
     await POST(makeRequest({ email: 'old@example.com' }))
-    expect(sendAdminPush).not.toHaveBeenCalled()
+    expect(sendAdminNotification).not.toHaveBeenCalled()
   })
 
-  it('does not fire push when no row found', async () => {
+  it('does not send notification when no row found', async () => {
     vi.mocked(createServerClient).mockReturnValue(makeDb(null) as any)
     await POST(makeRequest({ email: 'nobody@example.com' }))
-    expect(sendAdminPush).not.toHaveBeenCalled()
+    expect(sendAdminNotification).not.toHaveBeenCalled()
   })
 
   it('returns 204 when no email in body', async () => {
@@ -86,16 +82,21 @@ describe('POST /api/access-request/notify', () => {
     expect(res.status).toBe(204)
   })
 
-  it('uses "email link" provider label for non-google source', async () => {
+  it('sends notification with correct args', async () => {
     const recentTime = new Date(Date.now() - 5000).toISOString()
     vi.mocked(createServerClient).mockReturnValue(makeDb({
       status: 'pending',
       requested_at: recentTime,
       source: 'magic_link',
+      name: 'Test User',
     }) as any)
 
     await POST(makeRequest({ email: 'magic@example.com' }))
-    const call = vi.mocked(sendAdminPush).mock.calls[0][0]
-    expect(call.body).toContain('email link')
+    expect(sendAdminNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'magic@example.com',
+        name: 'Test User',
+      })
+    )
   })
 })
