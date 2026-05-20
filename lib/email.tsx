@@ -7,8 +7,7 @@ import AccessDenied from '@/emails/AccessDenied'
 import { log } from '@/lib/logger'
 
 function getResend() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (Resend as any)(process.env.RESEND_API_KEY)
+  return new Resend(process.env.RESEND_API_KEY)
 }
 
 function getFrom() {
