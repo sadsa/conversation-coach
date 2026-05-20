@@ -194,6 +194,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'admin.emptyDenied': 'No denied users',
     'admin.waiting': '{n} waiting',
     'admin.testers': '{n} testers',
+    'admin.denyToast': 'Access denied',
 
     // Access denied
     'accessDenied.title': 'Access required',
@@ -779,6 +780,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'admin.emptyDenied': 'Sin usuarios denegados',
     'admin.waiting': '{n} esperando',
     'admin.testers': '{n} testers',
+    'admin.denyToast': 'Acceso denegado',
 
     // Access denied
     'accessDenied.title': 'Acceso requerido',

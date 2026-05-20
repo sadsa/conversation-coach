@@ -11,5 +11,5 @@ export default async function AdminPage() {
   if (!OWNER_EMAIL || user.email?.toLowerCase() !== OWNER_EMAIL) notFound()
 
   const users = await loadAllowedUsers()
-  return <AdminClient users={users} ownerEmail={OWNER_EMAIL} />
+  return <AdminClient users={users} />
 }

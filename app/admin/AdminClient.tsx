@@ -1,8 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Button } from '@/components/Button'
+import { Icon } from '@/components/Icon'
+import { Toast } from '@/components/Toast'
 import type { AllowedUserRow } from '@/lib/loaders'
+
+const UNDO_MS = 5000
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -37,9 +41,8 @@ function Avatar({ name, avatar_url, email }: { name: string | null; avatar_url: 
 function ProviderPill({ source }: { source: string | null }) {
   const { t } = useTranslation()
   const label = source === 'google' ? t('admin.viaGoogle') : t('admin.viaEmail')
-  const isGoogle = source === 'google'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full border ${isGoogle ? 'border-blue-200 text-blue-600 bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:bg-blue-950/30' : 'border-border text-text-tertiary bg-surface'}`}>
+    <span className="text-xs px-2 py-0.5 rounded-full border border-border text-text-tertiary bg-surface">
       {label}
     </span>
   )
@@ -48,23 +51,24 @@ function ProviderPill({ source }: { source: string | null }) {
 interface UserCardProps {
   user: AllowedUserRow
   onApprove?: (email: string) => Promise<void>
-  onDeny?: (email: string) => Promise<void>
+  onDeny?: (email: string) => void
 }
 
 function UserCard({ user, onApprove, onDeny }: UserCardProps) {
   const { t } = useTranslation()
-  const [loading, setLoading] = useState<'approve' | 'deny' | null>(null)
+  const [approving, setApproving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const hasBothActions = !!(onApprove && onDeny)
 
-  async function handle(action: 'approve' | 'deny') {
-    setLoading(action)
+  async function handleApprove() {
+    if (!onApprove) return
+    setApproving(true)
     setLocalError(null)
     try {
-      if (action === 'approve') await onApprove?.(user.email)
-      else await onDeny?.(user.email)
+      await onApprove(user.email)
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed')
-      setLoading(null)
+      setApproving(false)
     }
   }
 
@@ -91,28 +95,39 @@ function UserCard({ user, onApprove, onDeny }: UserCardProps) {
         </p>
       )}
       {(onApprove || onDeny) && (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {onApprove && (
             <Button
               type="button"
               size="sm"
-              fullWidth
-              disabled={loading !== null}
-              onClick={() => handle('approve')}
+              disabled={approving}
+              className={hasBothActions ? 'flex-1' : 'w-full'}
+              onClick={handleApprove}
             >
-              {loading === 'approve' ? '…' : t('admin.approve')}
+              {approving
+                ? <Icon name="spinner" className="w-4 h-4 mx-auto" />
+                : t('admin.approve')}
             </Button>
           )}
-          {onDeny && (
+          {onDeny && hasBothActions && (
+            <button
+              type="button"
+              disabled={approving}
+              onClick={() => onDeny(user.email)}
+              className="text-sm text-text-tertiary hover:text-text-secondary px-2 py-1 rounded transition-colors disabled:opacity-40"
+            >
+              {t('admin.deny')}
+            </button>
+          )}
+          {onDeny && !hasBothActions && (
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              fullWidth
-              disabled={loading !== null}
-              onClick={() => handle('deny')}
+              className="w-full"
+              onClick={() => onDeny(user.email)}
             >
-              {loading === 'deny' ? '…' : t('admin.deny')}
+              {t('admin.deny')}
             </Button>
           )}
         </div>
@@ -142,51 +157,84 @@ function CollapsibleGroup({ label, count, children, defaultOpen = false, emptyLa
         <span className="text-xs text-text-tertiary bg-surface-raised px-2 py-0.5 rounded-full border border-border-subtle">
           {count}
         </span>
-        <svg
-          width="14" height="14" viewBox="0 0 256 256"
-          fill="currentColor" stroke="none"
-          className={`text-text-tertiary ml-auto transition-transform ${open ? 'rotate-180' : ''}`}
-          aria-hidden="true"
-        >
-          <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
-        </svg>
+        <Icon
+          name="caret-down"
+          className={`w-3.5 h-3.5 text-text-tertiary ml-auto motion-safe:transition-transform motion-safe:duration-200 ${open ? 'rotate-180' : ''}`}
+        />
       </button>
-      {open && (
-        <div className="space-y-2">
-          {count === 0 && emptyLabel ? (
-            <p className="text-sm text-text-tertiary px-1">{emptyLabel}</p>
-          ) : children}
+      <div
+        className={`grid motion-safe:transition-[grid-template-rows] motion-safe:duration-200 ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-2 pt-0.5">
+            {count === 0 && emptyLabel
+              ? <p className="text-sm text-text-tertiary px-1">{emptyLabel}</p>
+              : children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
 interface AdminClientProps {
   users: AllowedUserRow[]
-  ownerEmail: string
 }
 
-export default function AdminClient({ users: initialUsers, ownerEmail: _ownerEmail }: AdminClientProps) {
+export default function AdminClient({ users: initialUsers }: AdminClientProps) {
   const { t } = useTranslation()
   const [users, setUsers] = useState(initialUsers)
+  const [toast, setToast] = useState<{ key: number; message: string; onUndo?: () => void } | null>(null)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function showToast(message: string, onUndo?: () => void) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({ key: Date.now(), message, onUndo })
+    toastTimerRef.current = setTimeout(() => setToast(null), UNDO_MS)
+  }
 
   const pending = users.filter(u => u.status === 'pending')
   const approved = users.filter(u => u.status === 'approved')
   const denied = users.filter(u => u.status === 'denied')
 
-  async function callAction(email: string, action: 'approve' | 'deny') {
-    const encoded = encodeURIComponent(email)
-    const res = await fetch(`/api/admin/access/${encoded}/${action}`, { method: 'POST' })
+  async function handleApprove(email: string) {
+    const prevStatus = users.find(u => u.email === email)?.status ?? 'pending'
+    setUsers(us => us.map(u => u.email === email ? { ...u, status: 'approved' } : u))
+    const res = await fetch(`/api/admin/access/${encodeURIComponent(email)}/approve`, { method: 'POST' })
     if (!res.ok) {
+      setUsers(us => us.map(u => u.email === email ? { ...u, status: prevStatus } : u))
       const body = await res.json().catch(() => ({}))
-      throw new Error(body.error ?? `${action} failed`)
+      throw new Error(body.error ?? 'approve failed')
     }
-    setUsers(prev => prev.map(u =>
-      u.email === email
-        ? { ...u, status: action === 'approve' ? 'approved' : 'denied' }
-        : u
-    ))
+  }
+
+  function handleDeny(email: string) {
+    const prevStatus = users.find(u => u.email === email)?.status ?? 'pending'
+    setUsers(us => us.map(u => u.email === email ? { ...u, status: 'denied' } : u))
+
+    let cancelled = false
+    let denyTimer: ReturnType<typeof setTimeout> | null = null
+
+    function restore() {
+      setUsers(us => us.map(u => u.email === email ? { ...u, status: prevStatus } : u))
+    }
+
+    showToast(t('admin.denyToast'), () => {
+      cancelled = true
+      if (denyTimer) clearTimeout(denyTimer)
+      restore()
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+      setToast(null)
+    })
+
+    denyTimer = setTimeout(async () => {
+      if (cancelled) return
+      const res = await fetch(`/api/admin/access/${encodeURIComponent(email)}/deny`, { method: 'POST' })
+      if (!res.ok) {
+        restore()
+        showToast('Failed to deny access')
+      }
+    }, UNDO_MS)
   }
 
   return (
@@ -201,12 +249,12 @@ export default function AdminClient({ users: initialUsers, ownerEmail: _ownerEma
       </div>
 
       <div className="flex-1 px-4 pb-8 space-y-6">
-        {/* Pending */}
+        {/* Pending — always expanded, this is the action surface */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text-primary">{t('admin.pending')}</h2>
             {pending.length > 0 && (
-              <span className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+              <span className="text-xs px-2 py-0.5 rounded-full border bg-[--annotation-unreviewed-bg] text-[--annotation-unreviewed-text] border-[--annotation-unreviewed-border]">
                 {t('admin.waiting', { n: String(pending.length) })}
               </span>
             )}
@@ -219,8 +267,8 @@ export default function AdminClient({ users: initialUsers, ownerEmail: _ownerEma
                 <UserCard
                   key={u.email}
                   user={u}
-                  onApprove={email => callAction(email, 'approve')}
-                  onDeny={email => callAction(email, 'deny')}
+                  onApprove={handleApprove}
+                  onDeny={handleDeny}
                 />
               ))}
             </div>
@@ -234,7 +282,7 @@ export default function AdminClient({ users: initialUsers, ownerEmail: _ownerEma
           emptyLabel="—"
         >
           {approved.map(u => (
-            <UserCard key={u.email} user={u} onDeny={email => callAction(email, 'deny')} />
+            <UserCard key={u.email} user={u} onDeny={handleDeny} />
           ))}
         </CollapsibleGroup>
 
@@ -245,10 +293,18 @@ export default function AdminClient({ users: initialUsers, ownerEmail: _ownerEma
           emptyLabel={t('admin.emptyDenied')}
         >
           {denied.map(u => (
-            <UserCard key={u.email} user={u} onApprove={email => callAction(email, 'approve')} />
+            <UserCard key={u.email} user={u} onApprove={handleApprove} />
           ))}
         </CollapsibleGroup>
       </div>
+
+      {toast && (
+        <Toast
+          toastKey={toast.key}
+          message={toast.message}
+          action={toast.onUndo ? { label: t('writeList.undo'), onClick: toast.onUndo } : undefined}
+        />
+      )}
     </div>
   )
 }
