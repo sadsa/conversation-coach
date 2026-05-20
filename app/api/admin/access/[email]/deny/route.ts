@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendAccessDenied } from '@/lib/email'
 import { log } from '@/lib/logger'
 
 export async function POST(
@@ -27,6 +28,11 @@ export async function POST(
     log.error('admin/deny: db update failed', { email, error: error.message })
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
+
+  // Fire-and-forget — a send failure does not fail the denial
+  sendAccessDenied({ to: email }).catch((err) => {
+    log.error('admin/deny: denial email failed', { email, err })
+  })
 
   return NextResponse.json({ ok: true, status: 'denied' })
 }
