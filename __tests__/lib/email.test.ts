@@ -32,9 +32,13 @@ describe('sendAdminNotification', () => {
 
   afterEach(() => {
     delete process.env.RESEND_API_KEY
+    delete process.env.RESEND_FROM_EMAIL
+    delete process.env.NEXT_PUBLIC_OWNER_EMAIL
+    delete process.env.APP_URL
   })
 
   it('sends to NEXT_PUBLIC_OWNER_EMAIL with correct subject', async () => {
+    vi.resetModules()
     const { sendAdminNotification } = await import('@/lib/email')
     await sendAdminNotification({
       name: 'Valentina Torres',
@@ -83,6 +87,8 @@ describe('sendAccessDenied', () => {
 
   afterEach(() => {
     delete process.env.RESEND_API_KEY
+    delete process.env.RESEND_FROM_EMAIL
+    delete process.env.NEXT_PUBLIC_OWNER_EMAIL
   })
 
   it('sends to the denied user with correct subject', async () => {

@@ -1,3 +1,4 @@
+// .tsx extension required — file uses JSX to render React Email templates inline
 // lib/email.tsx
 import * as React from 'react'
 import { Resend } from 'resend'
@@ -27,6 +28,10 @@ export async function sendAdminNotification({
     log.warn('email: RESEND_API_KEY not set — skipping admin notification')
     return
   }
+  if (!process.env.NEXT_PUBLIC_OWNER_EMAIL) {
+    log.warn('email: NEXT_PUBLIC_OWNER_EMAIL not set — skipping admin notification')
+    return
+  }
   try {
     const html = await render(
       <AdminNotification
@@ -51,6 +56,10 @@ export async function sendAdminNotification({
 export async function sendAccessDenied({ to }: { to: string }): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     log.warn('email: RESEND_API_KEY not set — skipping access denied email')
+    return
+  }
+  if (!process.env.NEXT_PUBLIC_OWNER_EMAIL) {
+    log.warn('email: NEXT_PUBLIC_OWNER_EMAIL not set — skipping access denied email')
     return
   }
   try {
