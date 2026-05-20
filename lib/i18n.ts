@@ -175,7 +175,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Pending approval page
     'pending.title': 'Your access request is in',
-    'pending.body': "I review new sign-ups personally — usually within a day. You'll get an email with a one-click sign-in link the moment you're approved. No need to come back here.",
+    'pending.body': "I review sign-ups personally, usually within a day. When you're approved, you'll get a sign-in link by email. No need to come back here.",
     'pending.requestedAs': 'Requested as',
     'pending.signOut': 'Sign out',
 
@@ -753,8 +753,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'auth.error.generic': 'No pudimos enviar el enlace — por favor intentá de nuevo.',
 
     // Pending approval page
-    'pending.title': 'Tu solicitud de acceso está recibida',
-    'pending.body': 'Reviso los nuevos registros personalmente — generalmente en el día. Te llega un correo con un enlace de un click en cuanto te apruebe. No hace falta que vuelvas acá.',
+    'pending.title': 'Tu solicitud llegó',
+    'pending.body': 'Reviso los registros personalmente, generalmente en el día. Cuando te apruebe, te mando un email con un link para entrar. No hace falta que vuelvas acá.',
     'pending.requestedAs': 'Solicitado como',
     'pending.signOut': 'Cerrar sesión',
 

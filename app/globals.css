@@ -386,15 +386,6 @@
   .oa-sheet    { animation: oa-sheet    4s var(--ease-out-expo)  both; }
   .oa-pulse    { animation: oa-pulse    4s var(--ease-out-quart) both; }
 
-  /* Looping amber ring — /pending-approval hourglass.
-     Permitted amber borrow: see .impeccable.md decision log. */
-  @keyframes pending-ring {
-    0%, 100% { opacity: 0;   transform: scale(1); }
-    15%      { opacity: 0.5; transform: scale(1); }
-    80%      { opacity: 0;   transform: scale(1.7); }
-  }
-  .pending-ring { animation: pending-ring 3.2s ease-in-out infinite; }
-
   /* Processing graphic — the consolidated "we're working on it" visual
      ───────────────────────────────────────────────────────────────────────
      Used by both the audio-upload pipeline and the practice-conversation

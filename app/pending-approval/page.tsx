@@ -33,35 +33,6 @@ export default function PendingApprovalPage() {
           <Wordmark />
         </div>
 
-        {/* Amber hourglass with looping ring */}
-        <div className="flex justify-center">
-          <div className="relative inline-flex items-center justify-center">
-            {/* Pulsing ring — suppressed by prefers-reduced-motion (global 0.01ms duration) */}
-            <span
-              className="pending-ring absolute inset-0 rounded-full border-2 border-amber-400"
-              aria-hidden="true"
-            />
-            <span
-              className="pending-ring absolute inset-0 rounded-full border-2 border-amber-400 [animation-delay:1.6s]"
-              aria-hidden="true"
-            />
-            <div className="relative w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex items-center justify-center">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 256 256"
-                fill="currentColor"
-                stroke="none"
-                className="text-amber-500"
-                aria-hidden="true"
-              >
-                {/* Phosphor hourglass-medium fill */}
-                <path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V75.64a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.56A16.07,16.07,0,0,0,56,180.36V216a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.07,16.07,0,0,0-6.4-12.8L141.33,128,193.6,88.44A16.07,16.07,0,0,0,200,75.64ZM184,215.1,72,216V180.36l56-42,56,42ZM72,75.64V40l112-.1V75.64l-56,42Z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-3">
           <h1 className="font-display text-2xl font-medium text-text-primary">
             {t('pending.title')}
