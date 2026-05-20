@@ -1,6 +1,7 @@
+// app/api/access-request/notify/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
-import { sendAdminPush } from '@/lib/push'
+import { sendAdminNotification } from '@/lib/email'
 import { log } from '@/lib/logger'
 
 // 5-minute window: defends against double-fire on page reloads while
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   const db = createServerClient()
   const { data: row } = await db
     .from('allowed_users')
-    .select('status, requested_at, source')
+    .select('status, requested_at, source, name')
     .eq('email', email)
     .single()
 
@@ -34,15 +35,23 @@ export async function POST(request: NextRequest) {
     return new NextResponse(null, { status: 204 })
   }
 
-  const provider = row.source === 'google' ? 'Google' : 'email link'
+  const requestedAt = new Date(row.requested_at).toLocaleString('en-AU', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+
   try {
-    await sendAdminPush({
-      title: 'New access request',
-      body: `${email} signed in via ${provider}. Tap to review.`,
-      url: '/admin',
+    await sendAdminNotification({
+      name: row.name ?? '',
+      email,
+      requestedAt,
     })
   } catch (err) {
-    log.error('access-request/notify: push failed', { email, error: err })
+    log.error('access-request/notify: email failed', { email, error: err })
   }
 
   // Always 204 — never reveal pending vs approved status to the caller
