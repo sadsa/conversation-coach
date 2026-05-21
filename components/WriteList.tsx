@@ -8,7 +8,7 @@
 'use client'
 import Link from 'next/link'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import type { PracticeItem } from '@/lib/types'
+import type { PracticeItem, TargetLanguage } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { WriteSheet } from '@/components/WriteSheet'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
@@ -18,6 +18,25 @@ import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 
 const UNDO_TIMEOUT_MS = 5000
+
+/**
+ * Example correction shown inside the empty-state teaching card. The
+ * example is in the user's TARGET language — they're being shown what
+ * their own saved rows will look like, so the content has to match what
+ * they're actually learning. Keying by targetLanguage (rather than the
+ * UI language) keeps the model honest if we ever decouple UI vs target.
+ *
+ * Each pair is a learner-typical mistake for that target. Kept short
+ * enough that the empty-state card stays one tidy line.
+ *
+ *   es-AR: drop the redundant subject pronoun (classic Rioplatense).
+ *   en-NZ: tener-as-state calque from Spanish ("I have hunger" reads
+ *          to a native ear the way "Yo fui" does to a Rioplatense ear).
+ */
+const EMPTY_STATE_EXAMPLE: Record<TargetLanguage, { original: string; correction: string }> = {
+  'es-AR': { original: 'Yo fui', correction: 'Fui' },
+  'en-NZ': { original: 'I have hunger', correction: "I'm hungry" },
+}
 
 type View = 'write' | 'written'
 
@@ -251,28 +270,34 @@ function compareNewestFirst(a: PracticeItem, b: PracticeItem): number {
 }
 
 function EmptyWrite() {
-  const { t } = useTranslation()
+  const { t, targetLanguage } = useTranslation()
+  const example = EMPTY_STATE_EXAMPLE[targetLanguage]
   return (
     <div className="py-6 space-y-5 max-w-prose">
       {/* Faded example row — same visual grammar as the real rows so the
-          empty state teaches by showing, not just telling. */}
+          empty state teaches by showing, not just telling. The example
+          itself is in the user's target language (see EMPTY_STATE_EXAMPLE
+          above) — a Spanish example would teach nothing to an English
+          learner and vice versa. */}
       <div
         className="rounded-xl border border-border-subtle bg-surface px-4 py-3.5 opacity-70"
         aria-hidden="true"
       >
-        <StrikeOriginal original="Yo fui" correction="Fui" />
+        <StrikeOriginal original={example.original} correction={example.correction} />
         <p className="text-sm italic text-text-tertiary leading-relaxed mt-1.5">
           {t('writeList.emptyWriteCaption')}
         </p>
       </div>
       <p className="text-text-secondary text-sm leading-relaxed">
-        {/* Points at /review (the conversations inbox) — the user opens a
-            conversation there, saves a correction inside the transcript,
-            and it lands back in this queue. Used to point at `/`, which
-            is now the Practise picker after the home redesign and would
-            send the user a tab away from where the saved-correction
-            workflow actually starts. */}
-        <Link href="/review" className="text-accent-primary font-medium hover:underline">
+        {/* Points at `/` (the Practise picker) — first-time users on this
+            surface have nothing in /review to "open" either, so sending
+            them to the inbox would just stage a second empty state. The
+            Practise home is the methodology's entry point: pick a mode,
+            have a conversation, save a correction from the transcript,
+            and it lands back here. CTA copy mirrors the destination's
+            verb ("Practise…") so the link doesn't promise a list to
+            browse. */}
+        <Link href="/" className="text-accent-primary font-medium hover:underline">
           {t('writeList.emptyWriteCta')}
         </Link>
       </p>
@@ -291,14 +316,15 @@ interface EmptyWrittenProps {
  * caption mirrors EmptyWrite's "this is what these look like" rhythm.
  */
 function EmptyWritten({ writeCount, onBack }: EmptyWrittenProps) {
-  const { t } = useTranslation()
+  const { t, targetLanguage } = useTranslation()
+  const example = EMPTY_STATE_EXAMPLE[targetLanguage]
   return (
     <div className="py-6 space-y-5 max-w-prose">
       <div
         className="rounded-xl border border-border-subtle bg-surface/60 px-4 py-3.5 opacity-70"
         aria-hidden="true"
       >
-        <StrikeOriginal original="Yo fui" correction="Fui" muted />
+        <StrikeOriginal original={example.original} correction={example.correction} muted />
         <p className="text-sm italic text-text-tertiary leading-relaxed mt-1.5">
           {t('writeList.emptyWrittenCaption')}
         </p>

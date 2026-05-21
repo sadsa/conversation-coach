@@ -163,15 +163,17 @@ describe('WriteList — empty states', () => {
   it('shows the teaching empty-state with example + CTA when nothing to write down', () => {
     render(<WriteList items={[writtenItem]} />)
     expect(screen.getByText(/saved corrections look like this/i)).toBeInTheDocument()
-    // The empty-state CTA sends users to /review (the conversations
-    // inbox) — they open a conversation there, save a correction
-    // inside the transcript, and it lands back in this Study queue.
-    // The link used to point at `/`, but after the home redesign that's
-    // the Practise picker, not the inbox. /review is one tab closer to
-    // the actual save-a-correction surface.
-    const link = screen.getByRole('link', { name: /open a conversation/i })
+    // The empty-state CTA sends users to `/` (the Practise picker) —
+    // the methodology's entry point. They pick a mode, have a
+    // conversation, save a correction from the transcript, and it
+    // lands back in this Study queue. The link briefly pointed at
+    // /review during the home redesign, but the inbox is also empty
+    // for first-time users and "open a conversation" promised a list
+    // they didn't have — Practise is the surface that actually
+    // generates the first correction.
+    const link = screen.getByRole('link', { name: /practise to save/i })
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', '/review')
+    expect(link).toHaveAttribute('href', '/')
   })
 
   it('shows the Written empty copy when nothing has been marked yet', () => {
