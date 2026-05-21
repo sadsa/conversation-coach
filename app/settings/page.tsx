@@ -7,6 +7,7 @@ import { TARGET_LANGUAGES, type TargetLanguage } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Toast } from '@/components/Toast'
 import { Wordmark } from '@/components/Wordmark'
+import { IosInstallHint } from '@/components/IosInstallHint'
 
 const MIN = 14
 const MAX = 22
@@ -132,6 +133,8 @@ export default function SettingsPage() {
           {signingOut ? '…' : t('settings.signOut')}
         </button>
       </div>
+
+      <IosInstallHint />
 
       {/* Footer — quietly stamps the brand alongside the version. The
           wordmark on its own would feel decorative; pairing it with the

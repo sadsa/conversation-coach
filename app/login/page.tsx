@@ -5,6 +5,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { Button, buttonStyles } from '@/components/Button'
 import { LogoMark } from '@/components/LogoMark'
 import { Wordmark } from '@/components/Wordmark'
+import { IosInstallHint } from '@/components/IosInstallHint'
 
 function GoogleButton({ label, loading, onClick }: { label: string; loading: boolean; onClick: () => void }) {
   return (
@@ -153,7 +154,7 @@ export default function LoginPage() {
   const showQuickSelect = savedEmail !== null && !showEmailForm
 
   return (
-    <div className="flex items-center justify-center flex-1 px-6">
+    <div className="flex flex-col items-center justify-center flex-1 px-6 gap-8">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-5">
           <div className="space-y-2">
@@ -296,6 +297,7 @@ export default function LoginPage() {
           </div>
         )}
       </div>
+      <IosInstallHint />
     </div>
   )
 }
