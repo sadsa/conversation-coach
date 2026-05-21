@@ -19,12 +19,12 @@ export async function POST(
   const email = decodeURIComponent(params.email).toLowerCase()
   const db = createServerClient()
 
-  const { error, count } = await db
+  const { data, error } = await db
     .from('allowed_users')
     .update({ status: 'denied' })
     .eq('email', email)
     .eq('status', 'pending')
-    .select('*', { count: 'exact', head: true })
+    .select('email')
 
   if (error) {
     log.error('admin/deny: db update failed', { email, error: error.message })
@@ -32,7 +32,7 @@ export async function POST(
   }
 
   // Only notify on actual pending → denied transition
-  if (count && count > 0) {
+  if (data && data.length > 0) {
     sendAccessDenied({ to: email }).catch((err) => {
       log.error('admin/deny: denial email failed', { email, err })
     })
