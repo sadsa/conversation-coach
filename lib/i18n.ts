@@ -148,16 +148,31 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.coachLabel': 'Coach',
 
     // Auth — login page
-    'auth.signInTitle': 'Sign in',
+    //
+    // Copy direction (2026-05 first-time-user critique pass):
+    //   • `signInTitle` reframed to "Get started" — magic-link is sign-up
+    //     AND sign-in unified, and "Sign in" framed the surface for
+    //     returning users only. Returning users still see
+    //     `welcomeBack` (gated on a saved-email localStorage hit).
+    //   • `submit` reframed to "Continue with email" so the button label
+    //     matches the Google button's pattern. The literal "sign-in link"
+    //     phrasing leaked the underlying mechanism into the CTA.
+    //   • `inviteOnlyNote` replaces `requestAccessNote`. Same idea, but
+    //     positioned ABOVE the Google button (not below the divider) so
+    //     users who tap Google first know what they're committing to.
+    //     `requestAccessNote` key retained as a fallback alias for any
+    //     stale references in tests/docs.
+    'auth.signInTitle': 'Get started',
     'auth.welcomeBack': 'Welcome back',
     'auth.continueWithGoogle': 'Continue with Google',
     'auth.orUseEmail': 'or use email',
     'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
     'auth.emailLabel': 'Email',
     'auth.emailPlaceholder': 'you@example.com',
-    'auth.submit': 'Email me a sign-in link',
+    'auth.submit': 'Continue with email',
     'auth.submitting': 'Sending…',
-    'auth.requestAccessNote': "New here? Sign in with Google or your email and I'll review your request within a day.",
+    'auth.inviteOnlyNote': "Invite-only beta — I'll review new requests within a day.",
+    'auth.requestAccessNote': "Invite-only beta — I'll review new requests within a day.",
     'auth.linkSentTo': 'We sent a sign-in link to {email}.',
     'auth.linkSentNote':
       "Open it on this device to sign in. Check your spam if you don't see it in a few minutes.",
@@ -243,6 +258,12 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.pillarReview': 'Review',
     'home.pillarStudy': 'Study',
     'home.pillarAria': 'Methodology: Practise, then review, then study',
+    // Locked-pillar aria-label (used by both screen-reader announcements and
+    // a small visible caption beneath dashed/dimmed pillar nodes). Surfaces
+    // when the user has no data flowing through that pillar yet — keeps
+    // first-time users from tapping into a dead-end empty state.
+    'home.pillarLockedReview': 'Unlocks after your first conversation',
+    'home.pillarLockedStudy': 'Unlocks when you save your first correction',
 
     // Mode cards — the three doors out of the home. Call + Chat reuse the
     // existing practice.modeCall*/modeChat* copy. The third door is the
@@ -733,17 +754,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.youLabel': 'Vos',
     'practice.coachLabel': 'Coach',
 
-    // Auth — login page
-    'auth.signInTitle': 'Iniciá sesión',
+    // Auth — login page (see English block for the copy-direction notes)
+    'auth.signInTitle': 'Empezá',
     'auth.welcomeBack': 'Hola de nuevo',
     'auth.continueWithGoogle': 'Continuar con Google',
     'auth.orUseEmail': 'o usar correo',
     'auth.signInSubtitle': 'Iniciá sesión para revisar tus conversaciones grabadas.',
     'auth.emailLabel': 'Correo electrónico',
     'auth.emailPlaceholder': 'vos@ejemplo.com',
-    'auth.submit': 'Enviame un enlace de inicio',
+    'auth.submit': 'Continuar con correo',
     'auth.submitting': 'Enviando…',
-    'auth.requestAccessNote': 'Sos nuevo acá? Iniciá sesión con Google o tu correo y reviso tu solicitud en el día.',
+    'auth.inviteOnlyNote': 'Beta por invitación — reviso las nuevas solicitudes en el día.',
+    'auth.requestAccessNote': 'Beta por invitación — reviso las nuevas solicitudes en el día.',
     'auth.linkSentTo': 'Te enviamos un enlace de inicio a {email}.',
     'auth.linkSentNote':
       'Abrilo en este dispositivo para iniciar sesión. Revisá spam si no lo ves en unos minutos.',
@@ -815,6 +837,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.pillarReview': 'Revisar',
     'home.pillarStudy': 'Estudiar',
     'home.pillarAria': 'Metodología: practicá, luego revisá, luego estudiá',
+    'home.pillarLockedReview': 'Se desbloquea con tu primera conversación',
+    'home.pillarLockedStudy': 'Se desbloquea cuando guardás tu primera corrección',
 
     // Tarjetas de modo — las tres puertas del home. Llamada + Chat
     // reutilizan practice.modeCall*/modeChat*. La tercera puerta es

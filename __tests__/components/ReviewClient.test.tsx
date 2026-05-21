@@ -108,11 +108,33 @@ describe('ReviewClient — methodology eyebrow', () => {
     expect(reviewEl).toHaveAttribute('aria-current', 'page')
   })
 
-  it('Study pillar is a plain link to /write (no count badge)', () => {
+  it('Study pillar is a plain link to /write (no count badge) when not locked', () => {
     render(<ReviewClient initialSessions={[mockSession]} />)
     const studyLink = screen.getByText('Study').closest('a')
     expect(studyLink).toHaveAttribute('href', '/write')
     expect(screen.queryByTestId('home-study-chip')).not.toBeInTheDocument()
+  })
+
+  // First-time-user critique pass (2026-05): if the user has recordings
+  // but hasn't saved any practice items yet, the Study pillar should
+  // dashed-lock so the eyebrow stops pointing at the empty Write queue.
+  // The page-level RSC derives this from loadEmptyAccountFlags and
+  // hands the array in; the component just renders it.
+  it('renders Study as a locked non-link span when lockedPillars contains "study"', () => {
+    // Avoid getByLabelText — see PractiseClient test for the normalizer
+    // patch gotcha (vitest.setup.ts).
+    const { container } = render(
+      <ReviewClient
+        initialSessions={[mockSession]}
+        lockedPillars={['study']}
+      />,
+    )
+    expect(screen.getByText('Study').closest('a')).toBeNull()
+    const studyWrapper = container.querySelector('[data-locked="true"]')
+    expect(studyWrapper).not.toBeNull()
+    expect(studyWrapper?.getAttribute('aria-label')).toMatch(
+      /Study — home\.pillarLockedStudy/,
+    )
   })
 })
 

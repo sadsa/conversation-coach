@@ -35,7 +35,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
-import { MethodologyEyebrow } from '@/components/MethodologyEyebrow'
+import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
@@ -51,9 +51,17 @@ const POLL_MAX_MS = 30_000
 
 interface Props {
   initialSessions: SessionListItem[]
+  /**
+   * Methodology pillars to render as locked in the eyebrow. The parent
+   * RSC decides — Review itself is never locked (this IS Review), so the
+   * only meaningful entry today is `'study'` (user has sessions but no
+   * saved practice items yet). Optional so legacy callers / tests stay
+   * green when they don't care about the lock state.
+   */
+  lockedPillars?: ReadonlyArray<Pillar>
 }
 
-export function ReviewClient({ initialSessions }: Props) {
+export function ReviewClient({ initialSessions, lockedPillars }: Props) {
   const { t } = useTranslation()
   // Router only retained for parity with HomeClient ergonomics — no
   // route changes are triggered from this component today; remove if
@@ -186,7 +194,7 @@ export function ReviewClient({ initialSessions }: Props) {
         <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
           {t('review.title')}
         </h1>
-        <MethodologyEyebrow active="review" />
+        <MethodologyEyebrow active="review" lockedPillars={lockedPillars} />
       </header>
 
       {/* In-progress strip — only renders when there's at least one

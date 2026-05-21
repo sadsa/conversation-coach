@@ -145,6 +145,45 @@ describe('PractiseClient — methodology eyebrow', () => {
   })
 })
 
+// First-time-user critique pass (2026-05): empty accounts shouldn't see
+// Review/Study as live links in the eyebrow — tapping them lands in a
+// placeholder empty state that teaches "stuff I don't have" rather than
+// the methodology. The home RSC computes `lockedPillars` from
+// loadEmptyAccountFlags and passes it down; PractiseClient just hands it
+// through. These tests cover the rendering contract.
+describe('PractiseClient — locked pillars (empty account)', () => {
+  it('renders Review/Study as non-link spans when both are locked', () => {
+    render(<PractiseClient lockedPillars={['review', 'study']} />)
+    // The labels are still in the DOM (we want users to read where they
+    // ARE going to get to), just not wrapped in a navigable `<a>`.
+    expect(screen.getByText('Review').closest('a')).toBeNull()
+    expect(screen.getByText('Study').closest('a')).toBeNull()
+  })
+
+  it('keeps Practise active even with both other pillars locked', () => {
+    render(<PractiseClient lockedPillars={['review', 'study']} />)
+    expect(screen.getByText('Practise')).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('locked pillar wrapper carries an aria-label with the unlock copy', () => {
+    // Avoid getByLabelText — vitest.setup.ts patches makeNormalizer in a
+    // way that breaks its query path (same gotcha LoginPage.test.tsx
+    // documents). Query by attribute selector instead.
+    const { container } = render(<PractiseClient lockedPillars={['review']} />)
+    const reviewWrapper = container.querySelector('[data-locked="true"]')
+    expect(reviewWrapper).not.toBeNull()
+    expect(reviewWrapper?.getAttribute('aria-label')).toMatch(
+      /Review — home\.pillarLockedReview/,
+    )
+  })
+
+  it('only locks the pillars listed — Study stays a live link when not in the set', () => {
+    render(<PractiseClient lockedPillars={['review']} />)
+    expect(screen.getByText('Review').closest('a')).toBeNull()
+    expect(screen.getByText('Study').closest('a')).toHaveAttribute('href', '/write')
+  })
+})
+
 describe('PractiseClient — share-target redirect', () => {
   // Mirrors the same IndexedDB callback choreography that readPendingShare()
   // walks: open.onsuccess → tx.store.get.onsuccess → tx.oncomplete.

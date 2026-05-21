@@ -16,13 +16,36 @@
 import { redirect } from 'next/navigation'
 import { ReviewClient } from '@/components/ReviewClient'
 import { getAuthenticatedUser } from '@/lib/auth'
-import { loadSessions } from '@/lib/loaders'
+import { loadEmptyAccountFlags, loadSessions } from '@/lib/loaders'
+import type { Pillar } from '@/components/MethodologyEyebrow'
 
 export default async function ReviewPage() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
-  const initialSessions = await loadSessions(user.id).catch(() => [])
+  // Sessions list + Study-pillar lock probe in parallel. We could derive
+  // `hasSessions` from `initialSessions.length` and skip the sessions
+  // half of `loadEmptyAccountFlags`, but the probe is a single-row
+  // limit(1) and the code stays simpler when every page calls the same
+  // loader. The Study pillar lock IS load-bearing here — a user with
+  // recordings but no saved corrections should see Study dashed-locked.
+  const [initialSessions, flags] = await Promise.all([
+    loadSessions(user.id).catch(() => []),
+    loadEmptyAccountFlags(user.id).catch(() => ({
+      hasSessions: true,
+      hasPracticeItems: true,
+    })),
+  ])
 
-  return <ReviewClient initialSessions={initialSessions} />
+  const lockedPillars: Pillar[] = []
+  // Review itself is the active surface, so it never locks here. We
+  // still respect the Study lock — same rule across the methodology.
+  if (!flags.hasPracticeItems) lockedPillars.push('study')
+
+  return (
+    <ReviewClient
+      initialSessions={initialSessions}
+      lockedPillars={lockedPillars}
+    />
+  )
 }

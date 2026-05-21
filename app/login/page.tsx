@@ -37,6 +37,34 @@ function GoogleDivider({ label }: { label: string }) {
   )
 }
 
+// Small banner pinned ABOVE the Google button on the first-time view so
+// users who tap Google (the loud, default-instinct first move) know the
+// product is invite-only before they commit. Lives below the H1 and above
+// every auth control, so neither path can miss it. Hidden for the
+// returning-user quick-select branch — they already have access.
+function InviteOnlyChip({ label }: { label: string }) {
+  return (
+    <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-accent-chip text-on-accent-chip text-xs leading-snug">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="flex-shrink-0 mt-px"
+        aria-hidden="true"
+      >
+        <rect x="3" y="6" width="18" height="14" rx="2" />
+        <path d="m3 8 9 6 9-6" />
+      </svg>
+      <span>{label}</span>
+    </div>
+  )
+}
+
 // Loose RFC-5322-ish check: localpart@domain.tld. Permissive on purpose —
 // Supabase will reject anything truly malformed, so this is just to catch
 // obvious typos before the network call.
@@ -228,6 +256,13 @@ export default function LoginPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* The invite-only disclaimer used to live below the Google
+                divider, inside the email form's intro paragraph. Users who
+                tapped Google first never read it — they'd commit to OAuth
+                without knowing the product was invite-only and only learn
+                that after the access-denied bounce. Moving it above every
+                auth control makes it impossible to miss. */}
+            <InviteOnlyChip label={t('auth.inviteOnlyNote')} />
             <GoogleButton
               label={t('auth.continueWithGoogle')}
               loading={googleLoading}
@@ -235,9 +270,6 @@ export default function LoginPage() {
             />
             <GoogleDivider label={t('auth.orUseEmail')} />
             <form onSubmit={sendMagicLink} className="space-y-4" noValidate>
-              <p className="text-sm text-text-secondary">
-                {t('auth.requestAccessNote')}
-              </p>
               <div className="space-y-1.5">
                 <label
                   htmlFor="email"

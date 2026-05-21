@@ -19,15 +19,21 @@
 'use client'
 import { useState } from 'react'
 import { WriteList } from '@/components/WriteList'
-import { MethodologyEyebrow } from '@/components/MethodologyEyebrow'
+import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { PracticeItem } from '@/lib/types'
 
 interface Props {
   initialItems: PracticeItem[]
+  /**
+   * Locked-pillar passthrough — see ReviewClient for the full rationale.
+   * The only entry that can land here today is `'review'` (no sessions
+   * yet), since Study is the active surface. Optional for test parity.
+   */
+  lockedPillars?: ReadonlyArray<Pillar>
 }
 
-export function WriteClient({ initialItems }: Props) {
+export function WriteClient({ initialItems, lockedPillars }: Props) {
   const { t } = useTranslation()
   const [items, setItems] = useState<PracticeItem[]>(initialItems)
 
@@ -39,7 +45,7 @@ export function WriteClient({ initialItems }: Props) {
         <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
           {t('write.title')}
         </h1>
-        <MethodologyEyebrow active="study" />
+        <MethodologyEyebrow active="study" lockedPillars={lockedPillars} />
       </header>
       <WriteList
         items={items}

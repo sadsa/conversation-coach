@@ -180,6 +180,49 @@ export async function loadPracticeItems(
   })
 }
 
+/**
+ * Cheap "does the user have anything yet?" flags that the methodology
+ * eyebrow uses to lock pillars an empty account can't fill. Two `limit(1)`
+ * probes fired in parallel — the result is `true`/`false` only, not a
+ * count, because the UI just needs to gate dashed-locked vs real link.
+ *
+ * Called by `/`, `/review`, and `/write` RSCs so each page can hand the
+ * flags down to `<MethodologyEyebrow>` via a `lockedPillars` prop. The
+ * pages that already load one side of the data (Review loads sessions,
+ * Write loads practice items) can pass the corresponding flag directly
+ * without re-querying, but the cost of the extra probe is small enough
+ * that we keep the loader uniform rather than branching on the call site.
+ */
+export interface EmptyAccountFlags {
+  hasSessions: boolean
+  hasPracticeItems: boolean
+}
+
+export async function loadEmptyAccountFlags(
+  userId: string,
+): Promise<EmptyAccountFlags> {
+  const db = createServerClient()
+  const [sessionsRes, itemsRes] = await Promise.all([
+    db
+      .from('sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1),
+    // Practice items are user-scoped via the parent session row — same
+    // pattern as loadPracticeItems above.
+    db
+      .from('practice_items')
+      .select('id, sessions:sessions!inner(user_id)')
+      .eq('sessions.user_id', userId)
+      .limit(1),
+  ])
+
+  return {
+    hasSessions: (sessionsRes.data?.length ?? 0) > 0,
+    hasPracticeItems: (itemsRes.data?.length ?? 0) > 0,
+  }
+}
+
 export interface AllowedUserRow {
   email: string
   status: 'pending' | 'approved' | 'denied'

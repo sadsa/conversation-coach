@@ -47,10 +47,23 @@
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 
-type Pillar = 'practise' | 'review' | 'study'
+// Exported so server pages and client islands can pass through a
+// `lockedPillars` array without rebuilding the union type at every call
+// site. Keeping the canonical definition here also means future pillar
+// changes (rename / add) only update one place.
+export type Pillar = 'practise' | 'review' | 'study'
 
 interface Props {
   active: Pillar
+  /**
+   * Pillars to render as locked (dashed, dimmed, non-interactive). Used
+   * for empty accounts so the rail doesn't teach destinations the user
+   * has no data flowing through yet — see the first-time-user critique
+   * pass (2026-05). The active pillar can't be locked (you can't lock the
+   * surface the user is currently on); any active entry in this set is
+   * ignored.
+   */
+  lockedPillars?: ReadonlyArray<Pillar>
 }
 
 const PILLAR_HREF: Record<Pillar, string> = {
@@ -63,6 +76,14 @@ const PILLAR_LABEL_KEY: Record<Pillar, string> = {
   practise: 'home.pillarPractise',
   review: 'home.pillarReview',
   study: 'home.pillarStudy',
+}
+
+// Aria-label for the locked state. Practise is the methodology's entry
+// point and never locks (lockable accounts always have at least
+// `/` accessible), so it doesn't need a key here.
+const PILLAR_LOCKED_KEY: Partial<Record<Pillar, string>> = {
+  review: 'home.pillarLockedReview',
+  study: 'home.pillarLockedStudy',
 }
 
 // Ordered list — render order is the methodology order. Step number is
@@ -85,13 +106,23 @@ const LABEL_BASE =
   'text-[0.6875rem] font-semibold tracking-[0.12em] uppercase leading-none ' +
   'transition-colors'
 
-export function MethodologyEyebrow({ active }: Props) {
+export function MethodologyEyebrow({ active, lockedPillars }: Props) {
   const { t } = useTranslation()
+  // Convert the locked array to a Set once for O(1) membership checks
+  // during render. `active` is never lockable — locking the surface the
+  // user is on would produce a non-interactive node with no destination
+  // and the same chrome as the current page, which is just confusing.
+  const lockedSet = new Set(
+    (lockedPillars ?? []).filter(p => p !== active),
+  )
 
   function renderStep(pillar: Pillar, index: number) {
     const isActive = pillar === active
+    const isLocked = lockedSet.has(pillar)
     const label = t(PILLAR_LABEL_KEY[pillar])
     const num = index + 1
+    const lockedKey = PILLAR_LOCKED_KEY[pillar]
+    const lockedAria = isLocked && lockedKey ? t(lockedKey) : undefined
 
     const circle = (
       <span
@@ -100,8 +131,14 @@ export function MethodologyEyebrow({ active }: Props) {
           ' ' +
           (isActive
             ? 'bg-accent-primary text-white ring-4 ring-accent-chip'
-            : 'bg-bg border-[1.5px] border-border text-text-tertiary ' +
-              'group-hover:border-text-secondary group-hover:text-text-secondary')
+            : isLocked
+              // Dashed border + dimmed colour signals "not reachable yet".
+              // Stays distinct from the unlocked-inactive treatment (solid
+              // border, group-hover state) so the rail teaches the user
+              // which pillars they can already visit at a glance.
+              ? 'bg-bg border border-dashed border-border text-text-tertiary opacity-60'
+              : 'bg-bg border-[1.5px] border-border text-text-tertiary ' +
+                'group-hover:border-text-secondary group-hover:text-text-secondary')
         }
         aria-hidden="true"
       >
@@ -122,7 +159,9 @@ export function MethodologyEyebrow({ active }: Props) {
           ' ' +
           (isActive
             ? 'text-accent-primary'
-            : 'text-text-tertiary group-hover:text-text-secondary')
+            : isLocked
+              ? 'text-text-tertiary opacity-70'
+              : 'text-text-tertiary group-hover:text-text-secondary')
         }
       >
         {label}
@@ -134,6 +173,27 @@ export function MethodologyEyebrow({ active }: Props) {
       // so a tap on the current pillar doesn't navigate to itself.
       return (
         <span key={pillar} className={STEP_LAYOUT}>
+          {circle}
+          {labelEl}
+        </span>
+      )
+    }
+
+    if (isLocked) {
+      // Non-interactive wrapper. aria-label carries the unlock condition
+      // so screen readers / VoiceOver still understand what the dimmed
+      // node represents. No `<Link>` — tapping a locked pillar would
+      // land in the page's empty state, which is exactly the dead-end
+      // we're locking against. The page-level empty states remain
+      // reachable via the bottom nav for users who deliberately go
+      // looking; the eyebrow just stops actively pointing at them.
+      return (
+        <span
+          key={pillar}
+          className={STEP_LAYOUT}
+          aria-label={lockedAria ? `${label} — ${lockedAria}` : label}
+          data-locked="true"
+        >
           {circle}
           {labelEl}
         </span>

@@ -34,7 +34,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
-import { MethodologyEyebrow } from '@/components/MethodologyEyebrow'
+import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
 import { useTranslation } from '@/components/LanguageProvider'
 import { targetLanguageGreeting } from '@/lib/i18n'
 import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
@@ -45,14 +45,23 @@ import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
 // clear the URL so refresh doesn't retrigger, then dismiss after the beat.
 const WELCOME_HOLD_MS = 3000
 
-// The Practise home no longer takes any server-fetched data — the
-// methodology eyebrow's old "study count" badge was retired, and the
-// share-target pickup reads from IndexedDB on mount. `targetLanguage` for
-// the embedded `<PracticeClient>` session comes from `useTranslation()`
-// (LanguageProvider context, which is hydrated from the same auth header).
-type Props = Record<string, never>
+// The home page (RSC) loads one small piece of state for us: which
+// pillars to render as locked in the methodology eyebrow. Everything
+// else (greeting, share-target pickup, in-place session host) stays
+// pure-client. `targetLanguage` for the embedded `<PracticeClient>`
+// session still comes from `useTranslation()` (LanguageProvider
+// context, hydrated from the same auth header middleware sets).
+interface Props {
+  /**
+   * Pillars whose pages have no data yet — rendered as dashed/dimmed,
+   * non-interactive nodes in the methodology eyebrow. Optional so legacy
+   * callers / tests can omit it (defaults to "no locks", i.e. previous
+   * behaviour).
+   */
+  lockedPillars?: ReadonlyArray<Pillar>
+}
 
-export function PractiseClient(_props: Props) {
+export function PractiseClient({ lockedPillars }: Props = {}) {
   const { t, targetLanguage } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -183,7 +192,7 @@ export function PractiseClient(_props: Props) {
           {greeting}
         </h1>
 
-        <MethodologyEyebrow active="practise" />
+        <MethodologyEyebrow active="practise" lockedPillars={lockedPillars} />
       </header>
 
       {/* ── Three doors ────────────────────────────────────────────────

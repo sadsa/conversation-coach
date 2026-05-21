@@ -1,18 +1,20 @@
 // app/page.tsx
 //
 // Practise home — the first impression. Server Component: streams the
-// user's auth check and hands an empty payload to `<PractiseClient>` for
+// user's auth check and hands a minimal payload to `<PractiseClient>` for
 // the three doors and the share-target pickup.
 //
-// Note: this route only needs the user. The conversations dashboard
-// lives at /review now; we deliberately don't fetch it here to keep
-// the home as light as possible. The old dashboard-summary fetch was
-// retired with the methodology eyebrow's Study count badge — there is
-// no dashboard data on this page anymore.
+// The home itself owns no dashboard data (that moved to /review) — the
+// ONLY server load here is the two-probe "has the user crossed Review or
+// Study yet?" check that gates the methodology eyebrow's locked-pillar
+// state. Empty accounts shouldn't see clickable Review/Study links that
+// teleport into placeholder empty states.
 
 import { redirect } from 'next/navigation'
 import { PractiseClient } from '@/components/PractiseClient'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { loadEmptyAccountFlags } from '@/lib/loaders'
+import type { Pillar } from '@/components/MethodologyEyebrow'
 
 export default async function HomePage() {
   const user = await getAuthenticatedUser()
@@ -20,5 +22,13 @@ export default async function HomePage() {
   // misconfigured matcher shouldn't leak data.
   if (!user) redirect('/login')
 
-  return <PractiseClient />
+  const { hasSessions, hasPracticeItems } = await loadEmptyAccountFlags(user.id)
+    .catch(() => ({ hasSessions: true, hasPracticeItems: true }))
+  // On failure we fail OPEN — render both pillars as real links. A
+  // transient query error shouldn't lock a user out of their own data.
+  const lockedPillars: Pillar[] = []
+  if (!hasSessions) lockedPillars.push('review')
+  if (!hasPracticeItems) lockedPillars.push('study')
+
+  return <PractiseClient lockedPillars={lockedPillars} />
 }
