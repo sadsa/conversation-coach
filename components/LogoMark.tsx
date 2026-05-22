@@ -11,17 +11,27 @@
 interface Props {
   size?: number
   className?: string
+  // When paired with <Wordmark/> (login, pending-approval) the brand
+  // name is already in the DOM as visible text. Without `decorative`,
+  // AT users hear "Conversation Coach" twice in a row — once from the
+  // logo's aria-label, once from the wordmark paragraph. Pass
+  // `decorative` for the paired case so the logo becomes presentational
+  // and the wordmark owns the brand name. Standalone consumers (no
+  // adjacent Wordmark) leave it false so the logo still carries an
+  // accessible name on its own.
+  decorative?: boolean
 }
 
-export function LogoMark({ size = 64, className = '' }: Props) {
+export function LogoMark({ size = 64, className = '', decorative = false }: Props) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="140 145 744 662"
       width={size}
       height={size}
-      role="img"
-      aria-label="Conversation Coach"
+      {...(decorative
+        ? { 'aria-hidden': true, focusable: false }
+        : { role: 'img', 'aria-label': 'Conversation Coach' })}
       className={className}
     >
       <defs>

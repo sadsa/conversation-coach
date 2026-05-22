@@ -25,6 +25,19 @@
     --color-accent-handle: oklch(58% 0.18 285);
     --color-accent-primary: oklch(55% 0.2 285);
     --color-accent-primary-hover: oklch(50% 0.22 285);
+    /* On-accent fill: pinned cream/near-white in both themes. The accent
+       and Google "Continue as" pills both render label + chip on a dark
+       surface, so the foreground colour does NOT flip with theme. */
+    --color-on-accent: oklch(98% 0.008 75);
+    /* Provider-aware Google "Continue as" surface. Pinned to the dark
+       navy text colour in LIGHT mode (inverse-of-page makes the loud CTA
+       pop); raised to surface-elevated in DARK mode so cream-on-navy
+       doesn't read identical to body text. The on-google-surface colour
+       stays cream in both modes so the white Google G chip nests on a
+       consistent dark background. */
+    --color-google-surface: oklch(22% 0.02 265);
+    --color-google-surface-hover: oklch(28% 0.02 265);
+    --color-on-google-surface: oklch(98% 0.008 75);
     --color-pill-violet-text: oklch(45% 0.16 300);
     --color-pill-amber-text: oklch(48% 0.12 55);
     /* Naturalness annotations — the "this reads off" underline in
@@ -117,6 +130,21 @@
     --color-accent-handle: oklch(55% 0.18 285);
     --color-accent-primary: oklch(62% 0.18 285);
     --color-accent-primary-hover: oklch(68% 0.16 285);
+    --color-on-accent: oklch(98% 0.008 75);
+    /* Google surface (dark): INVERTED relative to light mode. The light
+       mode treatment is "navy pill on cream body" — high contrast that
+       reads loudly as a CTA. The previous dark-mode treatment kept the
+       pill navy (just slightly elevated), which collapsed to a low-
+       contrast card sitting ~14% lighter than the body navy: the loud
+       CTA quietly degraded into a passive surface. Inverting to a
+       cream pill in dark mode preserves the "always the inverse of
+       the page body" shape — the Google CTA is always the boldest
+       chroma jump on the page, regardless of theme. Dark-navy text on
+       the cream pill mirrors how Google's own dark-mode sign-in
+       button renders, so the metaphor stays familiar. */
+    --color-google-surface: oklch(95% 0.008 75);
+    --color-google-surface-hover: oklch(90% 0.012 75);
+    --color-on-google-surface: oklch(22% 0.02 265);
     --color-pill-violet-text: oklch(80% 0.1 300);
     --color-pill-amber-text: oklch(85% 0.12 85);
     /* Naturalness underline (dark) — chroma drops as lightness rises so the

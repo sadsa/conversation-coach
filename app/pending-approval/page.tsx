@@ -29,7 +29,7 @@ export default function PendingApprovalPage() {
     <div className="flex items-center justify-center flex-1 px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <LogoMark size={64} />
+          <LogoMark size={64} decorative />
           <Wordmark />
         </div>
 

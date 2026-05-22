@@ -64,6 +64,43 @@ function AuthCallbackContent() {
             body: JSON.stringify({ email }),
           }).catch(() => {/* best-effort */})
         }
+        // Remember the identity for the welcome-back surface. The
+        // login page reads `cc:login-email` + `cc:login-provider` to
+        // render the provider-aware "Continue as" pill. Email is
+        // always written here — SIGNED_IN guarantees a real address.
+        //
+        // Provider is FILLED IN only when missing. The click-time
+        // write in login/page.tsx is the source of truth (we know
+        // exactly which button was pressed); this callback write is
+        // a backstop for users who arrived here without going through
+        // our buttons (session restore, deep link to /auth/callback,
+        // private-mode write that failed). `app_metadata.provider`
+        // can lag, return a stale identity, or report 'email' for a
+        // user who has both providers linked — so OVERWRITING with
+        // it would re-introduce the bug we're trying to fix (clicked
+        // Google, got the email pill back next visit). When the key
+        // is unset we fall back to inspecting both `provider` and
+        // the `providers` array because the shape varies.
+        if (email) {
+          try {
+            localStorage.setItem('cc:login-email', email)
+            if (!localStorage.getItem('cc:login-provider')) {
+              const meta = session.user.app_metadata as
+                | { provider?: string; providers?: string[] }
+                | undefined
+              const candidate =
+                meta?.provider ??
+                meta?.providers?.find(p => p === 'google' || p === 'email')
+              if (candidate === 'google' || candidate === 'email') {
+                localStorage.setItem('cc:login-provider', candidate)
+              }
+            }
+          } catch {
+            // Storage unavailable (private mode, quota). Welcome-back
+            // pill won't render next time; the first-time view is a
+            // safe fallback.
+          }
+        }
         redirect(session)
       }
     })

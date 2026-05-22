@@ -17,11 +17,22 @@ interface StyleOptions {
   className?: string
 }
 
-const BASE = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+// `disabled:opacity-50` was the previous universal disabled treatment. It
+// reads as "pale primary" rather than "disabled" — the loud violet at half
+// opacity becomes a soft lavender that almost looks decorative, losing the
+// affordance. Greyed-out semantic tokens (surface-elevated + text-tertiary)
+// communicate "this button exists but is not available" without weakening
+// the brand color. Pointer treatment stays in BASE so every variant gets
+// the not-allowed cue.
+const BASE = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:cursor-not-allowed'
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  primary: 'bg-accent-primary hover:bg-accent-primary-hover text-white',
-  secondary: 'border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary',
+  primary:
+    'bg-accent-primary hover:bg-accent-primary-hover text-white ' +
+    'disabled:bg-surface-elevated disabled:text-text-tertiary disabled:hover:bg-surface-elevated',
+  secondary:
+    'border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary ' +
+    'disabled:bg-surface disabled:text-text-tertiary disabled:hover:bg-surface disabled:hover:text-text-tertiary',
 }
 
 const SIZE_CLASSES: Record<Size, string> = {

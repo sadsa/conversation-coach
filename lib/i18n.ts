@@ -162,21 +162,67 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     //     users who tap Google first know what they're committing to.
     //     `requestAccessNote` key retained as a fallback alias for any
     //     stale references in tests/docs.
-    'auth.signInTitle': 'Get started',
+    // First-time H1 — was "Get started" which is generic and presumes
+    // nothing. "Nice to meet you" sets the patient/encouraging tone
+    // from the brand voice ("Patient, Encouraging, Spacious") and
+    // pairs cleanly with the returning-user "Welcome back" — both are
+    // human greetings, neither announces a product action. Distinct
+    // enough from "Welcome back" that a user clearing identity via
+    // "Use a different account" sees a different first impression.
+    'auth.signInTitle': 'Nice to meet you',
     'auth.welcomeBack': 'Welcome back',
     'auth.continueWithGoogle': 'Continue with Google',
     'auth.orUseEmail': 'or use email',
-    'auth.signInSubtitle': 'Sign in to review your recorded conversations.',
+    // Neutral divider for the quick-select view: the alt below the
+    // divider is either Google OR email depending on which provider
+    // was recognised. The first-time view keeps `orUseEmail` because
+    // the alt path there is always the email form.
+    'auth.or': 'or',
+    // First-time subtitle — paired with the H1 "Nice to meet you" so
+    // the two read as a single conversational opener (greeting +
+    // proposal). Deliberately language-agnostic — Spanish is the
+    // default target today, but a user might be learning English, or
+    // anything else. The helpful-assistant voice ("let's…together")
+    // is intentional rather than slogan-work — in context (a small
+    // personal app's login page) it reads as an invitation.
+    'auth.signInSubtitle':
+      "Let's learn a language together.",
     'auth.emailLabel': 'Email',
     'auth.emailPlaceholder': 'you@example.com',
     'auth.submit': 'Continue with email',
     'auth.submitting': 'Sending…',
-    'auth.inviteOnlyNote': "Invite-only beta — I'll review new requests within a day.",
-    'auth.requestAccessNote': "Invite-only beta — I'll review new requests within a day.",
+    // Invite chip — warmer two-clause shape that tells unknown visitors
+    // both the gate AND the path through it. Previous copy ("I'll
+    // review new requests within a day") was first-person but left
+    // the action implicit. This version names the action ("sign in
+    // below") so a curious-but-uninvited visitor knows what to do.
+    'auth.inviteOnlyNote':
+      "Invite-only for now. Sign in below and I'll get back within a day.",
+    'auth.requestAccessNote':
+      "Invite-only for now. Sign in below and I'll get back within a day.",
     'auth.linkSentTo': 'We sent a sign-in link to {email}.',
     'auth.linkSentNote':
       "Open it on this device to sign in. Check your spam if you don't see it in a few minutes.",
     'auth.continueAs': 'Continue as {email}',
+    // Provider-aware welcome-back surface. The "Continue as" pill now
+    // looks AND behaves like the provider that was actually used last.
+    // The pill's accessible name is composed in JS as `<verb> <email>`
+    // and set via aria-label, so screen readers hear one sentence
+    // ("Continue with Google as josh@gmail.com") rather than the two
+    // visual lines running together.
+    'auth.continueWithGoogleVerb': 'Continue with Google as',
+    'auth.sendLinkToVerb': 'Send a sign-in link to',
+    'auth.emailLinkInstead': 'Email me a sign-in link instead',
+    'auth.googleInstead': 'Sign in with Google instead',
+    'auth.useDifferentAccount': 'Use a different account',
+    // First-time view (no recognised identity) mirrors the welcome-back
+    // pattern: loud Google CTA + quiet email CTA. Tapping the email
+    // button reveals the address form. `useDifferentMethod` is the
+    // small back link inside that form — it returns to the chooser
+    // rather than firing the other provider, so the user has a beat
+    // to reconsider rather than being pushed straight into OAuth.
+    'auth.emailMeSignInLink': 'Email me a sign-in link',
+    'auth.useDifferentMethod': 'Use a different method',
     'auth.openMailApp': 'Open mail app',
     'auth.useDifferentEmail': 'Use a different email',
     'auth.invalidEmail': "That doesn't look like an email address.",
@@ -755,21 +801,32 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.coachLabel': 'Coach',
 
     // Auth — login page (see English block for the copy-direction notes)
-    'auth.signInTitle': 'Empezá',
+    'auth.signInTitle': 'Un gusto conocerte',
     'auth.welcomeBack': 'Hola de nuevo',
     'auth.continueWithGoogle': 'Continuar con Google',
     'auth.orUseEmail': 'o usar correo',
-    'auth.signInSubtitle': 'Iniciá sesión para revisar tus conversaciones grabadas.',
+    'auth.or': 'o',
+    'auth.signInSubtitle':
+      'Aprendamos un idioma juntos.',
     'auth.emailLabel': 'Correo electrónico',
     'auth.emailPlaceholder': 'vos@ejemplo.com',
     'auth.submit': 'Continuar con correo',
     'auth.submitting': 'Enviando…',
-    'auth.inviteOnlyNote': 'Beta por invitación — reviso las nuevas solicitudes en el día.',
-    'auth.requestAccessNote': 'Beta por invitación — reviso las nuevas solicitudes en el día.',
+    'auth.inviteOnlyNote':
+      'Por ahora es solo por invitación. Iniciá sesión abajo y te respondo dentro del día.',
+    'auth.requestAccessNote':
+      'Por ahora es solo por invitación. Iniciá sesión abajo y te respondo dentro del día.',
     'auth.linkSentTo': 'Te enviamos un enlace de inicio a {email}.',
     'auth.linkSentNote':
       'Abrilo en este dispositivo para iniciar sesión. Revisá spam si no lo ves en unos minutos.',
     'auth.continueAs': 'Continuar como {email}',
+    'auth.continueWithGoogleVerb': 'Continuar con Google como',
+    'auth.sendLinkToVerb': 'Enviar un enlace de inicio a',
+    'auth.emailLinkInstead': 'Mejor enviame un enlace por correo',
+    'auth.googleInstead': 'Mejor iniciar sesión con Google',
+    'auth.useDifferentAccount': 'Usar otra cuenta',
+    'auth.emailMeSignInLink': 'Enviame un enlace por correo',
+    'auth.useDifferentMethod': 'Usar otro método',
     'auth.openMailApp': 'Abrir la app de correo',
     'auth.useDifferentEmail': 'Usar otro correo',
     'auth.invalidEmail': 'Eso no parece una dirección de correo válida.',
