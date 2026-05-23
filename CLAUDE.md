@@ -4,7 +4,7 @@
 
 A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to write down. Multi-user with Supabase Auth (email magic link) and an email allowlist.
 
-**Naming**: The user-facing surface for saved corrections is **Write** (the action — writing them down on paper is what comes next). The DB table and API path are still `practice_items` / `/api/practice-items` (data noun, kept stable). When you see `practice_items` in code, think "the data backing the Write surface".
+**Naming**: The user-facing surface for saved corrections is **Write**. The DB table and API path are `practice_items` / `/api/practice-items` (kept stable). When you see `practice_items` in code, think "the data backing the Write surface".
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 - **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
 - **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
 - **AssemblyAI** SDK — transcription + speaker diarization
-- **Gemini Multimodal Live API** (raw WebSocket) — real-time voice on the Practise home (`/`). Both chat and call modes use `models/gemini-3.1-flash-live-preview` (snappier turn-taking, synthesised voice) — call mode previously pinned `models/gemini-2.5-flash-native-audio-latest` for emotional intonation but the end-of-turn pauses made personas feel clunky vs. chat. Constants exported from `lib/voice-agent.ts` as `FLASH_LIVE_MODEL` (current) and `NATIVE_AUDIO_MODEL` (kept for opt-in experimentation); pass via `ConnectOptions.model`
+- **Gemini Multimodal Live API** (raw WebSocket) — real-time voice on `/`. Both modes use `models/gemini-3.1-flash-live-preview`. Constants in `lib/voice-agent.ts`: `FLASH_LIVE_MODEL` (current), `NATIVE_AUDIO_MODEL` (opt-in); pass via `ConnectOptions.model`
 - **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
 - **`framer-motion`** — sheet entrance animations + `useReducedMotion`
 - **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`
@@ -35,21 +35,21 @@ npm run test:watch   # vitest in watch mode
 
 ```
 app/
-  page.tsx                        # RSC: auth check, hands to <PractiseClient> — Practise mode picker + in-place voice session host (the `/practice` route was retired)
+  page.tsx                        # RSC: auth check, hands to <PractiseClient> — Practise mode picker + in-place voice session host
   review/
-    page.tsx                      # RSC: loads sessions, hands to <ReviewClient> — inbox of recorded conversations (the old dashboard)
-    loading.tsx                   # Skeleton mirroring the inbox shape
+    page.tsx                      # RSC: loads sessions, hands to <ReviewClient> — inbox of recorded conversations
+    loading.tsx                   # Skeleton
   login/page.tsx                  # Magic-link login (public)
   access-denied/page.tsx          # Shown when email not in allowlist (public)
-  onboarding/page.tsx             # First-login gate: language select (step 0). `?step=2` is the standalone WhatsApp share illustration reached from the home page Share CTA
-  auth/callback/page.tsx          # Client page: reads hash-fragment tokens (implicit flow) → redirects to / or /onboarding
+  onboarding/page.tsx             # First-login gate: language select (step 0). `?step=2` = WhatsApp share illustration
+  auth/callback/page.tsx          # Client page: code exchange → redirects to / or /onboarding
   sessions/[id]/
     page.tsx                      # RSC: loads SessionDetail, hands to <TranscriptClient>
-    loading.tsx                   # Skeleton shown during the RSC fetch (no post-hydration flash)
-    status/page.tsx               # Screen 2: Processing Status
-    identify/page.tsx             # Screen 3: Speaker Identification
-  write/page.tsx                  # RSC: loads practice items, hands to <WriteClient> — labelled "Study" in the nav (URL kept for stability)
-  write/loading.tsx               # Skeleton mirroring the Write list shape
+    loading.tsx                   # Skeleton
+    status/page.tsx               # Processing Status screen
+    identify/page.tsx             # Speaker Identification screen
+  write/page.tsx                  # RSC: loads practice items, hands to <WriteClient> — labelled "Study" in nav
+  write/loading.tsx               # Skeleton
   settings/page.tsx               # Settings: language, theme, sign-out, version
   share-target/page.tsx           # PWA Web Share Target receiver
   loading.tsx                     # Global Next.js loading boundary
@@ -59,56 +59,57 @@ hooks/
 components/
   AppHeader.tsx                   # Top nav bar with hamburger + theme toggle
   NavDrawer.tsx                   # Slide-out nav drawer — pulls from NAV_TABS in nav-tabs.tsx
-  BottomNav.tsx                   # Mobile bottom tab bar (Practise/Review/Study/Settings — order mirrors methodology)
+  BottomNav.tsx                   # Mobile bottom tab bar (Practise/Review/Study/Settings)
   ConditionalNav.tsx              # Composes AppHeader + NavDrawer + BottomNav
-  NavProgress.tsx                 # Top-of-page hairline progress bar during RSC nav (no nprogress dep)
+  NavProgress.tsx                 # Top-of-page hairline progress bar during RSC nav
   nav-tabs.tsx                    # NAV_TABS array — shared by NavDrawer + BottomNav
-  MethodologyEyebrow.tsx          # Numbered step rail (1·2·3 → Practise · Review · Study) — appears on /, /review, /write so the user can always orient inside the methodology
-  OnboardingStep.tsx              # Shared wizard chrome (back / wordmark+dots / skip-or-close + CTA row); hides dots when totalSteps=1
-  WhatsAppShareIllustration.tsx   # Animated phone-frame mock for the share deep-dive — shares oa-* keyframes
-  Wordmark.tsx                    # CONVERSATION COACH wordmark — used by login, onboarding, settings
+  MethodologyEyebrow.tsx          # Numbered step rail (1·2·3 → Practise · Review · Study) — on /, /review, /write
+  OnboardingStep.tsx              # Shared wizard chrome (back / wordmark+dots / skip-or-close + CTA row)
+  WhatsAppShareIllustration.tsx   # Animated phone-frame mock for share deep-dive
+  Wordmark.tsx                    # CONVERSATION COACH wordmark
   ThemeProvider.tsx               # Dark/light theme context
   ThemeToggle.tsx                 # Theme switcher button
   FontSizeProvider.tsx            # User-controllable font scale
   LanguageProvider.tsx            # UI language context with live switching
-  PractiseClient.tsx              # Client island for / — Practise mode picker (call/chat/share) + share-target pickup; mounts <PracticeClient> in place on Call/Chat
-  PracticeClient.tsx              # Voice session UI (5-min Gemini Live) — mounted by <PractiseClient> when a mode door is tapped; calls onExit() to return to doors
-  ReviewClient.tsx                # Client island for /review — inbox of recorded conversations (was HomeClient pre-redesign)
-  AudioReactiveDots.tsx           # Voice-reactive bouncing dots used during PracticeClient's active state — exports VoiceTickCallback
+  PractiseClient.tsx              # Client island for / — mode picker (call/chat/share) + share-target pickup; mounts <PracticeClient> in place
+  PracticeClient.tsx              # Voice session UI (5-min Gemini Live) — mounted by <PractiseClient>; calls onExit() to return to doors
+  ReviewClient.tsx                # Client island for /review — inbox of recorded conversations
+  AudioReactiveDots.tsx           # Voice-reactive bouncing dots — exports VoiceTickCallback
   SpeakerCard.tsx                 # Identify-screen speaker option card (radio + transcript snippet)
-  StatusPageMenu.tsx              # In-flight Status page header delete button (filename kept; was a menu, now a single button)
-  ProcessingGraphic.tsx           # Decorative SVG used inside PipelineStatus
-  LoadingScreen.tsx               # Full-bleed centered spinner — used by analysis-pending states
-  SessionList.tsx                 # Session rows — swipe left=delete (5s undo), swipe right=toggle read (last_viewed_at); react-swipeable
+  StatusPageMenu.tsx              # In-flight Status page header delete button
+  ProcessingGraphic.tsx           # Decorative SVG inside PipelineStatus
+  LoadingScreen.tsx               # Full-bleed centered spinner
+  SessionList.tsx                 # Session rows — swipe left=delete (5s undo), swipe right=toggle read; react-swipeable
   DashboardInProgress.tsx         # In-flight sessions strip — rendered by ReviewClient
-  DashboardReminders.tsx          # Write-down count widget (now used only inside ReviewClient empty/quiet states)
-  DashboardRecentSessions.tsx     # Recent sessions list with delete + read toggle — rendered by ReviewClient
-  TranscriptClient.tsx            # Client island for /sessions/[id] — annotation review state
-  TranscriptView.tsx              # Paragraph-aware transcript renderer — splits segments on paragraph_breaks, filters + re-bases annotations per paragraph
-  AnnotatedText.tsx               # Renders a text slice with inline annotation highlights; accepts offsetBase to re-base char offsets
-  ExplainSheet.tsx                # Docked sheet showing flashcard-style explanation (original, correction, note)
+  DashboardReminders.tsx          # Write-down count widget (ReviewClient empty/quiet states)
+  DashboardRecentSessions.tsx     # Recent sessions list with delete + read toggle
+  TranscriptClient.tsx            # Client island for /sessions/[id]
+  TranscriptView.tsx              # Paragraph-aware transcript renderer
+  AnnotatedText.tsx               # Renders a text slice with inline highlights; accepts offsetBase
+  ExplainSheet.tsx                # Docked sheet for flashcard-style explanation
   InlineEdit.tsx                  # Tap-to-rename input with save/cancel; used for session titles
-  PipelineStatus.tsx              # Processing status rail (upload→transcribe→identify→analyse) — patient, encouraging
+  PipelineStatus.tsx              # Processing status rail (upload→transcribe→identify→analyse)
   ScrollToTopOnNavigate.tsx       # Resets scroll position on route change
   WriteClient.tsx                 # Client island for /write — wraps WriteList
-  AnnotationCard.tsx              # Single annotation row in the transcript — triggers AnnotationSheet, Add to Write button
-  AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps `DockedSheet`
-  WriteSheet.tsx                  # Docked review sheet for items in the Write list — wraps `DockedSheet`
-  WriteList.tsx                   # The Write surface: queue of saved corrections + quiet "Written" archive link
-  Icon.tsx                        # Shared inline-SVG icon set (Phosphor is the default — see Icon system note in Key Design Decisions)
-  # Shared UI primitives — prefer these over inlining new ones:
-  Button.tsx                      # `<Button>` + `buttonStyles()` for primary/secondary actions; import `buttonStyles` directly for non-button elements (e.g. `<a>` anchors) that need button appearance
-  LogoMark.tsx                    # Robot logo mark without background — body fill adapts to theme via --color-surface; use wherever the brand icon is needed
-  IconButton.tsx                  # Square / circle icon-only button (toolbar / dismiss / nav-arrow)
+  AnnotationCard.tsx              # Single annotation row in transcript — triggers AnnotationSheet
+  AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps DockedSheet
+  WriteSheet.tsx                  # Docked review sheet for Write items — wraps DockedSheet
+  WriteList.tsx                   # The Write surface: queue of saved corrections + Written archive link
+  Icon.tsx                        # Shared inline-SVG icon set (Phosphor default)
+  # Shared UI primitives — prefer these over inlining:
+  Button.tsx                      # `<Button>` + `buttonStyles()` — import buttonStyles for non-button elements needing button appearance
+  LogoMark.tsx                    # Robot logo mark — body fill adapts to theme via --color-surface
+  IconButton.tsx                  # Square/circle icon-only button
   Skeleton.tsx                    # `<Skeleton>` + `<SkeletonRow>` for loading.tsx boundaries
- CorrectionInContext.tsx         # Canonical "sentence-with-strike-and-rewrite" treatment (WriteList row fallback only since the Hush sheet redesign)
- HushStack.tsx                   # Sheet-body "eyebrow + italic struck original + large serif answer" treatment shared by AnnotationCard + WriteSheet
- StrikeOriginal.tsx              # Older standalone "wrong → right" treatment (still used in empty-state example)
-  ImportancePill.tsx              # "High priority" / "Worth remembering" pill — replaces ★ rating cluster
-  NavHint.tsx                     # First-open chevron-swipe cue inside DockedSheet (annotation + write share storage key)
-  Toast.tsx                       # Floating bottom-anchored alert pill with optional action — uses --toast-bottom
-  DockedSheet.tsx                 # Sheet shell (bottom on mobile, right on desktop) — chrome, animation, focus, swipe, keys
-  Modal.tsx                       # Centered dialog with scrim — only use when an action is genuinely modal
+  CorrectionInContext.tsx         # "Sentence with strike-and-rewrite" treatment (WriteList row fallback only — do not remove)
+  HushStack.tsx                   # Sheet-body "eyebrow + italic struck original + large serif answer" — shared by AnnotationCard + WriteSheet
+  StrikeOriginal.tsx              # Standalone "wrong → right" treatment (empty-state example)
+  ImportancePill.tsx              # "High priority" / "Worth remembering" pill
+  NavHint.tsx                     # First-open chevron-swipe cue inside DockedSheet
+  Toast.tsx                       # Floating bottom-anchored alert pill — uses --toast-bottom
+  DockedSheet.tsx                 # Sheet shell (bottom mobile, right desktop) — chrome, animation, focus, swipe, keys
+  Modal.tsx                       # Centered dialog with scrim — only use when action is genuinely modal
+  FlashcardRow.tsx                # Canonical Study row: italic native prompt top, serif target answer bottom, [[brackets]] tinted
   ...                             # Other shared components
 lib/
   types.ts                        # All shared TypeScript types
@@ -118,16 +119,18 @@ lib/
   push.ts                         # sendPushNotification helper
   dashboard-summary.ts            # computeDashboardSummary() → { writeDownCount, ... }
   supabase-server.ts              # Supabase client for server components/routes
-  supabase-browser.ts             # Supabase client for client components (implicit flow — see auth design decision)
-  audio-upload.ts                 # Canonical ACCEPTED_TYPES, ACCEPTED_EXTENSIONS, MAX_BYTES constants — import from here, don't duplicate
-  theme-meta.ts                   # PWA/browser status-bar color constants (theme-color + apple-mobile-web-app-status-bar-style)
+  supabase-browser.ts             # Supabase client for client components
+  audio-upload.ts                 # ACCEPTED_TYPES, ACCEPTED_EXTENSIONS, MAX_BYTES — import from here, don't duplicate
+  theme-meta.ts                   # PWA status-bar color constants
   r2.ts                           # presignedUploadUrl, deleteObject
   pipeline.ts                     # orchestrates status transitions and DB writes
   assemblyai.ts                   # createJob, cancelJob, parseWebhook, getParagraphs, mapParagraphsToSegments
   claude.ts                       # analyseUserTurns — prompt + JSON parse
   voice-agent.ts                  # Gemini Live WebSocket: connect(targetLanguage, callbacks, options), buildPracticeSystemPrompt()
-  persona.ts                      # Call-mode persona generator: pre-picks name + voice (gender-matched, soft age fit) in JS, asks Claude only for opener + system addendum. JS-side axis pick avoids Claude's modal-output collapse on repeated calls
-  logger.ts                       # `log` structured logger — JSON lines; log.error → stderr, others → stdout. Use instead of console.*
+  persona.ts                      # Call-mode persona generator: JS pre-picks name/voice axes, Claude writes opener + system addendum
+  ringtone.ts                     # playRingtone() — synthesised PSTN ringtone for incoming call screen; returns { stop }
+  flashcard.ts                    # parseFlashcard() — splits [[bracket]] pairs for FlashcardRow tint
+  logger.ts                       # `log` structured logger — JSON lines; log.error → stderr, others → stdout
 middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist + identity-header passthrough
 supabase/migrations/              # SQL migrations
 __tests__/                        # Vitest tests mirroring src structure
@@ -135,116 +138,143 @@ __tests__/                        # Vitest tests mirroring src structure
 
 ## Processing Pipeline
 
-The audio pipeline flows through these statuses: `uploading → transcribing → identifying → analysing → ready` (or `error` at any stage).
+`uploading → transcribing → identifying → analysing → ready` (or `error` at any stage).
 
-1. Client uploads audio directly to R2 via presigned URL, then calls `POST /api/sessions/:id/upload-complete`
-2. Server triggers AssemblyAI job (speaker count inferred by the model); webhook at `/api/webhooks/assemblyai` fires when done
-3. If 2 speakers detected: status → `identifying` (paused, waiting for speaker label)
-4. If 1 speaker detected: `user_speaker_labels` set to `["A"]`, goes straight to `analysing`
+1. Client uploads audio to R2 via presigned URL → calls `POST /api/sessions/:id/upload-complete`
+2. Server triggers AssemblyAI job; webhook at `/api/webhooks/assemblyai` fires when done
+3. 2 speakers detected: status → `identifying` (waiting for speaker label)
+4. 1 speaker detected: `user_speaker_labels` set to `["A"]`, skips to `analysing`
 5. Speaker label submitted via `POST /api/sessions/:id/speaker` → triggers Claude analysis
-6. Claude returns structured JSON annotations; practice items written to DB; audio deleted from R2; status → `ready`
+6. Claude returns structured JSON annotations; audio deleted from R2; status → `ready`
 
-Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations for the session and re-runs Claude. **Practice items are NOT touched** — they keep their flashcards even when the underlying annotation is regenerated, so the user-facing copy in the confirmation dialog (`reanalyse.body` in `lib/i18n.ts`) reflects this.
+Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-runs Claude. **Practice items are NOT touched** — flashcards survive regeneration. Confirm dialog copy: `reanalyse.body` in `lib/i18n.ts`.
 
 ## Key Design Decisions
 
-- **Universal viewport sizing**: Body is `min-h-[100dvh] flex flex-col`, outer `<main>` is `flex-1 flex flex-col`. Full-bleed/centered surfaces use `flex-1`, never `min-h-[calc(100vh-Xrem)]`. `100vh` resolves to the *large* mobile viewport (browser chrome excluded) — using it for sizing produces a phantom scrollbar when chrome is visible. Always use `100dvh` for mobile viewport sizing.
+- **Universal viewport sizing**: Use `100dvh`, never `100vh`. `100vh` resolves to the large mobile viewport (browser chrome excluded) — produces a phantom scrollbar when chrome is visible. Body: `min-h-[100dvh] flex flex-col`, outer `<main>`: `flex-1 flex flex-col`.
 
-- **Single skip-to-content target**: `app/layout.tsx` owns the only `<main id="main-content">` with `tabIndex={-1}`. Client islands (`PractiseClient`, `ReviewClient`, `TranscriptClient`, `WriteClient`, `PracticeClient`, etc.) MUST use `<div>` for their state-specific roots — nested `<main>` elements with duplicate `id` break the skip target and produce invalid HTML.
+- **Single skip-to-content target**: `app/layout.tsx` owns the only `<main id="main-content">`. Client islands MUST use `<div>` as their root — nested `<main>` elements produce invalid HTML and break the skip target.
 
-- **Voice session UI** (`components/PracticeClient.tsx`): 5-minute voice session mounted in place on `/` by `<PractiseClient>` when the user taps a mode door. The standalone `/practice` route was retired — there's nowhere to "land" between the home doors and an active session, so the component never has its own idle screen. Props are `{ mode: 'call' | 'chat', targetLanguage, onExit }`. State machine: `incoming → connecting → active/warning/ending → review → analysing → ready` and `review → home via onExit()` on discard. **Call mode opens on `incoming`** — an iOS-style ringing screen with Answer / Decline buttons and an anonymous caller (the persona reveals themselves only after the user greets); the persona fetches in the background during the ring, Answer awaits the fetch and connects, Decline returns to the doors. **Reroll ("Try another line") routes back through `incoming` too** — every new caller goes through the same Answer / Decline gate, so the user practises the answer-the-phone moment with every reroll rather than only once per session. Reroll tears down the live agent, wipes the transcript, decrements the reroll budget at tap-time, kicks off a fresh persona fetch, and sets state to `incoming` — `answerCall` / `declineCall` handle the rest identically to the initial call. Chat mode skips `incoming` and starts at `connecting`. The `review` state gates the POST — user picks **Save and review** or **Discard** before any network call. Both auto-end (T=0 hits the 1.5s `ending` beat) and manual end route through `review`. Discard calls `onExit()`, which flips `<PractiseClient>`'s `activeMode` back to null and re-renders the doors view — the previous in-place undo-toast was dropped along with the idle screen (a mis-tap is recoverable by starting a fresh session). POSTs to `/api/practice-sessions`; success redirects to `/sessions/[id]`. Uses `AudioReactiveDots` (which exports the `VoiceTickCallback` type the component subscribes to via its own RAF tick loop).
+- **Voice session UI** (`components/PracticeClient.tsx`): 5-min Gemini Live session mounted in place on `/` by `<PractiseClient>`. No standalone route. Props: `{ mode: 'call' | 'chat', targetLanguage, onExit }`. State machine: `incoming → connecting → active/warning/ending → review → analysing → ready`. Call mode opens on `incoming` (iOS-style ring, persona revealed after first greeting). Reroll routes through `incoming` — every new caller goes through Answer/Decline. Review state gates the POST; user picks Save or Discard before any network call. POSTs to `/api/practice-sessions`; success redirects to `/sessions/[id]`.
 
-- **Call mode = persona-speaks-first** (`lib/persona.ts` + `components/PracticeClient.tsx`): Real phone-call metaphor — the person who CALLED speaks first when someone picks up. After tapping Answer and the WebSocket connecting, the persona immediately delivers its opener line via the `__START_CALL__` clientContent trigger (passed as `openingLine` to `connect()`). The persona writer prompt writes openers as cold-call first lines ("Hey, it's Lucas, got a sec?"), not as replies to a hello. The system prompt instructs the agent to speak the moment the call-start signal arrives and wait for the learner to respond. Call mode mounts in `loading` (persona fetch, ~1-2s) → `incoming` (ring screen, persona already ready) → `connecting` (WebSocket handshake only, ~<1s) → `active` (persona speaks). The loading-before-ring ordering means the post-answer connecting beat is short — only the WebSocket handshake remains. Reroll also routes through `loading` → `incoming` so every new caller goes through the same Answer / Decline gate with the persona already fetched.
+- **Call mode = learner-answers-first** (`lib/persona.ts` + `components/PracticeClient.tsx`): After tapping Answer, agent stays silent until learner greets. Persona's `opener` is delivered as a reply to that greeting. Active screen shows "Your turn — say hello" cue until first user turn. Chat mode skips `incoming`, starts at `connecting`.
 
-- **Voice accent is steered by the system prompt, not by API config** (`lib/voice-agent.ts`): Gemini Live's `speech_config.language_code` accepts a fixed list of BCP-47 codes — `en-NZ` and `es-AR` are NOT on it (closest matches are `en-US` / `en-IN` for English, `es-US` for Spanish). Passing the closest match would actively pin the model to US English / US Spanish, which is the opposite of what we want. We deliberately omit `language_code` and steer the accent entirely from `buildPracticeSystemPrompt`. The prompt MUST do three things or the model drifts back to US English: (1) name the target accent explicitly ("New Zealand / Kiwi accent", "rioplatense / porteño"), (2) forbid the common drift targets by name ("never American", "nunca castellano"), (3) reinforce the instruction as durable across every turn ("hold this accent for every single turn; do not drift even if the learner speaks with a different accent"). Concrete dialect-defining features (the NZ vowel shift / Rioplatense sheísmo: "yo" → "sho", "calle" → "cashe") give the model something specific to lock onto instead of an abstract nationality. Tests in `__tests__/lib/voice-agent.test.ts` guard each of those three rails — keep them green or accent regressions will surface as "the AI sounds American" user reports. The previous prompt only identified the speaker as a NZ speaker (identity, not pronunciation); the model honoured the identity claim as character but defaulted phonetic output to US English unless told otherwise.
+- **Voice accent steered by system prompt, not API config** (`lib/voice-agent.ts`): Gemini Live's `speech_config.language_code` doesn't support `en-NZ` or `es-AR` — omit it entirely. `buildPracticeSystemPrompt` MUST: (1) name the target accent explicitly, (2) forbid drift targets by name ("never American", "nunca castellano"), (3) reinforce as durable across every turn. Include concrete dialect features (NZ vowel shift; Rioplatense sheísmo: "yo" → "sho"). Tests in `__tests__/lib/voice-agent.test.ts` guard all three rails — keep them green.
 
-- **Incoming-call ringtone is synthesised, not an asset** (`lib/ringtone.ts`): The `incoming` screen (both initial mount AND every reroll) plays a looping landline-style ringtone — two superimposed sines at 440Hz + 480Hz (the US PSTN ringback frequencies — the universal "that's a phone" sound) on a 1.5s-on / 1.5s-off envelope. No mp3/ogg asset ships with the bundle, matching the existing `playStartTone` pattern in `lib/voice-agent.ts`. `playRingtone()` returns a `{ stop }` handle; PracticeClient's ringtone effect starts it on entering `incoming` and stops it on every other transition or unmount. Stop is idempotent and ramps the gain down over ~100ms before tearing down the AudioContext so the cut doesn't click on headphones. The PSTN-standard 2s/4s cadence was shortened to 1.5s/1.5s because the 4-second silence between rings makes a screen feel broken when the ringtone IS the only signal that anything is happening. AudioContext creation relies on transient user activation (the home-door tap that mounted PracticeClient, or the reroll-pill tap that flipped state to `incoming`) — if the browser still blocks playback, `playRingtone()` returns a no-op handle and the screen degrades silently to visual-only (the ring choreography already carries the metaphor).
+- **Incoming-call ringtone is synthesised** (`lib/ringtone.ts`): PSTN-style two-sine tone (440Hz + 480Hz), 1.5s-on/1.5s-off envelope. No audio asset. Returns `{ stop }` handle; stop ramps gain before teardown to avoid clicks. Degrades silently if AudioContext blocked.
 
-- **Server-rendered pages, client islands**: Review (`/review`), Write (`/write`), and Session detail (`/sessions/[id]`) are Server Components that fetch their data in parallel via `lib/loaders.ts`, then hand it to a single client island (`ReviewClient`, `WriteClient`, `TranscriptClient`) for interactivity. The home (`/`) is an auth-only RSC handing off to `<PractiseClient>` (no DB load — Practise is a mode picker, and `<PracticeClient>` mounts in place when a session starts). Result: real content on first paint instead of skeleton → `useEffect` → render. When adding a new page that loads data, prefer the loader pattern — put the SQL in `lib/loaders.ts` so the API route and the RSC share one query.
+- **Server-rendered pages, client islands**: RSC pages fetch data via `lib/loaders.ts` then hand to one client island. Home (`/`) is auth-only RSC, no DB load. New pages: put SQL in `lib/loaders.ts` so API route and RSC share one query.
 
-- **Practise-as-home + methodology vocabulary**: The methodology is **Practise → Review → Study**, and the URL layout reflects it. `/` is **Practise** (mode picker via `<PractiseClient>` — call / chat / share-a-voice-note), NOT a dashboard. `/review` is the **Review** inbox of recorded conversations (the dashboard moved here when the home was repurposed). `/write` keeps its URL for stability but is labelled **"Study"** in the nav and brand vocabulary. `<MethodologyEyebrow>` renders a **numbered step rail** (three circular nodes 1·2·3 connected by a thin line, labels Practise · Review · Study underneath) beneath the H1 on all three surfaces — active node is filled in `accent-primary` with a soft `accent-chip` halo and a non-interactive `<span>`, the other two are outlined `<Link>`s — so deep-link arrivals always know where they are. The Practise home does NOT carry the older "How do you want to practise?" H2 above the doors; once a user is on the home, the rail names the surface and the three doors are self-evidently practice modes. Bottom nav order matches the methodology. There is no `/practice` route: the active voice session UI (`<PracticeClient>`) mounts in place on `/` when the user taps a mode door and unmounts back to the doors view on discard, so the home is the only entry AND exit for live sessions.
-- **Auth header passthrough**: `middleware.ts` is the single trust boundary — it calls `supabase.auth.getUser()` once per request and forwards the verified identity via `x-cc-user-id` / `x-cc-user-email` / `x-cc-user-target-language` request headers. `getAuthenticatedUser()` reads those headers (zero network calls) and falls back to a cookie-based verify only when middleware didn't run (tests, or routes carved out of the matcher). Wrapped in React `cache()` so layout + page + nested RSCs share one result. Middleware strips any incoming `x-cc-*` headers before setting its own — never trust client-supplied identity headers.
-- **Auth**: Supabase Auth (email magic link). `middleware.ts` guards all routes except `/login`, `/auth`, `/access-denied`, `/api/webhooks`. `ALLOWED_EMAILS` env var (comma-separated) controls who can access.
-- **Magic-link uses PKCE flow**: `@supabase/ssr` v0.9+ hardcodes `flowType: 'pkce'` inside `createBrowserClient`, overriding any `flowType` option passed by the caller — so `lib/supabase-browser.ts` no longer sets it. `app/auth/callback/page.tsx` is a client component; `detectSessionInUrl` handles the code exchange automatically, fires `SIGNED_IN`, then `router.refresh()` clears any stale Next.js router-cache redirects before `router.replace()` navigates to the app.
-- **Next.js router cache + middleware auth**: Nav `<Link>` elements trigger Next.js prefetches. If a page is reachable while unauthenticated and the nav renders, those prefetch requests hit middleware with no session, return 307s to `/login`, and those redirects get cached client-side — causing a login loop after sign-in. Fix: add any unauthenticated route to `HIDDEN_ON` in `components/ConditionalNav.tsx`, and call `router.refresh()` before `router.replace()` in `app/auth/callback/page.tsx` to flush stale cache entries.
-- **Middleware must return `supabaseResponse`, not a new `NextResponse.next()`**: If `supabase.auth.getUser()` triggers a token refresh, `setAll()` writes the new cookies to `supabaseResponse`. Returning a freshly created `NextResponse.next()` at the end of middleware discards those cookies — the user's session silently breaks on the next request. Capture `supabaseResponse.headers.getSetCookie()` before rebuilding the response, then re-append them.
-- **Middleware matcher must exclude all public static assets**: Any file served from `/public` that is not in the matcher exclusion regex will be auth-guarded. Currently excluded: `_next/static`, `_next/image`, `favicon.ico`, `logo.svg`, `icon.svg`, `manifest.json`, `sw.js`, `icons/`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`. Add new public assets here or they will 307-redirect unauthenticated users (including the login page itself).
-- **API auth pattern**: Protected API routes call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. The webhook route is intentionally excluded.
-- **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. `LanguageProvider` context provides the active `UiLanguage`. The UI language is *inferred* from the user's `targetLanguage` metadata (e.g. `en-NZ` → `es` UI). Do not add raw string literals to components.
-- **Theme**: `ThemeProvider` in `components/ThemeProvider.tsx` manages dark/light mode. Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) defined in `globals.css` — never hardcode Tailwind gray classes (`gray-100`, `gray-800`, etc.).
-- **Practice items, no scheduler (yet)**: The Leitner system was removed (migration `20260415_drop_leitner_columns.sql`). FSRS columns (`fsrs_state`, `due`, `stability`, …) were added by migration `20260410` for a future SRS, but no UI/API consumes them yet. `practice_items` rows currently expose only `written_down` and `importance_score`.
-- **Icon system: Phosphor is the default**: `components/Icon.tsx` and `components/nav-tabs.tsx` inline SVG paths from `@phosphor-icons/core` (no runtime dep). Phosphor was picked for cohesion — regular + fill duality powers the nav active-state swap, and the 6-weight system means we rarely need to leave the family. When adding a new icon: open the [Phosphor catalog](https://phosphoricons.com/), copy the path from the regular weight (and fill weight if the surface needs active-state fill), inline it. The wrapper in `Icon.tsx` defaults to stroke + currentColor — for Phosphor's fill-based glyphs, use the complex `{ node, viewBox: '0 0 256 256' }` entry form and put `fill="currentColor" stroke="none"` on the inner path (see the `export` and `waveform` entries for the pattern). One-off deviation is allowed only with a real reason (brand marks like a WhatsApp logo, or when Phosphor genuinely doesn't have the right glyph — Material Symbols' `waveform` was kept for this reason). Existing non-Phosphor icons (the rest of the Lucide-style entries) stay until they're naturally touched; we don't refactor for refactor's sake.
-- **Annotation review uses a docked sheet, not a modal**: `components/AnnotationSheet.tsx` is the central transcript-review pattern — bottom-anchored on mobile, right-side panel on desktop, with prev/next nav, swipe gestures, and `activeAnnotationId` ring on the source `<mark>`. Wire new annotation interactions through it; do not reach for `Modal`. The shared chrome (layout, animation, gestures, focus / keyboard / outside-click) lives in `components/DockedSheet.tsx` — use it for any new sheet rather than copying the chrome. The header was distilled in 2026-04: no grammar/naturalness type dot, no sub-category pill — both review surfaces share the same minimal chrome.
+- **Practise-as-home + methodology vocabulary**: Methodology is **Practise → Review → Study**. `/` = Practise (mode picker), `/review` = Review inbox, `/write` = Study (URL kept for stability). `<MethodologyEyebrow>` renders numbered step rail on all three surfaces. No `/practice` route — voice session mounts in place on `/`.
 
-- **Hush sheet direction** (`components/DockedSheet.tsx` + `components/HushStack.tsx`, 2026-05): The sheet body shape is "sentence-first, no chrome". Three design moves go together:
-  - **Chrome (DockedSheet)**: the header has no `border-b` and matches body horizontal padding, so the pagination + nav controls visually float at the top of the body rather than occupying a banded region. Mobile is anchored `bottom-0` (the sheet draws OVER `BottomNav` while open — iOS / Android system pattern; the sheet is `z-40`, the BottomNav stays at `z-30`). A soft `bg-scrim` layer sits between the page and the sheet on mobile only at `z-30` to catch dismiss taps and absorb accidental nav-tab presses. Desktop intentionally has NO scrim — the right panel is meant to sit alongside the page so the user keeps the transcript visible. Default mobile `max-height` is `80vh` (was `60vh`) — covering the nav recovered ~4rem of vertical space. The footer absorbs `env(safe-area-inset-bottom)` on mobile since the sheet now touches the viewport edge.
-  - **A11y semantics**: the aside carries `role="dialog"` always (semantically accurate — it's a focused interaction surface). `aria-modal="true"` and a Tab/Shift-Tab focus trap are applied **conditionally on the mobile viewport** via a `matchMedia('(max-width: 767px)')` listener — keeps focus inside the sheet when the scrim hides the rest of the page. Desktop drops both so AT users can still cross-reference the transcript while the panel is open. The retry buttons in both `AnnotationCard` and `WriteSheet` carry `aria-describedby` pointing at their error messages so screen readers announce "Retry. <error>" rather than a context-free "Retry. Button." Existing tests should call `screen.getByRole('dialog', ...)` instead of `complementary` — the role change is a deliberate semantic upgrade.
-  - **Body content (HushStack)**: both `AnnotationCard` (in `AnnotationSheet`) and `WriteSheet` render the body via `<HushStack>` — a tracked-uppercase eyebrow, the italic struck original, and a large serif answer below. AnnotationSheet always uses eyebrow `"You said"`; WriteSheet renders the session title as a small bare link ABOVE the stack (no "From" prefix — the earlier prefix treatment mixed two visual languages on one line). The eyebrow flips to `"Sounds off"` for naturalness annotations (`correction === null`) in BOTH consumers so it matches what the body actually shows. The old `<CorrectionInContext>` block — sentence + inline strike + rewrite — was retired from the sheet body; sentence context now lives back on `/sessions/[id]` via the source link. `<CorrectionInContext>` is still used by `WriteList`'s row fallback path (`FlashcardRow`'s older-item branch) — don't remove it. Naturalness annotations get the flagged fragment with the new `--color-naturalness-underline` token (cool steel-blue, hue 250) and no answer line. **Amber stays reserved for warnings** per `.impeccable.md` line 91 — it is no longer used decoratively in HushStack.
-- **Importance scoring**: `annotations.importance_score` (1–3) and `importance_note` are written by Claude in `lib/claude.ts` and surfaced via `<ImportancePill>` (not stars) in `AnnotationCard` and `WriteSheet`. Score 3 → "High priority"; score 2 → "Worth remembering"; score 1 is intentionally suppressed (low signal). Sorting by importance is opt-in via `?sort=importance` on `GET /api/practice-items`.
-- **Annotation unhelpful flag** (`annotations.is_unhelpful` + `unhelpful_at`, migration `20260419`): Lets the user mark a Claude-generated correction as unhelpful from the transcript. Toggled via `PATCH /api/annotations/:id`. The "marked unhelpful vs saved as practice item" delta is the signal we mine to tune the analysis prompt — don't repurpose the column for UX state. `unhelpful_at` exists for trend analysis and to support a future "auto-restore after N days" without losing the original toggle moment. Partial index on `(session_id) where is_unhelpful = true` keeps queries cheap.
-- **Session inbox unread state** (`sessions.last_viewed_at`, migration `20260419`): NULL = unread, timestamp = read. Auto-populated on first `/sessions/[id]` view via `POST /api/sessions/:id/view`; user can flip back to unread (NULL) explicitly from the transcript page menu. Powers the inbox "unread" filter on `/review`. Partial index on `(user_id, created_at desc) where last_viewed_at is null` keeps the unread query tiny — once a session is read it disappears from the index.
-- **Session type field** (`sessions.session_type`, migration `20260511`): `'upload' | 'voice_practice'`, default `'upload'`. Distinguishes audio-shared-from-WhatsApp sessions from sessions created by the Practice voice agent (`POST /api/practice-sessions` writes `'voice_practice'`). Affects which pipeline path runs and how the session renders in lists. Add new session-creation surfaces with the appropriate value, not by inferring after the fact.
-- **Persona system for call mode** (`lib/persona.ts`): The Practice page's "Pick up a call" mode generates a fresh persona per session. Critically, the persona's **axes** (name, voice, gender, age fit) are pre-picked in JavaScript using `Math.random()` — Claude only writes the opener line and the system-prompt addendum. Why: Claude (Haiku) collapses to the modal output on repeated generation even at temperature 1.0 — diagnosis showed 6 of 9 calls produced near-identical "gossipy female neighbour" personas. Asking the same model to both choose axes and flesh them out gives the bias two surfaces to compound on. Voice gender is a HARD constraint when matching to the persona; age fit is a SOFT constraint with a gender-only fallback. `VOICE_CATALOG` is a curated subset of Gemini Live's prebuilt voices — extend it there, not at call sites.
-- **Write page = Write ↔ Written** (`/write`): `WriteList` defaults to the Write surface (`!written_down`). The Write view renders NO top header — the page H1 already names the surface, and dropping the chrome lets the list start at the same vertical position as `/review`'s inbox (chrome cohesion across the two methodology pillars; the row card vocabulary already matches via `SessionList` + `WriteList` sharing `rounded-xl border border-border-subtle` + `space-y-2`). The Written archive lives behind a centred pill BELOW the list (`<ArchiveFooterLink>`), gated on `writtenCount > 0` — retrospective destination, retrospective placement. Rows expose a trailing fast-path tap to flip `written_down` without opening the sheet. Sub-category pills, importance sort UI, and bulk-select were all removed in simplification passes. The `?sub_category=…` query param is accepted on `GET /api/practice-items` but currently a no-op (kept so old bookmarks don't break; revisit when category filtering returns). The `view-toggle-to-written` testId persists on the new footer pill so tests survive the relocation.
-- **Study row content priority** (`components/WriteList.tsx` → `WriteRow`): list rows render whichever treatment has data, in this order: (1) `<FlashcardRow>` when both `flashcard_front` and `flashcard_back` are present — Concept A "native prompt, target answer" pair, the rendering used for every annotation analysed after migration `20260325000000`; (2) `<CorrectionInContext>` when only segment offsets are available — used for older items predating the flashcard fields; (3) `<StrikeOriginal>` as the final fallback. The sheet body keeps using `<CorrectionInContext>` regardless — the list is for recall, the sheet is for context.
-- **`<FlashcardRow>` is the canonical Study row treatment** (`components/FlashcardRow.tsx`): italic native-language sentence on top (`flashcard_front`, tertiary text colour), Source Serif 4 target-language sentence below (`flashcard_back`, primary, slightly larger) with the bracketed phrase tinted `text-correction` on a soft `bg-widget-write-bg/60` fill. The rule "target language always sits on the bottom line" is intentional and language-agnostic — `flashcard_front` is always the meaning the user reads to orient, `flashcard_back` is always the phrase they're learning. The component never needs to know which language it's rendering. `[[double brackets]]` are parsed via `lib/flashcard.ts` (`parseFlashcard`) which splits on the first bracket pair — falls back to the whole sentence in `before` when brackets are absent (defensive; renders without a tinted highlight rather than throwing). The previous `WriteRow` rendering used `<CorrectionInContext>` directly; that primitive now backs the older-item fallback path and the sheet body only.
-- **`<CorrectionInContext>` is the sheet-body correction treatment** (`components/CorrectionInContext.tsx`) — sentence with the wrong fragment struck through and the rewrite inserted inline, used by `WriteSheet`'s body and by `WriteList` rows as a fallback for items missing flashcard fields. Falls back to `<StrikeOriginal>` when there's no segment data (still used for the empty-state teaching example). For naturalness annotations (no rewrite) it tints the wrong fragment instead of striking it.
-- **`<NavHint>` cue inside DockedSheet bodies**: One-shot first-open chip teaching the chevron/swipe nav. Single shared localStorage key (`cc:sheet-nav-hint:v1`) across both annotation and write sheets — learning the model once on either surface dismisses both. Login page stores the last-used address at `cc:login-email` and the provider used at `cc:login-provider` (`'google' | 'email'`) for the provider-aware "Continue as" pill on the welcome-back screen. The magic-link path writes both keys from `app/login/page.tsx`; the Google OAuth path writes them from `app/auth/callback/page.tsx` after Supabase confirms the session (via `session.user.app_metadata.provider`). Legacy state — pre-Option-A users only had the email stored — falls back to `'email'`, preserving the prior magic-link behaviour for them; their next successful sign-in writes the real provider. The pill renders Google chrome (`--color-google-surface` token, theme-aware: dark navy in light mode, elevated dark surface in dark mode) with the multi-colour G chip for Google users, or violet (`--color-accent-primary`) with an envelope chip for email users. The other provider sits below the divider as a one-tap quiet alternative; "Use a different account" clears both keys and routes back to the first-time view (its single escape hatch for stale cached provider state, e.g. the user revoked Google access).
-- **Onboarding collapsed to the language pick** (`app/onboarding/page.tsx`): `?step=0` (or no step) renders the language picker — the entire required wizard. Confirming the language pushes straight to `/?welcome=true` (peak-end beat on the Practise home). `?step=2` is the standalone WhatsApp share illustration, rendered via `<OnboardingStep>` (`totalSteps=1` so the dot row hides, no Back button — there's nowhere to return to within the wizard). It's reached from the Practise home's "Already recorded a voice note?" Share door (one of the three mode-picker doors). Any other step value (legacy `?step=1` hub URLs, out-of-range) clamps to step 2 so stale bookmarks still land somewhere meaningful. `revisit=true` is kept as forward-compat — if a Settings re-entry returns, exits will land on `/settings`; currently nothing sets it. The hub (`OnboardingHub`), the empty-state `DashboardOnboarding` "Revisit tutorial" link, and the Settings → Help section were all retired together — the Practise home's Share door is now the only entry point.
-- **Tutorial illustrations share the `oa-*` keyframe vocabulary** (`app/globals.css`): `oa-touch` (press-and-hold finger pad) → `oa-sheet` (bottom sheet rise) → `oa-backdrop` (dim) → `oa-pulse` (accent ring on the destination). All four use `animation-fill-mode: both` so the rest state IS the destination — reduced-motion users (whose duration is clamped to 0.01ms globally) snap straight to a complete teaching frame instead of nothing. Currently used by the WhatsApp share illustration; new illustrations should reuse these classes rather than inventing parallel ones.
-- **Insights feature removed**: The `/insights` page, its API handler, `lib/insights.ts`, and the corresponding Supabase RPCs (`get_subcategory_error_counts`, `get_subcategory_examples`) were removed in a distill pass — the surface wasn't delivering enough value. Dropped in migration `20260418000000_drop_insights_rpcs.sql`. If recurring-mistake surfacing returns, rebuild from the raw `annotations` table rather than recreating the RPCs.
-- **Write list fast-path + undoable delete**: Rows in the Write tab render a trailing tap target (Gmail pattern) that flips `written_down` without opening the sheet. Delete is optimistic with a 5-second undo window — the row hides immediately, `DELETE` only fires after the timer expires, Undo cancels the network call entirely. Toast lives at `bottom-[var(--toast-bottom)]` (5rem mobile / 1.25rem desktop) defined in `globals.css`. Redundant per-row success toasts were silenced — the visual state change is the receipt.
-- **Share-target uploads go straight to the status screen**: When the user shares audio from WhatsApp (or any app), the service worker stores the file in IndexedDB and redirects to `/`. `<PractiseClient>` reads the pending file on mount, POSTs to `/api/sessions` to create a session, then immediately calls `router.push('/sessions/[id]/status')`. The R2 upload and `upload-complete` calls run as a background fire-and-forget. The user never lands on a list during the wait — they see the consolidated `<PipelineStatus>` loading screen from the moment the session is created. Note: the share-target receiver lives on `/` (Practise) because that's the route the service worker redirects to; it is NOT on `/review` despite the inbox being the natural place for a new conversation to surface.
-- **Structured logging**: Use `log` from `lib/logger.ts` (not `console.*`) in API routes, pipeline, and lib files. Outputs JSON lines; `log.error` → stderr, others → stdout.
-- **Audio is temporary**: R2 audio is deleted after AssemblyAI completes transcription. No permanent audio storage.
-- **Speaker ID every session**: No automatic voice matching. The user picks their speaker every time via the identify screen.
-- **Paragraph grouping on transcript segments**: `transcript_segments.paragraph_breaks` (`int[]`, default `{}`) stores character offsets where new paragraphs begin within a segment's `text` (first paragraph is implicit — offset 0 is never stored). Populated from AssemblyAI's `/v2/transcript/:id/paragraphs` in the webhook handler for new sessions; empty for legacy rows (backward compatible — renders as one block). `TranscriptView.tsx` splits each segment on these offsets and renders one `<p>` per paragraph with `space-y-3 md:space-y-4`. `AnnotatedText.tsx` accepts `offsetBase` to re-base annotation `start_char`/`end_char` relative to the current paragraph slice. Annotations that span a paragraph break are filtered out with a `log.warn`. Failure to fetch paragraphs blocks transcription (session → `error`, `error_stage: transcribing`).
-- **Gemini Live binary frame protocol**: Gemini sends ALL WebSocket frames as binary (ArrayBuffer) — both control messages (e.g. `setupComplete`, errors) and raw PCM16 audio. The message handler in `lib/voice-agent.ts` tries UTF-8 JSON decode first; if that fails it treats the frame as a PCM16 audio chunk. Do not set `ws.binaryType = 'arraybuffer'` and then blindly `JSON.parse` — you'll get `"[object ArrayBuffer] is not valid JSON"`. Also: `realtime_input.media_chunks` is deprecated; use `realtime_input.audio` instead.
-- **Gemini AI Studio vs Vertex model names diverge**: We hit the AI Studio endpoint (`generativelanguage.googleapis.com/.../v1alpha`), NOT Vertex. AI Studio exposes `models/gemini-2.5-flash-native-audio-{latest,preview-12-2025,preview-09-2025}` and `models/gemini-3.1-flash-live-preview`. Vertex uses different names (`gemini-live-2.5-flash-native-audio` for GA). Using a Vertex-only name on the AI Studio endpoint causes the WebSocket to silently close before `setupComplete` — looks like a hang on the connecting/ringing screen, no error event. List available models: `curl "https://generativelanguage.googleapis.com/v1alpha/models?key=$GOOGLE_API_KEY"`. Also: `enableAffectiveDialog` is Vertex-only — the AI Studio endpoint silently closes the connection if you pass it. The native-audio family already adapts emotional tone, so the flag is redundant for this stack.
-- **Voice-agent close-before-ready surfaces as `onError`, not `onStateChange('ended')`**: `lib/voice-agent.ts` distinguishes a clean disconnect (after `setupComplete` arrived) from a setup-stage close. Pre-setup closes call `onError(...)`, which `PracticeClient`'s error path turns into a toast + return to idle. If the close fired `onStateChange('ended')` instead, the UI would sit on `connecting`/`ringing` forever because that callback intentionally does NOT change practiceState (it relies on the WebSocket open → setupComplete → active cascade). There is also a 15s setup timeout as defence in depth.
-- **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`, used to render inline highlights.
-- **`PATCH /api/sessions/:id` accepts `title` only**: All other session state is managed by server-side pipeline logic.
-- **`POST /api/sessions/:id/retry`**: Only valid for `transcribing` error stage. Upload errors prompt the user to re-share from WhatsApp — no retry call is made. Use `/analyse` for analysing errors.
-- **Webhook HMAC**: AssemblyAI webhook verifies `x-assemblyai-signature` (HMAC-SHA256). Unknown job IDs are silently discarded (return 200).
-- **Push notifications**: `lib/push.ts` sends Web Push via VAPID. `POST /api/push-subscription` stores subscriptions. `usePushNotifications` hook registers on the status page. Analysis completion triggers a push.
+- **Auth header passthrough**: `middleware.ts` is the single trust boundary — calls `supabase.auth.getUser()` once, forwards identity via `x-cc-user-id` / `x-cc-user-email` / `x-cc-user-target-language`. `getAuthenticatedUser()` reads headers (zero network calls), wrapped in React `cache()`. Middleware strips incoming `x-cc-*` headers before setting its own.
+
+- **Auth**: Supabase Auth (email magic link). Middleware guards all routes except `/login`, `/auth`, `/access-denied`, `/api/webhooks`. `ALLOWED_EMAILS` env var controls access.
+
+- **Magic-link uses PKCE flow**: `@supabase/ssr` v0.9+ hardcodes PKCE inside `createBrowserClient`. `app/auth/callback/page.tsx` is a client component; `detectSessionInUrl` handles code exchange, then `router.refresh()` before `router.replace()` to flush stale Next.js router-cache redirects.
+
+- **Next.js router cache + middleware auth**: Nav `<Link>` prefetches from unauthenticated routes hit middleware, return 307s, and get cached — causing login loops. Fix: add unauthenticated routes to `HIDDEN_ON` in `ConditionalNav.tsx`; call `router.refresh()` before `router.replace()` in `auth/callback/page.tsx`.
+
+- **Middleware must return `supabaseResponse`**: Token refreshes write cookies to `supabaseResponse`. Returning a new `NextResponse.next()` discards those cookies — session silently breaks. Re-append cookies when rebuilding the response.
+
+- **Middleware matcher must exclude public static assets**: Currently excluded: `_next/static`, `_next/image`, `favicon.ico`, `logo.svg`, `icon.svg`, `manifest.json`, `sw.js`, `icons/`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`. Add new public assets here or they 307-redirect unauthenticated users.
+
+- **API auth pattern**: Call `getAuthenticatedUser()` and chain `.eq('user_id', user.id)` on all Supabase queries. Webhook route excluded.
+
+- **i18n**: Use `t(key, lang)` from `lib/i18n.ts` for all UI strings. No raw string literals in components. UI language inferred from `targetLanguage` (`en-NZ` → `es` UI).
+
+- **Theme**: Use semantic CSS tokens (`bg-background`, `text-foreground`, `bg-surface`, etc.) from `globals.css` — never hardcode Tailwind gray classes.
+
+- **Practice items, no scheduler (yet)**: FSRS columns (`fsrs_state`, `due`, `stability`, …) from migration `20260410`. `ts-fsrs` installed. Do not remove either.
+
+- **Icon system: Phosphor is the default**: `components/Icon.tsx` inlines SVG paths from `@phosphor-icons/core`. When adding: copy path from [Phosphor catalog](https://phosphoricons.com/) at regular weight (+ fill weight for active-state swap). Fill-based glyphs use `{ node, viewBox: '0 0 256 256' }` form with `fill="currentColor" stroke="none"`. One-off deviations only for brand marks or genuinely missing glyphs.
+
+- **Docked sheet pattern**: Use `DockedSheet` for any new sheet (bottom mobile, right desktop). `AnnotationSheet` and `WriteSheet` are reference implementations — do not reach for `Modal`. Sheet is `z-40`, BottomNav `z-30` — sheet draws over nav on mobile. Scrim on mobile only; no scrim on desktop so transcript stays visible. `role="dialog"` always; `aria-modal` + focus trap on mobile only via `matchMedia('(max-width: 767px)')`. Sheet body uses `<HushStack>`: eyebrow + italic struck original + large serif answer. Eyebrow: `"You said"` (grammar) or `"Sounds off"` (naturalness, `correction === null`).
+
+- **`<NavHint>` cue**: One-shot first-open chip teaching chevron/swipe nav. Shared localStorage key `cc:sheet-nav-hint:v1` across annotation + write sheets — dismisses both.
+
+- **Login provider persistence**: Stores last-used email at `cc:login-email` and provider at `cc:login-provider` (`'google' | 'email'`). Magic-link writes from `app/login/page.tsx`; Google OAuth writes from `app/auth/callback/page.tsx`. Renders provider-appropriate "Continue as" pill. "Use a different account" clears both keys.
+
+- **Importance scoring**: `annotations.importance_score` (1–3) written by Claude, surfaced via `<ImportancePill>`. Score 3 → "High priority"; 2 → "Worth remembering"; 1 suppressed. Sort opt-in via `?sort=importance` on `GET /api/practice-items`.
+
+- **Annotation unhelpful flag** (`annotations.is_unhelpful` + `unhelpful_at`, migration `20260419`): Toggled via `PATCH /api/annotations/:id`. Use only for unhelpful signal — not for UX state.
+
+- **Session unread state** (`sessions.last_viewed_at`, migration `20260419`): NULL = unread, timestamp = read. Auto-set on first `/sessions/[id]` view via `POST /api/sessions/:id/view`. Powers `/review` unread filter.
+
+- **Session type field** (`sessions.session_type`, migration `20260511`): `'upload' | 'voice_practice'`. Set at creation; do not infer.
+
+- **Persona system for call mode** (`lib/persona.ts`): JS pre-picks name/voice/gender/age axes via `Math.random()` — Claude (Haiku) writes opener + system addendum only. Voice gender is a HARD constraint; age is SOFT. `VOICE_CATALOG` is the curated voice list — extend it there.
+
+- **Write page = Write ↔ Written** (`/write`): Defaults to `!written_down`. Written archive behind footer pill (`<ArchiveFooterLink>`), visible only when `writtenCount > 0`. Trailing tap on rows flips `written_down` without opening sheet. Delete is optimistic with 5s undo — `DELETE` fires after timer expires.
+
+- **Study row content priority** (`components/WriteList.tsx`): (1) `<FlashcardRow>` when both flashcard fields present; (2) `<CorrectionInContext>` for older items without flashcard fields; (3) `<StrikeOriginal>` fallback. Sheet body always uses `<HushStack>`.
+
+- **`<FlashcardRow>`** (`components/FlashcardRow.tsx`): `flashcard_front` = italic native sentence (top); `flashcard_back` = Source Serif 4 target sentence (bottom), bracketed phrase tinted. Front = what user reads to orient; back = phrase being learned. Parsed via `lib/flashcard.ts` (`parseFlashcard`).
+
+- **Onboarding**: `?step=0` (default) = language picker → pushes to `/?welcome=true`. `?step=2` = WhatsApp share illustration. Other values clamp to step 2.
+
+- **Tutorial illustrations** (`app/globals.css`): Reuse `oa-*` keyframes (`oa-touch`, `oa-sheet`, `oa-backdrop`, `oa-pulse`) — all use `animation-fill-mode: both` so reduced-motion users see a complete teaching frame.
+
+- **Share-target uploads go straight to status screen**: SW stores file in IndexedDB, redirects to `/`. `<PractiseClient>` picks it up, POSTs to `/api/sessions`, pushes to `/sessions/[id]/status`. R2 upload runs fire-and-forget.
+
+- **Structured logging**: Use `log` from `lib/logger.ts`, not `console.*`. JSON lines; `log.error` → stderr.
+
+- **Audio is temporary**: R2 audio deleted after AssemblyAI transcription completes.
+
+- **Speaker ID every session**: No automatic voice matching. User picks every time.
+
+- **Paragraph grouping** (`transcript_segments.paragraph_breaks`): `int[]` of char offsets where paragraphs begin (offset 0 implicit, never stored). `TranscriptView` splits on offsets; `AnnotatedText` accepts `offsetBase`. Annotations spanning a break are filtered with `log.warn`.
+
+- **Gemini Live binary frames**: All WebSocket frames are binary (ArrayBuffer) — control messages AND audio. Try UTF-8 JSON decode first; treat failures as PCM16. Use `realtime_input.audio` (not deprecated `media_chunks`).
+
+- **Gemini AI Studio vs Vertex model names**: Use AI Studio endpoint (`generativelanguage.googleapis.com/.../v1alpha`). Model names differ from Vertex — wrong name causes WebSocket to silently close before `setupComplete`. `enableAffectiveDialog` is Vertex-only; omit it.
+
+- **Voice-agent close-before-ready**: Pre-`setupComplete` closes call `onError(...)`, not `onStateChange('ended')`. 15s setup timeout as defence in depth.
+
+- **Annotations use character offsets**: `start_char`/`end_char` are offsets within `segment.text`.
+
+- **`PATCH /api/sessions/:id` accepts `title` only**.
+
+- **`POST /api/sessions/:id/retry`**: Only valid for `transcribing` error stage. Use `/analyse` for analysis errors.
+
+- **Webhook HMAC**: AssemblyAI webhook verifies `x-assemblyai-signature` (HMAC-SHA256). Unknown job IDs discarded silently.
+
+- **Push notifications**: `POST /api/push-subscription` stores subscriptions. Analysis completion triggers push.
 
 ## Claude Prompt Requirements
 
-The `analyseUserTurns` function in `lib/claude.ts` accepts `targetLanguage: TargetLanguage = 'es-AR'` and selects from `PROMPTS` record keyed by language. Must:
-- Target the correct language register (default: Argentinian Spanish, Rioplatense, voseo)
-- Return structured JSON: array of annotation objects matching the `annotations` DB schema
-- Annotate grammar errors and naturalness suggestions
-- Include `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction`, `explanation`
-- `sub_category` must be one of the 13 values in `SUB_CATEGORIES` (lib/types.ts); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
-- Also include `flashcard_front`, `flashcard_back`, `flashcard_note` per annotation:
-  - `flashcard_front`: English sentence with the correct equivalent phrase wrapped in `[[double brackets]]`
-  - `flashcard_back`: Spanish sentence using the correct form, target phrase wrapped in `[[double brackets]]`
-  - `flashcard_note`: 1–2 English sentences explaining the error from a Rioplatense register perspective
+`analyseUserTurns` in `lib/claude.ts` accepts `targetLanguage: TargetLanguage = 'es-AR'`, selects from `PROMPTS` keyed by language. Must:
+- Target correct register (default: Argentinian Spanish, Rioplatense, voseo)
+- Return structured JSON array of annotation objects matching `annotations` schema
+- Include: `segment_id`, `type`, `sub_category`, `original`, `start_char`, `end_char`, `correction`, `explanation`
+- `sub_category` must be one of 13 values in `SUB_CATEGORIES` (`lib/types.ts`); validated against `SUB_CATEGORY_TYPE_MAP` in pipeline
+- Include per annotation: `flashcard_front` (English sentence with `[[correct phrase]]`), `flashcard_back` (Spanish sentence with `[[correct form]]`), `flashcard_note` (1–2 sentences from Rioplatense register perspective)
 
 ## Data Flow Gotchas
 
-- **Pipeline writes to `annotations` only.** `practice_items` are created by users clicking "Add to practice" in `AnnotationCard` — never auto-created by the pipeline.
-- **`POST /api/practice-items` does a bare `insert(body)`** — new fields in the POST body are stored automatically; no route change needed.
-- **`GET /api/practice-items` and the RSC `/write` page both call `loadPracticeItems()`** in `lib/loaders.ts` — one nested PostgREST select that joins `practice_items → sessions` (for title) and `practice_items → annotations → transcript_segments` (for context text). User-scoping happens via `.eq('sessions.user_id', userId)` on the join. Add new columns to the `select` string in `loadPracticeItems`, not in the API route.
-- **`router.back()` is unreliable in PWA/Safari** when `window.history.length === 1`. Use `<Link href="/">` for back navigation.
-- **`react-swipeable` is already installed** (used by `WriteList.tsx`). Import `useSwipeable` directly.
-- **Navigation lives in two places**: `components/NavDrawer.tsx` (slide-out, full nav) and `components/BottomNav.tsx` (mobile bottom tabs). Both pull from the shared `NAV_TABS` in `components/nav-tabs.tsx`.
-- **`written_down` on `practice_items`**: boolean field; the Write surface (`!written_down`) is the default view in `WriteList`, with the "Written" archive surfaced as a quiet sibling link rather than a tab. View state is client-only — no deep-link query param.
-- **`ts-fsrs` is installed but unused**: SRS columns exist on `practice_items` (`fsrs_state`, `due`, `stability`, …) from migration `20260410`. The library and columns are reserved for an upcoming scheduler — do not remove either.
+- **Pipeline writes to `annotations` only.** `practice_items` created by user clicking "Add to practice" — never auto-created.
+- **`POST /api/practice-items` does bare `insert(body)`** — new fields stored automatically; no route change needed.
+- **`GET /api/practice-items` and `/write` RSC both call `loadPracticeItems()`** in `lib/loaders.ts`. Add columns to the `select` string there, not in the API route.
+- **`router.back()` unreliable in PWA/Safari** when `history.length === 1`. Use `<Link href="/">`.
+- **`react-swipeable` installed** — `import { useSwipeable }` directly.
+- **Navigation in two places**: `NavDrawer` + `BottomNav`, both from `NAV_TABS` in `nav-tabs.tsx`.
+- **`written_down` on `practice_items`**: Write = `!written_down`; Written = `written_down`. View state is client-only.
+- **`ts-fsrs` installed but unused**: FSRS columns reserved for future SRS — do not remove.
 
 ## Performance Patterns
 
-- **One auth call per request, not three**: Middleware verifies the JWT once and forwards `x-cc-user-id` via request headers. `getAuthenticatedUser()` reads the header (no network call) and is wrapped in React `cache()` so the layout, the page, and any nested RSC share one resolution. Don't re-add `supabase.auth.getUser()` calls in pages or API routes — call `getAuthenticatedUser()`.
-- **Server-side data fetching, no client waterfalls**: When you find yourself reaching for `useEffect(() => fetch(...), [])` in a page, stop — extract a loader into `lib/loaders.ts` and call it from a parent RSC. The Status route, Write list, and Session detail all dropped >500ms of latency this way. Polling is the exception (`ReviewClient` watches in-flight uploads).
-- **Polling has backoff and visibility**: `ReviewClient` polls `/api/sessions/:id/status` for any already-in-flight sessions present at page load, via a `setTimeout` chain (3s base, 1.5x backoff, 30s cap). Hidden tabs poll zero times — `visibilitychange` clears all timers and resumes them on focus. New uploads navigate straight to the status page so they never poll from the inbox. Match this pattern for any new polling.
-- **`<NavProgress>` fills the click→paint gap**: Top-of-page hairline that starts on link click and finishes on `pathname` change. No `nprogress` dep — the implementation is small and uses design tokens directly. Combined with `loading.tsx` skeletons, navigation never shows a blank screen.
+- **One auth call per request**: `getAuthenticatedUser()` reads headers (zero network calls). Don't call `supabase.auth.getUser()` in pages or API routes.
+- **RSC data fetching, no client waterfalls**: Use `lib/loaders.ts` + parent RSC instead of `useEffect(() => fetch(...), [])`. Polling is the exception (`ReviewClient` watches in-flight uploads — `setTimeout` chain, 3s base, 1.5x backoff, 30s cap, paused on hidden tabs).
+- **`<NavProgress>` fills the click→paint gap**: Top-of-page hairline starts on link click, finishes on `pathname` change.
 
 ## Supabase CLI
 
-- Run SQL against remote: `supabase db query --linked "<sql>"`
-- Apply pending migrations: `supabase db push`
-- Check migration status: `supabase migration list`
-- Register manually-applied migrations: `supabase migration repair --status applied <version>`
+```bash
+supabase db query --linked "<sql>"                         # run SQL against remote
+supabase db push                                           # apply pending migrations
+supabase migration list                                    # check migration status
+supabase migration repair --status applied <version>       # register manually-applied migration
+```
 
 ## Environment Variables
 
@@ -253,11 +283,10 @@ See `.env.local.example` for all required keys:
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
 - `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_WEBHOOK_SECRET`
 - `ANTHROPIC_API_KEY`
-- `RESEND_API_KEY` — Resend API key for transactional emails (server-only)
-- `RESEND_FROM_EMAIL` — Verified sender address, e.g. `noreply@conversationcoach.app`
-- `GOOGLE_API_KEY` — Gemini Live API key (server-only, returned auth-gated via `/api/voice-token`)
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- `GOOGLE_API_KEY` — Gemini Live (server-only, returned auth-gated via `/api/voice-token`)
 - `NEXT_PUBLIC_GOOGLE_VOICE` — Gemini prebuilt voice name (optional, default `Aoede`)
-- `ALLOWED_EMAILS` — comma-separated list of emails permitted past the auth middleware
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT` — Web Push (generate with `npx web-push generate-vapid-keys`)
-- `APP_URL` — public URL for AssemblyAI webhooks (use ngrok tunnel for local dev)
-- `NEXT_PUBLIC_BUILD_DATE`, `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` — injected automatically at build time; do not set manually
+- `ALLOWED_EMAILS` — comma-separated allowlist
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`
+- `APP_URL` — public URL for AssemblyAI webhooks (use ngrok for local dev)
+- `NEXT_PUBLIC_BUILD_DATE`, `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` — injected at build time; do not set manually
