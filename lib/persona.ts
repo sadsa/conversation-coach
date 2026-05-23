@@ -1,23 +1,14 @@
 // lib/persona.ts
 //
 // Generates a fresh conversation persona for the Practice page's "Pick up a
-// call" mode. Each call gets a server-randomised character + a Claude-written
-// opener and addendum:
+// call" mode. Each call gets a curated character + a Claude-written opener,
+// backstory, and addendum:
 //
-//   - name           : pre-picked from a gender-appropriate pool (first only)
-//   - voiceName      : pre-picked from VOICE_CATALOG with a soft age match
-//   - opener         : Claude writes the actual first line in target language
-//   - systemPromptAddendum : Claude writes the in-character situation block
-//
-// Why pre-pick the axes in JS rather than ask Claude to vary them?
-// Empirically Claude (Haiku) collapses to the modal output across calls
-// even at temperature 1.0 — six out of nine generations during diagnosis
-// were "gossipy female neighbour from apartment XB who just saw something
-// weird in the building". Asking the same model to both choose axes and
-// flesh them out gives the bias two surfaces to compound on. Moving axis
-// selection to JS guarantees diversity from real entropy (Math.random)
-// and leaves Claude doing only what it's good at: writing fluent voseo /
-// NZ-English in character.
+//   - Character    : pre-picked from CHARACTER_ROSTER (guaranteed variety)
+//   - voiceName    : locked to the character's VOICE_CATALOG entry
+//   - opener       : Claude writes the actual first line in target language
+//   - backstory    : Claude writes the narrative context (caller's POV)
+//   - systemPromptAddendum : character block + Claude's situation block
 
 import Anthropic from '@anthropic-ai/sdk'
 import { log } from '@/lib/logger'
@@ -41,7 +32,7 @@ type VoiceAgeFit = 'youth' | 'any' | 'older'
  *  each prebuilt voice. Used as a HARD filter at pick time so language
  *  learners aren't paired with rapid-fire personas. 'fast' voices stay in
  *  the catalog (handy if we ever surface a "natural pace" toggle in
- *  settings) but `pickVoice` excludes them by default. */
+ *  settings) but are excluded by default. */
 type VoicePace = 'slow' | 'medium' | 'fast'
 
 /** Subset of Gemini Live's 30 prebuilt voices, curated for character variety.
@@ -84,513 +75,444 @@ export interface Persona {
   opener: string
   /** Character + situation block appended to the practice system prompt. */
   systemPromptAddendum: string
+  /** Full narrative paragraph, caller's POV — backstory for the character. */
+  backstory: string
 }
 
-/** All the axes JS pre-picks before calling Claude. Bundling them in one
- *  object keeps the prompt construction tidy and makes the fallback path
- *  trivial (no Claude → still a fully-formed persona, just with a
- *  hand-written opener template). */
-interface PersonaSeed {
+export interface Character {
+  id: string
   name: string
   ageYears: number
-  gender: 'masculino' | 'femenino' | 'no-binarie'
-  relation: string
-  callingFrom: string
-  emotion: string
-  reason: string
-  twist: string | null
-  voiceName: string
-  voiceVibe: string
+  /** Voice assignment for non-binary characters must be done manually — VOICE_CATALOG only has 'male'/'female' entries. No current character uses this value. */
+  gender: 'male' | 'female' | 'non-binary'
+  voiceName: string    // locked to a VOICE_CATALOG entry
+  region: string       // accent/region description for the writer prompt
+  relationship: string // their relationship to the learner
+  personality: string  // how they speak and what they're like
+  lifeContext: string  // job, living situation, social world
+  language: TargetLanguage
 }
 
-// ─── Pools ─────────────────────────────────────────────────────────────────
-// Sized to make repeated combinations vanishingly rare in normal use. Each
-// pool is intentionally varied along multiple sub-dimensions (age, social
-// class, register) so a uniform random pick keeps drifting through the
-// space rather than clustering.
+// ─── Emotion pools ─────────────────────────────────────────────────────────────
 
-const POOLS_ES_AR = {
-  namesMasc: [
-    'Lucas', 'Diego', 'Tomás', 'Facundo', 'Joaquín', 'Mateo', 'Bruno',
-    'Lautaro', 'Nicolás', 'Sebastián', 'Agustín', 'Esteban', 'Ramiro',
-    'Fernando', 'Gonzalo', 'Pablo', 'Ezequiel', 'Hernán', 'Ignacio',
-    'Damián', 'Federico', 'Cristian', 'Rodrigo', 'Adrián', 'Jorge',
-    'Héctor', 'Raúl', 'Walter', 'Osvaldo', 'Carlos', 'Rubén', 'Norberto',
-    'Juan Pablo', 'José Luis', 'Alejandro', 'Sergio', 'Gustavo',
-  ],
-  namesFem: [
-    'Camila', 'Sofía', 'Lucía', 'Valentina', 'Florencia', 'Agustina',
-    'Julieta', 'Pilar', 'Antonella', 'Mora', 'Renata', 'Catalina',
-    'Delfina', 'Emilia', 'Bianca', 'Constanza', 'Micaela', 'Romina',
-    'Carla', 'Paula', 'Vanesa', 'Brenda', 'Gabriela', 'Marina',
-    'Verónica', 'Cecilia', 'Susana', 'Patricia', 'Nora', 'Beatriz',
-    'Liliana', 'Graciela', 'Estela', 'Mirta', 'Norma', 'Silvia',
-  ],
-  namesNB: ['Ariel', 'Andi', 'Sam', 'Robin', 'Sasha', 'Quim'],
-  // Ages are deliberately granular and span the full life arc so we don't
-  // keep landing on "early thirties professional".
-  ages: [
-    8, 11, 14, 16, 19, 21, 24, 27, 29, 32, 36, 39, 42, 46, 49, 52,
-    55, 58, 61, 64, 67, 71, 75, 80, 84,
-  ],
-  relations: [
-    'un vecino del edificio que casi no conocés',
-    'la kiosquera de la esquina',
-    'tu primo segundo del interior',
-    'una tía lejana que hace años no te llama',
-    'tu sobrino adolescente',
-    'el verdulero del barrio',
-    'un ex-compañero del último laburo',
-    'una amiga de una amiga',
-    'tu peluquero/a de toda la vida',
-    'el dueño del bar de la esquina',
-    'el plomero del edificio',
-    'una persona totalmente desconocida con número equivocado',
-    'tu ex-profesor/a de tango',
-    'el portero del edificio',
-    'un fan tuyo de Instagram',
-    'tu ex-jefa de hace dos trabajos',
-    'una periodista freelance que quiere hacerte una nota',
-    'el encargado del PH',
-    'un primo lejano que vive en Mendoza',
-    'un vendedor ambulante que te conoce de vista',
-    'alguien que conociste en un cumpleaños hace meses',
-    'el dueño de la rotisería de la cuadra',
-    'tu compañero del colegio que hace años no veías',
-    'tu ex-vecina que se mudó a Pinamar',
-    'el chofer del Uber que tomaste anteayer',
-    'una compañera del gimnasio',
-    'tu profesor de manejo',
-    'la madre de un amigo del nene',
-    'tu suegra (o ex-suegra)',
-    'un compañero del club de barrio',
-  ],
-  locations: [
-    'un colectivo de la 60 yendo al centro',
-    'la cocina mientras cocina milanesas',
-    'el subte línea D en hora pico',
-    'la cola del banco esperando ser atendido',
-    'una panadería en plena Avenida Cabildo',
-    'el patio de su casa tomando mate',
-    'el aeropuerto de Ezeiza esperando un vuelo demorado',
-    'la peluquería con los rulos puestos',
-    'una plaza llena de pibitos jugando al fútbol',
-    'un boliche bailable a las cuatro de la mañana',
-    'un consultorio médico esperando turno',
-    'una verdulería discutiendo el precio del tomate',
-    'un Uber camino a Palermo',
-    'la oficina con su jefe pasando atrás',
-    'una librería de Corrientes',
-    'el balcón mirando la lluvia',
-    'un quincho organizando un asado',
-    'una cancha de paddle en Belgrano',
-    'un café en San Telmo',
-    'la pileta del club',
-    'la sala de espera de un mecánico',
-    'un parripollo a la siesta del domingo',
-    'el supermercado chino del barrio',
-    'una farmacia de turno a la madrugada',
-    'la terraza del PH tendiendo la ropa',
-    'una fiesta de quince esperando el vals',
-    'la sala de espera de un dentista',
-    'un viaje en tren a La Plata',
-    'el quincho de un amigo encendiendo el fuego',
-    'una cabina de peaje de la Panamericana',
-  ],
-  emotions: [
+const EMOTION_POOLS: Record<TargetLanguage, string[]> = {
+  'es-AR': [
     'eufórico porque le acaba de pasar algo bueno',
     'medio dormido y todavía despertándose',
     'recién enamorado y necesita contarlo',
     'ofendido por algo que le hicieron hoy',
     'apurado porque va llegando tarde a algo importante',
     'tímido y un poco incómodo de estar llamando',
-    'medio borracho en una previa',
     'preocupado por algo que no sabe cómo explicar',
     'aburridísimo a la siesta del domingo',
     'nostálgico porque se acordó de algo viejo',
     'indignado y necesita desahogarse YA',
     'conspirativo, hablando bajito',
-    'sospechosamente alegre, sin motivo claro',
     'cansado después de un día larguísimo',
     'curioso y un poco entrometido',
-    'frustrado con la tecnología y ya cansado de pelear',
-    'distraído porque está haciendo otra cosa al mismo tiempo',
     'angustiado pero tratando de disimularlo',
-    'orgulloso de algo que logró y necesita presumir un poco',
-    'medio paranoico, mirando para los costados',
-    'súper formal, casi rígido',
-    'con voz de recién despertado, ronca',
-    'agitado, le falta el aire',
+    'orgulloso de algo que logró',
     'tranquilísimo, casi en cámara lenta',
-    'haciéndose el simpático aunque está claramente molesto',
+    'haciéndose el simpático aunque está molesto',
   ],
-  reasons: [
-    'necesita un favor medio raro y no sabe cómo pedirlo',
-    'se equivocó de número pero le da fiaca cortar',
-    'quiere venderte algo absurdo',
-    'tiene una novedad que no puede guardarse adentro',
-    'quiere pedirte un consejo personal',
-    'necesita devolverte algo que te había prestado y ni te acordás',
-    'quiere proponerte un plan loco para el finde',
-    'te debe plata y viene a darte una explicación larga',
-    'quiere chusmear sobre alguien que ambos conocen',
-    'tiene una pregunta técnica que no sabe a quién más preguntarle',
-    'se enteró de algo y necesita confirmarlo con vos',
-    'te invita a un evento muy específico',
-    'busca recomendaciones (de plomero, de restaurante, de lo que sea)',
-    'necesita ayuda para tomar una decisión en los próximos diez minutos',
-    'te quiere agradecer por algo que hiciste hace tiempo',
-    'tiene un dilema moral y necesita una segunda opinión',
-    'quiere disculparse por algo que pasó',
-    'se enojó con alguien y necesita ventilar',
-    'te cuenta una teoría conspirativa que se le ocurrió',
-    'quiere coordinar algo logístico (un cumpleaños, una mudanza)',
-    'te pide la gauchada de ir a buscar algo',
-    'le pasó algo gracioso y necesita contarlo',
-    'tiene una idea de negocio que quiere proponerte',
-    'recibió una noticia rara y no sabe cómo interpretarla',
-    'te llama para reclamarte algo que dijiste hace meses',
-    'está perdido y necesita indicaciones',
-    'quiere recomendarte una serie con detalles innecesarios',
-    'tiene una superstición que quiere chequear con vos',
-  ],
-  // Optional flavour-twists used about 40% of the time to add specificity.
-  twists: [
-    'pero hay un detalle que cambia todo',
-    'pero no quiere que nadie más se entere',
-    'pero no termina de entender lo que pasó',
-    'y vos sos la única persona que puede ayudarlo',
-    'pero la persona que le interesa contarlo no le contesta',
-    'y necesita una respuesta en los próximos minutos',
-    'aunque sabe que vos te vas a reír',
-    'y resulta que vos estás involucrado sin saberlo',
-    'pero recién se da cuenta que tal vez no es tan importante',
-    'mientras de fondo se escucha algo raro',
-    'aunque le da un poco de vergüenza pedirlo',
+  'en-NZ': [
+    "buzzing because something great just happened",
+    "half asleep and still waking up",
+    "newly loved-up and dying to tell someone",
+    "offended by something that happened today",
+    "in a rush because they're running late",
+    "shy and a bit awkward about calling",
+    "worried about something they can't quite explain",
+    "bored out of their mind on a Sunday afternoon",
+    "nostalgic because something old just came back to them",
+    "fired up and needs to vent NOW",
+    "conspiratorial, talking quietly",
+    "shattered after a long day",
+    "nosy and a bit too curious",
+    "anxious but trying to play it cool",
+    "proud of something they pulled off",
+    "unusually calm, almost in slow motion",
+    "forced cheerful even though they're obviously annoyed",
   ],
 }
 
-const POOLS_EN_NZ = {
-  namesMasc: [
-    'Liam', 'Oliver', 'Jack', 'Noah', 'Hunter', 'Mason', 'Cody', 'Caleb',
-    'Riley', 'Ethan', 'Tane', 'Manaia', 'Hemi', 'Wiremu', 'Wiri',
-    'Cameron', 'Blake', 'Jordan', 'Brayden', 'Harvey', 'Kingi', 'Dave',
-    'Pete', 'Bazza', 'Macca', 'Stu', 'Kev', 'Dwayne', 'Trev', 'Mike',
-  ],
-  namesFem: [
-    'Charlotte', 'Olivia', 'Mia', 'Amelia', 'Ruby', 'Aroha', 'Anahera',
-    'Maia', 'Kiri', 'Ava', 'Sophie', 'Isla', 'Hannah', 'Grace',
-    'Emily', 'Chloe', 'Lucy', 'Jess', 'Tash', 'Kayla', 'Steph', 'Dee',
-    'Sharon', 'Glenys', 'Robyn', 'Trish', 'Lynne', 'Beverley', 'Margo', 'Pam',
-  ],
-  namesNB: ['Sam', 'Alex', 'Robin', 'Ash', 'Kai'],
-  ages: [
-    8, 11, 14, 16, 19, 21, 24, 27, 29, 32, 36, 39, 42, 46, 49, 52,
-    55, 58, 61, 64, 67, 71, 75, 80, 84,
-  ],
-  relations: [
-    'a neighbour from down the road',
-    'the dairy owner from the corner shop',
-    'a second cousin you barely remember',
-    'your aunty who hasn\'t rung in years',
-    'your teenage nephew',
-    'the greengrocer at the local market',
-    'an ex-workmate from a job two ago',
-    'a friend of a friend',
-    'your hairdresser of fifteen years',
-    'the publican from the local',
-    'the plumber doing a quote at your flat',
-    'a complete stranger with a wrong number',
-    'your tramping club leader',
-    'the building manager',
-    'an Instagram follower who tracked down your number',
-    'your boss from two jobs ago',
-    'a freelance journalist chasing a story',
-    'the body corp chair',
-    'a distant cousin who lives in Dunedin',
-    'the bloke who delivers your firewood',
-    'someone you met at a birthday party months ago',
-    'the takeaway shop owner on your street',
-    'an old school mate you haven\'t seen in years',
-    'your ex-neighbour who moved to the Coromandel',
-    'your Uber driver from the other night',
-    'a mate from the gym',
-    'your driving instructor',
-    'another parent from school pickup',
-    'your mother-in-law (or ex)',
-    'a bowling club member',
-  ],
-  locations: [
-    'a bus heading into town',
-    'their kitchen mid-cooking',
-    'a queue at the Post Shop',
-    'a bakery on Cuba Street',
-    'their back deck with a coffee',
-    'Auckland airport on a delayed flight',
-    'the hairdresser with foils in',
-    'a playground full of yelling kids',
-    'a bar at one in the morning',
-    'a doctor\'s waiting room',
-    'the greengrocer arguing about avocado prices',
-    'an Uber heading to Newtown',
-    'the office with their boss walking past',
-    'a bookshop on Lambton Quay',
-    'a balcony watching the rain',
-    'a backyard setting up a barbecue',
-    'a paddle court in Mt Eden',
-    'a cafe in Ponsonby',
-    'the public pool',
-    'a mechanic\'s waiting room',
-    'a Sunday roast lunch',
-    'an Asian supermarket',
-    'a 24-hour pharmacy at midnight',
-    'the line for the ferry in Wellington',
-    'a kids\' birthday party',
-    'the dentist\'s waiting room',
-    'a train heading to Hutt Valley',
-    'a mate\'s shed starting the smoker',
-    'a toll booth on the motorway',
-    'the supermarket at five to closing',
-  ],
-  emotions: [
-    'buzzing because something great just happened',
-    'half asleep and still waking up',
-    'newly loved-up and dying to tell someone',
-    'offended by something that happened today',
-    'in a rush because they\'re running late',
-    'shy and a bit awkward about calling',
-    'a bit tipsy at a pre-game',
-    'worried about something they can\'t quite explain',
-    'bored out of their mind on a Sunday afternoon',
-    'nostalgic because something old just came back to them',
-    'fired up and needs to vent NOW',
-    'conspiratorial, talking quietly',
-    'suspiciously cheerful for no clear reason',
-    'shattered after a long day',
-    'nosy and a bit too curious',
-    'frustrated with tech and over it',
-    'distracted because they\'re doing something else at the same time',
-    'anxious but trying to play it cool',
-    'proud of something they pulled off and wanting to brag a bit',
-    'a bit paranoid, looking over their shoulder',
-    'overly formal, almost stiff',
-    'raspy because they just woke up',
-    'puffed and out of breath',
-    'unusually calm, almost in slow motion',
-    'forced cheerful even though they\'re obviously annoyed',
-  ],
-  reasons: [
-    'needs a slightly weird favour and isn\'t sure how to ask',
-    'rang the wrong number but can\'t be bothered hanging up',
-    'wants to sell you something ridiculous',
-    'has news they can\'t keep to themselves',
-    'wants your advice on something personal',
-    'needs to return something you lent them ages ago',
-    'wants to pitch you a wild weekend plan',
-    'owes you money and is launching into a long explanation',
-    'wants to gossip about someone you both know',
-    'has a tech question they didn\'t know who else to ring',
-    'heard something and needs to confirm it with you',
-    'is inviting you to a very specific event',
-    'is hunting for a recommendation (plumber, restaurant, whatever)',
-    'needs help making a decision in the next ten minutes',
-    'wants to thank you for something you did months ago',
-    'has a moral dilemma and needs a second opinion',
-    'wants to apologise for something that happened',
-    'got into a fight with someone and needs to vent',
-    'wants to share a conspiracy theory they came up with',
-    'is trying to organise the logistics of something (party, move)',
-    'wants you to do them a quick favour like picking something up',
-    'something funny just happened and they need to tell someone',
-    'has a business idea they want to run past you',
-    'got weird news and doesn\'t know how to interpret it',
-    'is calling to relitigate something you said months ago',
-    'is lost and needs directions',
-    'wants to recommend a TV show with unnecessary detail',
-    'has a superstition they want to run past you',
-  ],
-  twists: [
-    'but there\'s a small detail that changes everything',
-    'and they don\'t want anyone else to find out',
-    'but they don\'t fully understand what happened',
-    'and you\'re the only person who can help',
-    'but the person they actually wanted to tell isn\'t picking up',
-    'and they need an answer in the next few minutes',
-    'even though they know you\'ll laugh',
-    'and it turns out you\'re involved without realising',
-    'but they\'re starting to wonder if it\'s actually a big deal',
-    'while something weird is going on in the background',
-    'even though they\'re a bit embarrassed to be asking',
-  ],
+// ─── Character roster ──────────────────────────────────────────────────────────
+
+export const CHARACTER_ROSTER: Character[] = [
+  // ── es-AR ─────────────────────────────────────────────────────────────────
+  {
+    id: 'nora-portena',
+    name: 'Nora',
+    ageYears: 65,
+    gender: 'female',
+    voiceName: 'Vindemiatrix',
+    region: 'porteña (Buenos Aires)',
+    relationship: 'tu vecina del tercer piso del edificio',
+    personality: 'Hablás de forma cálida pero entrometida, siempre rodeando el punto antes de llegar a él. Te encanta el chisme del edificio y empezás las conversaciones preguntando por la familia. Usás "che", "mirá vos", "qué sé yo". Cuando estás nerviosa repetís preguntas.',
+    lifeContext: 'Jubilada, viuda, vivís sola en el edificio desde hace 30 años. Conocés a todos los vecinos de vista. Tomás mate en el balcón todas las mañanas. Tu hijo vive en Mendoza y te llama los domingos.',
+    language: 'es-AR',
+  },
+  {
+    id: 'ramiro-porteno',
+    name: 'Ramiro',
+    ageYears: 38,
+    gender: 'male',
+    voiceName: 'Zubenelgenubi',
+    region: 'porteño (Buenos Aires)',
+    relationship: 'ex-compañero de trabajo de hace dos años',
+    personality: 'Hablás de manera tranquila y desestructurada, siempre con una sonrisa en la voz. Nunca llegás al punto sin dar tres vueltas antes. Usás "dale", "re", "piola". Siempre tenés un proyecto "en proceso" que nunca termina de arrancar.',
+    lifeContext: 'Freelancer de diseño gráfico, vivís con tu novia en Palermo. Trabajaste dos años en la misma agencia que el aprendiz. Te gusta el fútbol (San Lorenzo) y los asados los domingos.',
+    language: 'es-AR',
+  },
+  {
+    id: 'lucia-portena',
+    name: 'Lucía',
+    ageYears: 27,
+    gender: 'female',
+    voiceName: 'Aoede',
+    region: 'porteña (Buenos Aires)',
+    relationship: 'amiga del gimnasio donde van los dos',
+    personality: 'Hablás rápido y con mucha energía. Contás todo con muchos detalles y te cuesta llegar al punto. Usás "igual", "o sea", "re mal" / "re bien". Interrumpís con "esperate, esperate" cuando recordás algo.',
+    lifeContext: 'Trabajás en marketing digital, vivís en Villa Crespo con dos roomies. Van al mismo gimnasio hace un año. Siempre tenés algún drama social en marcha.',
+    language: 'es-AR',
+  },
+  {
+    id: 'hector-porteno',
+    name: 'Héctor',
+    ageYears: 71,
+    gender: 'male',
+    voiceName: 'Algenib',
+    region: 'porteño (Buenos Aires)',
+    relationship: 'el dueño del bar de la esquina donde ibas seguido',
+    personality: 'Hablás pausado, con peso en cada palabra. Sos observador y un poco filosófico. Usás lunfardo viejo: "pibe", "manyás", "laburar". Sabés más de lo que decís y tardás en llegar al punto porque te gusta el rodeo.',
+    lifeContext: 'Tenés el bar hace 30 años. Viudo, dos hijos grandes que viven en el conurbano. Conocés a todos los del barrio de vista. Abrís a las 7 de la mañana.',
+    language: 'es-AR',
+  },
+  {
+    id: 'tomas-cordobes',
+    name: 'Tomás',
+    ageYears: 22,
+    gender: 'male',
+    voiceName: 'Achird',
+    region: 'cordobés (Córdoba capital)',
+    relationship: 'primo lejano — hijo de una prima segunda de tu mamá',
+    personality: 'Hablás con acento cordobés marcado (entonación cantada, "s" aspirada al final de sílaba). Sos entusiasta y un poco disperso — empezás una idea y te vas por las ramas. Usás "bo", "joya", "qué hacés".',
+    lifeContext: 'Estudiás ingeniería en la UNC, segundo año. Venís a Buenos Aires dos veces al año. Tu mamá y la mamá del aprendiz son primas — por eso tenés el número.',
+    language: 'es-AR',
+  },
+  {
+    id: 'graciela-portena',
+    name: 'Graciela',
+    ageYears: 52,
+    gender: 'female',
+    voiceName: 'Gacrux',
+    region: 'porteña (Buenos Aires)',
+    relationship: 'tu ex-jefa de hace tres años',
+    personality: 'Hablás de manera directa y un poco formal al principio, pero te soltás con confianza. No das muchas vueltas. Usás "puntualmente", "en ese sentido", "me parece". Te ponés dura cuando algo no te cierra.',
+    lifeContext: 'Gerenta de operaciones en una empresa mediana. Casada, dos hijos universitarios. Vivís en Caballito. Fuiste jefa del aprendiz hace tres años en otra empresa.',
+    language: 'es-AR',
+  },
+  {
+    id: 'sofia-portena',
+    name: 'Sofía',
+    ageYears: 16,
+    gender: 'female',
+    voiceName: 'Leda',
+    region: 'porteña (Buenos Aires)',
+    relationship: 'la hija de Marta, tu vecina del cuarto piso',
+    personality: 'Hablás poco y en oraciones cortas. Hay silencios incómodos porque odiás hablar por teléfono. Usás "tipo", "no sé", "igual". Es evidente que preferirías estar mandando mensajes.',
+    lifeContext: 'Estudiás en el colegio a dos cuadras. Vivís con tu mamá Marta. Tu mamá te pidió que llamaras porque ella no podía en ese momento. Pasás el tiempo libre con el teléfono o en lo de amigas.',
+    language: 'es-AR',
+  },
+  {
+    id: 'diego-rosarino',
+    name: 'Diego',
+    ageYears: 44,
+    gender: 'male',
+    voiceName: 'Enceladus',
+    region: 'rosarino (Rosario)',
+    relationship: 'conocido del club de paddle — se conocieron en un torneo hace seis meses',
+    personality: 'Hablás bajito y de costado, como si alguien te pudiera escuchar. Acento rosarino (más neutro que el porteño). Sos conspiratorio por naturaleza — todo lo decís como si fuera un secreto que no puede salir de ahí.',
+    lifeContext: 'Contador, dueño de un estudio propio en Rosario. Venís a Buenos Aires un par de veces al año por clientes. Tenés contactos en todos lados y te gusta el intercambio de información.',
+    language: 'es-AR',
+  },
+  // ── en-NZ ─────────────────────────────────────────────────────────────────
+  {
+    id: 'glenys-wellington',
+    name: 'Glenys',
+    ageYears: 67,
+    gender: 'female',
+    voiceName: 'Sulafat',
+    region: 'Wellington, New Zealand',
+    relationship: 'old family friend — your families have known each other for years',
+    personality: "You speak warmly and take your time getting to the point, always asking about family first. You say 'lovely', 'oh gosh', 'goodness me'. You laugh softly when nervous. Classic Wellingtonian manner.",
+    lifeContext: "Retired teacher, widowed, lives in Karori. Known the learner's family for many years — your kids went to the same school. You garden, do crosswords, and ring people rather than text.",
+    language: 'en-NZ',
+  },
+  {
+    id: 'pete-waikato',
+    name: 'Pete',
+    ageYears: 72,
+    gender: 'male',
+    voiceName: 'Charon',
+    region: 'rural Waikato, New Zealand',
+    relationship: "retired neighbour — lives on the property next door",
+    personality: "Slow, dry, and understated. You say a lot with very few words. Long pauses are comfortable. 'Yeah, nah', 'reckon', 'not too bad'. You understate everything — 'a bit of a situation' means a genuine crisis.",
+    lifeContext: "Retired dairy farmer, widower. You've fixed things around the learner's place a few times over the years. You go to the RSA on Fridays and aren't big on phones.",
+    language: 'en-NZ',
+  },
+  {
+    id: 'aroha-auckland',
+    name: 'Aroha',
+    ageYears: 34,
+    gender: 'female',
+    voiceName: 'Pulcherrima',
+    region: 'Auckland, New Zealand',
+    relationship: 'gym mate and school parent — your kids are in the same class',
+    personality: "Warm, chatty, big laugh. You know everyone and everything happening in the area. 'Oh my god', 'honestly', 'you know what I mean?'. You start sentences in one direction and end them somewhere else.",
+    lifeContext: 'Primary school teacher, two kids, lives in Mt Roskill. You both go to the same gym. You organise things — the school fundraiser, the park run, the class WhatsApp group.',
+    language: 'en-NZ',
+  },
+  {
+    id: 'dave-wellington',
+    name: 'Dave',
+    ageYears: 52,
+    gender: 'male',
+    voiceName: 'Zubenelgenubi',
+    region: 'Wellington, New Zealand',
+    relationship: 'neighbour two doors down — you both drink at the same local',
+    personality: "Classic kiwi bloke — understated, self-deprecating, not big on feelings. 'Ah yeah', 'fair enough', 'bit of a one'. Pauses while thinking. Gets to the point eventually but won't make a fuss.",
+    lifeContext: "Works in IT infrastructure, has lived on the same street for years. You've helped each other with bin days and parcel pickups. Solid neighbours, not close friends.",
+    language: 'en-NZ',
+  },
+  {
+    id: 'mia-auckland',
+    name: 'Mia',
+    ageYears: 29,
+    gender: 'female',
+    voiceName: 'Achernar',
+    region: 'Auckland, New Zealand',
+    relationship: 'friend of a friend — you met at a party about six months ago',
+    personality: "Bubbly, slightly chaotic, talks fast. 'Literally', 'oh wait', 'actually no'. Starts stories mid-thought. Slightly exhausting but genuinely kind-hearted.",
+    lifeContext: 'Works in hospitality, renting in Grey Lynn with flatmates. You met through a mutual friend and have texted a few times. This is the first actual phone call.',
+    language: 'en-NZ',
+  },
+  {
+    id: 'stu-christchurch',
+    name: 'Stu',
+    ageYears: 24,
+    gender: 'male',
+    voiceName: 'Puck',
+    region: 'Christchurch, New Zealand',
+    relationship: "distant cousin — your mums are cousins, you've met twice at family events",
+    personality: "Good-natured and a bit scattered. Talks himself in circles. 'Ah, yeah, so...', 'the thing is', 'actually wait'. Not unintelligent — just easily distracted by whatever's in his head.",
+    lifeContext: "Doing a trade apprenticeship in Christchurch. Has your number from when he was passing through Wellington last year and needed a couch.",
+    language: 'en-NZ',
+  },
+  {
+    id: 'tane-auckland',
+    name: 'Tane',
+    ageYears: 38,
+    gender: 'male',
+    voiceName: 'Alnilam',
+    region: 'Auckland, New Zealand',
+    relationship: 'work contact — you played in the same touch rugby team last season',
+    personality: "Direct and confident. Short sentences, doesn't waste words. 'Yeah, look —', 'straight up'. Professional enough to be polite, pragmatic enough to skip the small talk when he has something to say.",
+    lifeContext: 'Project manager at a construction company. Mutual professional network — you know people in common. Played touch rugby together last season at the same club.',
+    language: 'en-NZ',
+  },
+  {
+    id: 'ruby-wellington',
+    name: 'Ruby',
+    ageYears: 17,
+    gender: 'female',
+    voiceName: 'Leda',
+    region: 'Wellington, New Zealand',
+    relationship: 'teenager from next door — lives with her mum',
+    personality: "Shy and clearly uncomfortable on the phone. Short sentences, long pauses, quiet voice. 'Um', 'yeah', 'I don't know'. Her mum probably asked her to ring.",
+    lifeContext: "Year 12, school nearby. Lives next door with her mum and little brother. Has known the learner by sight for a couple of years but has barely spoken to them directly.",
+    language: 'en-NZ',
+  },
+]
+
+export function pickCharacter(targetLanguage: TargetLanguage): Character {
+  const pool = CHARACTER_ROSTER.filter(c => c.language === targetLanguage)
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
-type LangPools = typeof POOLS_ES_AR
+// ─── Writer prompt ─────────────────────────────────────────────────────────────
 
-const POOLS: Record<TargetLanguage, LangPools> = {
-  'es-AR': POOLS_ES_AR,
-  'en-NZ': POOLS_EN_NZ,
-}
-
-function pickOne<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
-/** Maps a persona age to the voice ageFit bucket. */
-function ageBucket(ageYears: number): VoiceAgeFit {
-  if (ageYears < 18) return 'youth'
-  if (ageYears >= 65) return 'older'
-  return 'any'
-}
-
-/** Voices excluded from default learner-paced calls. Fast voices (Excitable,
- *  Forward, Upbeat, Lively) overwhelm beginner/intermediate listeners — the
- *  syllable rate outpaces comprehension before the persona finishes the first
- *  turn. Filtered at pick time, not at catalog-export time, so a future
- *  "natural pace" toggle in settings can opt back in without restructuring
- *  the data. */
-const LEARNER_PACED_VOICES = VOICE_CATALOG.filter(v => v.pace !== 'fast')
-
-/**
- * Pick a voice that matches the persona's gender (HARD constraint), roughly
- * fits their age (SOFT constraint), and reads at a learner-friendly pace
- * (HARD filter — see LEARNER_PACED_VOICES). The hard/soft split exists so
- * a 14-year-old boy never gets a feminine voice just because no male-youth
- * voice happens to be tagged — falling back to any age within the right
- * gender is always better than crossing genders.
- *
- * Non-binary personas: no gender filter at all (the picker draws from the
- * whole learner-paced catalog), since the `namesNB` pool deliberately uses
- * gender-ambiguous names where either voice register reads as plausible.
- */
-function pickVoice(
-  gender: PersonaSeed['gender'],
-  ageYears: number,
-): { name: string; vibe: string } {
-  const bucket = ageBucket(ageYears)
-  const genderMatch = gender === 'no-binarie'
-    ? LEARNER_PACED_VOICES
-    : LEARNER_PACED_VOICES.filter(v => v.gender === (gender === 'masculino' ? 'male' : 'female'))
-
-  // Try (gender ∩ ageFit) first; if that intersection is empty (e.g. no
-  // 'older' voice for some gender at some future catalog state, or no
-  // male-youth voice once Puck is filtered out for being too fast), relax
-  // the age constraint and pick from any age within the right gender.
-  const ageMatch = genderMatch.filter(v => v.ageFit === bucket)
-  const pool = ageMatch.length > 0 ? ageMatch : genderMatch
-
-  const picked = pickOne(pool)
-  return { name: picked.name, vibe: picked.vibe }
-}
-
-function pickName(pools: LangPools, gender: PersonaSeed['gender']): string {
-  if (gender === 'masculino') return pickOne(pools.namesMasc)
-  if (gender === 'femenino') return pickOne(pools.namesFem)
-  return pickOne(pools.namesNB)
-}
-
-function pickGender(): PersonaSeed['gender'] {
-  // 47/47/6 split — non-binary kept rare so callers don't feel formulaic,
-  // but present so the experience isn't a strict binary either.
-  const r = Math.random()
-  if (r < 0.47) return 'masculino'
-  if (r < 0.94) return 'femenino'
-  return 'no-binarie'
-}
-
-export function pickPersonaSeed(targetLanguage: TargetLanguage): PersonaSeed {
-  const pools = POOLS[targetLanguage]
-  const gender = pickGender()
-  const ageYears = pickOne(pools.ages)
-  const name = pickName(pools, gender)
-  const { name: voiceName, vibe: voiceVibe } = pickVoice(gender, ageYears)
-  // ~40% of personas get a twist; the rest stay clean so we don't overload
-  // every call with quirks.
-  const twist = Math.random() < 0.4 ? pickOne(pools.twists) : null
-  return {
-    name,
-    ageYears,
-    gender,
-    relation: pickOne(pools.relations),
-    callingFrom: pickOne(pools.locations),
-    emotion: pickOne(pools.emotions),
-    reason: pickOne(pools.reasons),
-    twist,
-    voiceName,
-    voiceVibe,
-  }
-}
-
-function buildWriterPrompt(targetLanguage: TargetLanguage, seed: PersonaSeed): string {
+function buildWriterPrompt(targetLanguage: TargetLanguage, character: Character, emotion: string): string {
   if (targetLanguage === 'en-NZ') {
-    return `You are writing the opening line and a brief character note for a 5-minute English conversation practice call. The character is already decided — your only job is to write the opener and the addendum.
+    return `You are writing an opening line and narrative backstory for a 5-minute English conversation practice call.
 
-CALL FLOW (IMPORTANT — this changes what the opener should be):
-- YOUR CHARACTER placed this call. The learner picked up. The character speaks FIRST — before the learner says anything.
-- The "opener" below is the character's very first line when the call connects. Write it as a natural cold-call opener: the character identifies themselves and drops a small hook. NOT as a reply to something already said.
+CALL FLOW (IMPORTANT):
+- THE CHARACTER placed this call. The learner picked up. The character speaks FIRST — before the learner says anything.
+- The "opener" is the character's very first line when the call connects: they identify themselves and drop a small hook. NOT the full reason for calling.
 
-CHARACTER:
-- Name: ${seed.name}
-- Age: ${seed.ageYears}
-- Gender: ${seed.gender === 'masculino' ? 'male' : seed.gender === 'femenino' ? 'female' : 'non-binary'}
-- Their relationship to the learner: ${seed.relation}
-- Calling from: ${seed.callingFrom}
-- Emotional state: ${seed.emotion}
-- Reason for the call (INTERNAL — they know it but should NOT spill it all upfront): ${seed.reason}${seed.twist ? `\n- Twist (INTERNAL — emerges later): ${seed.twist}` : ''}
-- They speak with the voice "${seed.voiceName}" (${seed.voiceVibe}). The addendum should match that energy.
+CHARACTER (FIXED — do not change):
+Name: ${character.name}
+Age: ${character.ageYears}
+Region/accent: ${character.region}
+Relationship to learner: ${character.relationship}
+Personality: ${character.personality}
+Life context: ${character.lifeContext}
 
-OUTPUT JSON shape:
-{
-  "opener": "<one short English line, 1–2 short sentences MAX, casual NZ register. Pattern: the character speaks first — they greet, identify themselves, and drop a vague hook. NOT the full reason for calling. Examples that work: 'Oh hey — it's ${seed.name}, you got a sec?', 'Hiya, ${seed.name} here, sorry to bother you — bad time?', 'Hey, it's ${seed.name} — quick one, are you around?'. The opener is what the caller says the moment the line connects; the actual reason emerges over the next few turns.>",
-  "systemPromptAddendum": "<3–5 lines in English, written as instructions in second person ('You are X. You're calling because Y. You sound Z.'). Cover: who you are, why you're calling INTERNALLY, your emotional state, and — critically — HOW to reveal the reason: drop it gradually across 3–5 turns, NOT in the first turn. Wait for the learner to ask follow-up questions and answer those specifically. Leave hooks the learner can grab. Be vague before you're specific — real callers don't lead with the full picture. If the learner asks nothing, drop one detail at a time rather than a full explanation.>"
-}
+EMOTIONAL STATE TODAY: ${emotion}
+
+YOUR TASK: Invent ONE plausible situation for this call that makes sense for this character. Then write:
+
+1. "opener" — The character's first line (1–2 short sentences, casual NZ register). They identify themselves and drop a vague hook. Examples: "Oh hey — it's ${character.name}, you got a sec?", "Hiya, ${character.name} here — bad time?". NOT the reason for calling.
+
+2. "backstory" — ONE narrative paragraph written as the character's internal knowledge (second person: "You and [name] go back...", "A couple of weeks ago you told them that...", "The thing is..."). Include 3–5 SPECIFIC facts: names of third parties, approximate dates, places, amounts if relevant. The character will reveal these details one at a time as the learner asks questions.
+
+3. "systemPromptAddendum" — 2–3 sentences of pacing instructions in second person ("You are ${character.name}... You're calling because... Hold back X until..."). What detail to keep back at first? What to reveal only when asked directly?
 
 CRITICAL:
-- The opener must NOT contain the reason for the call. It's the caller's first line: identify yourself and open the channel — greeting, name, and a small hook (a question, hesitation, or "got a sec?"). The reason unfolds over the following turns.
-- The opener is the CHARACTER'S FIRST LINE when the call connects. Write it as what a caller naturally says when someone picks up — not as a response to something already said. Avoid anything that only makes sense as a response (e.g. "Oh, haha, yeah!" or "Exactly, well anyway...").
-- Use the character's actual age, location, and emotion. Do not soften them into a generic adult.
-- Casual NZ register: "yeah nah", "mate", "eh" are fine but use sparingly and only when they fit the character (a 12-year-old won't say "mate").
-- Do NOT default to a "neighbour who saw something weird in the building" — work with the axes given above.
-- Set the emotional tone EXPLICITLY in the addendum, not just by implication.
-- The addendum MUST instruct the model to ease in: keep turns short, withhold details, wait for the learner to ask questions.
+- The opener does NOT contain the reason for the call. Just greeting + hook.
+- The backstory has concrete specifics, not abstractions. Names, dates, places.
+- The situation must be plausible for someone aged ${character.ageYears} who is ${character.relationship}.
+- Casual NZ register: "yeah nah", "mate", "eh" only if it fits the character's age and personality.
 
-Respond ONLY with the JSON object. No prose, no markdown fence.`
+Respond ONLY with the JSON object. No prose, no markdown fence.
+
+{
+  "opener": "...",
+  "backstory": "...",
+  "systemPromptAddendum": "..."
+}`
   }
 
-  return `Estás escribiendo la línea de apertura y una nota breve de personaje para una llamada de práctica de conversación en español de 5 minutos. El personaje ya está definido — tu única tarea es escribir el opener y el addendum.
+  // Default: es-AR Rioplatense
+  return `Estás escribiendo la apertura y un trasfondo narrativo para una llamada de práctica de conversación en español de 5 minutos.
 
-FLUJO DE LA LLAMADA (IMPORTANTE — cambia lo que tiene que ser el opener):
+FLUJO DE LA LLAMADA (IMPORTANTE):
 - EL PERSONAJE hizo la llamada. El aprendiz atendió. El personaje habla PRIMERO — antes de que el aprendiz diga nada.
-- El "opener" que escribís ABAJO es la primera línea del personaje cuando se conecta la llamada. Escribilo como un opener natural de quien llama: el personaje se identifica y deja un gancho chico. NO como respuesta a algo que ya se dijo.
+- El "opener" es la primera línea del personaje cuando se conecta la llamada: se identifica y deja un gancho pequeño. NO el motivo entero.
 
-PERSONAJE:
-- Nombre: ${seed.name}
-- Edad: ${seed.ageYears} años
-- Género: ${seed.gender}
-- Relación con quien aprende: ${seed.relation}
-- Está llamando desde: ${seed.callingFrom}
-- Estado emocional: ${seed.emotion}
-- Motivo de la llamada (INTERNO — lo sabés vos pero NO lo soltás de una): ${seed.reason}${seed.twist ? `\n- Detalle (INTERNO — sale después): ${seed.twist}` : ''}
-- Habla con la voz "${seed.voiceName}" (${seed.voiceVibe}). El addendum debería reflejar esa energía.
+PERSONAJE (FIJO — no lo cambies):
+Nombre: ${character.name}
+Edad: ${character.ageYears} años
+Región/acento: ${character.region}
+Relación con quien aprende: ${character.relationship}
+Personalidad: ${character.personality}
+Vida: ${character.lifeContext}
 
-FORMA DE LA SALIDA (JSON):
-{
-  "opener": "<una sola línea corta en español rioplatense — 1 a 2 oraciones cortas COMO MÁXIMO. Patrón: el personaje habla primero — saluda, se identifica y deja un gancho vago. NO el motivo entero. Ejemplos que funcionan: 'Ah, hola, soy ${seed.name}, ¿tenés un segundo?', 'Hola, habla ${seed.name}, perdón que te moleste — ¿estás ocupado/a?', 'Che, soy ${seed.name}, ¿te puedo robar un minutito?'. El opener es lo primero que dice el personaje cuando se conecta la llamada; el motivo real se va desplegando en los próximos turnos.>",
-  "systemPromptAddendum": "<3 a 5 líneas en español (voseo), escritas como instrucciones en segunda persona ('Sos X. Llamás porque Y. Estás Z.'). Cubrir: quién sos, por qué llamás INTERNAMENTE, cómo estás emocionalmente, y — lo más importante — CÓMO desplegar el motivo: revelalo de a poco a lo largo de 3 a 5 turnos, NO en el primer turno. Esperá a que el aprendiz haga preguntas de seguimiento y respondé a esas preguntas. Dejá ganchos para que el aprendiz pueda agarrar. Sé vago/a antes de ser específico/a — la gente real no arranca con todo el cuadro. Si el aprendiz no pregunta nada, soltá un detalle a la vez en vez de una explicación entera.>"
-}
+ESTADO EMOCIONAL HOY: ${emotion}
+
+TU TAREA: Inventar UNA situación creíble para esta llamada que tenga sentido para este personaje. Luego escribir:
+
+1. "opener" — Primera línea del personaje (1–2 oraciones cortas, voseo rioplatense). El personaje se identifica y deja un gancho vago. Ejemplos: "Ah, hola, soy ${character.name}, ¿tenés un segundo?", "Che, soy ${character.name}, perdón que te llamo así — ¿estás ocupado/a?". NO el motivo de la llamada.
+
+2. "backstory" — UN párrafo narrativo en segunda persona desde la perspectiva del personaje ("Vos y [nombre] se conocen de...", "Hace dos semanas le dijiste al aprendiz que...", "El tema es que..."). Incluí 3–5 hechos ESPECÍFICOS: nombres de terceros, fechas aproximadas, lugares, montos si aplica. El personaje va a revelar estos detalles de a poco cuando el aprendiz pregunte.
+
+3. "systemPromptAddendum" — 2–3 oraciones de instrucciones de ritmo en segunda persona ("Sos ${character.name}... Llamás porque... Guardá X para después de que pregunten..."). ¿Qué detalle retener al principio? ¿Qué revelar recién si te preguntan?
 
 CRÍTICO:
-- El opener NO debe contener el motivo de la llamada. Es la primera línea del personaje que llama: saludá, identificate y dejá un gancho chico (una pregunta, un titubeo, '¿tenés un segundo?'). El motivo se va desplegando en los turnos siguientes.
-- El opener es la PRIMERA LÍNEA DEL PERSONAJE cuando se conecta la llamada — lo que dice quien llama cuando alguien atiende. Evitá frases que solo tienen sentido como respuesta a algo ya dicho (no escribas "¡Ah sí, claro!" o "Exacto, bueno..." — el aprendiz todavía no dijo nada).
-- Usá la edad, ubicación y emoción reales del personaje. No los suavices a "adulto genérico".
-- Usá voseo rioplatense (sos, tenés, hablás, podés). Lunfardo bienvenido pero sin forzar.
-- NO te vayas al cliché del "vecino que vio algo raro en el edificio" — trabajá con los ejes dados arriba.
-- Fijá el tono emocional EXPLÍCITAMENTE en el addendum, no solo por implicación.
-- El addendum DEBE instruir al modelo a entrar de a poco: turnos cortos, retener detalles, esperar a que el aprendiz pregunte.
-- Si el personaje tiene menos de 16 años, hablá como adolescente/niño — sin formalismos.
-- Si tiene más de 65, evitá modismos demasiado modernos.
+- El opener NO contiene el motivo. Solo saludo + gancho.
+- El backstory tiene hechos concretos, no abstracciones. Nombres, fechas, lugares.
+- La situación debe ser plausible para alguien de ${character.ageYears} años que es ${character.relationship}.
+- Acento y registro: ${character.region}. Usá voseo rioplatense.
 
-Respondé SOLO con el objeto JSON. Sin texto adicional, sin markdown.`
+Respondé SOLO con el objeto JSON. Sin markdown, sin texto adicional.
+
+{
+  "opener": "...",
+  "backstory": "...",
+  "systemPromptAddendum": "..."
+}`
 }
+
+// ─── Character block renderer ──────────────────────────────────────────────────
+
+function renderCharacterBlock(character: Character, targetLanguage: TargetLanguage): string {
+  if (targetLanguage === 'en-NZ') {
+    return `You are ${character.name}, ${character.ageYears} years old. ${character.relationship}. You speak with a ${character.region} accent.\n${character.personality}\n${character.lifeContext}`
+  }
+  return `Sos ${character.name}, tenés ${character.ageYears} años. ${character.relationship}. Hablás con acento ${character.region}.\n${character.personality}\n${character.lifeContext}`
+}
+
+// ─── Template fallback ─────────────────────────────────────────────────────────
+
+function templateFallback(targetLanguage: TargetLanguage, character: Character, emotion: string): Persona {
+  const characterBlock = renderCharacterBlock(character, targetLanguage)
+  if (targetLanguage === 'en-NZ') {
+    return {
+      name: character.name,
+      voiceName: character.voiceName,
+      opener: `Oh hey — it's ${character.name}, you got a sec?`,
+      systemPromptAddendum: `${characterBlock}\n\nYou are ${emotion}. Do NOT spill the reason in your first turn — ease in, greet, and wait for the learner. Reveal your situation gradually across several turns. Keep every turn to 1–2 short sentences.`,
+      backstory: `You are ${character.name} and you're calling about something that came up recently. Reveal the reason gradually over the course of the call — one detail at a time in response to the learner's questions.`,
+    }
+  }
+  return {
+    name: character.name,
+    voiceName: character.voiceName,
+    opener: `Ah, hola, soy ${character.name}. ¿Tenés un segundo?`,
+    systemPromptAddendum: `${characterBlock}\n\nEstás ${emotion}. NO sueltes el motivo en tu primer turno — saludá, dejá un beat, y esperá. El motivo se va desplegando de a poco. Mantené cada turno en 1 a 2 oraciones cortas. Hablá en voseo rioplatense.`,
+    backstory: `Sos ${character.name} y llamás por algo que te pasó recientemente. Revelá el motivo de a poco a lo largo de la llamada, un detalle por vez respondiendo las preguntas del aprendiz.`,
+  }
+}
+
+// ─── generatePersona ───────────────────────────────────────────────────────────
+
+/**
+ * Calls Claude to flesh out a pre-picked Character into a full Persona.
+ * The character (fixed attributes) is chosen from CHARACTER_ROSTER; Claude
+ * only writes the opener, backstory, and addendum from the brief.
+ */
+export async function generatePersona(targetLanguage: TargetLanguage): Promise<Persona> {
+  const character = pickCharacter(targetLanguage)
+  const emotionPool = EMOTION_POOLS[targetLanguage]
+  const emotion = emotionPool[Math.floor(Math.random() * emotionPool.length)]
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 900,
+    system: buildWriterPrompt(targetLanguage, character, emotion),
+    messages: [{ role: 'user', content: 'Write the opener, backstory, and addendum for this character.' }],
+  })
+
+  const raw = response.content
+    .filter(b => b.type === 'text')
+    .map(b => (b as { type: 'text'; text: string }).text)
+    .join('')
+
+  const text = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
+
+  let parsed: { opener?: string; backstory?: string; systemPromptAddendum?: string }
+  try {
+    parsed = JSON.parse(text) as typeof parsed
+  } catch {
+    log.warn('Persona writer returned non-JSON, using template fallback', {
+      preview: text.slice(0, 200),
+    })
+    return templateFallback(targetLanguage, character, emotion)
+  }
+
+  const opener = (parsed.opener ?? '').trim()
+  const backstory = (parsed.backstory ?? '').trim()
+  const claudeAddendum = (parsed.systemPromptAddendum ?? '').trim()
+
+  if (!opener || !backstory || !claudeAddendum) {
+    log.warn('Persona writer missing required fields, using template fallback', { parsed, characterId: character.id })
+    return templateFallback(targetLanguage, character, emotion)
+  }
+
+  const characterBlock = renderCharacterBlock(character, targetLanguage)
+  const systemPromptAddendum = `${characterBlock}\n\n${claudeAddendum}`
+
+  return {
+    name: character.name,
+    voiceName: character.voiceName,
+    opener,
+    systemPromptAddendum,
+    backstory,
+  }
+}
+
+// ─── buildPersonaSystemPrompt ──────────────────────────────────────────────────
 
 /**
  * Build the combined system prompt for a persona call:
@@ -613,6 +535,10 @@ export function buildPersonaSystemPrompt(
 —— YOUR CHARACTER FOR THIS CALL ——
 ${persona.systemPromptAddendum}
 
+—— THIS CALL'S BACKSTORY ——
+${persona.backstory}
+Draw on these specific details when the learner asks follow-up questions. Reveal one detail per turn — do not volunteer everything at once. If the learner asks "how do you know him?" or "what happened?", answer that specific question with one concrete fact from above.
+
 —— CONVERSATION DYNAMICS (REAL CALL PACING) ——
 This is a real phone call between two humans, not a monologue or an exposition dump. Pace yourself the way a real person would:
 
@@ -631,85 +557,4 @@ YOU placed this call — the learner picked up. Speak first. The moment the call
 Your opener: "${persona.opener}"
 
 After delivering that line, stop and wait for the learner to respond. The reason for the call unfolds over the next few exchanges, not in your first turn. Do NOT translate or explain the opener. If the learner stays completely silent after your opener, a quiet "...hello?" / "¿hola?" is fine, but nothing more.`
-}
-
-/**
- * Calls Claude to flesh out a pre-randomised PersonaSeed into a full Persona.
- * The seed (axes + name + voice) is decided in JS so we get real entropy;
- * Claude only writes the opener + addendum from the brief.
- */
-export async function generatePersona(targetLanguage: TargetLanguage): Promise<Persona> {
-  const seed = pickPersonaSeed(targetLanguage)
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 600,
-    // temperature stays at the SDK default (1.0). Entropy is now coming
-    // from the pre-picked axes — bumping temperature higher mostly damages
-    // grammar at this point.
-    system: buildWriterPrompt(targetLanguage, seed),
-    messages: [{ role: 'user', content: 'Write the opener and addendum for this character.' }],
-  })
-
-  const raw = response.content
-    .filter(b => b.type === 'text')
-    .map(b => (b as { type: 'text'; text: string }).text)
-    .join('')
-
-  const text = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
-
-  let parsed: { opener?: string; systemPromptAddendum?: string }
-  try {
-    parsed = JSON.parse(text) as typeof parsed
-  } catch {
-    log.warn('Persona writer returned non-JSON, using template fallback', {
-      preview: text.slice(0, 200),
-    })
-    return templateFallback(targetLanguage, seed)
-  }
-
-  const opener = (parsed.opener ?? '').trim()
-  const systemPromptAddendum = (parsed.systemPromptAddendum ?? '').trim()
-
-  if (!opener || !systemPromptAddendum) {
-    log.warn('Persona writer missing required fields, using template fallback', { parsed, seed })
-    return templateFallback(targetLanguage, seed)
-  }
-
-  return {
-    name: seed.name,
-    voiceName: seed.voiceName,
-    opener,
-    systemPromptAddendum,
-  }
-}
-
-/**
- * Hand-templated fallback when Claude returns garbage. Unlike the old
- * fixed-character fallback (always "Mateo, programador aburrido"), this one
- * uses the already-randomised seed — so even the fallback path stays varied
- * across calls. Rare in practice but no longer a diversity dead end.
- *
- * Openers are written as REPLIES to the learner's greeting (they pick up
- * first, the persona responds), matching the wait-for-greeting flow that
- * buildPersonaSystemPrompt sets up.
- */
-function templateFallback(targetLanguage: TargetLanguage, seed: PersonaSeed): Persona {
-  if (targetLanguage === 'en-NZ') {
-    return {
-      name: seed.name,
-      voiceName: seed.voiceName,
-      opener: `Oh, hey — it's ${seed.name}, you got a sec?`,
-      systemPromptAddendum:
-        `You are ${seed.name}, ${seed.ageYears} years old, ${seed.relation}. You're calling from ${seed.callingFrom}. You sound ${seed.emotion}. INTERNALLY, the reason for the call is: ${seed.reason}.${seed.twist ? ` ${seed.twist[0].toUpperCase() + seed.twist.slice(1)}.` : ''} Do NOT spill the reason in your first turn — ease in, greet, and wait for the learner. Reveal the situation gradually across several turns, one detail at a time, in response to their questions. Keep every turn to 1–2 short sentences.`,
-    }
-  }
-  return {
-    name: seed.name,
-    voiceName: seed.voiceName,
-    opener: `Ah, hola, soy ${seed.name}. ¿Tenés un segundo?`,
-    systemPromptAddendum:
-      `Sos ${seed.name}, tenés ${seed.ageYears} años, sos ${seed.relation}. Llamás desde ${seed.callingFrom}. Estás ${seed.emotion}. INTERNAMENTE, el motivo de la llamada es: ${seed.reason}.${seed.twist ? ` ${seed.twist[0].toUpperCase() + seed.twist.slice(1)}.` : ''} NO sueltes el motivo en tu primer turno — saludá, dejá un beat, y esperá a que el aprendiz responda. El motivo se va desplegando de a poco en los próximos turnos, un detalle por vez, respondiendo a las preguntas que te haga. Mantené cada turno en 1 a 2 oraciones cortas. Hablá en voseo rioplatense.`,
-  }
 }
