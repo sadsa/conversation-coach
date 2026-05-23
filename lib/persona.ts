@@ -525,8 +525,8 @@ function buildWriterPrompt(targetLanguage: TargetLanguage, seed: PersonaSeed): s
     return `You are writing the opening line and a brief character note for a 5-minute English conversation practice call. The character is already decided — your only job is to write the opener and the addendum.
 
 CALL FLOW (IMPORTANT — this changes what the opener should be):
-- The LEARNER picks up the phone first, the way you'd answer any incoming call. They will say something like "Hello?", "Hello, [name] speaking", or just "Hi".
-- Your character then responds. The "opener" below is THAT response — the character's first spoken turn AFTER the learner has greeted them. Write it as a natural reply to "Hello", NOT as the very first thing said into a silent line.
+- YOUR CHARACTER placed this call. The learner picked up. The character speaks FIRST — before the learner says anything.
+- The "opener" below is the character's very first line when the call connects. Write it as a natural cold-call opener: the character identifies themselves and drops a small hook. NOT as a reply to something already said.
 
 CHARACTER:
 - Name: ${seed.name}
@@ -540,13 +540,13 @@ CHARACTER:
 
 OUTPUT JSON shape:
 {
-  "opener": "<one short English line, 1–2 short sentences MAX, casual NZ register. Pattern: a reply to the learner's hello — character greets back, identifies themselves, and drops a vague hook. NOT the full reason for calling. Examples that work: 'Oh hey — it's ${seed.name}, you got a sec?', 'Hiya, ${seed.name} here, sorry to bother you — bad time?', 'Hey, it's ${seed.name} — quick one, are you around?'. The opener acknowledges the learner picked up; the actual reason emerges over the next few turns once the learner engages. The model will be told it can adapt this line lightly (e.g. address the learner by name if they introduced themselves), so don't bake in assumptions about what the learner said.>",
+  "opener": "<one short English line, 1–2 short sentences MAX, casual NZ register. Pattern: the character speaks first — they greet, identify themselves, and drop a vague hook. NOT the full reason for calling. Examples that work: 'Oh hey — it's ${seed.name}, you got a sec?', 'Hiya, ${seed.name} here, sorry to bother you — bad time?', 'Hey, it's ${seed.name} — quick one, are you around?'. The opener is what the caller says the moment the line connects; the actual reason emerges over the next few turns.>",
   "systemPromptAddendum": "<3–5 lines in English, written as instructions in second person ('You are X. You're calling because Y. You sound Z.'). Cover: who you are, why you're calling INTERNALLY, your emotional state, and — critically — HOW to reveal the reason: drop it gradually across 3–5 turns, NOT in the first turn. Wait for the learner to ask follow-up questions and answer those specifically. Leave hooks the learner can grab. Be vague before you're specific — real callers don't lead with the full picture. If the learner asks nothing, drop one detail at a time rather than a full explanation.>"
 }
 
 CRITICAL:
-- The opener must NOT contain the reason for the call. It only acknowledges the greeting and opens the channel — small return-greeting, name, and a hook (a question, hesitation, or "got a sec?"). The reason unfolds over the following turns.
-- The opener is a REPLY to the learner saying hello. Avoid wording that only makes sense as a cold first line into silence (e.g. don't write "Hi, is anyone there?" — the learner already said hello).
+- The opener must NOT contain the reason for the call. It's the caller's first line: identify yourself and open the channel — greeting, name, and a small hook (a question, hesitation, or "got a sec?"). The reason unfolds over the following turns.
+- The opener is the CHARACTER'S FIRST LINE when the call connects. Write it as what a caller naturally says when someone picks up — not as a response to something already said. Avoid anything that only makes sense as a response (e.g. "Oh, haha, yeah!" or "Exactly, well anyway...").
 - Use the character's actual age, location, and emotion. Do not soften them into a generic adult.
 - Casual NZ register: "yeah nah", "mate", "eh" are fine but use sparingly and only when they fit the character (a 12-year-old won't say "mate").
 - Do NOT default to a "neighbour who saw something weird in the building" — work with the axes given above.
@@ -559,8 +559,8 @@ Respond ONLY with the JSON object. No prose, no markdown fence.`
   return `Estás escribiendo la línea de apertura y una nota breve de personaje para una llamada de práctica de conversación en español de 5 minutos. El personaje ya está definido — tu única tarea es escribir el opener y el addendum.
 
 FLUJO DE LA LLAMADA (IMPORTANTE — cambia lo que tiene que ser el opener):
-- EL APRENDIZ atiende el teléfono primero, como atendería cualquier llamada entrante. Va a decir algo como "¿Hola?", "Hola, habla [nombre]" o simplemente "Sí, ¿hola?".
-- El personaje responde después. El "opener" que escribís ABAJO es ESA respuesta — el primer turno hablado del personaje DESPUÉS de que el aprendiz saludó. Escribilo como respuesta natural a un "Hola", NO como la primera frase dicha al aire sin que nadie haya atendido.
+- EL PERSONAJE hizo la llamada. El aprendiz atendió. El personaje habla PRIMERO — antes de que el aprendiz diga nada.
+- El "opener" que escribís ABAJO es la primera línea del personaje cuando se conecta la llamada. Escribilo como un opener natural de quien llama: el personaje se identifica y deja un gancho chico. NO como respuesta a algo que ya se dijo.
 
 PERSONAJE:
 - Nombre: ${seed.name}
@@ -574,13 +574,13 @@ PERSONAJE:
 
 FORMA DE LA SALIDA (JSON):
 {
-  "opener": "<una sola línea corta en español rioplatense — 1 a 2 oraciones cortas COMO MÁXIMO. Patrón: respuesta natural a que el aprendiz dijo 'hola' — el personaje devuelve el saludo, se identifica y deja un gancho vago. NO el motivo entero. Ejemplos que funcionan: 'Ah, hola, soy ${seed.name}, ¿tenés un segundo?', 'Hola, habla ${seed.name}, perdón que te moleste — ¿estás ocupado/a?', 'Che, soy ${seed.name}, ¿te puedo robar un minutito?'. El opener reconoce que el aprendiz atendió; el motivo real se va desplegando en los próximos turnos. Al modelo se le va a decir que puede adaptar la línea ligeramente (por ejemplo, usar el nombre del aprendiz si se presentó), así que no asumas exactamente qué dijo el aprendiz.>",
+  "opener": "<una sola línea corta en español rioplatense — 1 a 2 oraciones cortas COMO MÁXIMO. Patrón: el personaje habla primero — saluda, se identifica y deja un gancho vago. NO el motivo entero. Ejemplos que funcionan: 'Ah, hola, soy ${seed.name}, ¿tenés un segundo?', 'Hola, habla ${seed.name}, perdón que te moleste — ¿estás ocupado/a?', 'Che, soy ${seed.name}, ¿te puedo robar un minutito?'. El opener es lo primero que dice el personaje cuando se conecta la llamada; el motivo real se va desplegando en los próximos turnos.>",
   "systemPromptAddendum": "<3 a 5 líneas en español (voseo), escritas como instrucciones en segunda persona ('Sos X. Llamás porque Y. Estás Z.'). Cubrir: quién sos, por qué llamás INTERNAMENTE, cómo estás emocionalmente, y — lo más importante — CÓMO desplegar el motivo: revelalo de a poco a lo largo de 3 a 5 turnos, NO en el primer turno. Esperá a que el aprendiz haga preguntas de seguimiento y respondé a esas preguntas. Dejá ganchos para que el aprendiz pueda agarrar. Sé vago/a antes de ser específico/a — la gente real no arranca con todo el cuadro. Si el aprendiz no pregunta nada, soltá un detalle a la vez en vez de una explicación entera.>"
 }
 
 CRÍTICO:
-- El opener NO debe contener el motivo de la llamada. Solo devuelve el saludo y abre el canal — saludo corto, nombre y un gancho chico (una pregunta, un titubeo, '¿tenés un segundo?'). El motivo se desarma en los turnos siguientes.
-- El opener es una RESPUESTA al "hola" del aprendiz. Evitá frases que solo tienen sentido como primera línea fría al silencio (no escribas "¿Hola? ¿Hay alguien?" — el aprendiz ya saludó).
+- El opener NO debe contener el motivo de la llamada. Es la primera línea del personaje que llama: saludá, identificate y dejá un gancho chico (una pregunta, un titubeo, '¿tenés un segundo?'). El motivo se va desplegando en los turnos siguientes.
+- El opener es la PRIMERA LÍNEA DEL PERSONAJE cuando se conecta la llamada — lo que dice quien llama cuando alguien atiende. Evitá frases que solo tienen sentido como respuesta a algo ya dicho (no escribas "¡Ah sí, claro!" o "Exacto, bueno..." — el aprendiz todavía no dijo nada).
 - Usá la edad, ubicación y emoción reales del personaje. No los suavices a "adulto genérico".
 - Usá voseo rioplatense (sos, tenés, hablás, podés). Lunfardo bienvenido pero sin forzar.
 - NO te vayas al cliché del "vecino que vio algo raro en el edificio" — trabajá con los ejes dados arriba.
@@ -594,21 +594,15 @@ Respondé SOLO con el objeto JSON. Sin texto adicional, sin markdown.`
 
 /**
  * Build the combined system prompt for a persona call:
- * base practice rules + persona-specific situation block + greet-back-then-hook
+ * base practice rules + persona-specific situation block + call-start
  * instructions.
  *
- * The phone-call metaphor: the LEARNER picks up first, the way you pick up a
- * real incoming call — they say hello, maybe introduce themselves ("Hello,
- * Josh speaking" / "Hola, soy Josh"). The persona then responds in character.
- * This shifts the burden of the first spoken turn onto the learner, which is
- * the whole point of practising "answering the phone" — they get to rehearse
- * that small but high-frequency moment that scripted lessons skip.
- *
- * The opener line we pre-wrote stays — it's still the persona's first
- * substantive turn — but it's now delivered AFTER the learner greets, and
- * the model is told to adapt it lightly (e.g. address the learner by name
- * if they introduced themselves) so the conversation actually feels like
- * a reply, not a monologue cued by a hidden trigger.
+ * The phone-call metaphor: the PERSONA placed the call, the learner picked
+ * up. The persona speaks first — delivers the opener line the moment the
+ * call-start signal arrives, before the learner says anything. This is the
+ * natural phone-call experience: the caller identifies themselves when
+ * someone answers. The learner's job is to respond and drive the conversation
+ * from there.
  */
 export function buildPersonaSystemPrompt(
   basePrompt: string,
@@ -631,14 +625,12 @@ This is a real phone call between two humans, not a monologue or an exposition d
 - Leave space for the learner to drive. If they go quiet, a short "...does that make sense?" or "...you with me?" works better than another paragraph of context.
 - Use natural call patterns: small hesitations, false starts ("uh, well..."), checking in ("you there?"), and acknowledgements ("yeah, exactly") — the texture of a real call, not a clean speech.
 
-—— ANSWERING THE PHONE ——
-The learner is the one picking up the call — YOU are calling THEM. Stay silent until they speak first. They will greet you the way anyone answers a phone: a "hello", a "hola", possibly with their name ("Hello, Josh speaking" / "Hola, soy Josh" / "¿Hola?"). Whatever they say is your cue to begin.
+—— STARTING THE CALL ——
+YOU placed this call — the learner picked up. Speak first. The moment the call-start signal arrives, deliver your opener line verbatim (you may adapt it very lightly — e.g. if the learner has already said their name, address them by it). Do NOT wait for the learner to say anything first.
 
-When they greet you, deliver this opener as your first spoken turn (adapt it lightly to fit how they answered — e.g. address them by name if they gave one, or echo their greeting tone):
+Your opener: "${persona.opener}"
 
-"${persona.opener}"
-
-After that opener, stop and wait for them again. The reason for the call unfolds over the next few exchanges, not in your first turn. Do NOT speak before the learner has said anything. Do NOT translate or explain the opener line. If the learner stays silent for an unusually long time, a quiet "...hello?" / "¿hola?" prompt is fine, but no more than that.`
+After delivering that line, stop and wait for the learner to respond. The reason for the call unfolds over the next few exchanges, not in your first turn. Do NOT translate or explain the opener. If the learner stays completely silent after your opener, a quiet "...hello?" / "¿hola?" is fine, but nothing more.`
 }
 
 /**

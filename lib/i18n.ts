@@ -92,8 +92,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // speaks first ("Hello, Josh speaking" / "Hola, soy Josh") before the
     // call connects, so the active screen doesn't catch them off guard.
     'practice.incomingTitle': 'Incoming call',
-    'practice.incomingCaller': 'Unknown caller',
-    'practice.incomingHint': "You answer first — just say hello when you're ready.",
+  'practice.incomingCaller': 'Unknown caller',
+  'practice.incomingHint': "Answer and they'll tell you who's calling.",
     'practice.answer': 'Answer',
     'practice.answerAria': 'Answer the call',
     'practice.decline': 'Decline',
@@ -745,8 +745,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // primero ("Hola, soy Josh") para que la pantalla activa no lo
     // agarre desprevenido.
     'practice.incomingTitle': 'Llamada entrante',
-    'practice.incomingCaller': 'Número desconocido',
-    'practice.incomingHint': 'Atendés vos — saludá cuando estés listo/a.',
+  'practice.incomingCaller': 'Número desconocido',
+  'practice.incomingHint': 'Atendé y te van a decir quién llama.',
     'practice.answer': 'Atender',
     'practice.answerAria': 'Atender la llamada',
     'practice.decline': 'Rechazar',

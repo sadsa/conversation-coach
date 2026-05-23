@@ -4,28 +4,20 @@
 // Practise home (`<PractiseClient>`) when the user taps Call or Chat — there
 // is no longer a standalone `/practice` route. State machine:
 //
-//   incoming → connecting → active/warning/ending → review → analysing → ready
-//                                                       ↗ connecting (resume)
-//                                                       ↘ home via onExit() (discard / no speech)
-//                                                                ↘ error
+//   loading → incoming → connecting → active/warning/ending → review → analysing → ready
+//                                                                 ↗ connecting (resume)
+//                                                                 ↘ home via onExit() (discard / no speech)
+//                                                                          ↘ error
 //
-// Call mode mounts in `incoming` — an iOS-style incoming-call screen with
-// Answer / Decline buttons. The persona is fetched in the background during
-// the ring; tapping Answer awaits the fetch then transitions through
-// `connecting` into the live session. Tapping Decline calls `onExit()`
-// (the in-flight persona fetch is fire-and-forget — its result is just
-// discarded). This shifts the very first spoken turn onto the LEARNER —
-// they answer the phone with "Hello, Josh speaking" / "Hola, soy Josh" —
-// which is the small high-frequency moment scripted lessons usually skip.
-// The persona then responds to that greeting (see `buildPersonaSystemPrompt`
-// in lib/persona.ts — we no longer auto-trigger an opener; the agent waits
-// for the learner to speak first and adapts its opener line to their
-// greeting). Chat mode skips `incoming` and goes straight into `connecting`.
-//
-// Reroll ("Try another line") doesn't re-show the incoming screen — the
-// learner already opted in to a new caller, making them tap Answer again
-// is friction. It transitions through `ringing` (the brief compact
-// connecting beat with the ring+shake icon) into `active`.
+// Call mode mounts in `loading` — the persona is fetched here so the
+// post-answer `connecting` beat only waits for the Gemini WebSocket
+// handshake. Once ready, transitions to `incoming` (the iOS-style ringing
+// screen). Tapping Answer opens the WebSocket; the persona speaks first
+// once active (opener delivered via the call-start trigger). Tapping
+// Decline returns to the home doors. Reroll routes back through `loading`
+// → `incoming` so every new caller gets the full ring experience and the
+// persona fetch runs before the user sees the ring screen.
+// Chat mode skips `loading` and `incoming`, starting at `connecting`.
 //
 // Mode is passed in as a prop (caller decides chat vs. call). Whenever the
 // session would otherwise return to a picker / idle screen — discard, end
@@ -82,14 +74,13 @@ import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
  *  (coach-led back-and-forth). Reroll only applies to call mode. */
 export type PracticeMode = 'chat' | 'call'
 
-// `'incoming'` is the iOS-style ringing screen with Answer / Decline buttons
-// shown on call-mode mount AND on every reroll ("Try another line"), so the
-// user re-rehearses the answer-the-phone moment with every new caller. The
-// persona is fetched in the background; tapping Answer awaits the fetch and
-// transitions through `'connecting'` into `'active'`. Chat mode skips the
-// incoming screen entirely and goes connecting → active.
+// `'loading'` is the brief pre-ring state in call mode — the persona is
+// fetched here before the incoming screen appears so there's no wait after
+// the user taps Answer. `'incoming'` is the iOS-style ringing screen shown
+// once the persona is ready. Chat mode skips both and goes straight to
+// `'connecting'`.
 type PracticeState =
-  | 'incoming' | 'connecting'
+  | 'loading' | 'incoming' | 'connecting'
   | 'active' | 'warning' | 'ending'
   | 'review' | 'analysing' | 'error'
 
@@ -124,14 +115,14 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
   const reducedMotion = useReducedMotion()
-  // First state shown is mode-dependent — 'incoming' for call (ringing screen
-  // with Answer / Decline; persona fetches in the background while ringing),
-  // 'connecting' for chat (compact spinner; connect kicks off immediately).
-  // Both eventually transition to 'active' once the WebSocket reports
-  // setupComplete; call mode passes through 'connecting' on the way after
-  // the user taps Answer.
+  // First state shown is mode-dependent — 'loading' for call (persona fetch
+  // runs here so the incoming screen appears already-ready; after fetch
+  // transitions to 'incoming'), 'connecting' for chat (compact spinner;
+  // connect kicks off immediately). Both eventually reach 'active' once the
+  // WebSocket reports setupComplete; call mode passes through 'connecting'
+  // after the user taps Answer.
   const [practiceState, setPracticeState] = useState<PracticeState>(
-    mode === 'call' ? 'incoming' : 'connecting',
+    mode === 'call' ? 'loading' : 'connecting',
   )
   const [muted, setMuted] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -862,42 +853,48 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
         // back-and-forth. Personas still come through via the system prompt
         // + matched voice — flash-live carries enough character with those.
         model: FLASH_LIVE_MODEL,
-        // Persona-only: matched voice. We intentionally do NOT pass
-        // `openingLine` anymore — the call now mirrors a real phone call
-        // where the LEARNER picks up first and greets ("Hello, Josh
-        // speaking"). The persona system prompt (lib/persona.ts) instructs
-        // the agent to wait for that greeting and reply with its opener
-        // line. Auto-speaking the opener would defeat the whole point of
-        // the answer-the-phone practice surface.
+        // Persona-only: matched voice + opening line. The persona speaks
+        // first — `openingLine` sends the call-start trigger so the agent
+        // delivers its opener the moment the WebSocket is active, before
+        // the learner says anything. This mirrors how a real phone call
+        // works: the caller identifies themselves when someone picks up.
         voiceName: activePersona?.voiceName,
+        openingLine: activePersona?.opener,
       },
     )
   }, [targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
 
-  // Persona fetch promise — kicked off on mount in call mode so the network
-  // round trip happens during the ring (target: persona ready by the time
-  // the user actually taps Answer). The user's Answer tap awaits this
-  // promise; Decline just unmounts and the resolved persona is discarded.
-  // Held in a ref (not state) so re-renders don't reset it and so the
-  // `answerCall` callback can read it without re-binding on every fetch
-  // state change.
-  const personaPromiseRef = useRef<Promise<Persona | null> | null>(null)
-
   // Initial dispatch — runs exactly once. Cleanup of WebSocket / timers /
   // wake lock lives in the top-level mount effect, so this only kicks off
-  // the work — no return cleanup. Errors fall through to onExit (via
-  // connectAgent's onError + the catch below).
+  // the work — no return cleanup.
   //
-  // Chat mode: connect immediately (no Answer step — Casual Chat is a
-  // back-and-forth, not a phone call, and the agent speaks first naturally).
-  // Call mode: start the persona fetch in the background; the UI sits on
-  // the incoming screen until the user taps Answer.
+  // Chat mode: connect immediately (no ring step).
+  // Call mode: fetch the persona first (loading state), then transition to
+  // the incoming screen once the persona is ready. This way the post-answer
+  // connecting beat only needs to open the WebSocket — the slow Claude call
+  // is already done.
   const hasStartedRef = useRef(false)
   useEffect(() => {
     if (hasStartedRef.current) return
     hasStartedRef.current = true
     if (mode === 'call') {
-      personaPromiseRef.current = fetchPersona()
+      void (async () => {
+        try {
+          const p = await fetchPersona()
+          if (!isMountedRef.current) return
+          if (!p) {
+            setToast(t('practice.errorConnect'))
+            onExitRef.current()
+            return
+          }
+          setPersona(p)
+          setPracticeState('incoming')
+        } catch {
+          if (!isMountedRef.current) return
+          setToast(t('practice.errorConnect'))
+          onExitRef.current()
+        }
+      })()
       return
     }
     void (async () => {
@@ -917,24 +914,16 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** Answer the incoming call: flip to the connecting beat, await whatever
-   *  persona fetch is in flight (usually already resolved by the time the
-   *  user has finished reading the ring screen and tapping), then connect.
-   *  Errors fall back to the home doors via onExit. */
+  /** Answer the incoming call: flip to the connecting beat and open the
+   *  WebSocket. The persona is already in state (fetched during 'loading'),
+   *  so this only waits for the Gemini handshake — typically <1s. Errors
+   *  fall back to the home doors via onExit. */
   const answerCall = useCallback(async () => {
     if (practiceState !== 'incoming') return
-    if (!personaPromiseRef.current) return
+    if (!persona) return
     setPracticeState('connecting')
     try {
-      const p = await personaPromiseRef.current
-      if (!isMountedRef.current) return
-      if (!p) {
-        setToast(t('practice.errorConnect'))
-        onExitRef.current()
-        return
-      }
-      setPersona(p)
-      const agent = await connectAgent(p)
+      const agent = await connectAgent(persona)
       agentRef.current = agent
     } catch (err) {
       if (!isMountedRef.current) return
@@ -942,7 +931,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
       setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
       onExitRef.current()
     }
-  }, [practiceState, connectAgent, t])
+  }, [practiceState, persona, connectAgent, t])
 
   /** Decline the incoming call: straight back to the home doors. The
    *  persona fetch (if still in flight) finishes in the background and
@@ -1008,12 +997,29 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     // call) so the budget bookkeeping is moot in that branch anyway.
     setRerollsLeft(prev => Math.max(0, prev - 1))
 
-    // Kick off the new persona fetch in the background and route to the
-    // incoming screen. `answerCall` reads `personaPromiseRef` exactly the
-    // same way it does for the initial call — no duplication needed.
-    personaPromiseRef.current = fetchPersona()
-    setPracticeState('incoming')
-    setIsRerolling(false)
+    // Fetch the new persona before showing the ring screen — same pattern as
+    // the initial call-mode mount. isRerolling stays true until the fetch
+    // resolves so double-taps are blocked during the loading beat.
+    setPracticeState('loading')
+    void (async () => {
+      try {
+        const p = await fetchPersona()
+        if (!isMountedRef.current) return
+        if (!p) {
+          setToast(t('practice.errorConnect'))
+          onExitRef.current()
+          return
+        }
+        setPersona(p)
+        setPracticeState('incoming')
+      } catch {
+        if (!isMountedRef.current) return
+        setToast(t('practice.errorConnect'))
+        onExitRef.current()
+      } finally {
+        setIsRerolling(false)
+      }
+    })()
   }, [isRerolling, mode, rerollsLeft, practiceState, fetchPersona, t, disconnectAssemblyAI])
 
   // Retry from the error state. If we collected user speech, re-submit;
@@ -1028,13 +1034,12 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     }
   }, [submitTurns])
 
-  // ─── Incoming (call mode only — initial mount) ─────────────────────────
-  // iOS-style incoming-call screen. Persona is fetched in the background;
-  // the user taps Answer to connect (the answer awaits the fetch promise
-  // and transitions through `connecting` into `active`). Decline returns
-  // to the home doors. Caller info is intentionally anonymous — the
-  // persona reveals themselves when they reply to the user's greeting,
-  // which is the whole "who's this?" moment we're trying to recreate.
+  // ─── Incoming (call mode only) ─────────────────────────────────────────
+  // iOS-style incoming-call screen. Persona is already fetched (during
+  // 'loading'); tapping Answer opens the WebSocket and transitions through
+  // 'connecting' into 'active'. The persona speaks first once active.
+  // Decline returns to the home doors. Caller identity is anonymous here —
+  // the persona introduces themselves in their opener line.
   if (practiceState === 'incoming') {
     return (
       <div
@@ -1151,14 +1156,20 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     )
   }
 
+  // ─── Loading (call mode only — persona fetch) ──────────────────────────
+  // Brief pre-ring beat while the Claude persona is being generated
+  // (~1-2s). Keeping the persona fetch here means the post-answer
+  // connecting beat only waits for the Gemini WebSocket handshake, not
+  // the full Claude round-trip.
+  if (practiceState === 'loading') {
+    return <LoadingScreen />
+  }
+
   // ─── Connecting ────────────────────────────────────────────────────────
-  // Brief pre-flight before Gemini's setupComplete fires. Uses the shared
-  // "Robot Patient" loader (LoadingScreen) — same identity as every
-  // suspense fallback in the app, with a random Rioplatense phrase as a
-  // tiny teaching beat while the user waits. The analysing screen below
-  // keeps the waveform-to-line graphic because that one IS the audio →
-  // transcript metaphor; the connecting beat carries no such meaning, so
-  // it borrows the generic robot loader instead.
+  // Brief pre-flight before Gemini's setupComplete fires. In call mode
+  // this only waits for the WebSocket handshake (~<1s) since the persona
+  // was fetched during 'loading'. The analysing screen below keeps the
+  // waveform-to-line graphic; connecting borrows the generic robot loader.
   if (practiceState === 'connecting') {
     return <LoadingScreen />
   }
@@ -1207,22 +1218,9 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   // ─── Active / Warning / Ending / Review ────────────────────────────────
   const isEnding = practiceState === 'ending'
   const isReview = practiceState === 'review'
-  // Call-mode greet cue: the agent now waits for the learner to greet first
-  // (real phone-call pacing — see lib/persona.ts). Surface a quiet
-  // "your turn — say hello" hint until the first user turn lands so a new
-  // user doesn't think the call is broken. Naturally suppressed in chat
-  // mode (the agent always speaks first there), in muted/ending states (the
-  // existing label takes the slot), and once any user turn has landed.
-  const hasUserSpoken = liveTurns.some(turn => turn.role === 'user')
-  const showGreetCue =
-    mode === 'call' &&
-    practiceState === 'active' &&
-    !hasUserSpoken &&
-    voiceStatus !== 'muted'
   const statusLabel = isEnding
     ? t('practice.endingState')
     : voiceStatus === 'muted' ? t('practice.statusMuted')
-    : showGreetCue ? t('practice.greetCue')
     : null
 
   return (
@@ -1395,9 +1393,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
                     className={`text-xs font-medium select-none ${
                       isEnding
                         ? 'text-text-tertiary'
-                        : showGreetCue
-                          ? 'text-text-secondary'
-                          : 'text-amber-600 dark:text-amber-400'
+                        : 'text-amber-600 dark:text-amber-400'
                     }`}
                   >
                     {statusLabel}
