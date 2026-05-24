@@ -20,12 +20,15 @@ export default function ElevenLabsDebugPage() {
   const conversationRef = useRef<Awaited<ReturnType<typeof Conversation.startSession>> | null>(null)
   const connectTimeRef = useRef<number | null>(null)
   const firstAudioFiredRef = useRef(false)
+  const isStartingRef = useRef(false)
 
   function addLog(speaker: LogEntry['speaker'], text: string) {
     setLog(prev => [...prev, { speaker, text }])
   }
 
   async function start() {
+    if (isStartingRef.current) return
+    isStartingRef.current = true
     setError(null)
     setLog([])
     setPersona(null)
@@ -63,9 +66,11 @@ export default function ElevenLabsDebugPage() {
           setState('active')
         },
         onDisconnect: () => {
+          conversationRef.current = null
           setState('ended')
         },
         onError: (msg: string) => {
+          conversationRef.current = null
           setError(msg)
           setState('idle')
         },
@@ -82,7 +87,9 @@ export default function ElevenLabsDebugPage() {
       })
 
       conversationRef.current = conversation
+      isStartingRef.current = false
     } catch (err) {
+      isStartingRef.current = false
       setError(err instanceof Error ? err.message : String(err))
       setState('idle')
     }
