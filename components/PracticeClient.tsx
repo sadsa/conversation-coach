@@ -1085,7 +1085,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
               id="incoming-caller-name"
               className="font-display text-2xl font-medium text-text-primary"
             >
-              {t('practice.incomingCaller')}
+              {persona?.name ?? t('practice.incomingCaller')}
             </p>
             <p className="text-sm text-text-secondary leading-relaxed max-w-[28ch]">
               {t('practice.incomingHint')}
