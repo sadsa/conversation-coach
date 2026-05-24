@@ -13,14 +13,26 @@ export async function GET() {
     return NextResponse.json({ error: 'ElevenLabs not configured' }, { status: 500 })
   }
 
-  const res = await fetch(
-    `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
-    { headers: { 'xi-api-key': apiKey } },
-  )
+  let res: Response
+  try {
+    res = await fetch(
+      `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+      { headers: { 'xi-api-key': apiKey } },
+    )
+  } catch (err) {
+    log.error('ElevenLabs fetch failed', { error: String(err) })
+    return NextResponse.json({ error: 'Failed to reach ElevenLabs' }, { status: 502 })
+  }
+
   if (!res.ok) {
     return NextResponse.json({ error: 'Failed to get signed URL' }, { status: 502 })
   }
 
-  const { signed_url } = await res.json() as { signed_url: string }
-  return NextResponse.json({ signedUrl: signed_url })
+  const body = await res.json() as { signed_url?: string }
+  if (!body.signed_url) {
+    log.error('ElevenLabs response missing signed_url', { body })
+    return NextResponse.json({ error: 'Unexpected ElevenLabs response' }, { status: 502 })
+  }
+
+  return NextResponse.json({ signedUrl: body.signed_url })
 }

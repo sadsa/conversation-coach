@@ -69,4 +69,11 @@ describe('GET /api/debug/elevenlabs-token', () => {
     const res = await GET()
     expect(res.status).toBe(502)
   })
+
+  it('returns 502 when fetch throws (network error)', async () => {
+    mockGetUser.mockResolvedValue({ id: 'user-1', email: 'test@example.com' })
+    vi.mocked(fetch).mockRejectedValue(new TypeError('fetch failed'))
+    const res = await GET()
+    expect(res.status).toBe(502)
+  })
 })
