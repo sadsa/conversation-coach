@@ -93,7 +93,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // call connects, so the active screen doesn't catch them off guard.
     'practice.incomingTitle': 'Incoming call',
   'practice.incomingCaller': 'Unknown caller',
-  'practice.incomingHint': "Answer and say hello — they'll explain why they're calling.",
+  'practice.incomingHint': "Answer and say hi. They'll take it from there.",
     'practice.answer': 'Answer',
     'practice.answerAria': 'Answer the call',
     'practice.decline': 'Decline',
@@ -746,7 +746,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // agarre desprevenido.
     'practice.incomingTitle': 'Llamada entrante',
   'practice.incomingCaller': 'Número desconocido',
-  'practice.incomingHint': 'Atendé y saludá — te van a explicar por qué llaman.',
+  'practice.incomingHint': 'Atendé y saludá. Te van a contar.',
     'practice.answer': 'Atender',
     'practice.answerAria': 'Atender la llamada',
     'practice.decline': 'Rechazar',
