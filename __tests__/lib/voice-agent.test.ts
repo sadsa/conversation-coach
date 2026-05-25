@@ -115,6 +115,7 @@ describe('buildResumeSystemPrompt', () => {
     const turnsWithEmpty: TranscriptTurn[] = [
       { role: 'user',  text: 'Hola',  wallMs: 1000 },
       { role: 'model', text: '',      wallMs: 2000 },
+      { role: 'model', text: '   ',   wallMs: 2500 },
       { role: 'user',  text: 'Adiós', wallMs: 3000 },
     ]
     const result = buildResumeSystemPrompt(base, turnsWithEmpty, 'Nora')
@@ -122,6 +123,8 @@ describe('buildResumeSystemPrompt', () => {
     expect(result).toContain('[User] Adiós')
     const lines = result.split('\n')
     expect(lines.some(l => l.startsWith('[Nora]') && l.replace('[Nora]', '').trim() === '')).toBe(false)
+    // Whitespace-only text must also be excluded
+    expect(result).not.toContain('[Nora]   ')
   })
 
   it('excludes pending turns', () => {
