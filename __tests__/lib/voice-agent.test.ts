@@ -143,5 +143,6 @@ describe('buildResumeSystemPrompt', () => {
     const result = buildResumeSystemPrompt(base, turns, 'Nora')
     expect(result).toContain('CONVERSATION SO FAR')
     expect(result).toMatch(/resume naturally|wait for the user/i)
+    expect(result).toContain('do not repeat your introduction')
   })
 })
