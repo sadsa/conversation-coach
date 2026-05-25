@@ -1,6 +1,7 @@
 // __tests__/lib/voice-agent.test.ts
 import { describe, it, expect } from 'vitest'
-import { buildPracticeSystemPrompt } from '@/lib/voice-agent'
+import { buildPracticeSystemPrompt, buildResumeSystemPrompt } from '@/lib/voice-agent'
+import type { TranscriptTurn } from '@/lib/types'
 
 describe('buildPracticeSystemPrompt', () => {
   it('instructs Gemini to use Rioplatense register for es-AR', () => {
@@ -72,5 +73,72 @@ describe('buildPracticeSystemPrompt', () => {
     expect(prompt).toMatch(/acento/i)
     expect(prompt).toMatch(/sheísmo|zheísmo|sonido sh/i)
     expect(prompt).toMatch(/nunca.*castellano|no.*neutro/i)
+  })
+})
+
+describe('buildResumeSystemPrompt', () => {
+  const base = 'BASE_PROMPT'
+  const turns: TranscriptTurn[] = [
+    { role: 'user',  text: 'Hola, ¿cómo estás?', wallMs: 1000 },
+    { role: 'model', text: 'Bien, gracias. ¿Y vos?', wallMs: 2000 },
+    { role: 'user',  text: 'Bien también.',         wallMs: 3000 },
+  ]
+
+  it('returns base prompt unchanged when turns array is empty', () => {
+    const result = buildResumeSystemPrompt(base, [], 'Nora')
+    expect(result).toBe(base)
+  })
+
+  it('appends history block after base prompt (not before)', () => {
+    const result = buildResumeSystemPrompt(base, turns, 'Nora')
+    expect(result.startsWith('BASE_PROMPT')).toBe(true)
+  })
+
+  it('labels user turns as [User]', () => {
+    const result = buildResumeSystemPrompt(base, turns, 'Nora')
+    expect(result).toContain('[User] Hola, ¿cómo estás?')
+    expect(result).toContain('[User] Bien también.')
+  })
+
+  it('labels model turns with the provided agentLabel', () => {
+    const result = buildResumeSystemPrompt(base, turns, 'Nora')
+    expect(result).toContain('[Nora] Bien, gracias. ¿Y vos?')
+  })
+
+  it('uses a different agentLabel when provided', () => {
+    const result = buildResumeSystemPrompt(base, turns, 'Coach')
+    expect(result).toContain('[Coach] Bien, gracias. ¿Y vos?')
+    expect(result).not.toContain('[Nora]')
+  })
+
+  it('excludes turns with empty text', () => {
+    const turnsWithEmpty: TranscriptTurn[] = [
+      { role: 'user',  text: 'Hola',  wallMs: 1000 },
+      { role: 'model', text: '',      wallMs: 2000 },
+      { role: 'user',  text: 'Adiós', wallMs: 3000 },
+    ]
+    const result = buildResumeSystemPrompt(base, turnsWithEmpty, 'Nora')
+    expect(result).toContain('[User] Hola')
+    expect(result).toContain('[User] Adiós')
+    const lines = result.split('\n')
+    expect(lines.some(l => l.startsWith('[Nora]') && l.replace('[Nora]', '').trim() === '')).toBe(false)
+  })
+
+  it('excludes pending turns', () => {
+    const turnsWithPending: TranscriptTurn[] = [
+      { role: 'user',  text: 'Hola',           wallMs: 1000 },
+      { role: 'user',  text: 'en camino...',    wallMs: 2000, pending: true },
+      { role: 'model', text: '¡Buenas!',        wallMs: 3000 },
+    ]
+    const result = buildResumeSystemPrompt(base, turnsWithPending, 'Nora')
+    expect(result).toContain('[User] Hola')
+    expect(result).toContain('[Nora] ¡Buenas!')
+    expect(result).not.toContain('en camino...')
+  })
+
+  it('includes the resume instruction header', () => {
+    const result = buildResumeSystemPrompt(base, turns, 'Nora')
+    expect(result).toContain('CONVERSATION SO FAR')
+    expect(result).toMatch(/resume naturally|wait for the user/i)
   })
 })

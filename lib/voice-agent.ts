@@ -1,6 +1,6 @@
 // lib/voice-agent.ts
 
-import type { TargetLanguage } from '@/lib/types'
+import type { TargetLanguage, TranscriptTurn } from '@/lib/types'
 
 export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 
@@ -234,6 +234,42 @@ Hablá en un ritmo tranquilo y pausado — la persona del otro lado está aprend
 NO corrijas los errores del aprendiz durante la conversación. NO des explicaciones de gramática ni consejos de coaching.
 Respondé únicamente en español. Reaccioná de forma natural — hacé preguntas de seguimiento, compartí opiniones, mantené la charla fluyendo.
 Usá el voseo y el vocabulario típico del Río de la Plata (ché, dale, bárbaro, etc.) de manera natural, no exagerada.`
+}
+
+/**
+ * Appends a formatted conversation history block to an existing system prompt.
+ * Used when resuming a paused session so the agent has full context of what
+ * was discussed before the break.
+ *
+ * @param basePrompt  Already-assembled system prompt (base + persona addendum if call mode).
+ * @param turns       Settled turns from frozenTurnsRef — no pending/empty turns expected,
+ *                    but the function filters defensively.
+ * @param agentLabel  Label for the agent's turns in the history block.
+ *                    Call mode: persona.name (e.g. "Nora").
+ *                    Chat mode: "Coach" (en-NZ) | "Entrenador" (es-AR).
+ */
+export function buildResumeSystemPrompt(
+  basePrompt: string,
+  turns: TranscriptTurn[],
+  agentLabel: string,
+): string {
+  const settled = turns.filter(t => !t.pending && t.text.trim() !== '')
+  if (settled.length === 0) return basePrompt
+
+  const lines = settled.map(t => {
+    const label = t.role === 'user' ? 'User' : agentLabel
+    return `[${label}] ${t.text.trim()}`
+  })
+
+  const block = [
+    '',
+    '—— CONVERSATION SO FAR ——',
+    'The conversation below happened before a brief pause. Resume naturally from where it left off — wait for the user to speak first. Do NOT re-introduce yourself or ask what you were talking about.',
+    '',
+    ...lines,
+  ].join('\n')
+
+  return `${basePrompt}${block}`
 }
 
 /**
