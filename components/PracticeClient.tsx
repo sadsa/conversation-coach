@@ -54,6 +54,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import {
   connect,
   buildPracticeSystemPrompt,
+  buildResumeSystemPrompt,
   FLASH_LIVE_MODEL,
 } from '@/lib/voice-agent'
 import { connectAssemblyAIStream, type AssemblyAIStream } from '@/lib/assemblyai-stream'
@@ -622,9 +623,17 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     frozenTurnsRef.current = []
     setPracticeState('connecting')
     setMuted(false)
-    const systemPrompt = activePersona
+    const baseSystemPrompt = activePersona
       ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
       : buildPracticeSystemPrompt(targetLanguage)
+
+    const agentLabel = activePersona
+      ? activePersona.name
+      : targetLanguage === 'en-NZ' ? 'Coach' : 'Entrenador'
+
+    const systemPrompt = restoredTurns.length > 0
+      ? buildResumeSystemPrompt(baseSystemPrompt, restoredTurns, agentLabel)
+      : baseSystemPrompt
     try {
       // Drop any leftover AssemblyAI stream from the previous session
       // before opening a fresh one. Order matters: the new stream must be
