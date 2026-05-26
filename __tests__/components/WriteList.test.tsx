@@ -244,15 +244,208 @@ describe('WriteList — fast-path mark-written from the row', () => {
   })
 })
 
-describe('WriteList — no swipe / bulk machinery', () => {
-  it('does not expose a swipe-to-write test seam', () => {
+describe('WriteList — swipe gesture seams', () => {
+  it('exposes a swipe-delete seam button on every row', () => {
     render(<WriteList items={[grammarItem]} />)
-    expect(screen.queryByTestId(`write-item-${grammarItem.id}`)).not.toBeInTheDocument()
+    expect(screen.getByTestId(`swipe-delete-${grammarItem.id}`)).toBeInTheDocument()
+  })
+
+  it('exposes a swipe-mark-written seam button in write view', () => {
+    render(<WriteList items={[grammarItem]} />)
+    expect(screen.getByTestId(`swipe-mark-written-${grammarItem.id}`)).toBeInTheDocument()
+  })
+
+  it('does NOT expose swipe-mark-written seam button in written view', () => {
+    render(<WriteList items={[writtenItem]} initialView="written" />)
+    expect(screen.queryByTestId(`swipe-mark-written-${writtenItem.id}`)).not.toBeInTheDocument()
   })
 
   it('does not render bulk-select checkboxes', () => {
     render(<WriteList items={[grammarItem]} />)
     expect(screen.queryByRole('checkbox', { name: /select item/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('WriteList — swipe-left delete', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows an undo toast immediately without firing DELETE', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<WriteList items={[grammarItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`swipe-delete-${grammarItem.id}`))
+    })
+
+    const toast = screen.getByRole('alert')
+    expect(within(toast).getByText(/removed/i)).toBeInTheDocument()
+    expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('fires DELETE and notifies onDeleted after the undo window expires', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    const onDeleted = vi.fn()
+    render(<WriteList items={[grammarItem]} onDeleted={onDeleted} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`swipe-delete-${grammarItem.id}`))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+    expect(onDeleted).toHaveBeenCalledWith([grammarItem.id])
+  })
+
+  it('Undo prevents the DELETE from firing', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    const onDeleted = vi.fn()
+    render(<WriteList items={[grammarItem]} onDeleted={onDeleted} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`swipe-delete-${grammarItem.id}`))
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /undo/i }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+    expect(onDeleted).not.toHaveBeenCalled()
+  })
+})
+
+describe('WriteList — swipe-right mark written', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows an undo toast immediately without firing PATCH', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<WriteList items={[grammarItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`swipe-mark-written-${grammarItem.id}`))
+    })
+
+    const toast = screen.getByRole('alert')
+    expect(within(toast).getByText(/written down/i)).toBeInTheDocument()
+    expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'PATCH' }),
+    )
+  })
+
+  it('fires PATCH written_down=true after the undo window expires', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<WriteList items={[grammarItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`swipe-mark-written-${grammarItem.id}`))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ written_down: true }),
+      }),
+    )
+  })
+
+  it('Undo prevents the PATCH from firing', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<WriteList items={[grammarItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`swipe-mark-written-${grammarItem.id}`))
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /undo/i }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(5500)
+      await Promise.resolve()
+    })
+
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      `/api/practice-items/${grammarItem.id}`,
+      expect.objectContaining({ method: 'PATCH' }),
+    )
+  })
+})
+
+describe('WriteList — swipe hint', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('renders the swipe hint in write view when the localStorage key is absent', () => {
+    render(<WriteList items={[grammarItem]} />)
+    expect(screen.getByText(/swipe left to delete/i)).toBeInTheDocument()
+  })
+
+  it('does not render the hint when the localStorage key is already set', () => {
+    localStorage.setItem('cc:write-swipe-hint:v1', '1')
+    render(<WriteList items={[grammarItem]} />)
+    expect(screen.queryByText(/swipe left to delete/i)).not.toBeInTheDocument()
+  })
+
+  it('dismisses the hint and sets the localStorage key on "Got it" click', async () => {
+    render(<WriteList items={[grammarItem]} />)
+    await userEvent.click(screen.getByRole('button', { name: /got it/i }))
+    expect(screen.queryByText(/swipe left to delete/i)).not.toBeInTheDocument()
+    expect(localStorage.getItem('cc:write-swipe-hint:v1')).toBe('1')
+  })
+
+  it('does not render the hint in the Written archive view', () => {
+    render(<WriteList items={[writtenItem]} initialView="written" />)
+    expect(screen.queryByText(/swipe left to delete/i)).not.toBeInTheDocument()
+  })
+
+  it('does not render the hint on the empty state', () => {
+    render(<WriteList items={[]} />)
+    expect(screen.queryByText(/swipe left to delete/i)).not.toBeInTheDocument()
   })
 })
 

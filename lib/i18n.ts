@@ -605,10 +605,17 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // states (mark-written, move-back) are silent because the row leaving
     // the current tab is more confirmation than the user needs.
     'writeList.movedToTrash': 'Removed. You can grab it back.',
+    'writeList.swipeMarkedWritten': 'Written down.',
     'writeList.undo': 'Undo',
     'writeList.deleteError': 'Couldn\'t delete item — try again.',
     'writeList.markWrittenError': 'Couldn\'t update — try again.',
     'writeList.importanceToggleAria': 'Toggle importance explanation',
+    // Swipe gesture hint (one-shot, above the list on first visit)
+    'writeList.swipeHintText': 'Swipe left to delete, right to mark as written.',
+    'writeList.swipeHintDismiss': 'Got it',
+    // Swipe reveal labels
+    'writeList.swipeDeleteLabel': 'Delete',
+    'writeList.swipeWrittenLabel': 'Written',
 
     // Study review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
@@ -1169,10 +1176,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // states (mark-written, move-back) are silent because the row leaving
     // the current tab is more confirmation than the user needs.
     'writeList.movedToTrash': 'Eliminada. Podés recuperarla.',
+    'writeList.swipeMarkedWritten': 'Anotado.',
     'writeList.undo': 'Deshacer',
     'writeList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
     'writeList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
     'writeList.importanceToggleAria': 'Alternar explicación de importancia',
+    'writeList.swipeHintText': 'Deslizá a la izquierda para eliminar, a la derecha para marcar como escrito.',
+    'writeList.swipeHintDismiss': 'Entendido',
+    'writeList.swipeDeleteLabel': 'Eliminar',
+    'writeList.swipeWrittenLabel': 'Escrito',
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',
