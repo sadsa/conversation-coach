@@ -15,9 +15,16 @@ export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { turns, targetLanguage } = await req.json() as {
+  const { turns, targetLanguage, session_type, lesson_phrase } = await req.json() as {
     turns: TranscriptTurn[]
     targetLanguage: TargetLanguage
+    session_type?: 'voice_practice' | 'lesson'
+    lesson_phrase?: {
+      correction: string
+      explanation: string
+      flashcard_front: string | null
+      practice_item_id: string
+    }
   }
 
   const userTurns = turns.filter(t => t.role === 'user')
@@ -41,7 +48,8 @@ export async function POST(req: NextRequest) {
     .insert({
       title: formatSessionTitle(new Date()),
       status: 'analysing',
-      session_type: 'voice_practice',
+      session_type: session_type ?? 'voice_practice',
+      ...(lesson_phrase ? { lesson_phrase } : {}),
       user_id: user.id,
       user_speaker_labels: ['A'],
       duration_seconds: durationSeconds,
