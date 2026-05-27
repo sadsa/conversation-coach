@@ -54,6 +54,10 @@ export interface VoiceAgentCallbacks {
    * option.
    */
   onTurnComplete?: () => void
+  /** Fires when Gemini calls a declared tool. The callback receives the
+   *  function name and parsed args. Call the returned `respond` function
+   *  with a result object to send the tool_response back to Gemini. */
+  onToolCall?: (name: string, args: Record<string, unknown>, respond: (result: Record<string, unknown>) => void) => void
 }
 
 export interface ConnectOptions {
@@ -90,6 +94,17 @@ export interface ConnectOptions {
    *  Pass the opener text here so the agent waits to be told to speak. If
    *  omitted, the agent waits for the user to speak first (existing behaviour). */
   openingLine?: string
+  /** Tool declarations to include in the setup message. Each entry maps
+   *  to a Gemini `function_declaration`. */
+  tools?: Array<{
+    name: string
+    description: string
+    parameters: {
+      type: string
+      properties: Record<string, { type: string; enum?: string[]; description?: string }>
+      required: string[]
+    }
+  }>
 }
 
 /** Trigger token sent via clientContent to cue the agent's first turn.
@@ -272,6 +287,60 @@ export function buildResumeSystemPrompt(
   ].join('\n')
 
   return `${basePrompt.trimEnd()}\n${block}`
+}
+
+/** Phrase context passed into the lesson — the correction, its explanation,
+ *  and the optional [[bracketed]] flashcard front text. */
+export interface LessonPhrase {
+  correction: string
+  explanation: string
+  flashcard_front: string | null
+}
+
+/** System prompt for lesson sessions. The teacher moves through four phases
+ *  (explain → model → drill → free_use) advancing via `set_phase` tool calls.
+ *  The phrase correction + explanation are injected verbatim so the teacher
+ *  never paraphrases the analysis Claude already did.
+ */
+export function buildLessonSystemPrompt(
+  phrase: LessonPhrase,
+  targetLanguage: TargetLanguage,
+): string {
+  const accentBlock = targetLanguage === 'en-NZ'
+    ? `IMPORTANT — ACCENT: You speak with a clear, natural New Zealand (Kiwi) accent throughout. Unmistakably NZ — never American, never British. Hold the Kiwi vowel shifts and rising intonation on every turn. Do not drift.`
+    : `IMPORTANTE — ACENTO: Hablás con acento rioplatense (porteño) claro y natural durante toda la sesión. Inconfundiblemente argentino desde la primera palabra. Pronunciá la ll/y con sheísmo. Usá el voseo. No derrapés.`
+
+  const toneBlock = targetLanguage === 'en-NZ'
+    ? `Speak at a calm, deliberate pace. You are a patient native-speaking friend who also knows how to teach — warm, unhurried, never condescending. Do not say "great job", "amazing", or use any streak/reward language.`
+    : `Hablá a un ritmo tranquilo y pausado. Sos un amigo nativo que sabe enseñar — cálido, sin apuro, nunca condescendiente. No digas "muy bien", "excelente", ni uses lenguaje de logros o rachas.`
+
+  return `${accentBlock}
+
+You are a patient language teacher giving a focused 10-minute lesson on a single phrase. You are not a conversation partner — you are a teacher. Your only job is to help the student understand and use this one phrase naturally.
+
+THE PHRASE:
+Correction: ${phrase.correction}
+Explanation: ${phrase.explanation}${phrase.flashcard_front ? `\nNative prompt: ${phrase.flashcard_front}` : ''}
+
+${toneBlock}
+
+LESSON STRUCTURE — four phases in order:
+
+Phase 1 — explain (~2 minutes):
+Explain why the correction matters in plain, conversational terms. Give 1–2 example sentences that show the phrase used correctly. Ask a simple yes/no comprehension check at the end. When you are satisfied the student understands, call set_phase with phase="model".
+
+Phase 2 — model (~2 minutes):
+Demonstrate the phrase in 3–4 varied contexts — different subjects, tenses, or scenarios. Keep examples short and memorable. Ask a brief comprehension check after each example. When you are satisfied the student recognises the pattern, call set_phase with phase="drill".
+
+Phase 3 — drill (~3 minutes):
+Ask the student to produce their own sentences using the phrase. Prompt them with scenarios ("Tell me something you did yesterday", "How would you say you went to the gym?"). If they make the same error being studied, gently correct it once and move on — do not dwell. When the student has produced at least 2–3 correct uses with confidence, call set_phase with phase="free_use".
+
+Phase 4 — free_use (~3 minutes):
+Have a natural conversation on any topic. Steer the conversation so the phrase comes up naturally — do not prompt it directly. When the student uses it naturally in context at least once, or when the 10 minutes are nearly up, call set_phase with phase="complete" to end the lesson.
+
+ADVANCEMENT RULE: Call set_phase only when you have heard evidence of understanding or production. Do not advance on a timer alone. If the student is struggling, slow down and stay in the current phase longer.
+
+Begin the lesson now. Start with phase 1 — explain the phrase to the student.`
 }
 
 /**
@@ -508,6 +577,9 @@ export async function connect(
           ...(options.inputTranscription === false ? {} : { inputAudioTranscription: {} }),
           outputAudioTranscription: {},
         } : {}),
+        ...(options.tools && options.tools.length > 0 ? {
+          tools: [{ function_declarations: options.tools }],
+        } : {}),
       },
     }
     ws.send(JSON.stringify(setupMsg))
@@ -655,6 +727,22 @@ export async function connect(
     const error = (msg as { error?: { message?: string } }).error
     if (error) {
       callbacks.onError(error.message ?? 'Voice session error')
+    }
+
+    // Tool call — Gemini asks us to invoke a declared function.
+    const toolCall = (msg as { toolCall?: { functionCalls?: Array<{ id: string; name: string; args: Record<string, unknown> }> } }).toolCall
+    if (toolCall?.functionCalls) {
+      for (const fc of toolCall.functionCalls) {
+        callbacks.onToolCall?.(fc.name, fc.args ?? {}, (result) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              toolResponse: {
+                functionResponses: [{ id: fc.id, response: { result } }],
+              },
+            }))
+          }
+        })
+      }
     }
   })
 
