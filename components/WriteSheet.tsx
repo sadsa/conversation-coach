@@ -243,36 +243,12 @@ export function WriteSheet({
     else if (lastFailedAction === 'delete') void handleDelete()
   }
 
+  // Label keys consumed by <OverflowMenu> for its toggle-written row.
+  // The standalone primary "Mark as written" button was retired when
+  // Practise became the primary action — toggle + delete now live in the
+  // overflow menu.
   const primaryLabelKey = isWritten ? 'writeSheet.moveBack' : 'writeSheet.markWritten'
   const primaryBusyKey = isWritten ? 'writeSheet.moveBackBusy' : 'writeSheet.markWrittenBusy'
-  const primaryAriaKey = isWritten ? 'writeSheet.moveBackAria' : 'writeSheet.markWrittenAria'
-  const isToggling = busyAction === 'toggle'
-  const primaryLabel = isToggling ? t(primaryBusyKey) : t(primaryLabelKey)
-  // The button uses our shared Button primitive for pixel parity with
-  // AnnotationCard. In the Written view we want the action to feel
-  // reversible (neutral border) rather than green/active — secondary
-  // variant covers that without an extra style override.
-  //
-  // For the "Mark as written" path we tint green via the widget-write tokens
-  // (same colour the Write tab pill uses) so the destination state is
-  // visually anticipated. Arbitrary CSS-variable values are used here on
-  // purpose — they outrank the secondary variant's `bg-surface`/etc.
-  // utilities in JIT order, mirroring the same trick AnnotationCard uses
-  // for its saved state.
-  const primaryClassName = buttonStyles({
-    variant: 'secondary',
-    size: 'md',
-    fullWidth: true,
-    className: isWritten
-      ? ''
-      : `
-          border-[color:var(--color-widget-write-border)]
-          bg-[color:var(--color-widget-write-bg)]
-          text-[color:var(--color-widget-write-text)]
-          hover:bg-[color:var(--color-widget-write-bg-hover)]
-          hover:text-[color:var(--color-widget-write-text)]
-        `,
-  })
 
   return (
     <DockedSheet
