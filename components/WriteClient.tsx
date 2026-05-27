@@ -9,16 +9,14 @@
 // the Written archive) keep using "write" because that's the literal
 // physical action.
 //
-// Header structure mirrors /review exactly: H1 in font-display →
-// methodology eyebrow (Study active) → space-y-8 → list. The previous
-// calm one-liner subtitle was dropped so the list starts at the same
-// vertical position as the Review inbox; the same alignment is what
-// makes the two pillars read as one brand. Empty-state copy already
-// carries the "what lives here" framing, so nothing was lost.
+// When the user taps "Practise this phrase" in WriteSheet, LessonClient
+// mounts in-place (same pattern as PracticeClient on the home surface).
+// onExit unmounts LessonClient and returns to the study list.
 
 'use client'
 import { useState } from 'react'
 import { WriteList } from '@/components/WriteList'
+import { LessonClient } from '@/components/LessonClient'
 import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { PracticeItem } from '@/lib/types'
@@ -36,6 +34,21 @@ interface Props {
 export function WriteClient({ initialItems, lockedPillars }: Props) {
   const { t } = useTranslation()
   const [items, setItems] = useState<PracticeItem[]>(initialItems)
+  const [lessonItem, setLessonItem] = useState<PracticeItem | null>(null)
+
+  if (lessonItem) {
+    return (
+      <LessonClient
+        phrase={{
+          correction: lessonItem.correction ?? lessonItem.original,
+          explanation: lessonItem.explanation,
+          flashcard_front: lessonItem.flashcard_front,
+          practice_item_id: lessonItem.id,
+        }}
+        onExit={() => setLessonItem(null)}
+      />
+    )
+  }
 
   return (
     // Page rhythm matches /, /review, /settings: space-y-8 between
@@ -50,6 +63,7 @@ export function WriteClient({ initialItems, lockedPillars }: Props) {
       <WriteList
         items={items}
         onDeleted={ids => setItems(prev => prev.filter(i => !ids.includes(i.id)))}
+        onPractise={setLessonItem}
       />
     </div>
   )

@@ -526,6 +526,8 @@ interface Props {
   onDeleted?: (ids: string[]) => void
   /** Optional initial view — defaults to 'write' (the not-yet-written queue). */
   initialView?: View
+  /** Called when the user taps "Practise this phrase" in WriteSheet. */
+  onPractise?: (item: PracticeItem) => void
 }
 
 function compareNewestFirst(a: PracticeItem, b: PracticeItem): number {
@@ -611,7 +613,7 @@ function EmptyWritten({ writeCount, onBack }: EmptyWrittenProps) {
   )
 }
 
-export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
+export function WriteList({ items, onDeleted, initialView = 'write', onPractise }: Props) {
   const { t } = useTranslation()
   const [view, setView] = useState<View>(initialView)
   const [allItems, setAllItems] = useState<PracticeItem[]>(items)
@@ -957,6 +959,7 @@ export function WriteList({ items, onDeleted, initialView = 'write' }: Props) {
         }}
         onToggleWritten={handleToggleWritten}
         onDelete={handleDelete}
+        onPractise={view === 'write' ? onPractise : undefined}
       />
 
       {toast && (
