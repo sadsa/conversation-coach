@@ -63,7 +63,7 @@ describe('WriteSheet — header structure', () => {
     expect(screen.queryByTestId('sheet-source-link')).not.toBeInTheDocument()
   })
 
-  it('switches the primary action label in the Written variant', () => {
+  it('switches the primary action label in the Written variant', async () => {
     render(
       <WriteSheet
         item={{ ...itemWithoutSession, written_down: true }}
@@ -71,7 +71,11 @@ describe('WriteSheet — header structure', () => {
         isWritten
       />,
     )
-    expect(screen.getByRole('button', { name: /move.+correction back/i })).toBeInTheDocument()
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
+    expect(screen.getByTestId('sheet-toggle-written')).toHaveTextContent(/move back/i)
   })
 
   it('renders the position pill in the header', () => {
@@ -83,8 +87,9 @@ describe('WriteSheet — header structure', () => {
 
 describe('WriteSheet — primary action focus + label flip', () => {
   it('marks the primary button with data-initial-focus', () => {
+    // No onPractise → overflow trigger gets data-initial-focus
     render(<WriteSheet item={baseItem} {...noopProps} />)
-    expect(screen.getByTestId('sheet-toggle-written')).toHaveAttribute('data-initial-focus')
+    expect(screen.getByTestId('sheet-overflow')).toHaveAttribute('data-initial-focus')
   })
 
   it('focuses the primary button once the sheet opens', async () => {
@@ -93,7 +98,7 @@ describe('WriteSheet — primary action focus + label flip', () => {
     // RTL's `render` flushes effects synchronously, but we still await a
     // microtask tick to be safe across React 18 batching changes.
     await act(async () => {})
-    expect(screen.getByTestId('sheet-toggle-written')).toHaveFocus()
+    expect(screen.getByTestId('sheet-overflow')).toHaveFocus()
   })
 
   it('flips to the busy label while the toggle is in flight', async () => {
@@ -105,13 +110,18 @@ describe('WriteSheet — primary action focus + label flip', () => {
       <WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />,
     )
 
-    const primary = screen.getByTestId('sheet-toggle-written')
+    // Open overflow to access the toggle action
     await act(async () => {
-      await userEvent.click(primary)
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
     })
 
-    expect(primary).toHaveTextContent(/marking/i)
-    expect(primary).toBeDisabled()
+    const toggle = screen.getByTestId('sheet-toggle-written')
+    await act(async () => {
+      await userEvent.click(toggle)
+    })
+
+    // After clicking, menu closes and busy state disables the overflow trigger
+    expect(screen.getByTestId('sheet-overflow')).toBeDisabled()
 
     await act(async () => {
       resolveToggle(true)
@@ -179,19 +189,19 @@ describe('WriteSheet — overflow menu', () => {
 })
 
 describe('WriteSheet — Enter shortcut on the primary action', () => {
-  it('fires the primary action when Enter is pressed and the primary has focus', async () => {
-    const onToggleWritten = vi.fn().mockResolvedValue(true)
-    render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
+  it('fires the practise action when Enter is pressed and the practise button has focus', async () => {
+    const onPractise = vi.fn()
+    render(<WriteSheet item={baseItem} {...noopProps} onPractise={onPractise} />)
 
-    // The primary already has focus on open (data-initial-focus). Enter
-    // activates the focused button — this is browser-native, but the test
+    // When onPractise is provided, sheet-practise-btn gets data-initial-focus.
+    // Enter activates the focused button — this is browser-native, but the test
     // documents the contract so a future regression in DockedSheet's focus
     // wiring fails loudly.
     await act(async () => {
       await userEvent.keyboard('{Enter}')
     })
 
-    expect(onToggleWritten).toHaveBeenCalledWith(baseItem)
+    expect(onPractise).toHaveBeenCalledWith(baseItem)
   })
 })
 
@@ -361,6 +371,10 @@ describe('WriteSheet — error recovery', () => {
     const onToggleWritten = vi.fn().mockResolvedValue(false)
     render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
 
+    // Toggle is now in overflow menu — open it first
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
@@ -389,6 +403,10 @@ describe('WriteSheet — error recovery', () => {
     const onToggleWritten = vi.fn().mockResolvedValue(false)
     render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
 
+    // Toggle is now in overflow menu — open it first
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
@@ -408,6 +426,10 @@ describe('WriteSheet — error recovery', () => {
       .mockResolvedValueOnce(true)
     render(<WriteSheet item={baseItem} {...noopProps} onToggleWritten={onToggleWritten} />)
 
+    // Toggle is now in overflow menu — open it first
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
@@ -417,6 +439,38 @@ describe('WriteSheet — error recovery', () => {
       await userEvent.click(screen.getByRole('button', { name: /retry/i }))
     })
     expect(screen.queryByText(/couldn't update/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('WriteSheet — lesson entry point', () => {
+  it('renders Practise this phrase as the primary button when onPractise is provided', () => {
+    const onPractise = vi.fn()
+    render(<WriteSheet item={baseItem} {...noopProps} onPractise={onPractise} />)
+    expect(screen.getByTestId('sheet-practise-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('sheet-practise-btn')).toHaveTextContent(/practise this phrase/i)
+  })
+
+  it('calls onPractise with the item when practise button is tapped', async () => {
+    const user = userEvent.setup()
+    const onPractise = vi.fn()
+    render(<WriteSheet item={baseItem} {...noopProps} onPractise={onPractise} />)
+    await user.click(screen.getByTestId('sheet-practise-btn'))
+    expect(onPractise).toHaveBeenCalledWith(baseItem)
+  })
+
+  it('moves Mark as written into the overflow menu', async () => {
+    const user = userEvent.setup()
+    render(<WriteSheet item={baseItem} {...noopProps} />)
+    // Should not be visible as a direct footer button
+    expect(screen.queryByTestId('sheet-toggle-written')).not.toBeInTheDocument()
+    // Should appear in overflow menu after opening it
+    await user.click(screen.getByTestId('sheet-overflow'))
+    expect(screen.getByTestId('sheet-toggle-written')).toBeInTheDocument()
+  })
+
+  it('does not render practise button when onPractise is not provided', () => {
+    render(<WriteSheet item={baseItem} {...noopProps} />)
+    expect(screen.queryByTestId('sheet-practise-btn')).not.toBeInTheDocument()
   })
 })
 

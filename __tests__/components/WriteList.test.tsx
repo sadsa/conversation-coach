@@ -504,6 +504,10 @@ describe('WriteList — mark as written from the sheet', () => {
     render(<WriteList items={[grammarItem]} />)
 
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await userEvent.click(screen.getByTestId('sheet-toggle-written'))
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -520,6 +524,10 @@ describe('WriteList — mark as written from the sheet', () => {
     render(<WriteList items={[grammarItem]} />)
 
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
@@ -532,7 +540,11 @@ describe('WriteList — mark as written from the sheet', () => {
   it('shows the move-back label in the Written view', async () => {
     render(<WriteList items={[writtenItem]} initialView="written" />)
     await userEvent.click(screen.getByTestId(`write-row-${writtenItem.id}`))
-    expect(screen.getByRole('button', { name: /move.+correction back/i })).toBeInTheDocument()
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
+    expect(screen.getByTestId('sheet-toggle-written')).toHaveTextContent(/move back/i)
   })
 
   it('reverts the optimistic update and shows an error when the PATCH fails', async () => {
@@ -540,6 +552,10 @@ describe('WriteList — mark as written from the sheet', () => {
     render(<WriteList items={[grammarItem]} />)
 
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
@@ -656,6 +672,10 @@ describe('WriteList — auto-advance from the sheet', () => {
     render(<WriteList items={[grammarItem, subjectiveItem]} />)
 
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
@@ -670,6 +690,10 @@ describe('WriteList — auto-advance from the sheet', () => {
     render(<WriteList items={[grammarItem]} />)
 
     await userEvent.click(screen.getByTestId(`write-row-${grammarItem.id}`))
+    // Toggle-written is now in the overflow menu
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-overflow'))
+    })
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })

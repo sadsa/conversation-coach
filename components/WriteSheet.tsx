@@ -45,21 +45,32 @@ interface Props {
   onToggleWritten: (item: PracticeItem) => Promise<boolean>
   /** Permanently deletes the item (undoable via the parent's toast). */
   onDelete: (item: PracticeItem) => Promise<boolean>
+  /** When provided, renders "Practise this phrase" as the primary footer button.
+   *  Omit on the Written (archive) view where practise is not the primary job. */
+  onPractise?: (item: PracticeItem) => void
 }
 
 interface OverflowMenuProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  onToggleWritten: () => void
   onDelete: () => void
   busy: boolean
+  isWritten: boolean
+  primaryLabelKey: string
+  primaryBusyKey: string
+  initialFocus?: boolean
 }
 
 /**
- * Tiny popover anchored to the overflow trigger. Single item today
- * (Delete) but the structure is ready for additional row actions
- * without crowding the footer.
+ * Tiny popover anchored to the overflow trigger. Carries the toggle-written
+ * action and the destructive Delete (kept undoable for 5 seconds via the
+ * parent's toast).
  */
-function OverflowMenu({ isOpen, onOpenChange, onDelete, busy }: OverflowMenuProps) {
+function OverflowMenu({
+  isOpen, onOpenChange, onToggleWritten, onDelete,
+  busy, isWritten, primaryLabelKey, primaryBusyKey, initialFocus,
+}: OverflowMenuProps) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const firstItemRef = useRef<HTMLButtonElement>(null)
@@ -102,6 +113,7 @@ function OverflowMenu({ isOpen, onOpenChange, onDelete, busy }: OverflowMenuProp
         disabled={busy}
         size="lg"
         data-testid="sheet-overflow"
+        {...(initialFocus ? { 'data-initial-focus': true } : {})}
       />
       {isOpen && (
         <div
@@ -118,19 +130,32 @@ function OverflowMenu({ isOpen, onOpenChange, onDelete, busy }: OverflowMenuProp
             motion-safe:animate-[fadein_140ms_ease-out_both]
           "
         >
-          {/* Single-line item. The "you can undo for 5 seconds" reassurance
-              used to live as a visible secondary line, but the user sees the
-              undo toast immediately after tapping — visible helper text was
-              just describing the next state. We keep the reassurance in the
-              aria-label so screen readers still get it. */}
+          {/* Mark as written / Move back */}
           <button
             ref={firstItemRef}
             type="button"
             role="menuitem"
-            onClick={() => {
-              onOpenChange(false)
-              onDelete()
-            }}
+            data-testid="sheet-toggle-written"
+            onClick={() => { onOpenChange(false); onToggleWritten() }}
+            disabled={busy}
+            className="
+              w-full flex items-center gap-3 px-3 py-2 text-left
+              text-text-primary hover:bg-surface disabled:opacity-50
+              transition-colors rounded-md text-sm font-medium
+            "
+          >
+            <Icon name={isWritten ? 'rotate-ccw' : 'check'} className="w-4 h-4 shrink-0 text-text-tertiary" />
+            {busy ? t(primaryBusyKey) : t(primaryLabelKey)}
+          </button>
+
+          <div className="my-1 border-t border-border-subtle" />
+
+          {/* Delete — The "you can undo for 5 seconds" reassurance lives only
+              in the aria-label; the visible helper text was distilled out. */}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => { onOpenChange(false); onDelete() }}
             disabled={busy}
             data-testid="sheet-delete"
             aria-label={t('writeSheet.deleteAria')}
@@ -161,6 +186,7 @@ export function WriteSheet({
   onNext,
   onToggleWritten,
   onDelete,
+  onPractise,
 }: Props) {
   const { t } = useTranslation()
   const [busyAction, setBusyAction] = useState<'toggle' | 'delete' | null>(null)
@@ -271,29 +297,36 @@ export function WriteSheet({
         )
       }
       footer={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            data-initial-focus
-            data-testid="sheet-toggle-written"
-            onClick={handleToggle}
-            disabled={busyAction !== null}
-            aria-label={t(primaryAriaKey)}
-            aria-pressed={isWritten}
-            className={primaryClassName}
-          >
-            <Icon
-              name={isWritten ? 'rotate-ccw' : 'check'}
-              className="w-4 h-4 mr-2"
+        <div className="flex flex-col gap-2">
+          {/* Primary: Practise this phrase (when handler provided) */}
+          {onPractise && item && (
+            <button
+              type="button"
+              data-testid="sheet-practise-btn"
+              data-initial-focus
+              onClick={() => onPractise(item)}
+              disabled={busyAction !== null}
+              className={buttonStyles({ variant: 'primary', size: 'md', fullWidth: true })}
+            >
+              <Icon name="play-circle" className="w-4 h-4 mr-2" />
+              {t('writeSheet.practise')}
+            </button>
+          )}
+
+          {/* Footer row: overflow menu (carries toggle-written + delete) */}
+          <div className="flex items-center justify-end">
+            <OverflowMenu
+              isOpen={overflowOpen}
+              onOpenChange={setOverflowOpen}
+              onToggleWritten={handleToggle}
+              onDelete={handleDelete}
+              busy={busyAction !== null}
+              isWritten={isWritten}
+              primaryLabelKey={primaryLabelKey}
+              primaryBusyKey={primaryBusyKey}
+              initialFocus={!onPractise}
             />
-            {primaryLabel}
-          </button>
-          <OverflowMenu
-            isOpen={overflowOpen}
-            onOpenChange={setOverflowOpen}
-            onDelete={handleDelete}
-            busy={busyAction !== null}
-          />
+          </div>
         </div>
       }
     >

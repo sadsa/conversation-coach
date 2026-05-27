@@ -628,6 +628,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.moveBack': 'Move back to Study list',
     'writeSheet.moveBackBusy': 'Moving back…',
     'writeSheet.moveBackAria': 'Move this correction back to the Study list',
+    'writeSheet.practise': 'Practise this phrase',
     // Overflow menu — Delete is undoable for 5 seconds via the toast, so the
     // copy is reassuring rather than threatening.
     'writeSheet.moreActionsAria': 'More actions',
@@ -1196,6 +1197,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.moveBack': 'Volver a la lista de Estudiar',
     'writeSheet.moveBackBusy': 'Volviendo…',
     'writeSheet.moveBackAria': 'Devolver esta corrección a la lista de Estudiar',
+    'writeSheet.practise': 'Practicar esta frase',
     // Menú de acciones secundarias — Eliminar se puede deshacer 5 segundos
     'writeSheet.moreActionsAria': 'Más acciones',
     'writeSheet.deleteLabel': 'Eliminar',
