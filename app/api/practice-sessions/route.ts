@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const { turns, targetLanguage, session_type, lesson_phrase } = await req.json() as {
     turns: TranscriptTurn[]
     targetLanguage: TargetLanguage
-    session_type?: 'voice_practice' | 'lesson'
+    session_type?: string
     lesson_phrase?: {
       correction: string
       explanation: string
@@ -26,6 +26,17 @@ export async function POST(req: NextRequest) {
       practice_item_id: string
     }
   }
+
+  const validSessionTypes = ['voice_practice', 'lesson'] as const
+  type ValidSessionType = typeof validSessionTypes[number]
+
+  // Validate session_type — only 'voice_practice' and 'lesson' are accepted here.
+  // 'upload' sessions go through a different route; fall back to 'voice_practice'
+  // if an invalid value is sent.
+  const resolvedSessionType: ValidSessionType =
+    validSessionTypes.includes(session_type as ValidSessionType)
+      ? (session_type as ValidSessionType)
+      : 'voice_practice'
 
   const userTurns = turns.filter(t => t.role === 'user')
   if (userTurns.length === 0) {
@@ -48,7 +59,7 @@ export async function POST(req: NextRequest) {
     .insert({
       title: formatSessionTitle(new Date()),
       status: 'analysing',
-      session_type: session_type ?? 'voice_practice',
+      session_type: resolvedSessionType,
       ...(lesson_phrase ? { lesson_phrase } : {}),
       user_id: user.id,
       user_speaker_labels: ['A'],

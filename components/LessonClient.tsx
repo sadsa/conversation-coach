@@ -93,6 +93,7 @@ export function LessonClient({ phrase, onExit }: Props) {
   const frozenTurnsRef = useRef<TranscriptTurn[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const endingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const completeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMountedRef = useRef(true)
   const onExitRef = useRef(onExit)
   useEffect(() => { onExitRef.current = onExit }, [onExit])
@@ -116,6 +117,7 @@ export function LessonClient({ phrase, onExit }: Props) {
       placeholderTurnIndexRef.current = null
       if (timerRef.current) clearInterval(timerRef.current)
       if (endingTimeoutRef.current) clearTimeout(endingTimeoutRef.current)
+      if (completeTimeoutRef.current) clearTimeout(completeTimeoutRef.current)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       wakeLockRef.current?.release()
       wakeLockRef.current = null
@@ -214,7 +216,7 @@ export function LessonClient({ phrase, onExit }: Props) {
       setElapsed(count)
       if (count === WARN_SECONDS) {
         setLessonState('warning')
-        setToast('2 minutes remaining')
+        setToast(t('lesson.warningToast'))
       }
       if (count >= TOTAL_SECONDS) {
         clearInterval(timerRef.current!)
@@ -410,7 +412,10 @@ export function LessonClient({ phrase, onExit }: Props) {
                 respond({ ok: true })
                 // End the session after a brief beat so the teacher's final
                 // words finish playing before we transition.
-                setTimeout(() => endSessionRef.current(), 800)
+                completeTimeoutRef.current = setTimeout(() => {
+                  completeTimeoutRef.current = null
+                  endSessionRef.current()
+                }, 800)
               } else if (['model', 'drill', 'free_use'].includes(phase)) {
                 setCurrentPhase(phase as LessonPhase)
                 respond({ ok: true })
@@ -526,7 +531,7 @@ export function LessonClient({ phrase, onExit }: Props) {
           onClick={endSession}
           className="text-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors py-2"
         >
-          End
+          {t('lesson.end')}
         </button>
         <span
           className={[
@@ -587,7 +592,7 @@ export function LessonClient({ phrase, onExit }: Props) {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="text-xs text-text-tertiary"
             >
-              Muted
+              {t('lesson.statusMuted')}
             </motion.span>
           ) : voiceStatus === 'speaking' ? (
             <motion.div
@@ -603,7 +608,7 @@ export function LessonClient({ phrase, onExit }: Props) {
               className="flex items-center gap-1.5"
             >
               <div className="w-1.5 h-1.5 rounded-full border border-text-tertiary" />
-              <span className="text-xs text-text-tertiary">Listening</span>
+              <span className="text-xs text-text-tertiary">{t('lesson.statusListening')}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -614,7 +619,7 @@ export function LessonClient({ phrase, onExit }: Props) {
         <button
           type="button"
           onClick={toggleMute}
-          aria-label={muted ? 'Unmute' : 'Mute'}
+          aria-label={muted ? t('lesson.unmuteAria') : t('lesson.muteAria')}
           aria-pressed={muted}
           className="flex flex-col items-center gap-1.5"
         >
@@ -627,7 +632,7 @@ export function LessonClient({ phrase, onExit }: Props) {
               className="w-5 h-5 text-text-secondary"
             />
           </div>
-          <span className="text-[10px] text-text-tertiary">{muted ? 'Unmute' : 'Mute'}</span>
+          <span className="text-[10px] text-text-tertiary">{muted ? t('lesson.unmuteLabel') : t('lesson.muteLabel')}</span>
         </button>
       </div>
 

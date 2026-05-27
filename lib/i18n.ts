@@ -686,6 +686,21 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.close': 'Close',
     'onboarding.stepOfTotal': 'Step {n} of {total}',
 
+    // Lesson mode
+    'lesson.statusListening': 'Listening',
+    'lesson.statusMuted': 'Muted',
+    'lesson.warningToast': '2 minutes remaining',
+    'lesson.studying': 'Studying',
+    'lesson.phaseExplain': 'Explain',
+    'lesson.phaseModel': 'Model',
+    'lesson.phaseDrill': 'Drill',
+    'lesson.phaseFreeUse': 'Free use',
+    'lesson.end': 'End',
+    'lesson.muteLabel': 'Mute',
+    'lesson.unmuteLabel': 'Unmute',
+    'lesson.muteAria': 'Mute microphone',
+    'lesson.unmuteAria': 'Unmute microphone',
+
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
     'subCat.subjunctive': 'Subjunctive',
@@ -1250,6 +1265,21 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.cta.done': 'Listo',
     'onboarding.close': 'Cerrar',
     'onboarding.stepOfTotal': 'Paso {n} de {total}',
+
+    // Lesson mode
+    'lesson.statusListening': 'Escuchando',
+    'lesson.statusMuted': 'Silenciado',
+    'lesson.warningToast': 'Quedan 2 minutos',
+    'lesson.studying': 'Estudiando',
+    'lesson.phaseExplain': 'Explicar',
+    'lesson.phaseModel': 'Modelar',
+    'lesson.phaseDrill': 'Practicar',
+    'lesson.phaseFreeUse': 'Uso libre',
+    'lesson.end': 'Terminar',
+    'lesson.muteLabel': 'Silenciar',
+    'lesson.unmuteLabel': 'Activar micrófono',
+    'lesson.muteAria': 'Silenciar micrófono',
+    'lesson.unmuteAria': 'Activar micrófono',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

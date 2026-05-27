@@ -7,9 +7,19 @@
 ALTER TABLE sessions
   DROP CONSTRAINT IF EXISTS sessions_session_type_check;
 
-ALTER TABLE sessions
-  ADD CONSTRAINT sessions_session_type_check
-  CHECK (session_type IN ('upload', 'voice_practice', 'lesson'));
+-- Re-add the constraint (idempotent via DO block)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'sessions_session_type_check'
+      AND conrelid = 'sessions'::regclass
+  ) THEN
+    ALTER TABLE sessions
+      ADD CONSTRAINT sessions_session_type_check
+      CHECK (session_type IN ('upload', 'voice_practice', 'lesson'));
+  END IF;
+END $$;
 
 ALTER TABLE sessions
   ADD COLUMN IF NOT EXISTS lesson_phrase jsonb;

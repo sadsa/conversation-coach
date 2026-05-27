@@ -4,14 +4,9 @@
 // internal state. Phases: explain → model → drill → free_use.
 // Nodes: pending (outlined) | active (violet + pulse ring) | done (emerald + check).
 
-export type LessonPhase = 'explain' | 'model' | 'drill' | 'free_use'
+import { useTranslation } from '@/components/LanguageProvider'
 
-const PHASES: { id: LessonPhase; label: string }[] = [
-  { id: 'explain',  label: 'Explain' },
-  { id: 'model',    label: 'Model' },
-  { id: 'drill',    label: 'Drill' },
-  { id: 'free_use', label: 'Free use' },
-]
+export type LessonPhase = 'explain' | 'model' | 'drill' | 'free_use'
 
 const ORDER: LessonPhase[] = ['explain', 'model', 'drill', 'free_use']
 
@@ -30,15 +25,27 @@ interface Props {
 }
 
 export function LessonPhaseRail({ currentPhase }: Props) {
+  const { t } = useTranslation()
+
+  const phases: { id: LessonPhase; label: string }[] = [
+    { id: 'explain',  label: t('lesson.phaseExplain') },
+    { id: 'model',    label: t('lesson.phaseModel') },
+    { id: 'drill',    label: t('lesson.phaseDrill') },
+    { id: 'free_use', label: t('lesson.phaseFreeUse') },
+  ]
+
   return (
     <div
       role="list"
       aria-label="Lesson phases"
       className="flex items-start px-4 pt-3"
     >
-      {PHASES.map((phase, i) => {
+      {phases.map((phase, i) => {
         const status = statusOf(phase.id, currentPhase)
-        const isLast = i === PHASES.length - 1
+        const isLast = i === phases.length - 1
+
+        const nextPhase = i < phases.length - 1 ? phases[i + 1] : null
+        const nextStatus = nextPhase ? statusOf(nextPhase.id, currentPhase) : null
 
         return (
           <div
@@ -56,7 +63,7 @@ export function LessonPhaseRail({ currentPhase }: Props) {
                 className={[
                   'flex-1 h-px',
                   i === 0 ? 'invisible' : '',
-                  status === 'done' ? 'bg-status-done' : 'bg-border',
+                  status === 'done' || status === 'active' ? 'bg-status-done' : 'bg-border',
                 ].join(' ')}
               />
 
@@ -93,7 +100,7 @@ export function LessonPhaseRail({ currentPhase }: Props) {
                 className={[
                   'flex-1 h-px',
                   isLast ? 'invisible' : '',
-                  status === 'done' ? 'bg-status-done' : 'bg-border',
+                  nextStatus === 'done' || nextStatus === 'active' ? 'bg-status-done' : 'bg-border',
                 ].join(' ')}
               />
             </div>
