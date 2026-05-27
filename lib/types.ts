@@ -19,7 +19,7 @@ export interface Session {
   id: string
   title: string
   status: SessionStatus
-  session_type: 'upload' | 'voice_practice'
+  session_type: 'upload' | 'voice_practice' | 'lesson'
   error_stage: ErrorStage | null
   duration_seconds: number | null
   audio_r2_key: string | null
@@ -30,6 +30,12 @@ export interface Session {
   created_at: string
   updated_at: string
   original_filename: string | null
+  lesson_phrase?: {
+    correction: string
+    explanation: string
+    flashcard_front: string | null
+    practice_item_id: string
+  } | null
 }
 
 export interface TranscriptSegment {
