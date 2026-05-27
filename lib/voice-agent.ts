@@ -340,7 +340,8 @@ Have a natural conversation on any topic. Steer the conversation so the phrase c
 
 ADVANCEMENT RULE: Call set_phase only when you have heard evidence of understanding or production. Do not advance on a timer alone. If the student is struggling, slow down and stay in the current phase longer.
 
-Begin the lesson now. Start with phase 1 — explain the phrase to the student.`
+—— STARTING THE LESSON ——
+YOU lead this session. Speak first. The moment the lesson-start signal arrives, begin phase 1 immediately — greet the student briefly, name the phrase you'll be working on together, then explain it. Do NOT wait for the student to say anything first; a blank opening leaves them staring at a silent screen wondering what's happening. Keep your first turn to roughly two short sentences before the explanation, then dive into Phase 1 proper. Do NOT translate or explain the lesson-start signal itself.`
 }
 
 /**

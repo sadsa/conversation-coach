@@ -40,4 +40,11 @@ describe('buildLessonSystemPrompt', () => {
     const prompt = buildLessonSystemPrompt(phrase, 'es-AR')
     expect(prompt).toMatch(/rioplatense/i)
   })
+
+  it('instructs the teacher to speak first when the lesson-start signal arrives', () => {
+    const prompt = buildLessonSystemPrompt(phrase, 'es-AR')
+    expect(prompt).toMatch(/speak first/i)
+    expect(prompt).toMatch(/lesson-start signal/i)
+    expect(prompt).toMatch(/do not wait for the student/i)
+  })
 })

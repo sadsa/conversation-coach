@@ -686,20 +686,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.close': 'Close',
     'onboarding.stepOfTotal': 'Step {n} of {total}',
 
-    // Lesson mode
-    'lesson.statusListening': 'Listening',
-    'lesson.statusMuted': 'Muted',
+    // Lesson mode — only the lesson-specific copy lives here. Mute, end,
+    // status labels, and the timer all reuse `practice.*` keys since the
+    // lesson surface is structurally a sibling of Call and Chat. The four
+    // phase labels were retired when the phase rail came out — phase
+    // progress is an application concern, not a user concern.
     'lesson.warningToast': '2 minutes remaining',
     'lesson.studying': 'Studying',
-    'lesson.phaseExplain': 'Explain',
-    'lesson.phaseModel': 'Model',
-    'lesson.phaseDrill': 'Drill',
-    'lesson.phaseFreeUse': 'Free use',
-    'lesson.end': 'End',
-    'lesson.muteLabel': 'Mute',
-    'lesson.unmuteLabel': 'Unmute',
-    'lesson.muteAria': 'Mute microphone',
-    'lesson.unmuteAria': 'Unmute microphone',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -1266,20 +1259,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'onboarding.close': 'Cerrar',
     'onboarding.stepOfTotal': 'Paso {n} de {total}',
 
-    // Lesson mode
-    'lesson.statusListening': 'Escuchando',
-    'lesson.statusMuted': 'Silenciado',
+    // Modo lección — solo el copy específico de la lección vive acá. Mute,
+    // end, etiquetas de estado y el timer reutilizan `practice.*` porque
+    // la superficie de la lección es estructuralmente hermana de Call y
+    // Chat. Las cuatro etiquetas de fase se retiraron cuando salió el riel
+    // de fases — el progreso de fase es asunto de la aplicación, no del
+    // usuario.
     'lesson.warningToast': 'Quedan 2 minutos',
     'lesson.studying': 'Estudiando',
-    'lesson.phaseExplain': 'Explicar',
-    'lesson.phaseModel': 'Modelar',
-    'lesson.phaseDrill': 'Practicar',
-    'lesson.phaseFreeUse': 'Uso libre',
-    'lesson.end': 'Terminar',
-    'lesson.muteLabel': 'Silenciar',
-    'lesson.unmuteLabel': 'Activar micrófono',
-    'lesson.muteAria': 'Silenciar micrófono',
-    'lesson.unmuteAria': 'Activar micrófono',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',
