@@ -476,6 +476,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.markState.written': 'written down',
     'transcript.markState.saved': 'saved',
     'transcript.markState.unreviewed': 'needs review',
+    'transcript.correctionsBelow': 'See {n} corrections',
 
     // Re-analyse confirmation
     'reanalyse.title': 'Replace this conversation\'s corrections?',
@@ -1074,6 +1075,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.markState.written': 'escrito',
     'transcript.markState.saved': 'guardado',
     'transcript.markState.unreviewed': 'pendiente',
+    'transcript.correctionsBelow': 'Ver {n} correcciones',
 
     // Re-analyse confirmation
     'reanalyse.title': '¿Reemplazar las correcciones de esta conversación?',

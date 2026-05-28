@@ -1,8 +1,10 @@
 // components/TranscriptView.tsx
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
+import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import { log } from '@/lib/logger'
 import type { TranscriptSegment, Annotation } from '@/lib/types'
@@ -47,12 +49,19 @@ export function TranscriptView({
   onAnnotationUnhelpfulChanged,
 }: Props) {
   const { t } = useTranslation()
+  const prefersReducedMotion = useReducedMotion()
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null)
   // Legend visibility — true on first paint for first-time users, false
   // forever after the user has opened any annotation. Lives in local state
   // because we need to react to the user's first click within the session
   // even if localStorage already says "learned".
   const [legendVisible, setLegendVisible] = useState(true)
+  // Pill: true once the first annotation element is visible in the viewport.
+  // Starts false so the pill shows until the user scrolls down to it.
+  const [firstAnnotationVisible, setFirstAnnotationVisible] = useState(false)
+  // Delayed gate: pill shouldn't snap into view before the page has settled.
+  const [pillReady, setPillReady] = useState(false)
+  const pillObserverRef = useRef<IntersectionObserver | null>(null)
 
   // On mount, hide the legend immediately for returning users so it never
   // flashes. SSR-safe — no localStorage access during render.
@@ -87,6 +96,42 @@ export function TranscriptView({
     })
   }, [segments, userSpeakerLabels, annotationsBySegment])
 
+  const firstAnnotationId = orderedAnnotations[0]?.id ?? null
+
+  // Show the pill after a short settle delay — avoids it flashing on arrival
+  // before the user has had a chance to read the page header.
+  useEffect(() => {
+    if (!firstAnnotationId) return
+    const timer = setTimeout(() => setPillReady(true), 500)
+    return () => clearTimeout(timer)
+  }, [firstAnnotationId])
+
+  // Track whether the first annotation mark is scrolled into view. Once it is,
+  // the pill has served its purpose and disappears.
+  useEffect(() => {
+    if (!firstAnnotationId || typeof window === 'undefined') return
+    // The annotation element may not be in the DOM yet on the first render pass.
+    // Use rAF to defer the lookup until after paint.
+    const rafId = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-annotation-id="${firstAnnotationId}"]`)
+      if (!(el instanceof Element)) return
+      pillObserverRef.current?.disconnect()
+      const observer = new IntersectionObserver(
+        ([entry]) => setFirstAnnotationVisible(entry.isIntersecting),
+        { threshold: 0 }
+      )
+      observer.observe(el)
+      pillObserverRef.current = observer
+    })
+    return () => {
+      cancelAnimationFrame(rafId)
+      pillObserverRef.current?.disconnect()
+      pillObserverRef.current = null
+    }
+  }, [firstAnnotationId])
+
+  const showPill = pillReady && !!firstAnnotationId && !firstAnnotationVisible && !activeAnnotationId
+
   const activeIndex = activeAnnotationId
     ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
     : -1
@@ -114,6 +159,24 @@ export function TranscriptView({
   function handleNext() {
     if (activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1) {
       setActiveAnnotationId(orderedAnnotations[activeIndex + 1].id)
+    }
+  }
+
+  function handleScrollToFirst() {
+    if (!firstAnnotationId || typeof window === 'undefined') return
+    const el = document.querySelector(`[data-annotation-id="${firstAnnotationId}"]`)
+    if (!(el instanceof HTMLElement)) return
+    const reduced = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : true
+    const isWide = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 768px)').matches
+      : false
+    const rect = el.getBoundingClientRect()
+    const targetY = isWide ? window.innerHeight * 0.4 : window.innerHeight * 0.25
+    const delta = rect.top - targetY
+    if (typeof window.scrollBy === 'function') {
+      window.scrollBy({ top: delta, behavior: reduced ? 'auto' : 'smooth' })
     }
   }
 
@@ -290,6 +353,29 @@ export function TranscriptView({
         onAnnotationUnwritten={onAnnotationUnwritten}
         onAnnotationUnhelpfulChanged={onAnnotationUnhelpfulChanged}
       />
+
+      <AnimatePresence>
+        {showPill && (
+          <motion.div
+            key="corrections-pill"
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none"
+            style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+          >
+            <button
+              type="button"
+              onClick={handleScrollToFirst}
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent-primary text-white shadow-lg text-sm font-medium"
+            >
+              <Icon name="caret-down" className="w-4 h-4" />
+              {t('transcript.correctionsBelow', { n: orderedAnnotations.length })}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
