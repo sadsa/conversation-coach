@@ -7,7 +7,7 @@
 
 import { forwardRef } from 'react'
 
-type Variant = 'primary' | 'secondary'
+type Variant = 'primary' | 'secondary' | 'saved'
 type Size = 'sm' | 'md'
 
 interface StyleOptions {
@@ -33,6 +33,12 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   secondary:
     'border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary ' +
     'disabled:bg-surface disabled:text-text-tertiary disabled:hover:bg-surface disabled:hover:text-text-tertiary',
+  // Confirmed/"already saved" state — the violet saved-annotation tokens read
+  // as a settled receipt rather than a fresh call-to-action. Hover stays put
+  // (no colour shift) so the button doesn't invite a re-click it can't honour.
+  saved:
+    'border border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)] ' +
+    'hover:bg-[var(--annotation-saved-bg)] disabled:opacity-60',
 }
 
 const SIZE_CLASSES: Record<Size, string> = {

@@ -134,7 +134,11 @@ export function TranscriptView({
     }
   }, [firstAnnotationId])
 
-  const showPill = pillReady && !!firstAnnotationId && !firstAnnotationVisible && !activeAnnotationId
+  // Mutually exclusive with the StudyPrompt pill: both anchor bottom-center,
+  // so once the user has saved anything (`studyCount > 0`) the StudyPrompt wins
+  // and the "see corrections" cue stands down rather than stacking on top of it.
+  const showPill =
+    pillReady && !!firstAnnotationId && !firstAnnotationVisible && !activeAnnotationId && studyCount === 0
 
   const activeIndex = activeAnnotationId
     ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
@@ -338,7 +342,6 @@ export function TranscriptView({
             ? { ...activeAnnotation, is_unhelpful: unhelpfulAnnotations.has(activeAnnotation.id) }
             : null
         }
-        position={activeAnnotation ? { current: activeIndex + 1, total: orderedAnnotations.length } : null}
         hasPrev={activeIndex > 0}
         hasNext={activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1}
         onClose={() => setActiveAnnotationId(null)}

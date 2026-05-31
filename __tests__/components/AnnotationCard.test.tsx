@@ -1,15 +1,23 @@
 // __tests__/components/AnnotationCard.test.tsx
 //
 // Covers the redesigned action region: a primary verb-driven Save button
-// (full-width, gets initial focus via `data-initial-focus`) plus a quiet
-// "Not useful — hide it" affordance underneath. Outcome hints are inline
-// teacher-voice strings; errors no longer auto-dismiss but expose Retry.
-// Mutual exclusion between the two actions is preserved exactly as before.
+// (full-width, gets initial focus via `data-initial-focus`) plus the quiet
+// "Not useful — hide it" affordance, which now lives in the ··· overflow menu
+// on every viewport (no more viewport-split between a mobile menu and a
+// desktop ghost button). Outcome hints are inline teacher-voice strings;
+// errors no longer auto-dismiss but expose Retry. Mutual exclusion between
+// Save and the dismiss action is preserved exactly as before.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AnnotationCard } from '@/components/AnnotationCard'
 import type { Annotation } from '@/lib/types'
+
+// The dismiss action is reached by opening the overflow menu and clicking the
+// "Not useful" / "Restore" menu item. Helper keeps the intent readable.
+async function openDismissMenu() {
+  await userEvent.click(screen.getByRole('button', { name: /more actions/i }))
+}
 
 const annotation: Annotation = {
   id: 'ann-1', session_id: 's1', segment_id: 'seg-1',
@@ -146,8 +154,16 @@ describe('AnnotationCard — primary save action', () => {
   })
 })
 
-describe('AnnotationCard — quiet "Not useful" action', () => {
-  it('PATCHes is_unhelpful=true and updates aria-pressed without collapsing the row', async () => {
+describe('AnnotationCard — quiet "Not useful" action (overflow menu)', () => {
+  it('exposes the dismiss action only inside the overflow menu, on every viewport', async () => {
+    render(<AnnotationCard annotation={annotation} {...defaultProps} />)
+    // Closed menu: no standalone dismiss button leaking into the body.
+    expect(screen.queryByRole('menuitem', { name: /mark as not useful and hide from the transcript/i })).not.toBeInTheDocument()
+    await openDismissMenu()
+    expect(screen.getByRole('menuitem', { name: /mark as not useful and hide from the transcript/i })).toBeInTheDocument()
+  })
+
+  it('PATCHes is_unhelpful=true and shows the hidden caption without collapsing the row', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true } as Response)
     const onAnnotationUnhelpfulChanged = vi.fn()
 
@@ -159,27 +175,32 @@ describe('AnnotationCard — quiet "Not useful" action', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i }))
+    await openDismissMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: /mark as not useful and hide from the transcript/i }))
 
     expect(global.fetch).toHaveBeenCalledWith('/api/annotations/ann-1', expect.objectContaining({
       method: 'PATCH',
       body: JSON.stringify({ is_unhelpful: true }),
     }))
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', true)
-    // Save button still present, secondary now in the "restore" mode.
+    // Save button still present; card now reads as hidden.
     expect(screen.getByRole('button', { name: /save this correction to your study list/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /restore this correction/i })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/hidden from your transcript/i)).toBeInTheDocument()
+    // Reopening the menu shows the inverse "Restore" action.
+    await openDismissMenu()
+    expect(screen.getByRole('menuitem', { name: /restore this correction/i })).toBeInTheDocument()
   })
 
-  it('renders pre-marked unhelpful annotations in the muted state on first render', () => {
+  it('renders pre-marked unhelpful annotations in the muted state on first render', async () => {
     render(
       <AnnotationCard
         annotation={{ ...annotation, is_unhelpful: true, unhelpful_at: '2026-04-19T00:00:00Z' }}
         {...defaultProps}
       />,
     )
-    const restore = screen.getByRole('button', { name: /restore this correction/i })
-    expect(restore).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/hidden from your transcript/i)).toBeInTheDocument()
+    await openDismissMenu()
+    expect(screen.getByRole('menuitem', { name: /restore this correction/i })).toBeInTheDocument()
   })
 
   it('Restore flips state back and PATCHes is_unhelpful=false', async () => {
@@ -193,14 +214,15 @@ describe('AnnotationCard — quiet "Not useful" action', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /restore this correction/i }))
+    await openDismissMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: /restore this correction/i }))
 
     expect(global.fetch).toHaveBeenCalledWith('/api/annotations/ann-1', expect.objectContaining({
       method: 'PATCH',
       body: JSON.stringify({ is_unhelpful: false }),
     }))
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', false)
-    expect(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByText(/hidden from your transcript/i)).not.toBeInTheDocument()
   })
 
   it('reverts optimistic state and shows an error with Retry when PATCH fails', async () => {
@@ -214,11 +236,13 @@ describe('AnnotationCard — quiet "Not useful" action', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i }))
+    await openDismissMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: /mark as not useful and hide from the transcript/i }))
 
     expect(onAnnotationUnhelpfulChanged).toHaveBeenNthCalledWith(1, 'ann-1', true)
     expect(onAnnotationUnhelpfulChanged).toHaveBeenNthCalledWith(2, 'ann-1', false)
-    expect(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i })).toHaveAttribute('aria-pressed', 'false')
+    // Reverted — the hidden caption is gone again.
+    expect(screen.queryByText(/hidden from your transcript/i)).not.toBeInTheDocument()
     expect(screen.getByRole('status').textContent).toMatch(/.+/)
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
   })
@@ -241,7 +265,8 @@ describe('AnnotationCard — quiet "Not useful" action', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /mark as not useful and hide from the transcript/i }))
+    await openDismissMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: /mark as not useful and hide from the transcript/i }))
 
     expect(fetchSpy).toHaveBeenNthCalledWith(1, '/api/practice-items/pi-1', { method: 'DELETE' })
     expect(fetchSpy).toHaveBeenNthCalledWith(2, '/api/annotations/ann-1', expect.objectContaining({
@@ -250,6 +275,19 @@ describe('AnnotationCard — quiet "Not useful" action', () => {
     }))
     expect(onAnnotationRemoved).toHaveBeenCalledWith('ann-1')
     expect(onAnnotationUnhelpfulChanged).toHaveBeenCalledWith('ann-1', true)
+  })
+})
+
+describe('AnnotationCard — saving state', () => {
+  it('shows a "Saving…" label on the primary while the save POST is in flight', async () => {
+    let resolveFetch: (v: Response) => void = () => {}
+    vi.spyOn(global, 'fetch').mockImplementationOnce(
+      () => new Promise<Response>((resolve) => { resolveFetch = resolve }),
+    )
+    render(<AnnotationCard annotation={annotation} {...defaultProps} />)
+    await userEvent.click(screen.getByRole('button', { name: /save this correction to your study list/i }))
+    expect(screen.getByRole('button', { name: /save this correction to your study list/i })).toHaveTextContent(/saving/i)
+    resolveFetch({ ok: true, json: () => Promise.resolve({ id: 'pi-1' }) } as Response)
   })
 })
 

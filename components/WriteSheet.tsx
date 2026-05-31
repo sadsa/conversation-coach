@@ -31,8 +31,6 @@ import type { PracticeItem } from '@/lib/types'
 
 interface Props {
   item: PracticeItem | null
-  /** 1-indexed position of this item in the current view. */
-  position: { current: number; total: number } | null
   hasPrev: boolean
   hasNext: boolean
   /** True when the parent view is showing the Written (archive) tab. */
@@ -173,7 +171,6 @@ function OverflowMenu({
 
 export function WriteSheet({
   item,
-  position,
   hasPrev,
   hasNext,
   isWritten,
@@ -258,16 +255,7 @@ export function WriteSheet({
       preserveOutsideSelector="[data-write-item-id]"
       mobileMaxHeight="75vh"
       contentKey={item.id}
-      headerLead={
-        position && (
-          <span
-            key={position.current}
-            className="text-xs text-text-tertiary tabular-nums motion-safe:animate-[fadein_180ms_ease-out_both]"
-          >
-            {t('sheet.position', { n: position.current, total: position.total })}
-          </span>
-        )
-      }
+      headerLead={null}
     >
       <NavHint />
       <div className="space-y-6">

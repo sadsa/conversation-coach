@@ -30,3 +30,31 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
     }),
   })
 }
+
+// JSDOM also ships without `IntersectionObserver`. TranscriptView observes the
+// first annotation mark to toggle its "see corrections" pill; without a stub
+// the observer constructor throws inside a requestAnimationFrame callback —
+// an uncaught async error that surfaces after the assertions and fails the
+// run even though the synchronous test logic passed. A no-op stub keeps the
+// effect inert in tests that don't exercise scroll visibility.
+if (typeof window !== 'undefined' && typeof window.IntersectionObserver !== 'function') {
+  class IntersectionObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return [] }
+    root = null
+    rootMargin = ''
+    thresholds = []
+  }
+  Object.defineProperty(window, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: IntersectionObserverStub,
+  })
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: IntersectionObserverStub,
+  })
+}

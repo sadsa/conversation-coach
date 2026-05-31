@@ -27,8 +27,6 @@ import type { Annotation } from '@/lib/types'
 
 interface Props {
   annotation: Annotation | null
-  /** 1-indexed position of this annotation among the user's annotations. */
-  position: { current: number; total: number } | null
   hasPrev: boolean
   hasNext: boolean
   onClose: () => void
@@ -48,7 +46,6 @@ interface Props {
 
 export function AnnotationSheet({
   annotation,
-  position,
   hasPrev,
   hasNext,
   onClose,
@@ -73,13 +70,7 @@ export function AnnotationSheet({
       preserveOutsideSelector="[data-annotation-id]"
       mobileMaxHeight="75vh"
       contentKey={annotation.id}
-      headerLead={
-        position && (
-          <span className="text-xs text-text-tertiary tabular-nums">
-            {t('sheet.position', { n: position.current, total: position.total })}
-          </span>
-        )
-      }
+      headerLead={null}
     >
       <NavHint />
       <AnnotationCard annotation={annotation} onClose={onClose} {...cardProps} />

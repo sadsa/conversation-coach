@@ -26,10 +26,10 @@
 // the failed action, and (when applicable) an offline note so the user
 // understands why retrying is unlikely to help right now.
 //
-// Importance is rendered as a single soft pill ("Worth remembering" or, at
-// score 3, "High priority") rather than three ASCII stars. Score === 1 is
-// hidden entirely — by definition a 1-of-3 importance signal isn't earning
-// its visual weight on every card.
+// The "Not useful — hide it" affordance lives in the ··· overflow menu on
+// EVERY viewport. The desktop sheet header already carries close + prev/next,
+// so the menu is the single home for the dismiss action regardless of width —
+// one place to learn, not a menu-item on mobile and a ghost button on desktop.
 
 'use client'
 import { useEffect, useRef, useState } from 'react'
@@ -116,6 +116,7 @@ function AnnotationOverflowMenu({ isUnhelpful, busy, onToggle }: OverflowMenuPro
           <button
             type="button"
             role="menuitem"
+            aria-label={isUnhelpful ? t('annotation.notUsefulRestoreAria') : t('annotation.notUsefulAria')}
             onClick={() => { setIsOpen(false); onToggle() }}
             disabled={busy}
             className="
@@ -321,10 +322,15 @@ export function AnnotationCard({
     else if (lastFailedAction === 'unhelpful') void handleUnhelpful()
   }
 
-  const primaryLabel = practiceItemId ? t('annotation.savedPrimary') : t('annotation.savePrimary')
+  // In-flight only when adding (no practice item yet). Removing keeps the
+  // "Added" label so the button doesn't flicker back to the save CTA mid-undo.
+  const isSaving = !practiceItemId && busy === 'helpful'
+  const primaryLabel = practiceItemId
+    ? t('annotation.savedPrimary')
+    : isSaving
+      ? t('annotation.savingPrimary')
+      : t('annotation.savePrimary')
   const primaryAria = practiceItemId ? t('annotation.savedPrimaryAria') : t('annotation.savePrimaryAria')
-  const secondaryLabel = isUnhelpful ? t('annotation.notUsefulRestore') : t('annotation.notUseful')
-  const secondaryAria = isUnhelpful ? t('annotation.notUsefulRestoreAria') : t('annotation.notUsefulAria')
 
   // Best-effort offline detection. We only consult `navigator` when an error
   // is on screen — it's a hint, not load-bearing logic, so SSR gets the safe
@@ -354,7 +360,10 @@ export function AnnotationCard({
         original={annotation.original}
         correction={annotation.correction}
         eyebrowAction={
-          <div className="flex items-center gap-0.5 md:hidden -my-1">
+          // The ··· dismiss menu rides the eyebrow row on every viewport so
+          // "Not useful" has one home. The × close stays mobile-only — the
+          // desktop sheet header owns close + prev/next.
+          <div className="flex items-center gap-0.5 -my-1">
             <AnnotationOverflowMenu
               isUnhelpful={isUnhelpful}
               busy={busy !== null}
@@ -366,6 +375,7 @@ export function AnnotationCard({
                 size="lg"
                 onClick={onClose}
                 aria-label={t('sheet.close')}
+                className="md:hidden"
               />
             )}
           </div>
@@ -405,42 +415,23 @@ export function AnnotationCard({
           aria-label={primaryAria}
           aria-pressed={!!practiceItemId}
           className={buttonStyles({
-            variant: practiceItemId ? 'secondary' : 'primary',
+            variant: practiceItemId ? 'saved' : 'primary',
             size: 'md',
             fullWidth: true,
-            className: [
-              practiceItemId
-                ? 'border-[var(--annotation-saved-border)] bg-[var(--annotation-saved-bg)] text-[var(--annotation-saved-text)] hover:bg-[var(--annotation-saved-bg)]'
-                : '',
-              justSaved ? 'motion-safe:animate-[saved-pulse_650ms_ease-out_both]' : '',
-            ].filter(Boolean).join(' '),
+            className: justSaved ? 'motion-safe:animate-[saved-pulse_650ms_ease-out_both]' : '',
           })}
         >
+          {isSaving && (
+            <span
+              aria-hidden="true"
+              className="w-4 h-4 mr-2 rounded-full border-2 border-current border-r-transparent motion-safe:animate-spin"
+            />
+          )}
           {practiceItemId && (
             <Icon name="check" className="w-4 h-4 mr-2" />
           )}
           {primaryLabel}
         </button>
-
-        <div className="hidden md:flex justify-end">
-          <button
-            type="button"
-            onClick={handleUnhelpful}
-            disabled={busy !== null}
-            aria-label={secondaryAria}
-            aria-pressed={isUnhelpful}
-            className="
-              px-3 py-1.5 text-sm font-medium
-              text-text-secondary hover:text-text-primary
-              bg-surface hover:bg-bg
-              border border-border-subtle hover:border-border
-              rounded-lg transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed
-            "
-          >
-            {secondaryLabel}
-          </button>
-        </div>
       </div>
 
       <div role="status" aria-live="polite" className="min-h-[1rem]">
