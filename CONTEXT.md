@@ -61,6 +61,7 @@ _Avoid_: Scenario, Call, role play
 A Conversation mode with no script or persona — the Coach opens and the user talks about whatever they want. Previously called "Chat mode" in code (`mode: 'chat'`), then "Free flow".
 _Avoid_: Free flow, Chat
 
+
 **Drill**:
 A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop.
 _Avoid_: Lesson (teacher-led connotation), practice session (conflicts with Practise the loop phase)
