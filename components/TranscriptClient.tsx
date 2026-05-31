@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
+import { StudyPrompt } from '@/components/StudyPrompt'
 import { InlineEdit } from '@/components/InlineEdit'
 import { Modal } from '@/components/Modal'
 import { Toast } from '@/components/Toast'
@@ -334,6 +335,8 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       </Modal>
 
       {toastMessage && <Toast message={toastMessage} />}
+
+      <StudyPrompt count={addedAnnotations.size} />
     </div>
   )
 }

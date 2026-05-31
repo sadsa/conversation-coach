@@ -194,4 +194,8 @@ const ICONS = {
     <circle cx="12" cy="12" r="10" />
     <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
   </>,
+  'arrow-right': <>
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </>,
 }
