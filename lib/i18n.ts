@@ -535,6 +535,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // explanation rides in the `aria-label` for screen readers and tooltip
     // hover. Longer visible copy ("Not useful — hide it") drew the eye away
     // from the primary save action.
+    'annotation.moreActionsAria': 'More actions',
     'annotation.notUseful': 'Not useful',
     'annotation.notUsefulRestore': 'Restore',
     'annotation.notUsefulAria': 'Mark as not useful and hide from the transcript',
@@ -1119,6 +1120,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Estudiar',
     // Quiet secondary "this correction wasn't useful" affordance. Visible
     // labels are short — la explicación va en el `aria-label`.
+    'annotation.moreActionsAria': 'Más acciones',
     'annotation.notUseful': 'Poco útil',
     'annotation.notUsefulRestore': 'Restaurar',
     'annotation.notUsefulAria': 'Marcar como poco útil y ocultarla de la transcripción',

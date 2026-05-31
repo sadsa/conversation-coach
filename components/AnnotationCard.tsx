@@ -33,11 +33,106 @@
 
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Annotation } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { buttonStyles } from '@/components/Button'
 import { Icon } from '@/components/Icon'
+import { IconButton } from '@/components/IconButton'
 import { HushStack } from '@/components/HushStack'
+
+interface OverflowMenuProps {
+  isUnhelpful: boolean
+  busy: boolean
+  onToggle: () => void
+}
+
+function AnnotationOverflowMenu({ isUnhelpful, busy, onToggle }: OverflowMenuProps) {
+  const { t } = useTranslation()
+  const [isOpen, setIsOpen] = useState(false)
+  const [menuStyle, setMenuStyle] = useState<{ top: number; right: number }>({ top: 0, right: 0 })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  function openMenu() {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) {
+      setMenuStyle({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      })
+    }
+    setIsOpen(true)
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    function handlePointer(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null
+      if (menuRef.current && target && !menuRef.current.contains(target) &&
+          triggerRef.current && !triggerRef.current.contains(target)) {
+        setIsOpen(false)
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.stopPropagation(); setIsOpen(false) }
+    }
+    document.addEventListener('mousedown', handlePointer)
+    document.addEventListener('touchstart', handlePointer)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handlePointer)
+      document.removeEventListener('touchstart', handlePointer)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [isOpen])
+
+  return (
+    <div className="shrink-0">
+      <IconButton
+        ref={triggerRef}
+        icon="more"
+        aria-label={t('annotation.moreActionsAria')}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={() => isOpen ? setIsOpen(false) : openMenu()}
+        disabled={busy}
+        size="lg"
+      />
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label={t('annotation.moreActionsAria')}
+          style={menuStyle}
+          className="
+            fixed z-[200]
+            min-w-[180px] py-1
+            bg-surface-elevated border border-border rounded-lg
+            shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]
+            motion-safe:animate-[fadein_140ms_ease-out_both]
+          "
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => { setIsOpen(false); onToggle() }}
+            disabled={busy}
+            className="
+              w-full flex items-center gap-3 px-3 py-2 text-left
+              text-text-primary hover:bg-surface disabled:opacity-50
+              transition-colors rounded-md text-sm font-medium normal-case tracking-normal
+            "
+          >
+            {isUnhelpful ? t('annotation.notUsefulRestore') : t('annotation.notUseful')}
+          </button>
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
+
 interface Props {
   annotation: Annotation
   sessionId: string
@@ -52,6 +147,8 @@ interface Props {
   onAnnotationWritten: (annotationId: string) => void
   onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged?: (annotationId: string, isUnhelpful: boolean) => void
+  /** Called after a successful save — used on mobile to dismiss the sheet. */
+  onClose?: () => void
 }
 
 export function AnnotationCard({
@@ -61,6 +158,7 @@ export function AnnotationCard({
   onAnnotationAdded, onAnnotationRemoved,
   onAnnotationWritten: _onWritten, onAnnotationUnwritten: _onUnwritten,
   onAnnotationUnhelpfulChanged,
+  onClose,
 }: Props) {
   const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
@@ -185,6 +283,7 @@ export function AnnotationCard({
         }
         const saved = await savePracticeItem()
         if (!saved) recordFailure('helpful', t('annotation.saveError'))
+        else onClose?.()
       }
     } finally {
       setBusy(null)
@@ -245,13 +344,32 @@ export function AnnotationCard({
           naturalness annotations (no rewrite); the body in that case shows the
           flagged fragment with the quiet steel-blue `naturalness-underline`
           token rather than a strike-through, so "You said" would promise a
-          rewrite the user won't find. Grammar annotations keep "You said". */}
+          rewrite the user won't find. Grammar annotations keep "You said".
+          On mobile, the eyebrow row hosts the ··· overflow menu and × close
+          button (the header is hidden on mobile). */}
       <HushStack
         eyebrow={annotation.correction === null
           ? t('sheet.eyebrowSoundsOff')
           : t('sheet.eyebrowYouSaid')}
         original={annotation.original}
         correction={annotation.correction}
+        eyebrowAction={
+          <div className="flex items-center gap-0.5 md:hidden -my-1">
+            <AnnotationOverflowMenu
+              isUnhelpful={isUnhelpful}
+              busy={busy !== null}
+              onToggle={handleUnhelpful}
+            />
+            {onClose && (
+              <IconButton
+                icon="close"
+                size="lg"
+                onClick={onClose}
+                aria-label={t('sheet.close')}
+              />
+            )}
+          </div>
+        }
       />
 
       <p className="text-text-secondary leading-relaxed text-base">
@@ -304,7 +422,7 @@ export function AnnotationCard({
           {primaryLabel}
         </button>
 
-        <div className="flex justify-end">
+        <div className="hidden md:flex justify-end">
           <button
             type="button"
             onClick={handleUnhelpful}

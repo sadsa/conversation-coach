@@ -19,7 +19,6 @@
 // `item` prop change.
 
 'use client'
-import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
@@ -119,11 +118,8 @@ function OverflowMenu({
         <div
           role="menu"
           aria-label={t('writeSheet.moreActionsAria')}
-          // Anchored above the trigger so it doesn't collide with the
-          // bottom-anchored sheet edge on mobile. `motion-safe:` for
-          // reduced-motion respect.
           className="
-            absolute bottom-full right-0 mb-2 z-10
+            absolute top-full right-0 mt-2 z-10
             min-w-[200px] py-1
             bg-surface-elevated border border-border rounded-lg
             shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]
@@ -272,10 +268,51 @@ export function WriteSheet({
           </span>
         )
       }
-      footer={
-        <div className="flex flex-col gap-2">
-          {/* Primary: Practise this phrase (when handler provided) */}
-          {onPractise && item && (
+    >
+      <NavHint />
+      <div className="space-y-6">
+        {/* Hush stack — replaces the older CorrectionInContext block. Trades
+            surrounding-sentence context for a calmer, sentence-first layout;
+            the session source link above is the user's path back to the
+            full context on /sessions/[id]. Eyebrow flips to "Sounds off"
+            for naturalness items (no rewrite) so it matches what the body
+            actually shows. On mobile, the eyebrow row hosts the ··· overflow
+            menu and × close button (the header is hidden on mobile), matching
+            the AnnotationCard pattern. */}
+        <HushStack
+          eyebrow={item.correction === null
+            ? t('sheet.eyebrowSoundsOff')
+            : t('sheet.eyebrowYouSaid')}
+          original={item.original}
+          correction={item.correction}
+          eyebrowAction={
+            <div className="flex items-center gap-0.5 md:hidden -my-1">
+              <OverflowMenu
+                isOpen={overflowOpen}
+                onOpenChange={setOverflowOpen}
+                onToggleWritten={handleToggle}
+                onDelete={handleDelete}
+                busy={busyAction !== null}
+                isWritten={isWritten}
+                primaryLabelKey={primaryLabelKey}
+                primaryBusyKey={primaryBusyKey}
+              />
+              <IconButton
+                icon="close"
+                size="lg"
+                onClick={onClose}
+                aria-label={t('sheet.close')}
+              />
+            </div>
+          }
+        />
+
+        <p className="text-text-secondary leading-relaxed text-base">
+          {item.explanation}
+        </p>
+
+        <div className="pt-7 space-y-3">
+          {onPractise && (
             <button
               type="button"
               data-testid="sheet-practise-btn"
@@ -289,8 +326,9 @@ export function WriteSheet({
             </button>
           )}
 
-          {/* Footer row: overflow menu (carries toggle-written + delete) */}
-          <div className="flex items-center justify-end">
+          {/* Desktop-only overflow menu — on mobile it lives in the eyebrow
+              row alongside the close button (AnnotationCard pattern). */}
+          <div className="hidden md:flex justify-end">
             <OverflowMenu
               isOpen={overflowOpen}
               onOpenChange={setOverflowOpen}
@@ -304,51 +342,6 @@ export function WriteSheet({
             />
           </div>
         </div>
-      }
-    >
-      <NavHint />
-      <div className="space-y-6">
-        {/* Source link — bare session title, no "From" prefix. The earlier
-            "FROM <session>" eyebrow treatment mixed two visual languages on
-            one line (tracked-uppercase tertiary + cased linked text) and the
-            decoration-border-subtle underline barely registered as
-            interactive. We dropped the prefix entirely; the link's stronger
-            underline + cursor change carry the "tap to revisit source"
-            affordance on their own. When the item has no session_title
-            (legacy / pre-enrichment row), nothing renders here. */}
-        {item.session_title && item.session_title.trim() !== '' ? (
-          <Link
-            href={`/sessions/${item.session_id}`}
-            data-testid="sheet-source-link"
-            className="
-              inline-block text-sm font-medium leading-snug
-              text-text-secondary hover:text-text-primary transition-colors
-              underline underline-offset-2
-              decoration-text-tertiary/40 hover:decoration-text-secondary
-            "
-          >
-            {item.session_title}
-          </Link>
-        ) : null}
-
-        {/* Hush stack — replaces the older CorrectionInContext block. Trades
-            surrounding-sentence context for a calmer, sentence-first layout;
-            the session source link above is the user's path back to the
-            full context on /sessions/[id]. Eyebrow flips to "Sounds off"
-            for naturalness items (no rewrite) so it matches what the body
-            actually shows. */}
-        <HushStack
-          eyebrow={item.correction === null
-            ? t('sheet.eyebrowSoundsOff')
-            : t('sheet.eyebrowYouSaid')}
-          original={item.original}
-          correction={item.correction}
-        />
-
-        <p className="text-text-secondary leading-relaxed text-base">
-          {item.explanation}
-        </p>
-
       </div>
 
       <div role="status" aria-live="polite" className="mt-4 min-h-[1rem]">

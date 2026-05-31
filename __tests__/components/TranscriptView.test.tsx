@@ -50,8 +50,8 @@ describe('TranscriptView', () => {
     await userEvent.click(screen.getByText('Yo fui'))
     // Explanation is rendered inside AnnotationCard inside the Modal
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
-    // Modal close button should be present
-    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument()
+    // At least one close button should be present
+    expect(screen.getAllByRole('button', { name: /close/i }).length).toBeGreaterThan(0)
   })
 
   it('closes modal when X button is clicked', async () => {
@@ -60,7 +60,7 @@ describe('TranscriptView', () => {
     )
     await userEvent.click(screen.getByText('Yo fui'))
     expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /close/i }))
+    await userEvent.click(screen.getAllByRole('button', { name: /close/i })[0]!)
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
+import { StudyPrompt } from '@/components/StudyPrompt'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import { log } from '@/lib/logger'
@@ -40,6 +41,8 @@ interface Props {
   onAnnotationWritten: (annotationId: string) => void
   onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged: (annotationId: string, isUnhelpful: boolean) => void
+  /** Number of saved study items — drives the StudyPrompt pill. Hidden while the sheet is open. */
+  studyCount?: number
 }
 
 export function TranscriptView({
@@ -47,6 +50,7 @@ export function TranscriptView({
   addedAnnotations, writtenAnnotations, unhelpfulAnnotations,
   onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
   onAnnotationUnhelpfulChanged,
+  studyCount = 0,
 }: Props) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotion()
@@ -180,16 +184,12 @@ export function TranscriptView({
     }
   }
 
-  // Auto-advance after saving to the Write list — mirrors the Write page's
-  // "archive-and-next" pattern. Advance to the next annotation; close the
-  // sheet if this was the last one.
+  // Dismiss the sheet after saving — the StudyPrompt pill surfaces in the
+  // transcript below with no overlap risk. The user re-opens the sheet by
+  // tapping another annotation mark.
   function handleAnnotationSaved(annotationId: string, practiceItemId: string) {
     onAnnotationAdded(annotationId, practiceItemId)
-    if (activeIndex >= 0 && activeIndex < orderedAnnotations.length - 1) {
-      setActiveAnnotationId(orderedAnnotations[activeIndex + 1].id)
-    } else {
-      setActiveAnnotationId(null)
-    }
+    setActiveAnnotationId(null)
   }
 
   // When the active annotation changes, scroll the corresponding mark into a
@@ -353,6 +353,8 @@ export function TranscriptView({
         onAnnotationUnwritten={onAnnotationUnwritten}
         onAnnotationUnhelpfulChanged={onAnnotationUnhelpfulChanged}
       />
+
+      <StudyPrompt count={activeAnnotationId ? 0 : studyCount} />
 
       <AnimatePresence>
         {showPill && (

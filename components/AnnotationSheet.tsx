@@ -82,7 +82,7 @@ export function AnnotationSheet({
       }
     >
       <NavHint />
-      <AnnotationCard annotation={annotation} {...cardProps} />
+      <AnnotationCard annotation={annotation} onClose={onClose} {...cardProps} />
     </DockedSheet>
   )
 }

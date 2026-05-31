@@ -37,13 +37,16 @@ The improved form of a phrase within an Annotation. May be null for naturalness 
 A user-selected Annotation saved to their Study queue. Created by explicit user action — never auto-generated.
 _Avoid_: Flashcard, saved item, write item
 
-### The Handoff Problem
+### The Handoff
 
 **Review→Study Handoff**:
-The transition from finishing Review to beginning Study. Currently the weakest seam in the Loop — no forward CTA exists after saving a Practice Item. Resolved by a persistent floating CTA (see below).
+The transition from finishing Review to beginning Study. Bridged by the Study Prompt (see below) appearing after each save.
 
 **Study Prompt**:
-A fixed/floating CTA that appears on the Session page whenever the user has at least one saved Practice Item (including items saved on prior visits). Shows a count ("Study N saved phrases →") and navigates to `/write` on tap. Disappears when the user navigates away.
+A persistent floating pill on the Session page that appears whenever the user has saved at least one Practice Item (including items from prior visits). Shows a count ("Study N saved →") and navigates to `/write`. On mobile, the pill appears in the transcript after the sheet dismisses — it never renders simultaneously with the open sheet. On desktop the pill renders below the right panel. See `components/StudyPrompt.tsx`.
+
+**Annotation Review Model (mobile vs desktop)**:
+On mobile, saving a Practice Item closes the `AnnotationSheet` entirely. The user returns to the transcript and taps the next annotation deliberately. On desktop, the right panel stays open with prev/next navigation so the user can step through corrections while the transcript remains visible on the left. See `docs/adr/0001-annotation-sheet-mobile-interaction-model.md`.
 
 ## Example dialogue
 
