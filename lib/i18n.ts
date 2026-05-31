@@ -299,7 +299,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Methodology eyebrow — small "Practise · Review · Study" row beneath
     // the greeting that surfaces the three pillars. The current pillar
     // (Practise on /) tints accent; Study carries a numeric badge when
-    // the user has corrections waiting to write down.
+    // the user has unseen corrections in their Study queue.
     'home.pillarPractise': 'Practise',
     'home.pillarReview': 'Review',
     'home.pillarStudy': 'Study',
@@ -332,7 +332,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // they're looking at without sharing the home's emotional weight.
     'review.title': 'Your conversations',
     'home.remindersAria': 'Saved corrections',
-    'home.allCaughtUp': 'All caught up — nothing to write down right now.',
+    'home.allCaughtUp': 'All caught up — nothing to study right now.',
     'home.recentSessionsTitle': 'Your conversations',
     'home.recentShowAll': 'Show all {n}',
     'home.recentShowFewer': 'Show fewer',
@@ -470,19 +470,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.progressAllReviewed': 'All {total} reviewed',
     'transcript.legend.amber': 'needs review',
     'transcript.legend.violet': 'saved',
-    'transcript.legend.green': 'written down',
+    'transcript.legend.green': 'studied',
     'transcript.openCorrection': 'Open correction',
     'transcript.themRevealHint': 'Tap to read',
-    'transcript.markState.written': 'written down',
+    'transcript.markState.written': 'studied',
     'transcript.markState.saved': 'saved',
     'transcript.markState.unreviewed': 'needs review',
     'transcript.correctionsBelow': 'See {n} corrections',
-    'transcript.studyPrompt': 'Study {n} saved →',
+    'transcript.studyPrompt': 'Study {n} saved',
     'transcript.studyPromptAria': 'Go to Study — {n} phrases saved',
 
     // Re-analyse confirmation
     'reanalyse.title': 'Replace this conversation\'s corrections?',
-    'reanalyse.body': 'Re-analysing rewrites every correction for this conversation. Saved corrections keep their flashcards — only the corrections shown here are replaced.',
+    'reanalyse.body': 'Re-analysing rewrites every correction for this conversation. Your saved Study items are not affected — only the corrections shown here are replaced.',
     'reanalyse.confirm': 'Replace corrections',
     'reanalyse.cancel': 'Keep current',
     'reanalyse.error': 'Couldn\'t start re-analysis — try again.',
@@ -492,7 +492,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'sheet.prev': 'Previous correction',
     'sheet.next': 'Next correction',
     'sheet.position': '{n} of {total}',
-    'sheet.navHintFirst': 'Tip — use ← → or swipe between corrections.',
+    'sheet.navHintFirst': 'Tip — use ← → to move between corrections.',
     'sheet.navHintDismiss': 'Got it',
     // Hush-stack eyebrows. The sheet body opens with a tiny tracked-uppercase
     // label that names what the user is looking at before the original /
@@ -526,6 +526,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // the brand vocabulary (matches /write's H1 and the bottom nav);
     // the URL keeps `/write` for stability per CLAUDE.md.
     'annotation.savePrimary': 'Save to my Study list',
+    'annotation.savingPrimary': 'Saving…',
     'annotation.savedPrimary': 'Added to my Study list',
     'annotation.savePrimaryAria': 'Save this correction to your Study list',
     'annotation.savedPrimaryAria': 'Remove this correction from your Study list',
@@ -556,26 +557,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Write it down sheet
     'writeItDown.title': 'Write it down first',
-    'writeItDown.subtitle': 'Reinforce before it becomes a flashcard',
-    'writeItDown.promptsLabel': 'Write it 3 ways on paper',
-    'writeItDown.prompt1': "A sentence you'd actually say to someone",
-    'writeItDown.prompt2': 'As a question using voseo',
-    'writeItDown.prompt3': 'Using a past or future tense',
-    'writeItDown.checkboxLabel': "I've written it down on paper",
-    'writeItDown.confirmLabel': 'Create flashcard',
-    'writeItDown.successLabel': 'Flashcard created ✓',
+    'home.toWriteDown': '{n} corrections to study',
+    'home.toWriteDownOne': '1 correction to study',
 
-    'home.toWriteDown': '{n} corrections to write down',
-    'home.toWriteDownOne': '1 correction to write down',
-
-    // Study page (the queue of saved corrections waiting to be written down)
+    // Study page (the queue of saved corrections waiting to be studied)
     //
     // Surface name is "Study" — the methodology pillar the home redesign
     // established and the bottom-nav matches. The route stays `/write`
     // for URL stability per CLAUDE.md; only the visible label shifts.
-    // Internal verbs ("write down", "Mark as written", "Written archive")
-    // still use "write" because that's the literal action on paper,
-    // separate from the surface name.
+    // Action verbs use "study" / "studied" — method-agnostic, not tied
+    // to physical writing. DB column stays `written_down` (not renamed).
     'write.title': 'Study',
     // Subtitle stays visible above the queue (not only when empty) — a
     // calm one-liner that invites the action without repeating the H1.
@@ -587,48 +578,48 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Written is a quiet archive link rather than a peer tab).
     'writeList.viewLabel': 'Saved corrections',
     'writeList.tabWrite': 'Study',
-    'writeList.tabWritten': 'Written',
-    'writeList.archiveHeading': 'Written',
-    'writeList.archiveLink': 'written',
-    // Footer pill that replaces the old top-of-list "{n} written →" link.
+    'writeList.tabWritten': 'Studied',
+    'writeList.archiveHeading': 'Studied',
+    'writeList.archiveLink': 'studied',
+    // Footer pill that replaces the old top-of-list "{n} studied →" link.
     // Lives below the queue (retrospective destination, retrospective
     // placement) and only renders when writtenCount > 0. Visible label;
     // separate aria label so the count gets read as a number not a noun.
-    'writeList.archiveFooter': '{n} written · view archive →',
-    'writeList.archiveFooterAria': 'View {n} written corrections in the archive',
+    'writeList.archiveFooter': '{n} studied · view archive →',
+    'writeList.archiveFooterAria': 'View {n} studied corrections in the archive',
     'writeList.backToWrite': 'Back to Study',
     'writeList.markDoneShort': 'Done',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Practise to save your first correction →',
-    'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as written.',
-    'writeList.emptyWrittenCaption': 'Items you\'ve written down land here, faded so they don\'t crowd the queue.',
+    'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as studied.',
+    'writeList.emptyWrittenCaption': 'Items you\'ve studied land here, faded so they don\'t crowd the queue.',
     'writeList.emptyWrittenCta': '← Back to Study ({count})',
     'writeList.emptyWrittenNoQueue': 'Nothing in your Study queue either — open a conversation to save your first correction.',
-    'writeList.markRowAria': 'Mark "{original}" as written',
+    'writeList.markRowAria': 'Mark "{original}" as studied',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
     // the current tab is more confirmation than the user needs.
     'writeList.movedToTrash': 'Removed. You can grab it back.',
-    'writeList.swipeMarkedWritten': 'Written down.',
+    'writeList.swipeMarkedWritten': 'Studied.',
     'writeList.undo': 'Undo',
     'writeList.deleteError': 'Couldn\'t delete item — try again.',
     'writeList.markWrittenError': 'Couldn\'t update — try again.',
     'writeList.importanceToggleAria': 'Toggle importance explanation',
     // Swipe gesture hint (one-shot, above the list on first visit)
-    'writeList.swipeHintText': 'Swipe left to delete, right to mark as written.',
+    'writeList.swipeHintText': 'Swipe left to delete, right to mark as studied.',
     'writeList.swipeHintDismiss': 'Got it',
     // Swipe reveal labels
     'writeList.swipeDeleteLabel': 'Delete',
-    'writeList.swipeWrittenLabel': 'Written',
+    'writeList.swipeWrittenLabel': 'Studied',
 
     // Study review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
     // Primary action — verb-first, with destination spelled out so the user
     // knows where the item is going. Busy variant keeps focus while the
     // network is in flight.
-    'writeSheet.markWritten': 'Mark as written',
+    'writeSheet.markWritten': 'Mark as studied',
     'writeSheet.markWrittenBusy': 'Marking…',
-    'writeSheet.markWrittenAria': 'Mark this correction as written down on paper',
+    'writeSheet.markWrittenAria': 'Mark this correction as studied',
     'writeSheet.moveBack': 'Move back to Study list',
     'writeSheet.moveBackBusy': 'Moving back…',
     'writeSheet.moveBackAria': 'Move this correction back to the Study list',
@@ -1072,14 +1063,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.progressAllReviewed': '{total} revisadas',
     'transcript.legend.amber': 'a revisar',
     'transcript.legend.violet': 'guardadas',
-    'transcript.legend.green': 'escritas',
+    'transcript.legend.green': 'estudiadas',
     'transcript.openCorrection': 'Abrir corrección',
     'transcript.themRevealHint': 'Tocá para leer',
-    'transcript.markState.written': 'escrito',
+    'transcript.markState.written': 'estudiado',
     'transcript.markState.saved': 'guardado',
     'transcript.markState.unreviewed': 'pendiente',
     'transcript.correctionsBelow': 'Ver {n} correcciones',
-    'transcript.studyPrompt': 'Estudiar {n} guardadas →',
+    'transcript.studyPrompt': 'Estudiar {n} guardadas',
     'transcript.studyPromptAria': 'Ir a Estudiar — {n} frases guardadas',
 
     // Re-analyse confirmation
@@ -1094,7 +1085,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'sheet.prev': 'Corrección anterior',
     'sheet.next': 'Corrección siguiente',
     'sheet.position': '{n} de {total}',
-    'sheet.navHintFirst': 'Tip — usá ← → o deslizá para moverte entre correcciones.',
+    'sheet.navHintFirst': 'Tip — usá ← → para moverte entre correcciones.',
     'sheet.navHintDismiss': 'Entendido',
     'sheet.eyebrowYouSaid': 'Dijiste',
     'sheet.eyebrowSoundsOff': 'Suena raro',
@@ -1115,6 +1106,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // (coincide con el H1 de /write y la nav inferior); la URL `/write`
     // se mantiene por estabilidad según CLAUDE.md.
     'annotation.savePrimary': 'Guardar en mi lista de Estudiar',
+    'annotation.savingPrimary': 'Guardando…',
     'annotation.savedPrimary': 'Agregada a mi lista de Estudiar',
     'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Estudiar',
     'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Estudiar',
@@ -1145,24 +1137,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeItDown.subtitle': 'Reforzá antes de que se convierta en tarjeta',
     'writeItDown.promptsLabel': 'Escribilo de 3 maneras en papel',
     'writeItDown.prompt1': 'Una oración que realmente le dirías a alguien',
-    'writeItDown.prompt2': 'Como pregunta usando voseo',
-    'writeItDown.prompt3': 'Usando un tiempo pasado o futuro',
-    'writeItDown.checkboxLabel': 'Lo escribí en papel',
-    'writeItDown.confirmLabel': 'Crear tarjeta',
-    'writeItDown.successLabel': 'Tarjeta creada ✓',
+    'home.toWriteDown': '{n} correcciones para estudiar',
+    'home.toWriteDownOne': '1 corrección para estudiar',
 
-    'home.toWriteDown': '{n} correcciones para anotar',
-    'home.toWriteDownOne': '1 corrección para anotar',
-
-    // Página Estudiar (la cola de correcciones guardadas para anotar).
+    // Página Estudiar (la cola de correcciones guardadas).
     //
     // El nombre de la superficie es "Estudiar" — el pilar de la
     // metodología que estableció el rediseño de la home y que la nav
     // inferior refleja. La ruta sigue siendo `/write` por estabilidad
-    // del URL (ver CLAUDE.md); solo cambia la etiqueta visible. Los
-    // verbos internos ("anotar", "Marcar como anotada", "Archivo de
-    // anotadas") siguen usando "anotar" — esa es la acción literal en
-    // papel, distinta del nombre de la superficie.
+    // del URL (ver CLAUDE.md); solo cambia la etiqueta visible.
+    // Los verbos usan "estudiar" / "estudiado" — agnósticos al método.
     'write.title': 'Estudiar',
     // El subtítulo se queda visible sobre la cola (no solo cuando está
     // vacía) — una línea calma que invita a la acción sin repetir el H1.
@@ -1175,41 +1159,41 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // pestaña par).
     'writeList.viewLabel': 'Correcciones guardadas',
     'writeList.tabWrite': 'Estudiar',
-    'writeList.tabWritten': 'Escritos',
-    'writeList.archiveHeading': 'Escritos',
-    'writeList.archiveLink': 'escritos',
-    'writeList.archiveFooter': '{n} escritos · ver archivo →',
-    'writeList.archiveFooterAria': 'Ver {n} correcciones escritas en el archivo',
+    'writeList.tabWritten': 'Estudiados',
+    'writeList.archiveHeading': 'Estudiados',
+    'writeList.archiveLink': 'estudiados',
+    'writeList.archiveFooter': '{n} estudiados · ver archivo →',
+    'writeList.archiveFooterAria': 'Ver {n} correcciones estudiadas en el archivo',
     'writeList.backToWrite': 'Volver a Estudiar',
     'writeList.markDoneShort': 'Listo',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Practicá para guardar tu primera corrección →',
-    'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como escritos.',
-    'writeList.emptyWrittenCaption': 'Lo que ya anotaste cae acá, atenuado para que no llene la cola.',
+    'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como estudiados.',
+    'writeList.emptyWrittenCaption': 'Lo que ya estudiaste cae acá, atenuado para que no llene la cola.',
     'writeList.emptyWrittenCta': '← Volver a Estudiar ({count})',
     'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Estudiar — abrí una conversación para guardar tu primera corrección.',
-    'writeList.markRowAria': 'Marcar "{original}" como escrito',
+    'writeList.markRowAria': 'Marcar "{original}" como estudiado',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
     // the current tab is more confirmation than the user needs.
     'writeList.movedToTrash': 'Eliminada. Podés recuperarla.',
-    'writeList.swipeMarkedWritten': 'Anotado.',
+    'writeList.swipeMarkedWritten': 'Estudiado.',
     'writeList.undo': 'Deshacer',
     'writeList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
     'writeList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
     'writeList.importanceToggleAria': 'Alternar explicación de importancia',
-    'writeList.swipeHintText': 'Deslizá a la izquierda para eliminar, a la derecha para marcar como escrito.',
+    'writeList.swipeHintText': 'Deslizá a la izquierda para eliminar, a la derecha para marcar como estudiado.',
     'writeList.swipeHintDismiss': 'Entendido',
     'writeList.swipeDeleteLabel': 'Eliminar',
-    'writeList.swipeWrittenLabel': 'Escrito',
+    'writeList.swipeWrittenLabel': 'Estudiado',
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',
     // Acción principal — verbo primero, con destino explícito. La variante
     // "ocupada" mantiene el foco mientras la red responde.
-    'writeSheet.markWritten': 'Marcar como escrito',
+    'writeSheet.markWritten': 'Marcar como estudiado',
     'writeSheet.markWrittenBusy': 'Marcando…',
-    'writeSheet.markWrittenAria': 'Marcar esta corrección como escrita en papel',
+    'writeSheet.markWrittenAria': 'Marcar esta corrección como estudiada',
     'writeSheet.moveBack': 'Volver a la lista de Estudiar',
     'writeSheet.moveBackBusy': 'Volviendo…',
     'writeSheet.moveBackAria': 'Devolver esta corrección a la lista de Estudiar',

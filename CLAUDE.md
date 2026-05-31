@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to write down. Multi-user with Supabase Auth (email magic link) and an email allowlist.
+A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to their Study queue. Multi-user with Supabase Auth (email magic link) and an email allowlist.
 
-**Naming**: The user-facing surface for saved corrections is **Write**. The DB table and API path are `practice_items` / `/api/practice-items` (kept stable). When you see `practice_items` in code, think "the data backing the Write surface".
+**Naming**: The user-facing surface for saved corrections is **Study** (nav label, methodology eyebrow). Component names (`WriteSheet`, `WriteList`, `WriteClient`) and the route (`/write`) are internal — kept stable, not renamed. The DB table and API path are `practice_items` / `/api/practice-items`. When you see `practice_items` in code, think "the data backing the Study surface". `written_down` is the DB column for the Studied state — not renamed.
 
 ## Tech Stack
 
@@ -205,7 +205,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-
 
 - **Persona system for call mode** (`lib/persona.ts`): JS pre-picks name/voice/gender/age axes via `Math.random()` — Claude (Haiku) writes opener + system addendum only. Voice gender is a HARD constraint; age is SOFT. `VOICE_CATALOG` is the curated voice list — extend it there.
 
-- **Write page = Write ↔ Written** (`/write`): Defaults to `!written_down`. Written archive behind footer pill (`<ArchiveFooterLink>`), visible only when `writtenCount > 0`. Trailing tap on rows flips `written_down` without opening sheet. Delete is optimistic with 5s undo — `DELETE` fires after timer expires.
+- **Study page = Study queue ↔ Studied archive** (`/write`): Defaults to `!written_down` (pending queue). Studied archive behind footer pill (`<ArchiveFooterLink>`), visible only when `writtenCount > 0`. Trailing tap on rows marks item Studied without opening sheet (`written_down = true`). Delete is optimistic with 5s undo — `DELETE` fires after timer expires.
 
 - **Study row content priority** (`components/WriteList.tsx`): (1) `<FlashcardRow>` when both flashcard fields present; (2) `<CorrectionInContext>` for older items without flashcard fields; (3) `<StrikeOriginal>` fallback. Sheet body always uses `<HushStack>`.
 
@@ -258,7 +258,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-
 - **`router.back()` unreliable in PWA/Safari** when `history.length === 1`. Use `<Link href="/">`.
 - **`react-swipeable` installed** — `import { useSwipeable }` directly.
 - **Navigation in two places**: `NavDrawer` + `BottomNav`, both from `NAV_TABS` in `nav-tabs.tsx`.
-- **`written_down` on `practice_items`**: Write = `!written_down`; Written = `written_down`. View state is client-only.
+- **`written_down` on `practice_items`**: Study queue = `!written_down`; Studied archive = `written_down`. View state is client-only.
 - **`ts-fsrs` installed but unused**: FSRS columns reserved for future SRS — do not remove.
 
 ## Performance Patterns
