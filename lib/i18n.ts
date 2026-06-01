@@ -71,18 +71,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.heading': 'Have a conversation',
     'lang.es-AR': 'Spanish',
     'lang.en-NZ': 'English',
-    'practice.start': 'Start chatting',
+    'practice.start': 'Start talking',
 
     // Practice — mode selection (idle screen)
     'practice.modeIntro': "Pick how you'd like to start.",
-    'practice.modeCallTitle': 'Pick up a call',
+    'practice.modeCallTitle': 'Scenario',
     'practice.modeCallBlurb':
       'Someone new calls. They introduce themselves, then you take the lead.',
-    'practice.modeChatTitle': 'Casual chat',
+    'practice.modeChatTitle': 'Free flow',
     'practice.modeChatBlurb':
-      "The coach starts the back-and-forth. Talk about whatever's on your mind.",
+      "The Coach opens and you talk about whatever's on your mind.",
     'practice.modeCallCta': 'Pick up',
-    'practice.modeChatCta': 'Start chatting',
+    'practice.modeChatCta': 'Start talking',
 
     // Practice — incoming-call screen (call mode, initial mount).
     // Reads like an iOS/Android incoming-call notification. Caller is kept
@@ -527,7 +527,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // the URL keeps `/write` for stability per CLAUDE.md.
     'annotation.savePrimary': 'Save to my Study list',
     'annotation.savingPrimary': 'Saving…',
-    'annotation.savedPrimary': 'Added to my Study list',
+    'annotation.savedPrimary': 'Saved to my Study list',
     'annotation.savePrimaryAria': 'Save this correction to your Study list',
     'annotation.savedPrimaryAria': 'Remove this correction from your Study list',
     // Quiet secondary "this correction wasn't useful" affordance. Visible
@@ -735,18 +735,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.heading': 'Tener una charla',
     'lang.es-AR': 'español',
     'lang.en-NZ': 'inglés',
-    'practice.start': 'Empezar a charlar',
+    'practice.start': 'Empezar a hablar',
 
     // Practice — mode selection (idle screen)
     'practice.modeIntro': 'Elegí cómo querés empezar.',
-    'practice.modeCallTitle': 'Atender una llamada',
+    'practice.modeCallTitle': 'Escenario',
     'practice.modeCallBlurb':
       'Alguien nuevo te llama. Se presenta y vos seguís la charla.',
-    'practice.modeChatTitle': 'Charla relajada',
+    'practice.modeChatTitle': 'Conversación libre',
     'practice.modeChatBlurb':
-      'El coach arranca la charla. Hablá de lo que se te ocurra.',
+      'El Coach arranca la charla. Hablá de lo que se te ocurra.',
     'practice.modeCallCta': 'Atender',
-    'practice.modeChatCta': 'Empezar a charlar',
+    'practice.modeChatCta': 'Empezar a hablar',
 
     // Practice — pantalla de llamada entrante (modo call, al iniciar).
     // Se ve como una notificación de llamada entrante de iOS/Android. El
@@ -1107,7 +1107,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // se mantiene por estabilidad según CLAUDE.md.
     'annotation.savePrimary': 'Guardar en mi lista de Estudiar',
     'annotation.savingPrimary': 'Guardando…',
-    'annotation.savedPrimary': 'Agregada a mi lista de Estudiar',
+    'annotation.savedPrimary': 'Guardada en mi lista de Estudiar',
     'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Estudiar',
     'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Estudiar',
     // Quiet secondary "this correction wasn't useful" affordance. Visible

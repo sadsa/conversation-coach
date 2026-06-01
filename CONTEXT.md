@@ -31,8 +31,12 @@ A Session created by uploading an audio file (voice note, WhatsApp clip, etc.). 
 _Avoid_: Upload (the action, not the artifact), Conversation (too specific — may be a monologue)
 
 **Annotation**:
-A single correction or observation on a segment of the user's speech, produced by Claude. Has a type (grammar, naturalness), an original phrase, and optionally a corrected form.
+A single correction or observation on a segment of the user's speech, produced by Claude. Has an original phrase and optionally a corrected form. The internal `type` field (`grammar` | `naturalness`) is a pipeline detail — do not surface it in the UI; users do not need to distinguish the two.
 _Avoid_: Correction (overloaded — also used for the corrected text itself)
+
+**Not useful** (flag):
+A user signal that an Annotation is irrelevant to them — hides it from the transcript. Mutually exclusive with saving the Annotation as a Practice Item. DB column: `is_unhelpful` (stable, not renamed).
+_Avoid_: Unhelpful, dismissed, hidden
 
 **Correction**:
 The improved form of a phrase within an Annotation. May be null for naturalness observations where no single fix exists.
@@ -46,12 +50,24 @@ A Practice Item that the user has marked as done — moved from the active Study
 _Avoid_: Written, written down (too prescriptive — implies physical writing)
 
 **Conversation**:
-A Session created by having an open-ended voice exchange with the AI (call or chat mode). Always bidirectional. DB value: `session_type = 'voice_practice'`. Part of the Practise phase.
+A Session created by having an open-ended voice exchange with the Coach (Scenario or Free flow mode). Always bidirectional. DB value: `session_type = 'voice_practice'`. Part of the Practise phase.
 _Avoid_: Practise session (redundant with the loop phase name), voice practice
+
+**Scenario** (mode):
+A Conversation mode where the Coach plays a named persona and the user answers an incoming call. The persona is revealed after the user speaks first. Previously called "Call mode" in code (`mode: 'call'`).
+_Avoid_: Call, role play
+
+**Free flow** (mode):
+A Conversation mode with no script or persona — the Coach opens and the user talks about whatever they want. Previously called "Chat mode" in code (`mode: 'chat'`).
+_Avoid_: Chat
 
 **Drill**:
 A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop.
 _Avoid_: Lesson (teacher-led connotation), practice session (conflicts with Practise the loop phase)
+
+**Coach**:
+The AI counterpart in Conversations and Drills. In chat mode it presents as "Coach"; in call mode it adopts a named persona, but the underlying entity is the same. Named in the app title ("Conversation Coach").
+_Avoid_: AI, bot, agent, assistant
 
 ### The Handoff
 
