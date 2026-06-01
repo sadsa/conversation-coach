@@ -140,12 +140,6 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
   const [liveTurns, setLiveTurns] = useState<TranscriptTurn[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [showShortcutHint, setShowShortcutHint] = useState(false)
-  // Discard undo — stays true for 4s after the user taps Discard.
-  // During that window the session hasn't actually been discarded yet;
-  // `onExit` fires only when the timer expires. Tapping Undo cancels
-  // the timer and hides the toast, returning the user to review state.
-  const [showDiscardUndo, setShowDiscardUndo] = useState(false)
-  const discardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // The active call session's persona — set when call-mode connect succeeds,
   // cleared on session end. Currently used only for system-prompt context and
@@ -226,7 +220,6 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
       if (timerRef.current) clearInterval(timerRef.current)
       if (endingTimeoutRef.current) clearTimeout(endingTimeoutRef.current)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
-      if (discardTimerRef.current) clearTimeout(discardTimerRef.current)
       wakeLockRef.current?.release()
       wakeLockRef.current = null
       // Defence-in-depth — the ringtone effect's own cleanup should have
@@ -612,12 +605,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
   }, [submitTurns])
 
   const discardSession = useCallback(() => {
-    setShowDiscardUndo(true)
-    discardTimerRef.current = setTimeout(() => {
-      discardTimerRef.current = null
-      setShowDiscardUndo(false)
-      onExitRef.current()
-    }, 4000)
+    onExitRef.current()
   }, [])
 
   useEffect(() => { endSessionRef.current = endSession }, [endSession])
@@ -1563,13 +1551,6 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
       </AnimatePresence>
 
       {toast && <Toast message={toast} />}
-      {showDiscardUndo && (
-        <Toast
-          message={t('practice.discardToast')}
-          action={{ label: t('practice.discardUndo'), onClick: handleUndoDiscard }}
-          toastKey="discard-undo"
-        />
-      )}
     </div>
   )
 }
