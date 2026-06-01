@@ -56,6 +56,7 @@ import {
   buildPracticeSystemPrompt,
   buildResumeSystemPrompt,
   FLASH_LIVE_MODEL,
+  CALL_OPENING_TRIGGER,
 } from '@/lib/voice-agent'
 import { connectAssemblyAIStream, type AssemblyAIStream } from '@/lib/assemblyai-stream'
 import { buildPersonaSystemPrompt } from '@/lib/persona'
@@ -102,6 +103,10 @@ interface Props {
    *  speech, fatal connection error before any turns. Parent uses this to
    *  return to the doors view. */
   onExit: () => void
+  /** Optional topic to seed the Coach's opening question (chat mode only).
+   *  Set when the user taps a starter chip on the home screen. Appended to
+   *  the system prompt so the Coach opens with a natural question about it. */
+  starterTopic?: string
 }
 
 const TOTAL_SECONDS = 300        // 5 min hard cap
@@ -112,7 +117,7 @@ const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
 // LIVE_CAPTION_TURNS removed — all turns are shown in the scrollable transcript
 
-export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
+export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: Props) {
   const { t } = useTranslation()
   const router = useRouter()
   const reducedMotion = useReducedMotion()
@@ -128,6 +133,10 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   const [muted, setMuted] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [voiceStatus, setVoiceStatus] = useState<'listening' | 'speaking' | 'muted'>('listening')
+  // True while a resume reconnect is in flight. Keeps practiceState at
+  // 'review' (no full-screen loader) and shows a spinner on the Continue
+  // button instead.
+  const [isResuming, setIsResuming] = useState(false)
   const [liveTurns, setLiveTurns] = useState<TranscriptTurn[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [showShortcutHint, setShowShortcutHint] = useState(false)
@@ -595,12 +604,6 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
     submitTurns(frozenTurnsRef.current)
   }, [submitTurns])
 
-  // Discard exits straight back to the home doors. Previously this routed
-  // through a 5-second undo toast on a dedicated idle screen — that screen
-  // no longer exists (the Practice route was retired in favour of the home
-  // doors), so undo across a route boundary added more complexity than it
-  // bought. Discard is intentional; a mis-tap is recoverable by starting a
-  // fresh session from the doors.
   const discardSession = useCallback(() => {
     onExitRef.current()
   }, [])
@@ -616,12 +619,15 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
   // than re-speaking its introduction; no `openingLine` is passed on resume.
   const resumeSession = useCallback(async () => {
     if (practiceState !== 'review') return
+    if (isResuming) return
     const restoredTurns = [...frozenTurnsRef.current]
     const restoredElapsed = elapsed
     const activePersona = mode === 'call' ? persona : null
     turnsRef.current = restoredTurns
     frozenTurnsRef.current = []
-    setPracticeState('connecting')
+    // Keep practiceState at 'review' — the review UI stays visible while
+    // reconnecting. isResuming drives a spinner on the Continue button.
+    setIsResuming(true)
     setMuted(false)
     const baseSystemPrompt = activePersona
       ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
@@ -651,6 +657,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
           onStateChange: (s) => {
             if (!isMountedRef.current) return
             if (s === 'active') {
+              setIsResuming(false)
               setPracticeState('active')
               startTimer(restoredElapsed)
             } else if (s === 'ended') {
@@ -663,6 +670,7 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
             if (!isMountedRef.current) return
             const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
             setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+            setIsResuming(false)
             disconnectAssemblyAI()
             // Restore review state so the user can still save what they had.
             frozenTurnsRef.current = restoredTurns
@@ -713,12 +721,13 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
       if (!isMountedRef.current) return
       const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
       setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+      setIsResuming(false)
       disconnectAssemblyAI()
       // Restore review state so the user can still save what they had.
       frozenTurnsRef.current = restoredTurns
       setPracticeState('review')
     }
-  }, [practiceState, elapsed, mode, persona, targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
+  }, [practiceState, isResuming, elapsed, mode, persona, targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
 
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
@@ -777,9 +786,17 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
    *  responsible for the error UX (different per flow — chat falls back to
    *  idle, reroll falls back to previous call). */
   const connectAgent = useCallback(async (activePersona: Persona | null): Promise<VoiceAgent> => {
-    const systemPrompt = activePersona
+    const basePrompt = activePersona
       ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
       : buildPracticeSystemPrompt(targetLanguage)
+    // Append starter topic seed for chat mode when the user chose a chip.
+    // Persona-led (call) sessions don't use this — the persona's own opener
+    // already provides a natural conversation hook.
+    const systemPrompt = starterTopic && !activePersona
+      ? basePrompt + (targetLanguage === 'en-NZ'
+          ? `\n\nOpen the conversation by asking about: ${starterTopic}. One natural question to get things started.`
+          : `\n\nEmpezá la conversación preguntando sobre: ${starterTopic}. Una pregunta natural para arrancar.`)
+      : basePrompt
 
     // Open AssemblyAI BEFORE Gemini so it's ready to accept mic frames the
     // instant voice-agent.ts starts emitting them via onMicPcm. The 100ms
@@ -868,7 +885,10 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
         // the learner says anything. This mirrors how a real phone call
         // works: the caller identifies themselves when someone picks up.
         voiceName: activePersona?.voiceName,
-        openingLine: activePersona?.opener,
+        // Persona (call mode): speak first with the persona's opener.
+        // Chat mode with a starter topic: also speak first — the system
+        // prompt already instructs the Coach what to ask about.
+        openingLine: activePersona?.opener ?? (starterTopic && !activePersona ? CALL_OPENING_TRIGGER : undefined),
       },
     )
   }, [targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
@@ -1288,6 +1308,10 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
           screen readers announce each new bubble without re-reading the
           entire thread. Bubbles are side-aligned: user right, agent left.
           No opacity fade — the full thread is equally readable in a scroll. */}
+      {/* Tapping the transcript during review used to resume the session, but
+          this was an invisible gesture that conflicted with scroll-to-read
+          intent. Resume is now explicit via the "Continue conversation" button
+          below. cursor-pointer removed accordingly. */}
       <div
         ref={chatScrollRef}
         className="flex-1 overflow-y-auto min-h-0 px-4 pt-5 pb-4 flex flex-col gap-3"
@@ -1370,8 +1394,15 @@ export function PracticeClient({ targetLanguage, mode, onExit }: Props) {
             <button
               type="button"
               onClick={resumeSession}
-              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded"
+              disabled={isResuming}
+              className="flex items-center gap-1.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary rounded disabled:opacity-60 disabled:cursor-not-allowed"
             >
+              {isResuming && (
+                <svg className="animate-spin w-3.5 h-3.5 text-text-secondary" fill="none" viewBox="0 0 24 24" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
               {t('practice.reviewResume')}
             </button>
           </motion.div>
