@@ -789,13 +789,19 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
     const basePrompt = activePersona
       ? buildPersonaSystemPrompt(buildPracticeSystemPrompt(targetLanguage), activePersona)
       : buildPracticeSystemPrompt(targetLanguage)
-    // Append starter topic seed for chat mode when the user chose a chip.
-    // Persona-led (call) sessions don't use this — the persona's own opener
-    // already provides a natural conversation hook.
-    const systemPrompt = starterTopic && !activePersona
-      ? basePrompt + (targetLanguage === 'en-NZ'
-          ? `\n\nOpen the conversation by asking about: ${starterTopic}. One natural question to get things started.`
-          : `\n\nEmpezá la conversación preguntando sobre: ${starterTopic}. Una pregunta natural para arrancar.`)
+    // Append opener instruction for chat mode. Persona-led (call) sessions
+    // don't use this — the persona's own opener already provides a hook.
+    // With a starter topic, direct the coach to that topic. Without one,
+    // instruct the coach to open with a warm greeting and invite the learner
+    // to talk about whatever they'd like.
+    const systemPrompt = !activePersona
+      ? basePrompt + (starterTopic
+          ? (targetLanguage === 'en-NZ'
+              ? `\n\nOpen the conversation by asking about: ${starterTopic}. One natural question to get things started.`
+              : `\n\nEmpezá la conversación preguntando sobre: ${starterTopic}. Una pregunta natural para arrancar.`)
+          : (targetLanguage === 'en-NZ'
+              ? `\n\nOpen the conversation with a warm, natural greeting and invite the learner to talk about whatever they'd like.`
+              : `\n\nAbrí la conversación con un saludo cálido y natural, e invitá al aprendiz a hablar de lo que quiera.`))
       : basePrompt
 
     // Open AssemblyAI BEFORE Gemini so it's ready to accept mic frames the
@@ -888,7 +894,8 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
         // Persona (call mode): speak first with the persona's opener.
         // Chat mode with a starter topic: also speak first — the system
         // prompt already instructs the Coach what to ask about.
-        openingLine: activePersona?.opener ?? (starterTopic && !activePersona ? CALL_OPENING_TRIGGER : undefined),
+        // Chat mode always speaks first (chip or plain CTA); call mode uses persona opener.
+        openingLine: activePersona?.opener ?? CALL_OPENING_TRIGGER,
       },
     )
   }, [targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
