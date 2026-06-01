@@ -105,49 +105,37 @@ describe('WriteList — rows', () => {
   })
 })
 
-describe('WriteList — view toggle (asymmetric Study surface + Written archive link)', () => {
-  it('defaults to the Write view and hides written items', () => {
+describe('WriteList — inline studied section', () => {
+  it('renders active items and studied items in the same list', () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
     expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
-    expect(screen.queryByTestId(`write-row-${writtenItem.id}`)).not.toBeInTheDocument()
+    expect(screen.getByTestId(`write-row-${writtenItem.id}`)).toBeInTheDocument()
   })
 
-  it('does not render an aria tablist (Write is the surface, not a peer tab)', () => {
+  it('renders the studied divider when studied items exist', () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
-    // The old segmented control was role="tablist" with two role="tab"
-    // children. The distill pass removes that equality.
+    expect(screen.getByTestId('studied-divider')).toBeInTheDocument()
+  })
+
+  it('does NOT render the studied divider when no items are studied', () => {
+    render(<WriteList items={[grammarItem, subjectiveItem]} />)
+    expect(screen.queryByTestId('studied-divider')).not.toBeInTheDocument()
+  })
+
+  it('does not render an aria tablist (no view toggle)', () => {
+    render(<WriteList items={[grammarItem, writtenItem]} />)
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(screen.queryAllByRole('tab')).toHaveLength(0)
   })
 
-  it('renders a quiet "{n} written →" link in the Write view when an archive exists', () => {
-    render(<WriteList items={[grammarItem, subjectiveItem, writtenItem]} />)
-    const link = screen.getByTestId('view-toggle-to-written')
-    expect(link).toHaveTextContent(/written/i)
-    expect(within(link).getByText('1')).toBeInTheDocument()
-  })
-
-  it('does NOT render the archive link when nothing has been written yet', () => {
-    render(<WriteList items={[grammarItem, subjectiveItem]} />)
+  it('does not render legacy archive footer link', () => {
+    render(<WriteList items={[grammarItem, writtenItem]} />)
     expect(screen.queryByTestId('view-toggle-to-written')).not.toBeInTheDocument()
   })
 
-  it('switches to the Written view via the archive link and shows only written items', async () => {
+  it('does not render legacy back-to-study link', () => {
     render(<WriteList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getByTestId('view-toggle-to-written'))
-    expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
-    expect(screen.getByTestId(`write-row-${writtenItem.id}`)).toBeInTheDocument()
-  })
-
-  it('shows a "Back to Study" link in the Written view that returns to the queue', async () => {
-    render(<WriteList items={[grammarItem, writtenItem]} />)
-    await userEvent.click(screen.getByTestId('view-toggle-to-written'))
-    const back = screen.getByTestId('view-toggle-to-write')
-    expect(back).toHaveTextContent(/back to study/i)
-
-    await userEvent.click(back)
-    expect(screen.getByTestId(`write-row-${grammarItem.id}`)).toBeInTheDocument()
-    expect(screen.queryByTestId(`write-row-${writtenItem.id}`)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('view-toggle-to-write')).not.toBeInTheDocument()
   })
 
   it('does not render legacy filter pills (sub-category, importance, written)', () => {
@@ -160,57 +148,43 @@ describe('WriteList — view toggle (asymmetric Study surface + Written archive 
 })
 
 describe('WriteList — empty states', () => {
-  it('shows the teaching empty-state with example + CTA when nothing to write down', () => {
+  it('shows the completion state with CTA when all items are studied', () => {
     render(<WriteList items={[writtenItem]} />)
-    expect(screen.getByText(/saved corrections look like this/i)).toBeInTheDocument()
-    // The empty-state CTA sends users to `/` (the Practise picker) —
-    // the methodology's entry point. They pick a mode, have a
-    // conversation, save a correction from the transcript, and it
-    // lands back in this Study queue. The link briefly pointed at
-    // /review during the home redesign, but the inbox is also empty
-    // for first-time users and "open a conversation" promised a list
-    // they didn't have — Practise is the surface that actually
-    // generates the first correction.
-    const link = screen.getByRole('link', { name: /practise to save/i })
+    // Active queue is empty but studied items exist → completion state, not the
+    // first-time teaching card. The copy acknowledges the accomplishment.
+    expect(screen.getByText(/all studied/i)).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: /practise to save more/i })
     expect(link).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/')
   })
 
-  it('shows the Written empty copy when nothing has been marked yet', () => {
-    // The archive link is suppressed when writtenCount is 0 (the surface
-    // simply hides the destination), so the empty Written view is reached
-    // via the initialView escape hatch — same surface the user would land
-    // on if they came from a deep link.
-    render(<WriteList items={[grammarItem]} initialView="written" />)
-    expect(screen.getByText(/items you've written down land here/i)).toBeInTheDocument()
-    // CTA points back to the Study queue (with its count) so the user
-    // never gets stranded in an empty archive.
-    expect(screen.getByRole('button', { name: /back to study \(1\)/i })).toBeInTheDocument()
+  it('shows completion state AND studied section when queue is empty but studied items exist', () => {
+    render(<WriteList items={[writtenItem]} />)
+    // Completion state replaces the teaching card when the user has studied items.
+    expect(screen.getByText(/all studied/i)).toBeInTheDocument()
+    // Studied item still visible below the completion message.
+    expect(screen.getByTestId(`write-row-${writtenItem.id}`)).toBeInTheDocument()
   })
 
-  it('shows the no-queue Written empty state when both views are empty', () => {
-    render(<WriteList items={[]} initialView="written" />)
-    expect(screen.getByText(/nothing in your study queue either/i)).toBeInTheDocument()
-    // The empty-state itself does not offer a "back to study" CTA when
-    // the other side is also empty — the ViewToggle still provides
-    // navigation, but the empty card stays purely informational.
-    const emptyCard = screen.getByText(/items you've written down/i).closest('div')!
-    expect(within(emptyCard).queryByRole('button')).not.toBeInTheDocument()
+  it('shows only the empty state when there are no items at all', () => {
+    render(<WriteList items={[]} />)
+    expect(screen.getByText(/saved corrections look like this/i)).toBeInTheDocument()
+    expect(screen.queryByTestId('studied-divider')).not.toBeInTheDocument()
   })
 })
 
 describe('WriteList — fast-path mark-written from the row', () => {
-  it('renders a trailing mark-written button on Active rows', () => {
+  it('renders a trailing mark-studied button on active rows', () => {
     render(<WriteList items={[grammarItem]} />)
     expect(screen.getByTestId(`row-mark-written-${grammarItem.id}`)).toBeInTheDocument()
   })
 
-  it('does not render the trailing button on Written-view rows', () => {
-    render(<WriteList items={[writtenItem]} initialView="written" />)
-    expect(screen.queryByTestId(`row-mark-written-${writtenItem.id}`)).not.toBeInTheDocument()
+  it('renders a trailing un-study button on studied rows', () => {
+    render(<WriteList items={[writtenItem]} />)
+    expect(screen.getByTestId(`row-mark-written-${writtenItem.id}`)).toBeInTheDocument()
   })
 
-  it('PATCHes written_down=true without opening the sheet when the trailing button is clicked', async () => {
+  it('PATCHes written_down=true without opening the sheet when the trailing button is clicked on an active row', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })
     global.fetch = mockFetch
     render(<WriteList items={[grammarItem]} />)
@@ -229,7 +203,39 @@ describe('WriteList — fast-path mark-written from the row', () => {
     )
   })
 
-  it('removes the row from the active list and stays silent on success', async () => {
+  it('PATCHes written_down=false when the trailing button is clicked on a studied row', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = mockFetch
+    render(<WriteList items={[writtenItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`row-mark-written-${writtenItem.id}`))
+    })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/practice-items/${writtenItem.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ written_down: false }),
+      }),
+    )
+  })
+
+  it('moves a studied item back to the active section after un-study', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    render(<WriteList items={[writtenItem]} />)
+
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(`row-mark-written-${writtenItem.id}`))
+    })
+
+    // Item is now active — divider should be gone (no more studied items)
+    expect(screen.queryByTestId('studied-divider')).not.toBeInTheDocument()
+    // The empty state disappears too since the item is now active
+    expect(screen.queryByText(/saved corrections look like this/i)).not.toBeInTheDocument()
+  })
+
+  it('moves an active item to the studied section after mark-studied, stays silent', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
     render(<WriteList items={[grammarItem]} />)
 
@@ -237,9 +243,9 @@ describe('WriteList — fast-path mark-written from the row', () => {
       await userEvent.click(screen.getByTestId(`row-mark-written-${grammarItem.id}`))
     })
 
-    // Row leaving the current tab is the confirmation. We deliberately don't
-    // fire a success toast for mark-written — it was just noise.
-    expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
+    // Item is now studied — divider appears
+    expect(screen.getByTestId('studied-divider')).toBeInTheDocument()
+    // Success is silent — no toast
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
@@ -250,13 +256,13 @@ describe('WriteList — swipe gesture seams', () => {
     expect(screen.getByTestId(`swipe-delete-${grammarItem.id}`)).toBeInTheDocument()
   })
 
-  it('exposes a swipe-mark-written seam button in write view', () => {
+  it('exposes a swipe-mark-written seam button on active rows', () => {
     render(<WriteList items={[grammarItem]} />)
     expect(screen.getByTestId(`swipe-mark-written-${grammarItem.id}`)).toBeInTheDocument()
   })
 
-  it('does NOT expose swipe-mark-written seam button in written view', () => {
-    render(<WriteList items={[writtenItem]} initialView="written" />)
+  it('does NOT expose swipe-mark-written seam button on studied rows', () => {
+    render(<WriteList items={[writtenItem]} />)
     expect(screen.queryByTestId(`swipe-mark-written-${writtenItem.id}`)).not.toBeInTheDocument()
   })
 
@@ -359,7 +365,7 @@ describe('WriteList — swipe-right mark written', () => {
     })
 
     const toast = screen.getByRole('alert')
-    expect(within(toast).getByText(/written down/i)).toBeInTheDocument()
+    expect(within(toast).getByText(/studied/i)).toBeInTheDocument()
     expect(within(toast).getByRole('button', { name: /undo/i })).toBeInTheDocument()
     expect(mockFetch).not.toHaveBeenCalledWith(
       `/api/practice-items/${grammarItem.id}`,
@@ -438,11 +444,6 @@ describe('WriteList — swipe hint', () => {
     expect(localStorage.getItem('cc:write-swipe-hint:v1')).toBe('1')
   })
 
-  it('does not render the hint in the Written archive view', () => {
-    render(<WriteList items={[writtenItem]} initialView="written" />)
-    expect(screen.queryByText(/swipe left to delete/i)).not.toBeInTheDocument()
-  })
-
   it('does not render the hint on the empty state', () => {
     render(<WriteList items={[]} />)
     expect(screen.queryByText(/swipe left to delete/i)).not.toBeInTheDocument()
@@ -495,6 +496,12 @@ describe('WriteList — review sheet', () => {
     await userEvent.click(screen.getByRole('button', { name: /next correction/i }))
     expect(screen.getByText('Use indicative for asserted facts.')).toBeInTheDocument()
   })
+
+  it('opens a studied item from the studied section', async () => {
+    render(<WriteList items={[grammarItem, writtenItem]} />)
+    await userEvent.click(screen.getByTestId(`write-row-${writtenItem.id}`))
+    expect(screen.getByRole('dialog', { name: /review saved correction/i })).toBeInTheDocument()
+  })
 })
 
 describe('WriteList — mark as written from the sheet', () => {
@@ -519,7 +526,7 @@ describe('WriteList — mark as written from the sheet', () => {
     )
   })
 
-  it('removes the item from the active view after a successful mark and stays silent', async () => {
+  it('moves the item to the studied section after a successful mark, stays silent', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
     render(<WriteList items={[grammarItem]} />)
 
@@ -532,13 +539,14 @@ describe('WriteList — mark as written from the sheet', () => {
       await userEvent.click(screen.getByTestId('sheet-toggle-written'))
     })
 
-    expect(screen.queryByTestId(`write-row-${grammarItem.id}`)).not.toBeInTheDocument()
-    // Success toast removed — the row leaving the tab is enough confirmation.
+    // Item moves to studied section — divider appears
+    expect(screen.getByTestId('studied-divider')).toBeInTheDocument()
+    // Success toast removed — the row moving is confirmation enough.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('shows the move-back label in the Written view', async () => {
-    render(<WriteList items={[writtenItem]} initialView="written" />)
+  it('shows the move-back label in the sheet when opened from the studied section', async () => {
+    render(<WriteList items={[writtenItem]} />)
     await userEvent.click(screen.getByTestId(`write-row-${writtenItem.id}`))
     // Toggle-written is now in the overflow menu
     await act(async () => {
@@ -685,7 +693,7 @@ describe('WriteList — auto-advance from the sheet', () => {
     expect(screen.getByText('Use indicative for asserted facts.')).toBeInTheDocument()
   })
 
-  it('closes the sheet after marking the LAST item as written', async () => {
+  it('closes the sheet after marking the LAST active item as written', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
     render(<WriteList items={[grammarItem]} />)
 
