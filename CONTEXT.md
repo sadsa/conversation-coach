@@ -70,7 +70,6 @@ _Avoid_: Lesson (teacher-led connotation), practice session (conflicts with Prac
 The AI counterpart in Conversations and Drills. In chat mode it presents as "Coach"; in call mode it adopts a named persona, but the underlying entity is the same. Named in the app title ("Conversation Coach").
 _Avoid_: AI, bot, agent, assistant
 
-
 ### The Handoff
 
 **Review→Study Handoff**:
