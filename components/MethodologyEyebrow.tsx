@@ -99,11 +99,11 @@ const STEP_LAYOUT =
 
 const CIRCLE_BASE =
   'w-7 h-7 rounded-full flex items-center justify-center ' +
-  'text-[0.6875rem] font-bold tabular-nums leading-none ' +
+  'text-xs font-bold tabular-nums leading-none ' +
   'transition-colors'
 
 const LABEL_BASE =
-  'text-[0.6875rem] font-semibold tracking-[0.12em] uppercase leading-none ' +
+  'text-xs font-semibold tracking-[0.12em] uppercase leading-none ' +
   'transition-colors'
 
 export function MethodologyEyebrow({ active, lockedPillars }: Props) {

@@ -1,11 +1,13 @@
 // components/PractiseClient.tsx
 //
 // Client island for `/` — the Practise landing page, the first impression
-// of the methodology. Three doors:
+// of the methodology. Two doors:
 //
-//   1. Pick up a call    → starts a Gemini Live call session in-place
-//   2. Casual chat       → starts a Gemini Live chat session in-place
-//   3. Share a voice note → /onboarding?step=2 (WhatsApp share illustration)
+//   1. Free flow         → starts a Gemini Live chat session in-place (primary)
+//   2. Real Life Scenario → starts a Gemini Live call session in-place (secondary)
+//
+// The Share/upload door was retired from this screen — see ADR 0002. Upload
+// entry points live in the Review step.
 //
 // The Call and Chat doors used to navigate to `/practice?mode=…`; that
 // route was retired so that discarding a session returns the user to the
@@ -31,7 +33,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
 import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
@@ -86,12 +87,16 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
     return () => clearTimeout(timer)
   }, [initialWelcome, router])
 
-  // The active voice session, if any. null = doors view. Setting this to
-  // 'call' or 'chat' mounts <PracticeClient> in place of the doors; the
-  // session's onExit callback flips it back to null when the user discards,
-  // ends with no speech, or hits a fatal connection error.
-  const [activeMode, setActiveMode] = useState<PracticeMode | null>(null)
-  const handleExitSession = useCallback(() => setActiveMode(null), [])
+    // The active voice session, if any. null = doors view. Setting this mounts
+  // <PracticeClient> in place of the doors; onExit flips it back to null when
+  // the user discards, ends with no speech, or hits a fatal connection error.
+  // `starterTopic` is set when the user taps a chip on the Free flow card —
+  // it seeds the Coach's opening question.
+  const [activeSession, setActiveSession] = useState<{
+    mode: PracticeMode
+    starterTopic?: string
+  } | null>(null)
+  const handleExitSession = useCallback(() => setActiveSession(null), [])
 
   const greeting = useMemo(
     () => targetLanguageGreeting(targetLanguage, new Date()),
@@ -141,17 +146,13 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Session in progress — replace the home doors with the active session
-  // UI. `<PracticeClient>` owns its own full-bleed chrome (it pins itself
-  // via `position: fixed` once it reaches the active state), so we render
-  // it as a sibling of the doors view rather than nesting it inside the
-  // home's space-y wrapper. The doors will rehydrate cleanly on exit
-  // because none of the home's `useState` resets when `activeMode` flips.
-  if (activeMode !== null) {
+  // Session in progress — replace the home doors with the active session UI.
+  if (activeSession !== null) {
     return (
       <PracticeClient
-        mode={activeMode}
+        mode={activeSession.mode}
         targetLanguage={targetLanguage}
+        starterTopic={activeSession.starterTopic}
         onExit={handleExitSession}
       />
     )
@@ -195,45 +196,80 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
         <MethodologyEyebrow active="practise" lockedPillars={lockedPillars} />
       </header>
 
-      {/* ── Three doors ────────────────────────────────────────────────
-          Call · Chat · Share. Each card is a single navigation target —
-          tap anywhere on the row opens the destination. Call mode wears
-          the project's emerald call-* palette (matched to the
-          `cc-call-pulse` ring on the active call screen so the visual
-          language is continuous). Chat and Share take quieter neutral
-          surfaces so Call is the visually loudest door without
-          overpowering the page.
-
-          The "How do you want to practise?" H2 that used to sit above
-          these cards was dropped — once the user is on the Practise
-          home, the methodology rail above already names where they
-          are and the three doors are self-evidently practice modes.
-          The dropped question reclaims ~40px of vertical air without
-          losing meaning. The `space-y-8` on the page wrapper gives
-          32px between the rail and the first door; the doors
-          themselves stay tight at space-y-3. Varied rhythm: tight
-          inside the door cluster, generous around it. */}
+      {/* ── Two doors ──────────────────────────────────────────────────
+          Talk freely (primary) · Real Life Scenario (secondary / beta).
+          Chat is the primary entry point for new learners — it wears the
+          accent-chip tinted background and a filled accent icon tile so it
+          reads as the louder option. Call is a richer feature for returning
+          users; it's been demoted to a neutral surface card and marked Beta
+          so it's discoverable without competing for first attention. */}
       <section
         aria-label={t('home.modesAria')}
         className="space-y-3"
       >
-        {/* Pick up a call — starts a Gemini Live call session in-place.
-            <button> (not <Link>) because there's no URL to navigate to;
-            the parent renders <PracticeClient> when activeMode flips. The
-            visual rhythm matches the Share door below so the three cards
-            still read as siblings rather than two button + one link. */}
+        {/* Talk freely — primary door. Card button for plain start; chips sit
+            outside the card (sibling, not child) to avoid nested <button>.
+            The card + chips share a tight `space-y-2` wrapper so they read
+            as one visual unit. */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setActiveSession({ mode: 'chat' })}
+            data-testid="home-mode-chat"
+            className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-accent-chip px-5 py-4 hover:bg-widget-cards-bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+          >
+            <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-primary text-white flex items-center justify-center">
+              <Icon name="mic" className="w-5 h-5" aria-hidden />
+            </span>
+            <div className="flex-1 min-w-0 space-y-0.5">
+              <p className="text-base md:text-lg font-semibold text-text-primary">
+                {t('practice.modeChatTitle')}
+              </p>
+              <p className="text-sm text-text-secondary leading-snug">
+                {t('practice.modeChatBlurb')}
+              </p>
+            </div>
+            <ChevronRight />
+          </button>
+
+          {/* Starter chips — below the card, outside the <button> to satisfy
+              the HTML spec (no nested interactive elements). */}
+          <div className="flex flex-wrap gap-2 px-1">
+            {([0, 1, 2] as const).map(i => (
+              <button
+                key={i}
+                type="button"
+                data-testid={`home-starter-${i}`}
+                onClick={() => setActiveSession({ mode: 'chat', starterTopic: t(`practice.chatStarter.${i}`) })}
+                className="text-xs font-medium px-3 py-1.5 rounded-full border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent-primary hover:bg-accent-chip/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+              >
+                {t(`practice.chatStarter.${i}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Real Life Scenario — secondary door, beta. Demoted to a neutral
+            surface card so Talk freely reads as the louder entry point.
+            The emerald icon tile is kept — it signals "call" via colour
+            without making the whole card shout. Beta badge sits beside the
+            title to surface the feature's maturity level to returning users
+            before they tap. */}
         <button
           type="button"
-          onClick={() => setActiveMode('call')}
+          onClick={() => setActiveSession({ mode: 'call' })}
           data-testid="home-mode-call"
-          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-call-border bg-call-bg px-5 py-4 hover:bg-call-bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-call-fill focus-visible:ring-offset-2"
+          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
         >
           <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-call-fill text-white flex items-center justify-center">
             <Icon name="phone" className="w-5 h-5" aria-hidden />
           </span>
           <div className="flex-1 min-w-0 space-y-0.5">
-            <p className="text-base md:text-lg font-semibold text-text-primary">
+            <p className="text-base md:text-lg font-semibold text-text-primary flex items-center gap-2">
               {t('practice.modeCallTitle')}
+              <span className="text-[0.625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ring-1 ring-border bg-surface-elevated text-text-tertiary leading-none">
+                Beta
+              </span>
             </p>
             <p className="text-sm text-text-secondary leading-snug">
               {t('practice.modeCallBlurb')}
@@ -241,54 +277,6 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
           </div>
           <ChevronRight />
         </button>
-
-        {/* Casual chat — starts a Gemini Live chat session in-place. Same
-            in-place mount story as the Call door above. */}
-        <button
-          type="button"
-          onClick={() => setActiveMode('chat')}
-          data-testid="home-mode-chat"
-          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
-        >
-          <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-chip text-on-accent-chip flex items-center justify-center">
-            <Icon name="message" className="w-5 h-5" aria-hidden />
-          </span>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <p className="text-base md:text-lg font-semibold text-text-primary">
-              {t('practice.modeChatTitle')}
-            </p>
-            <p className="text-sm text-text-secondary leading-snug">
-              {t('practice.modeChatBlurb')}
-            </p>
-          </div>
-          <ChevronRight />
-        </button>
-
-        {/* Share a voice note — third peer door, not a buried secondary.
-            Deep-links into the existing share-from-WhatsApp tutorial at
-            /onboarding?step=2 (single-step deep-dive page; closes back to
-            /). Same chrome shape as the Chat card; quieter icon palette
-            (surface-elevated) so the three doors read as a visual rhythm
-            of call → chat → share rather than three competing primary
-            actions. */}
-        <Link
-          href="/onboarding?step=2"
-          data-testid="home-mode-share"
-          className="group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
-        >
-          <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center">
-            <Icon name="export" className="w-5 h-5" aria-hidden />
-          </span>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <p className="text-base md:text-lg font-semibold text-text-primary">
-              {t('home.modeShareTitle')}
-            </p>
-            <p className="text-sm text-text-secondary leading-snug">
-              {t('home.modeShareBlurb')}
-            </p>
-          </div>
-          <ChevronRight />
-        </Link>
       </section>
     </div>
   )

@@ -50,16 +50,16 @@ A Practice Item that the user has marked as done — moved from the active Study
 _Avoid_: Written, written down (too prescriptive — implies physical writing)
 
 **Conversation**:
-A Session created by having an open-ended voice exchange with the Coach (Scenario or Free flow mode). Always bidirectional. DB value: `session_type = 'voice_practice'`. Part of the Practise phase.
+A Session created by having an open-ended voice exchange with the Coach (Scenario or Talk freely mode). Always bidirectional. DB value: `session_type = 'voice_practice'`. Part of the Practise phase.
 _Avoid_: Practise session (redundant with the loop phase name), voice practice
 
-**Scenario** (mode):
-A Conversation mode where the Coach plays a named persona and the user answers an incoming call. The persona is revealed after the user speaks first. Previously called "Call mode" in code (`mode: 'call'`).
-_Avoid_: Call, role play
+**Real Life Scenario** (mode):
+A Conversation mode where the Coach plays a named persona and the user answers an incoming call. The persona is revealed after the user speaks first. Previously called "Call mode" in code (`mode: 'call'`), then "Scenario". Marked Beta in the UI.
+_Avoid_: Scenario, Call, role play
 
-**Free flow** (mode):
-A Conversation mode with no script or persona — the Coach opens and the user talks about whatever they want. Previously called "Chat mode" in code (`mode: 'chat'`).
-_Avoid_: Chat
+**Talk freely** (mode):
+A Conversation mode with no script or persona — the Coach opens and the user talks about whatever they want. Previously called "Chat mode" in code (`mode: 'chat'`), then "Free flow".
+_Avoid_: Free flow, Chat
 
 **Drill**:
 A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop.

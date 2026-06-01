@@ -75,14 +75,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Practice — mode selection (idle screen)
     'practice.modeIntro': "Pick how you'd like to start.",
-    'practice.modeCallTitle': 'Scenario',
+    'practice.modeCallTitle': 'Real Life Scenario',
     'practice.modeCallBlurb':
       'Someone new calls. They introduce themselves, then you take the lead.',
-    'practice.modeChatTitle': 'Free flow',
+    'practice.modeChatTitle': 'Talk freely',
     'practice.modeChatBlurb':
       "The Coach opens and you talk about whatever's on your mind.",
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start talking',
+    'practice.startersLabel': 'Need a topic?',
+    'practice.chatStarter.0': 'Your weekend plans',
+    'practice.chatStarter.1': 'A recent meal',
+    'practice.chatStarter.2': 'Getting around the city',
 
     // Practice — incoming-call screen (call mode, initial mount).
     // Reads like an iOS/Android incoming-call notification. Caller is kept
@@ -739,14 +743,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Practice — mode selection (idle screen)
     'practice.modeIntro': 'Elegí cómo querés empezar.',
-    'practice.modeCallTitle': 'Escenario',
+    'practice.modeCallTitle': 'Escenario de vida real',
     'practice.modeCallBlurb':
       'Alguien nuevo te llama. Se presenta y vos seguís la charla.',
-    'practice.modeChatTitle': 'Conversación libre',
+    'practice.modeChatTitle': 'Hablá libremente',
     'practice.modeChatBlurb':
       'El Coach arranca la charla. Hablá de lo que se te ocurra.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
+    'practice.startersLabel': '¿Necesitás un tema?',
+    'practice.chatStarter.0': 'Tus planes del finde',
+    'practice.chatStarter.1': 'Una comida que cocinaste',
+    'practice.chatStarter.2': 'Moverse por la ciudad',
 
     // Practice — pantalla de llamada entrante (modo call, al iniciar).
     // Se ve como una notificación de llamada entrante de iOS/Android. El

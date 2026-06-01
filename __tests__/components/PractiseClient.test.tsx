@@ -3,11 +3,15 @@
 // The Practise-as-home redesign moved the methodology entry point to `/`.
 // This suite covers the new home:
 //
-//   • Renders the three doors (Pick up a call / Casual chat / Share a
-//     voice note). Call and Chat are now in-place `<button>`s (they mount
-//     <PracticeClient> on tap — the standalone /practice route was retired
-//     so discard returns to these doors); Share remains a `<Link>` to the
-//     WhatsApp tutorial.
+//   • Renders two live-practice doors: Free flow (primary) + Real Life
+//     Scenario (secondary). The Share/upload door was moved to the Review
+//     step (ADR 0002) — it no longer appears here.
+//   • Free flow is rendered first (primary position) and shows conversation
+//     starter chip buttons.
+//   • Clicking a starter chip starts a chat session with that topic.
+//   • Both doors are in-place `<button>`s (they mount <PracticeClient> on
+//     tap — the standalone /practice route was retired so discard returns
+//     to these doors).
 //   • Renders the Practise · Review · Study eyebrow with Practise as the
 //     active pillar and the other two as plain links to their routes.
 //   • Picks up a pending share-target file from IndexedDB and routes
@@ -31,6 +35,13 @@ vi.mock('next/navigation', () => ({
 
 // ── Component dependencies — keep the surface area focused ────────────────
 vi.mock('@/components/Icon', () => ({ Icon: () => null }))
+// PracticeClient is heavy (WebSocket, audio) — stub it so chip-click tests
+// can assert on mount without triggering the real session connect flow.
+vi.mock('@/components/PracticeClient', () => ({
+  PracticeClient: ({ starterTopic }: { starterTopic?: string }) => (
+    <div data-testid="practice-client" data-starter={starterTopic ?? ''} />
+  ),
+}))
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: {
     children: React.ReactNode; href: string;
@@ -44,17 +55,18 @@ vi.mock('@/components/LanguageProvider', () => ({
       // Just enough strings to drive the assertions. Anything else falls
       // through to the key (matches the real t() fallback behaviour).
       const dict: Record<string, string> = {
-        'practice.modeCallTitle': 'Pick up a call',
+        'practice.modeCallTitle': 'Real Life Scenario',
         'practice.modeCallBlurb': 'Someone new calls.',
-        'practice.modeChatTitle': 'Casual chat',
-        'practice.modeChatBlurb': 'The coach starts the back-and-forth.',
-        'home.modeShareTitle': 'Share a voice note',
-        'home.modeShareBlurb': 'Recorded a real conversation?',
+        'practice.modeChatTitle': 'Free flow',
+        'practice.modeChatBlurb': "The Coach opens and you talk about whatever's on your mind.",
+        'practice.startersLabel': 'Need a topic?',
+        'practice.chatStarter.0': 'Your weekend plans',
+        'practice.chatStarter.1': 'A recent meal',
+        'practice.chatStarter.2': 'Getting around the city',
         'home.pillarPractise': 'Practise',
         'home.pillarReview': 'Review',
         'home.pillarStudy': 'Study',
         'home.pillarAria': 'Methodology',
-        'home.subhead': 'How do you want to practise?',
         'home.welcomeBeat': 'All set. Ready when you are.',
       }
       return dict[key] ?? key
@@ -88,31 +100,56 @@ beforeEach(() => {
   vi.stubGlobal('indexedDB', undefined)
 })
 
-describe('PractiseClient — three doors', () => {
-  it('renders all three mode cards with the right copy', () => {
+describe('PractiseClient — two doors (no Share)', () => {
+  it('renders Free flow and Real Life Scenario doors, not the Share door', () => {
     render(<PractiseClient />)
-    expect(screen.getByTestId('home-mode-call')).toBeInTheDocument()
     expect(screen.getByTestId('home-mode-chat')).toBeInTheDocument()
-    expect(screen.getByTestId('home-mode-share')).toBeInTheDocument()
+    expect(screen.getByTestId('home-mode-call')).toBeInTheDocument()
+    expect(screen.queryByTestId('home-mode-share')).not.toBeInTheDocument()
   })
 
-  it('renders Call door as an in-place <button> (no href; mounts PracticeClient on click)', () => {
+  it('renders Free flow before Real Life Scenario (primary position)', () => {
     render(<PractiseClient />)
+    const chatDoor = screen.getByTestId('home-mode-chat')
     const callDoor = screen.getByTestId('home-mode-call')
+    expect(chatDoor.compareDocumentPosition(callDoor)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('both doors are in-place <button>s (no href)', () => {
+    render(<PractiseClient />)
+    const chatDoor = screen.getByTestId('home-mode-chat')
+    const callDoor = screen.getByTestId('home-mode-call')
+    expect(chatDoor.tagName).toBe('BUTTON')
+    expect(chatDoor).not.toHaveAttribute('href')
     expect(callDoor.tagName).toBe('BUTTON')
     expect(callDoor).not.toHaveAttribute('href')
   })
+})
 
-  it('renders Chat door as an in-place <button> (no href; mounts PracticeClient on click)', () => {
+describe('PractiseClient — starter chips', () => {
+  it('renders starter chip buttons on the Free flow card', () => {
     render(<PractiseClient />)
-    const chatDoor = screen.getByTestId('home-mode-chat')
-    expect(chatDoor.tagName).toBe('BUTTON')
-    expect(chatDoor).not.toHaveAttribute('href')
+    expect(screen.getByTestId('home-starter-0')).toBeInTheDocument()
+    expect(screen.getByTestId('home-starter-1')).toBeInTheDocument()
+    expect(screen.getByTestId('home-starter-2')).toBeInTheDocument()
   })
 
-  it('points Share door at /onboarding?step=2 (WhatsApp share illustration)', () => {
+  it('starter chips show the translated topic text', () => {
     render(<PractiseClient />)
-    expect(screen.getByTestId('home-mode-share')).toHaveAttribute('href', '/onboarding?step=2')
+    expect(screen.getByTestId('home-starter-0')).toHaveTextContent('Your weekend plans')
+    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('A recent meal')
+  })
+
+  it('clicking a starter chip sets chat mode active with that topic', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    render(<PractiseClient />)
+    fireEvent.click(screen.getByTestId('home-starter-0'))
+    await waitFor(() => {
+      expect(screen.getByTestId('practice-client')).toBeInTheDocument()
+      expect(screen.getByTestId('practice-client')).toHaveAttribute(
+        'data-starter', 'Your weekend plans',
+      )
+    })
   })
 })
 
