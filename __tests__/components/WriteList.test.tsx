@@ -148,27 +148,21 @@ describe('WriteList — inline studied section', () => {
 })
 
 describe('WriteList — empty states', () => {
-  it('shows the teaching empty-state with example + CTA when nothing to write down', () => {
+  it('shows the completion state with CTA when all items are studied', () => {
     render(<WriteList items={[writtenItem]} />)
-    expect(screen.getByText(/saved corrections look like this/i)).toBeInTheDocument()
-    // The empty-state CTA sends users to `/` (the Practise picker) —
-    // the methodology's entry point. They pick a mode, have a
-    // conversation, save a correction from the transcript, and it
-    // lands back in this Study queue. The link briefly pointed at
-    // /review during the home redesign, but the inbox is also empty
-    // for first-time users and "open a conversation" promised a list
-    // they didn't have — Practise is the surface that actually
-    // generates the first correction.
-    const link = screen.getByRole('link', { name: /practise to save/i })
+    // Active queue is empty but studied items exist → completion state, not the
+    // first-time teaching card. The copy acknowledges the accomplishment.
+    expect(screen.getByText(/all studied/i)).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: /practise to save more/i })
     expect(link).toBeInTheDocument()
     expect(link).toHaveAttribute('href', '/')
   })
 
-  it('shows empty-state AND studied section when queue is empty but studied items exist', () => {
+  it('shows completion state AND studied section when queue is empty but studied items exist', () => {
     render(<WriteList items={[writtenItem]} />)
-    // Active queue is empty — show the teaching empty state
-    expect(screen.getByText(/saved corrections look like this/i)).toBeInTheDocument()
-    // Studied item still visible below
+    // Completion state replaces the teaching card when the user has studied items.
+    expect(screen.getByText(/all studied/i)).toBeInTheDocument()
+    // Studied item still visible below the completion message.
     expect(screen.getByTestId(`write-row-${writtenItem.id}`)).toBeInTheDocument()
   })
 

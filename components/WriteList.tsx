@@ -386,7 +386,7 @@ function SwipeableWriteRow({
               }
               data-testid={`row-mark-written-${item.id}`}
               className="
-                self-stretch flex items-center justify-center gap-1.5
+                self-stretch flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5
                 px-3 md:px-4 rounded-r-xl
                 border-l border-border-subtle
                 text-text-secondary hover:text-widget-write-text
@@ -395,6 +395,9 @@ function SwipeableWriteRow({
               "
             >
               <Icon name={isWritten ? 'rotate-ccw' : 'check'} className="w-5 h-5" />
+              <span className="text-[0.6rem] font-medium leading-none md:hidden">
+                {isWritten ? t('writeList.unmarkDoneShort') : t('writeList.markDoneShort')}
+              </span>
               <span className="hidden md:inline text-xs font-medium">
                 {isWritten ? t('writeList.unmarkDoneShort') : t('writeList.markDoneShort')}
               </span>
@@ -719,7 +722,18 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
         Active queue — no top header so the list begins at the same vertical
         position as /review's inbox (chrome cohesion across pillars).
       */}
-      {activeItems.length === 0 ? (
+      {activeItems.length === 0 && allItems.length > 0 ? (
+        <div className="py-6 space-y-3 max-w-prose">
+          <p className="text-text-secondary text-sm leading-relaxed">
+            {t('writeList.allStudiedHeading')}
+          </p>
+          <p className="text-text-secondary text-sm leading-relaxed">
+            <Link href="/" className="text-accent-primary font-medium hover:underline">
+              {t('writeList.allStudiedCta')}
+            </Link>
+          </p>
+        </div>
+      ) : activeItems.length === 0 ? (
         <EmptyWrite />
       ) : (
         <>
@@ -752,15 +766,15 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
       */}
       {studiedItems.length > 0 && (
         <>
-          <div className="flex items-center gap-1.5 pt-1" aria-hidden="true" data-testid="studied-divider">
-            <span className="text-xs font-medium text-text-tertiary tracking-wide">
+          <div className="flex items-center gap-1.5 pt-1" data-testid="studied-divider">
+            <h2 className="text-xs font-medium text-text-tertiary tracking-wide">
               {t('writeList.archiveHeading')}
-            </span>
-            <span className="text-xs text-text-tertiary tabular-nums">
+            </h2>
+            <span className="text-xs text-text-tertiary tabular-nums" aria-label={`${studiedItems.length} items`}>
               · {studiedItems.length}
             </span>
           </div>
-          <ul className="space-y-2 -mt-3">
+          <ul className="space-y-2 -mt-3" aria-label={t('writeList.archiveHeading')}>
             {studiedItems.map(item => (
               <SwipeableWriteRow
                 key={item.id}

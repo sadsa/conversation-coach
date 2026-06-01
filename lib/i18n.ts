@@ -623,6 +623,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Swipe reveal labels
     'writeList.swipeDeleteLabel': 'Delete',
     'writeList.swipeWrittenLabel': 'Studied',
+    'writeList.allStudiedHeading': 'All studied',
+    'writeList.allStudiedCta': 'Practise to save more corrections →',
 
     // Study review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
@@ -1192,6 +1194,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeList.swipeHintDismiss': 'Entendido',
     'writeList.swipeDeleteLabel': 'Eliminar',
     'writeList.swipeWrittenLabel': 'Estudiado',
+    'writeList.allStudiedHeading': 'Todo estudiado',
+    'writeList.allStudiedCta': 'Practicá para guardar más correcciones →',
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',
