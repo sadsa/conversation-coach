@@ -28,7 +28,6 @@ const baseItem: PracticeItem = {
 const itemWithoutSession: PracticeItem = { ...baseItem, session_title: null }
 
 const noopProps = {
-  position: { current: 1, total: 1 },
   hasPrev: false,
   hasNext: false,
   isWritten: false,
@@ -76,11 +75,6 @@ describe('WriteSheet — header structure', () => {
       await userEvent.click(screen.getByTestId('sheet-overflow'))
     })
     expect(screen.getByTestId('sheet-toggle-written')).toHaveTextContent(/move back/i)
-  })
-
-  it('renders the position pill in the header', () => {
-    render(<WriteSheet item={baseItem} {...noopProps} position={{ current: 3, total: 7 }} />)
-    expect(screen.getByText('3 of 7')).toBeInTheDocument()
   })
 })
 

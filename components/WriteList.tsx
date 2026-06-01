@@ -946,7 +946,6 @@ export function WriteList({ items, onDeleted, initialView = 'write', onPractise 
 
       <WriteSheet
         item={openItem}
-        position={openItem ? { current: openIndex + 1, total: visible.length } : null}
         hasPrev={hasPrev}
         hasNext={hasNext}
         isWritten={view === 'written'}

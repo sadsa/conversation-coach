@@ -125,6 +125,7 @@ export function DockedSheet({
   // assign to `current` via the composed callback ref below.
   const sheetRef = useRef<HTMLElement | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const isDraggingRef = useRef(false)
   // Set true by the aside's React capture handler before the native document
   // listener fires. React events delegate from the root container (a descendant
   // of <body>), so `onMouseDownCapture` on the aside runs strictly before
@@ -280,10 +281,62 @@ export function DockedSheet({
     }
   }, [isOpen, contentKey])
 
+  // Imperatively translate the sheet element during a drag gesture. Bypasses
+  // React renders entirely so the motion stays at 60 fps.
+  function applyDragTransform(offset: number) {
+    const el = sheetRef.current
+    if (!el) return
+    el.style.transition = 'none'
+    el.style.transform = offset > 0 ? `translateY(${offset}px)` : ''
+  }
+
+  // Animate the sheet to `targetOffset` with a CSS transition, then call
+  // `onComplete` and clear the inline transition so subsequent animations
+  // (e.g. the entrance keyframe on next open) aren't blocked.
+  function snapDragTransform(targetOffset: number, onComplete?: () => void) {
+    const el = sheetRef.current
+    if (!el) return
+    el.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)'
+    el.style.transform = targetOffset > 0 ? `translateY(${targetOffset}px)` : ''
+    const handler = () => {
+      el.removeEventListener('transitionend', handler)
+      el.style.transition = ''
+      onComplete?.()
+    }
+    el.addEventListener('transitionend', handler)
+  }
+
   const swipeHandlers = useSwipeable({
-    onSwipedDown: (e) => { if (e.absY > SWIPE_THRESHOLD) onClose() },
+    onSwiping: (e) => {
+      if (e.dir === 'Down') {
+        isDraggingRef.current = true
+        applyDragTransform(e.absY)
+      }
+    },
+    onSwipedDown: (e) => {
+      isDraggingRef.current = false
+      if (e.absY > SWIPE_THRESHOLD) {
+        // Animate offscreen then dismiss — the element must stay mounted until
+        // the transition ends, so we delay onClose() via the callback.
+        snapDragTransform(window.innerHeight, () => {
+          applyDragTransform(0) // reset so the next open starts clean
+          onClose()
+        })
+      } else {
+        snapDragTransform(0) // spring back
+      }
+    },
     onSwipedLeft: (e) => { if (e.absX > SWIPE_THRESHOLD && hasNext) onNext?.() },
     onSwipedRight: (e) => { if (e.absX > SWIPE_THRESHOLD && hasPrev) onPrev?.() },
+    // onSwiped fires after every direction-specific handler. If the gesture
+    // ended as something other than Down but we had started tracking a
+    // downward drag offset, reset it now.
+    onSwiped: () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false
+        applyDragTransform(0)
+      }
+    },
     delta: 20,
     trackMouse: false,
   })
@@ -366,7 +419,7 @@ export function DockedSheet({
             reads as continuous body. The nav controls + position pill
             visually float at the top of the body padding rather than
             occupying a banded region — that's the Hush direction. */}
-        <header className="flex items-center gap-2 px-5 pt-2 pb-2 md:pt-4 md:pb-3">
+        <header className="hidden md:flex items-center gap-2 px-5 pt-2 pb-2 md:pt-4 md:pb-3">
           <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             {headerLead}
           </div>

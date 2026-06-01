@@ -29,7 +29,7 @@
 // the source sentence is handled by the session-source link on WriteSheet
 // and by the AnnotationSheet's docked relationship to the live transcript.
 
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 
 interface Props {
   /** Tracked uppercase label rendered above the original line. */
@@ -43,18 +43,27 @@ interface Props {
    * `aria-describedby` at the answer line.
    */
   answerId?: string
+  /**
+   * Optional content rendered right-aligned in the eyebrow row (e.g. mobile
+   * action buttons). Rendered outside the aria-hidden eyebrow text so
+   * interactive elements remain accessible.
+   */
+  eyebrowAction?: ReactNode
 }
 
-export function HushStack({ eyebrow, original, correction, answerId }: Props): JSX.Element {
+export function HushStack({ eyebrow, original, correction, answerId, eyebrowAction }: Props): JSX.Element {
   const isNaturalness = correction === null
 
   return (
     <div className="space-y-1.5">
-      <div
-        className="text-[0.6875rem] font-semibold tracking-[0.18em] uppercase text-text-tertiary"
-        aria-hidden="true"
-      >
-        {eyebrow}
+      <div className="flex items-center justify-between">
+        <div
+          className="text-[0.6875rem] font-semibold tracking-[0.18em] uppercase text-text-tertiary"
+          aria-hidden="true"
+        >
+          {eyebrow}
+        </div>
+        {eyebrowAction}
       </div>
 
       {isNaturalness ? (
