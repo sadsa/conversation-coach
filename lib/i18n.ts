@@ -22,10 +22,32 @@ const TARGET_LANGUAGE_GREETINGS: Record<TargetLanguage, Record<TimeOfDay, string
   },
 }
 
+// Greetings in the user's native language — the inverse of the target-language
+// map. es-AR learners are native English speakers; en-NZ learners are native
+// Spanish speakers.
+const NATIVE_LANGUAGE_GREETINGS: Record<TargetLanguage, Record<TimeOfDay, string>> = {
+  'es-AR': {
+    morning: 'Good morning',
+    afternoon: 'Good afternoon',
+    evening: 'Good evening',
+  },
+  'en-NZ': {
+    morning: 'Buenos días',
+    afternoon: 'Buenas tardes',
+    evening: 'Buenas noches',
+  },
+}
+
 export function targetLanguageGreeting(target: TargetLanguage, date: Date): string {
   const hour = date.getHours()
   const time: TimeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
   return TARGET_LANGUAGE_GREETINGS[target][time]
+}
+
+export function nativeLanguageGreeting(target: TargetLanguage, date: Date): string {
+  const hour = date.getHours()
+  const time: TimeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
+  return NATIVE_LANGUAGE_GREETINGS[target][time]
 }
 
 type Replacements = Record<string, string | number>
@@ -77,10 +99,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': "Pick how you'd like to start.",
     'practice.modeCallTitle': 'Real Life Scenario',
     'practice.modeCallBlurb':
-      'Someone new calls. They introduce themselves, then you take the lead.',
+      "You get a call from someone you've never met. They introduce themselves. Go from there.",
     'practice.modeChatTitle': 'Talk freely',
     'practice.modeChatBlurb':
-      "The Coach opens and you talk about whatever's on your mind.",
+      "Say whatever's on your mind. The Coach keeps pace.",
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start talking',
     'practice.startersLabel': 'Need a topic?',
@@ -745,10 +767,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': 'Elegí cómo querés empezar.',
     'practice.modeCallTitle': 'Escenario de vida real',
     'practice.modeCallBlurb':
-      'Alguien nuevo te llama. Se presenta y vos seguís la charla.',
+      'Te llama alguien que no conocés. Se presenta. De ahí, seguís vos.',
     'practice.modeChatTitle': 'Hablá libremente',
     'practice.modeChatBlurb':
-      'El Coach arranca la charla. Hablá de lo que se te ocurra.',
+      'Decí lo que se te venga a la cabeza. El Coach sigue el hilo.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
     'practice.startersLabel': '¿Necesitás un tema?',

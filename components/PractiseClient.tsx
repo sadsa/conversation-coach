@@ -37,7 +37,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
 import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
 import { useTranslation } from '@/components/LanguageProvider'
-import { targetLanguageGreeting } from '@/lib/i18n'
+import { nativeLanguageGreeting, inferUiLanguage } from '@/lib/i18n'
 import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
 
 // Peak-end welcome beat — shows for ~3s when the user arrives from
@@ -99,9 +99,26 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
   const handleExitSession = useCallback(() => setActiveSession(null), [])
 
   const greeting = useMemo(
-    () => targetLanguageGreeting(targetLanguage, new Date()),
+    () => nativeLanguageGreeting(targetLanguage, new Date()),
     [targetLanguage],
   )
+
+  // Dynamic starter chips — fetched fresh on each mount so returning users
+  // always see new suggestions. null = loading (show skeletons); string[] =
+  // loaded. On error we fall back to the static translation strings.
+  const [starters, setStarters] = useState<string[] | null>(null)
+  useEffect(() => {
+    const lang = inferUiLanguage(targetLanguage)
+    fetch(`/api/practice-starters?lang=${lang}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(({ starters: s }: { starters: string[] }) => setStarters(s))
+      .catch(() => setStarters([
+        t('practice.chatStarter.0'),
+        t('practice.chatStarter.1'),
+        t('practice.chatStarter.2'),
+      ]))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Share-target pickup ──────────────────────────────────────────────
   // When a voice note arrives via the system share sheet, the service
@@ -233,19 +250,31 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
           </button>
 
           {/* Starter chips — below the card, outside the <button> to satisfy
-              the HTML spec (no nested interactive elements). */}
+              the HTML spec (no nested interactive elements). null = loading,
+              show skeleton chips at approximate widths so the layout doesn't
+              jump when the real topics arrive. */}
           <div className="flex flex-wrap gap-2 px-1">
-            {([0, 1, 2] as const).map(i => (
-              <button
-                key={i}
-                type="button"
-                data-testid={`home-starter-${i}`}
-                onClick={() => setActiveSession({ mode: 'chat', starterTopic: t(`practice.chatStarter.${i}`) })}
-                className="text-xs font-medium px-3 py-1.5 rounded-full border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent-primary hover:bg-accent-chip/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
-              >
-                {t(`practice.chatStarter.${i}`)}
-              </button>
-            ))}
+            {starters === null
+              ? ([80, 64, 96] as const).map(w => (
+                  <span
+                    key={w}
+                    className="inline-block h-7 rounded-full bg-surface-elevated animate-pulse"
+                    style={{ width: w }}
+                    aria-hidden="true"
+                  />
+                ))
+              : starters.map((topic, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    data-testid={`home-starter-${i}`}
+                    onClick={() => setActiveSession({ mode: 'chat', starterTopic: topic })}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent-primary hover:bg-accent-chip/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+                  >
+                    {topic}
+                  </button>
+                ))
+            }
           </div>
         </div>
 
