@@ -800,8 +800,8 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
               ? `\n\nOpen the conversation by asking about: ${starterTopic}. One natural question to get things started.`
               : `\n\nEmpezá la conversación preguntando sobre: ${starterTopic}. Una pregunta natural para arrancar.`)
           : (targetLanguage === 'en-NZ'
-              ? `\n\nOpen the conversation with a warm, natural greeting and invite the learner to talk about whatever they'd like.`
-              : `\n\nAbrí la conversación con un saludo cálido y natural, e invitá al aprendiz a hablar de lo que quiera.`))
+              ? `\n\nOpen with exactly two utterances: one short greeting word, then one question. Nothing else — no preamble, no multi-sentence welcome.`
+              : `\n\nAbrí con exactamente dos cosas: una palabra de saludo corta, y una sola pregunta. Nada más — sin introducción larga, sin bienvenida de varias oraciones.`))
       : basePrompt
 
     // Open AssemblyAI BEFORE Gemini so it's ready to accept mic frames the
