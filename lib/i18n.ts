@@ -600,28 +600,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.loading': 'Loading…',
     'write.error': 'Error: {msg}',
 
-    // Study list — view toggle (asymmetric: Study is the primary surface,
-    // Written is a quiet archive link rather than a peer tab).
-    'writeList.viewLabel': 'Saved corrections',
-    'writeList.tabWrite': 'Study',
-    'writeList.tabWritten': 'Studied',
+    // Study list — inline studied section (bottom of same list, dimmed).
     'writeList.archiveHeading': 'Studied',
-    'writeList.archiveLink': 'studied',
-    // Footer pill that replaces the old top-of-list "{n} studied →" link.
-    // Lives below the queue (retrospective destination, retrospective
-    // placement) and only renders when writtenCount > 0. Visible label;
-    // separate aria label so the count gets read as a number not a noun.
-    'writeList.archiveFooter': '{n} studied · view archive →',
-    'writeList.archiveFooterAria': 'View {n} studied corrections in the archive',
-    'writeList.backToWrite': 'Back to Study',
     'writeList.markDoneShort': 'Done',
+    'writeList.unmarkDoneShort': 'Undo',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Practise to save your first correction →',
-    'writeList.emptyWritten': 'Nothing here yet. Items show up here once you mark them as studied.',
-    'writeList.emptyWrittenCaption': 'Items you\'ve studied land here, faded so they don\'t crowd the queue.',
-    'writeList.emptyWrittenCta': '← Back to Study ({count})',
-    'writeList.emptyWrittenNoQueue': 'Nothing in your Study queue either — open a conversation to save your first correction.',
     'writeList.markRowAria': 'Mark "{original}" as studied',
+    'writeList.unmarkRowAria': 'Move "{original}" back to Study queue',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
     // the current tab is more confirmation than the user needs.
@@ -1185,24 +1171,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.error': 'Error: {msg}',
 
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
-    // principal, Escritos vive como link discreto al archivo, no como
-    // pestaña par).
-    'writeList.viewLabel': 'Correcciones guardadas',
-    'writeList.tabWrite': 'Estudiar',
-    'writeList.tabWritten': 'Estudiados',
+    // principal, Escritos vive como sección inline atenuada al final de la lista).
     'writeList.archiveHeading': 'Estudiados',
-    'writeList.archiveLink': 'estudiados',
-    'writeList.archiveFooter': '{n} estudiados · ver archivo →',
-    'writeList.archiveFooterAria': 'Ver {n} correcciones estudiadas en el archivo',
-    'writeList.backToWrite': 'Volver a Estudiar',
     'writeList.markDoneShort': 'Listo',
+    'writeList.unmarkDoneShort': 'Deshacer',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Practicá para guardar tu primera corrección →',
-    'writeList.emptyWritten': 'Todavía no hay nada acá. Los ítems aparecen acá cuando los marcás como estudiados.',
-    'writeList.emptyWrittenCaption': 'Lo que ya estudiaste cae acá, atenuado para que no llene la cola.',
-    'writeList.emptyWrittenCta': '← Volver a Estudiar ({count})',
-    'writeList.emptyWrittenNoQueue': 'Tampoco hay nada en tu cola de Estudiar — abrí una conversación para guardar tu primera corrección.',
     'writeList.markRowAria': 'Marcar "{original}" como estudiado',
+    'writeList.unmarkRowAria': 'Mover "{original}" de vuelta a la cola de Estudiar',
     // Toasts only fire on the destructive / error paths now: success
     // states (mark-written, move-back) are silent because the row leaving
     // the current tab is more confirmation than the user needs.
