@@ -421,23 +421,14 @@ export async function connect(
   let playbackTime = safeCtx.currentTime
   const voiceName = options.voiceName ?? process.env.NEXT_PUBLIC_GOOGLE_VOICE ?? DEFAULT_VOICE
 
-  // Fix 3: suppress mic sends briefly after Gemini fires `interrupted`.
+  // Suppress mic sends briefly after Gemini fires `interrupted`.
   // On slow connections, stale/buffered mic frames arrive at Gemini while the
   // model is already speaking → VAD triggers `interrupted` → model restarts
-  // from the first syllable → "b-b-b-b" loop. A 500ms cooldown after each
+  // from the first syllable → stutter loop. A short cooldown after each
   // interrupt breaks the feedback cycle before fresh frames resume.
+  // 150ms is enough to drain in-flight frames without muting real speech —
+  // 500ms was too aggressive and dropped the first half-second of user replies.
   let micSuppressUntil = 0
-
-  // Fix 2: batch mic frames into ~100ms chunks before sending.
-  // The worklet emits 128 samples (8ms at 16kHz) per block = 125 sends/s.
-  // On slow connection this fills the WebSocket send buffer with hundreds of
-  // tiny messages; when bandwidth recovers they burst-arrive at Gemini and
-  // trip the VAD. Batching to 1600 samples (100ms) reduces sends to 10/s and
-  // cuts the burst size 12.5×. The batch is dropped (not sent) whenever a
-  // bufferedAmount or suppress check fires, so no stale audio queues up.
-  const MIC_BATCH_BYTES = 3200  // 1600 int16 samples × 2 bytes = 100ms at 16kHz
-  let micSendBuf: Uint8Array[] = []
-  let micSendLen = 0
 
   // Track every scheduled agent audio source so we can hard-stop playback
   // when the user changes focus mid-response (otherwise the new turn's audio
@@ -535,27 +526,18 @@ export async function connect(
     // Gemini Live — gated on setupComplete + open WS.
     if (!ready || ws.readyState !== WebSocket.OPEN) return
 
-    // Fix 1: drop this frame if the send buffer is already backed up.
+    // Drop this frame if the send buffer is already backed up.
     // A growing bufferedAmount means the connection is slow — queuing more
     // frames only deepens the stale-burst problem. 32 kB ≈ 128 × the typical
     // 256-byte frame, so this only triggers under genuine congestion.
-    if (ws.bufferedAmount > 32768) { micSendBuf = []; micSendLen = 0; return }
+    if (ws.bufferedAmount > 32768) return
 
-    // Fix 3: respect the post-interrupt cooldown.
-    if (safeCtx.currentTime < micSuppressUntil) { micSendBuf = []; micSendLen = 0; return }
+    // Respect the post-interrupt cooldown.
+    if (safeCtx.currentTime < micSuppressUntil) return
 
-    // Fix 2: accumulate until we have a full 100ms batch, then send once.
     const bytes = new Uint8Array(e.data)
-    micSendBuf.push(bytes)
-    micSendLen += bytes.byteLength
-    if (micSendLen < MIC_BATCH_BYTES) return
-
-    const merged = new Uint8Array(micSendLen)
-    let offset = 0
-    for (const chunk of micSendBuf) { merged.set(chunk, offset); offset += chunk.byteLength }
-    micSendBuf = []; micSendLen = 0
     let binary = ''
-    for (let i = 0; i < merged.length; i++) binary += String.fromCharCode(merged[i])
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     const b64 = btoa(binary)
     ws.send(
       JSON.stringify({
@@ -687,12 +669,11 @@ export async function connect(
     if (serverContent?.interrupted) {
       // Server confirms the previous turn was cut short. Drop any chunks
       // we'd already scheduled locally so the agent's tail can't bleed into
-      // the new response. Also suppress mic sends for 500ms (Fix 3) — on
-      // slow connections, stale mic frames trip VAD immediately after the
-      // model restarts, causing the first-syllable repeat loop.
+      // the new response. Also suppress mic sends for 150ms — on slow
+      // connections, stale mic frames trip VAD immediately after the model
+      // restarts, causing the first-syllable repeat loop.
       stopAgentPlayback()
-      micSuppressUntil = safeCtx.currentTime + 0.5
-      micSendBuf = []; micSendLen = 0
+      micSuppressUntil = safeCtx.currentTime + 0.15
       return
     }
 
