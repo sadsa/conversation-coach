@@ -8,132 +8,16 @@ A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conve
 
 ## Tech Stack
 
-- **Next.js 14 App Router**, TypeScript, Tailwind CSS — hosted on Vercel
-- **Supabase** (PostgreSQL via `@supabase/supabase-js` v2 + `@supabase/ssr` for Auth)
-- **Cloudflare R2** via `@aws-sdk/client-s3` (S3-compatible)
-- **AssemblyAI** SDK — transcription + speaker diarization
-- **Gemini Multimodal Live API** (raw WebSocket) — real-time voice on `/`. Both modes use `models/gemini-3.1-flash-live-preview`. Constants in `lib/voice-agent.ts`: `FLASH_LIVE_MODEL` (current), `NATIVE_AUDIO_MODEL` (opt-in); pass via `ConnectOptions.model`
-- **Anthropic SDK** (`@anthropic-ai/sdk`) — Claude analysis
-- **`framer-motion`** — sheet entrance animations + `useReducedMotion`
-- **`react-swipeable`** — swipe gestures on `AnnotationSheet`, `WriteSheet`, `WriteList`
-- **`web-push`** — VAPID Web Push for analysis-completion notifications
-- **`ts-fsrs`** in deps for upcoming SRS scheduling (DB columns added in migration `20260410`; UI not yet wired up)
-- **Vitest** + React Testing Library — unit/component tests
+- **Gemini Multimodal Live API** (raw WebSocket) — real-time voice. Both modes use `models/gemini-3.1-flash-live-preview`. Constants in `lib/voice-agent.ts`: `FLASH_LIVE_MODEL` (current), `NATIVE_AUDIO_MODEL` (opt-in); pass via `ConnectOptions.model`.
+- **`ts-fsrs`** in deps for upcoming SRS scheduling (DB columns added in migration `20260410`; UI not yet wired up) — do not remove.
 
 ## Commands
 
 ```bash
-npm run dev          # start dev server
-npm run build        # production build
-npm run lint         # ESLint
-npm test             # run all tests (Vitest)
-npm test -- <path>   # run a single test file
-npm run test:watch   # vitest in watch mode
-```
-
-## Project Structure
-
-```
-app/
-  page.tsx                        # RSC: auth check, hands to <PractiseClient> — Practise mode picker + in-place voice session host
-  review/
-    page.tsx                      # RSC: loads sessions, hands to <ReviewClient> — inbox of recorded conversations
-    loading.tsx                   # Skeleton
-  login/page.tsx                  # Magic-link login (public)
-  access-denied/page.tsx          # Shown when email not in allowlist (public)
-  onboarding/page.tsx             # First-login gate: language select (step 0). `?step=2` = WhatsApp share illustration
-  auth/callback/page.tsx          # Client page: code exchange → redirects to / or /onboarding
-  sessions/[id]/
-    page.tsx                      # RSC: loads SessionDetail, hands to <TranscriptClient>
-    loading.tsx                   # Skeleton
-    status/page.tsx               # Processing Status screen
-    identify/page.tsx             # Speaker Identification screen
-  write/page.tsx                  # RSC: loads practice items, hands to <WriteClient> — labelled "Study" in nav
-  write/loading.tsx               # Skeleton
-  settings/page.tsx               # Settings: language, theme, sign-out, version
-  share-target/page.tsx           # PWA Web Share Target receiver
-  loading.tsx                     # Global Next.js loading boundary
-  api/                            # All API routes (Next.js route handlers)
-hooks/
-  usePushNotifications.ts         # Web Push registration hook (used by status page)
-components/
-  AppHeader.tsx                   # Top nav bar with hamburger + theme toggle
-  NavDrawer.tsx                   # Slide-out nav drawer — pulls from NAV_TABS in nav-tabs.tsx
-  BottomNav.tsx                   # Mobile bottom tab bar (Practise/Review/Study/Settings)
-  ConditionalNav.tsx              # Composes AppHeader + NavDrawer + BottomNav
-  NavProgress.tsx                 # Top-of-page hairline progress bar during RSC nav
-  nav-tabs.tsx                    # NAV_TABS array — shared by NavDrawer + BottomNav
-  MethodologyEyebrow.tsx          # Numbered step rail (1·2·3 → Practise · Review · Study) — on /, /review, /write
-  OnboardingStep.tsx              # Shared wizard chrome (back / wordmark+dots / skip-or-close + CTA row)
-  WhatsAppShareIllustration.tsx   # Animated phone-frame mock for share deep-dive
-  Wordmark.tsx                    # CONVERSATION COACH wordmark
-  ThemeProvider.tsx               # Dark/light theme context
-  ThemeToggle.tsx                 # Theme switcher button
-  FontSizeProvider.tsx            # User-controllable font scale
-  LanguageProvider.tsx            # UI language context with live switching
-  PractiseClient.tsx              # Client island for / — mode picker (call/chat/share) + share-target pickup; mounts <PracticeClient> in place
-  PracticeClient.tsx              # Voice session UI (5-min Gemini Live) — mounted by <PractiseClient>; calls onExit() to return to doors
-  ReviewClient.tsx                # Client island for /review — inbox of recorded conversations
-  AudioReactiveDots.tsx           # Voice-reactive bouncing dots — exports VoiceTickCallback
-  SpeakerCard.tsx                 # Identify-screen speaker option card (radio + transcript snippet)
-  StatusPageMenu.tsx              # In-flight Status page header delete button
-  ProcessingGraphic.tsx           # Decorative SVG inside PipelineStatus
-  LoadingScreen.tsx               # Full-bleed centered spinner
-  SessionList.tsx                 # Session rows — swipe left=delete (5s undo), swipe right=toggle read; react-swipeable
-  DashboardInProgress.tsx         # In-flight sessions strip — rendered by ReviewClient
-  DashboardReminders.tsx          # Write-down count widget (ReviewClient empty/quiet states)
-  DashboardRecentSessions.tsx     # Recent sessions list with delete + read toggle
-  TranscriptClient.tsx            # Client island for /sessions/[id]
-  TranscriptView.tsx              # Paragraph-aware transcript renderer
-  AnnotatedText.tsx               # Renders a text slice with inline highlights; accepts offsetBase
-  ExplainSheet.tsx                # Docked sheet for flashcard-style explanation
-  InlineEdit.tsx                  # Tap-to-rename input with save/cancel; used for session titles
-  PipelineStatus.tsx              # Processing status rail (upload→transcribe→identify→analyse)
-  ScrollToTopOnNavigate.tsx       # Resets scroll position on route change
-  WriteClient.tsx                 # Client island for /write — wraps WriteList
-  AnnotationCard.tsx              # Single annotation row in transcript — triggers AnnotationSheet
-  AnnotationSheet.tsx             # Docked review panel for transcript corrections — wraps DockedSheet
-  WriteSheet.tsx                  # Docked review sheet for Write items — wraps DockedSheet
-  WriteList.tsx                   # The Write surface: queue of saved corrections + Written archive link
-  Icon.tsx                        # Shared inline-SVG icon set (Phosphor default)
-  # Shared UI primitives — prefer these over inlining:
-  Button.tsx                      # `<Button>` + `buttonStyles()` — import buttonStyles for non-button elements needing button appearance
-  LogoMark.tsx                    # Robot logo mark — body fill adapts to theme via --color-surface
-  IconButton.tsx                  # Square/circle icon-only button
-  Skeleton.tsx                    # `<Skeleton>` + `<SkeletonRow>` for loading.tsx boundaries
-  CorrectionInContext.tsx         # "Sentence with strike-and-rewrite" treatment (WriteList row fallback only — do not remove)
-  HushStack.tsx                   # Sheet-body "eyebrow + italic struck original + large serif answer" — shared by AnnotationCard + WriteSheet
-  StrikeOriginal.tsx              # Standalone "wrong → right" treatment (empty-state example)
-  ImportancePill.tsx              # "High priority" / "Worth remembering" pill
-  NavHint.tsx                     # First-open chevron-swipe cue inside DockedSheet
-  Toast.tsx                       # Floating bottom-anchored alert pill — uses --toast-bottom
-  DockedSheet.tsx                 # Sheet shell (bottom mobile, right desktop) — chrome, animation, focus, swipe, keys
-  Modal.tsx                       # Centered dialog with scrim — only use when action is genuinely modal
-  FlashcardRow.tsx                # Canonical Study row: italic native prompt top, serif target answer bottom, [[brackets]] tinted
-  ...                             # Other shared components
-lib/
-  types.ts                        # All shared TypeScript types
-  auth.ts                         # getAuthenticatedUser() — header fast-path + cookie fallback, React cache()
-  loaders.ts                      # Canonical SQL queries shared by RSCs and API routes
-  i18n.ts                         # t() translation function + TRANSLATIONS dict
-  push.ts                         # sendPushNotification helper
-  dashboard-summary.ts            # computeDashboardSummary() → { writeDownCount, ... }
-  supabase-server.ts              # Supabase client for server components/routes
-  supabase-browser.ts             # Supabase client for client components
-  audio-upload.ts                 # ACCEPTED_TYPES, ACCEPTED_EXTENSIONS, MAX_BYTES — import from here, don't duplicate
-  theme-meta.ts                   # PWA status-bar color constants
-  r2.ts                           # presignedUploadUrl, deleteObject
-  pipeline.ts                     # orchestrates status transitions and DB writes
-  assemblyai.ts                   # createJob, cancelJob, parseWebhook, getParagraphs, mapParagraphsToSegments
-  claude.ts                       # analyseUserTurns — prompt + JSON parse
-  voice-agent.ts                  # Gemini Live WebSocket: connect(targetLanguage, callbacks, options), buildPracticeSystemPrompt()
-  persona.ts                      # Call-mode persona generator: JS pre-picks name/voice axes, Claude writes opener + system addendum
-  ringtone.ts                     # playRingtone() — synthesised PSTN ringtone for incoming call screen; returns { stop }
-  flashcard.ts                    # parseFlashcard() — splits [[bracket]] pairs for FlashcardRow tint
-  logger.ts                       # `log` structured logger — JSON lines; log.error → stderr, others → stdout
-middleware.ts                     # Auth guard + ALLOWED_EMAILS allowlist + identity-header passthrough
-supabase/migrations/              # SQL migrations
-__tests__/                        # Vitest tests mirroring src structure
+npm run dev       # dev server
+npm run build     # production build
+npm test          # Vitest (all); npm test -- <path> for one file
+npm run lint      # ESLint
 ```
 
 ## Processing Pipeline
@@ -267,29 +151,22 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-
 - **RSC data fetching, no client waterfalls**: Use `lib/loaders.ts` + parent RSC instead of `useEffect(() => fetch(...), [])`. Polling is the exception (`ReviewClient` watches in-flight uploads — `setTimeout` chain, 3s base, 1.5x backoff, 30s cap, paused on hidden tabs).
 - **`<NavProgress>` fills the click→paint gap**: Top-of-page hairline starts on link click, finishes on `pathname` change.
 
-## Supabase CLI
-
-```bash
-supabase db query --linked "<sql>"                         # run SQL against remote
-supabase db push                                           # apply pending migrations
-supabase migration list                                    # check migration status
-supabase migration repair --status applied <version>       # register manually-applied migration
-```
-
 ## Environment Variables
 
-See `.env.local.example` for all required keys:
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
-- `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_WEBHOOK_SECRET`
-- `ANTHROPIC_API_KEY`
-- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
-- `GOOGLE_API_KEY` — Gemini Live (server-only, returned auth-gated via `/api/voice-token`)
-- `NEXT_PUBLIC_GOOGLE_VOICE` — Gemini prebuilt voice name (optional, default `Aoede`)
-- `ALLOWED_EMAILS` — comma-separated allowlist
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`
+See `.env.local.example` for descriptions. Required keys:
+
+- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- R2: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
+- AssemblyAI: `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_WEBHOOK_SECRET`
+- Anthropic: `ANTHROPIC_API_KEY`
+- Resend: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- Gemini: `GOOGLE_API_KEY` (server-only, returned auth-gated via `/api/voice-token`), `NEXT_PUBLIC_GOOGLE_VOICE` (optional, default `Aoede`)
+- Auth: `ALLOWED_EMAILS`
+- Push: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`
 - `APP_URL` — public URL for AssemblyAI webhooks (use ngrok for local dev)
 - `NEXT_PUBLIC_BUILD_DATE`, `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` — injected at build time; do not set manually
+
+To register a manually-applied migration: `supabase migration repair --status applied <version>`
 
 ## Agent skills
 
