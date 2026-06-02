@@ -391,7 +391,7 @@ export async function connect(
   // Set up the agent-playback sink. On iOS we must NOT play via
   // `safeCtx.destination` (earpiece routing — see isIOS comment above);
   // bridge through a MediaStream + <audio> element instead.
-  let agentSink: AudioNode = safeCtx.destination
+  let finalSink: AudioNode = safeCtx.destination
   let bridgeAudioEl: HTMLAudioElement | null = null
   if (isIOS() && typeof document !== 'undefined') {
     const dest = safeCtx.createMediaStreamDestination()
@@ -405,9 +405,16 @@ export async function connect(
     // attribute will retry, and the WebSocket connect itself ran inside the
     // user gesture that opened the session.
     el.play().catch(() => { /* non-fatal */ })
-    agentSink = dest
+    finalSink = dest
     bridgeAudioEl = el
   }
+
+  // All agent audio routes through this gain node so stopAgentPlayback() can
+  // ramp to 0 before cutting sources, avoiding the click/pop that src.stop()
+  // causes when cutting mid-waveform.
+  const agentGain = safeCtx.createGain()
+  agentGain.connect(finalSink)
+  const agentSink = agentGain
 
   // 3. Open WebSocket — API key in query param.
   const wsUrl = new URL(WS_ENDPOINT)
@@ -436,11 +443,18 @@ export async function connect(
   const activeAgentSources = new Set<AudioBufferSourceNode>()
 
   function stopAgentPlayback() {
+    const now = safeCtx.currentTime
+    const fadeEnd = now + 0.02  // 20ms ramp — inaudible but eliminates the hard-cut click
+    agentGain.gain.cancelScheduledValues(now)
+    agentGain.gain.setValueAtTime(agentGain.gain.value, now)
+    agentGain.gain.linearRampToValueAtTime(0, fadeEnd)
     activeAgentSources.forEach(src => {
-      try { src.stop() } catch { /* already stopped — fine */ }
+      try { src.stop(fadeEnd) } catch { /* already stopped — fine */ }
     })
     activeAgentSources.clear()
-    playbackTime = safeCtx.currentTime
+    // Restore gain so the next response starts at full volume.
+    agentGain.gain.setValueAtTime(1, fadeEnd)
+    playbackTime = fadeEnd
     // Snap the indicator back to silence so the UI doesn't keep pulsing
     // green for a beat after we cut the audio.
     if (!disposed) callbacks.onAgentAudio?.(0)
