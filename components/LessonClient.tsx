@@ -6,9 +6,10 @@
 //
 // State machine:
 //
-//   connecting → active/ending → review → analysing → /sessions/[id]
-//                                  ↘ onExit() (discard / no speech)
-//                                        ↘ error
+//   connecting → active/ending → review ──Yes──→ onStudied() (back to Study queue)
+//                                  ↑       └──No───→ active (resume with comfort signal)
+//                                  └──────────────────────┘
+//                                  ↘ onExit() (no speech)
 //
 // The lesson is structurally a sibling of Call and Chat — same Gemini Live
 // session, same parallel AssemblyAI STT, same wake-lock + RAF audio plumbing,
@@ -27,12 +28,12 @@
 
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
   connect,
   buildLessonSystemPrompt,
+  buildResumeSystemPrompt,
   FLASH_LIVE_MODEL,
   type LessonPhrase,
 } from '@/lib/voice-agent'
@@ -42,7 +43,6 @@ import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 import { AudioReactiveDots } from '@/components/AudioReactiveDots'
 import { LoadingScreen } from '@/components/LoadingScreen'
-import { ProcessingGraphic } from '@/components/ProcessingGraphic'
 import { LessonPhrasePill } from '@/components/LessonPhrasePill'
 import type { TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
@@ -51,7 +51,7 @@ import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 type LessonState =
   | 'connecting'
   | 'active' | 'ending'
-  | 'review' | 'analysing' | 'error'
+  | 'review'
 
 const COMPLETE_HOLD_MS    = 800   // brief beat after model reports `complete`
 const RMS_DECAY           = 0.85
@@ -84,7 +84,6 @@ interface Props {
 
 export function LessonClient({ phrase, onExit, onStudied }: Props) {
   const { t, targetLanguage } = useTranslation()
-  const router = useRouter()
   const reducedMotion = useReducedMotion()
 
   const [lessonState, setLessonState] = useState<LessonState>('connecting')
@@ -92,8 +91,7 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
   const [voiceStatus, setVoiceStatus] = useState<'listening' | 'speaking' | 'muted'>('listening')
   const [liveTurns, setLiveTurns] = useState<TranscriptTurn[]>([])
   const [toast, setToast] = useState<string | null>(null)
-  const [reviewStudied, setReviewStudied] = useState(false)
-  const [reviewSave, setReviewSave] = useState(true)
+  const [isResuming, setIsResuming] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
   const assemblyStreamRef = useRef<AssemblyAIStream | null>(null)
@@ -147,9 +145,9 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
     return () => { document.body.style.overflow = '' }
   }, [lessonState])
 
-  // Warn on browser navigation while unsaved turns exist or analysis is running.
+  // Warn on browser navigation while the unsaved review is open.
   useEffect(() => {
-    if (lessonState !== 'review' && lessonState !== 'analysing') return
+    if (lessonState !== 'review') return
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
@@ -272,37 +270,25 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
     userAudibleSinceLastTurnRef.current = false
   }, [])
 
-  const submitTurns = useCallback(async (turns: TranscriptTurn[]) => {
-    const userTurns = turns.filter(turn => turn.role === 'user')
-    if (userTurns.length === 0) {
-      setToast(t('practice.errorNoSpeech'))
-      onExitRef.current()
-      return
-    }
-    setLessonState('analysing')
-    try {
-      const res = await fetch('/api/practice-sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          turns,
-          targetLanguage,
-          session_type: 'lesson',
-          lesson_phrase: {
-            correction: phrase.correction,
-            explanation: phrase.explanation,
-            flashcard_front: phrase.flashcard_front,
-            practice_item_id: phrase.practice_item_id,
-          },
-        }),
-      })
-      if (!res.ok) throw new Error('Analysis failed')
-      const { session_id } = await res.json() as { session_id: string }
-      if (isMountedRef.current) router.push(`/sessions/${session_id}`)
-    } catch {
-      if (isMountedRef.current) setLessonState('error')
-    }
-  }, [t, targetLanguage, phrase, router])
+  // Fire-and-forget session save — non-blocking, errors are non-fatal.
+  const submitTurnsBg = useCallback((turns: TranscriptTurn[]) => {
+    if (!turns.some(t => t.role === 'user')) return
+    fetch('/api/practice-sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        turns,
+        targetLanguage,
+        session_type: 'lesson',
+        lesson_phrase: {
+          correction: phrase.correction,
+          explanation: phrase.explanation,
+          flashcard_front: phrase.flashcard_front,
+          practice_item_id: phrase.practice_item_id,
+        },
+      }),
+    }).catch(() => {})
+  }, [targetLanguage, phrase])
 
   const endSession = useCallback(() => {
     if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
@@ -322,36 +308,110 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
 
   useEffect(() => { endSessionRef.current = endSession }, [endSession])
 
-  const handleDone = useCallback(async () => {
-    if (reviewStudied) {
-      try {
-        await fetch(`/api/practice-items/${phrase.practice_item_id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ written_down: true }),
-        })
-        onStudied?.(phrase.practice_item_id)
-      } catch {
-        // non-fatal — user can mark from Study queue
-      }
-    }
-    if (reviewSave) {
-      submitTurns(frozenTurnsRef.current)
-    } else {
-      onExitRef.current()
-    }
-  }, [reviewStudied, reviewSave, phrase.practice_item_id, onStudied, submitTurns])
+  // "Yes — I've got it": save the recording in the background, mark studied, return to Study queue.
+  const handleYes = useCallback(() => {
+    submitTurnsBg(frozenTurnsRef.current)
+    fetch(`/api/practice-items/${phrase.practice_item_id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ written_down: true }),
+    }).catch(() => {})
+    onStudied?.(phrase.practice_item_id)
+  }, [phrase.practice_item_id, onStudied, submitTurnsBg])
 
-  // Retry from the error state. The transcript is still in
-  // frozenTurnsRef; re-POST as-is. Falls back to onExit if somehow nothing
-  // was captured.
-  const retry = useCallback(() => {
-    if (frozenTurnsRef.current.length > 0) {
-      submitTurns([...frozenTurnsRef.current])
-    } else {
-      onExitRef.current()
+  // "Not yet": reconnect with prior turns + comfort signal so the Coach continues drilling.
+  const resumeSession = useCallback(async () => {
+    if (lessonState !== 'review' || isResuming) return
+    const restoredTurns = [...frozenTurnsRef.current]
+    turnsRef.current = restoredTurns
+    frozenTurnsRef.current = []
+    setIsResuming(true)
+    setMuted(false)
+    const agentLabel = targetLanguage === 'en-NZ' ? 'Coach' : 'Entrenador'
+    const systemPrompt = buildResumeSystemPrompt(
+      buildLessonSystemPrompt(phrase, targetLanguage),
+      restoredTurns,
+      agentLabel,
+      'The learner just indicated they are not yet comfortable with this phrase. Continue drilling with more repetition and varied contexts before calling set_phase with phase="complete".',
+    )
+    try {
+      disconnectAssemblyAI()
+      const assemblyStream = await connectAssemblyAIStream(
+        { onTurn: handleAssemblyAITurn },
+        { language: targetLanguage },
+      )
+      assemblyStreamRef.current = assemblyStream
+      const agent = await connect(
+        targetLanguage,
+        {
+          onStateChange: (s) => {
+            if (!isMountedRef.current) return
+            if (s === 'active') {
+              setIsResuming(false)
+              setLessonState('active')
+            } else if (s === 'ended') {
+              agentRef.current = null
+              disconnectAssemblyAI()
+              setLessonState(prev => {
+                if (prev === 'active') setTimeout(() => endSessionRef.current(), 0)
+                return prev
+              })
+            }
+          },
+          onError: (msg) => {
+            if (!isMountedRef.current) return
+            const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
+            setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+            setIsResuming(false)
+            disconnectAssemblyAI()
+            frozenTurnsRef.current = restoredTurns
+            setLessonState('review')
+          },
+          onUserAudio: (rms) => {
+            userRmsRef.current = Math.max(userRmsRef.current, rms)
+            if (rms > RMS_FLOOR) userAudibleSinceLastTurnRef.current = true
+          },
+          onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
+          onMicPcm: (samples) => assemblyStreamRef.current?.pushPcm(samples),
+          onModelTurnStart: handleModelTurnStart,
+          onTurnComplete: handleTurnComplete,
+          onTranscript: (role, text) => {
+            if (!isMountedRef.current || role !== 'model') return
+            const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
+            turnsRef.current = [...turnsRef.current, turn]
+            setLiveTurns(turnsRef.current)
+          },
+          onToolCall: (name, args, respond) => {
+            if (name !== 'set_phase') { respond({ ok: true }); return }
+            const next = args.phase as string
+            respond({ ok: true })
+            if (next === 'complete') {
+              completeTimeoutRef.current = setTimeout(() => {
+                completeTimeoutRef.current = null
+                endSessionRef.current()
+              }, COMPLETE_HOLD_MS)
+            }
+          },
+        },
+        {
+          transcription: true,
+          inputTranscription: false,
+          systemPrompt,
+          model: FLASH_LIVE_MODEL,
+          tools: [SET_PHASE_TOOL],
+        },
+      )
+      agentRef.current = agent
+    } catch (err) {
+      if (!isMountedRef.current) return
+      const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
+      setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+      setIsResuming(false)
+      disconnectAssemblyAI()
+      frozenTurnsRef.current = restoredTurns
+      setLessonState('review')
     }
-  }, [submitTurns])
+  }, [lessonState, isResuming, phrase, targetLanguage, t, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
 
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
@@ -487,56 +547,7 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
     return <LoadingScreen />
   }
 
-  if (lessonState === 'analysing') {
-    return (
-      <div
-        className="
-          mx-auto w-full max-w-md px-6
-          flex flex-col items-center justify-center flex-1
-          gap-6 text-center
-        "
-        role="status"
-        aria-live="polite"
-      >
-        <ProcessingGraphic label={t('practice.analysing')} />
-        <p className="text-sm text-text-tertiary max-w-[32ch] leading-relaxed">
-          {t('practice.analysingHint')}
-        </p>
-      </div>
-    )
-  }
-
-  // The error branch lifts PracticeClient's pattern: a single primary
-  // action ("Try again") which re-POSTs the frozen transcript. Discard
-  // is implicit — closing the lesson via the page-level nav drops them
-  // back to /write. Body copy uses the existing pipeline-failure key so
-  // the voice stays consistent with the rest of the app.
-  if (lessonState === 'error') {
-    const hasTurns = frozenTurnsRef.current.length > 0
-    return (
-      <div
-        className="
-          mx-auto w-full max-w-md px-6
-          flex flex-col items-center justify-center flex-1
-          gap-6 text-center
-        "
-      >
-        <p className="text-base text-text-secondary">{t('practice.errorAnalysis')}</p>
-        <div className="flex items-center gap-3">
-          <Button onClick={retry}>
-            {hasTurns ? t('practice.tryAgain') : t('practice.startOver')}
-          </Button>
-          {hasTurns && (
-            <Button variant="secondary" onClick={() => onExitRef.current()}>
-              {t('practice.reviewDiscard')}
-            </Button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // ── Active / Warning / Ending / Review ───────────────────────────────
+  // ── Active / Ending / Review ─────────────────────────────────────────
   // Single render path shared across the live states. Connecting was
   // handled above — by the time we reach this branch the WebSocket is
   // up and the lesson is ready for the user to engage with.
@@ -625,35 +636,29 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}
-            className="flex-shrink-0 border-t border-border-subtle px-6 pt-6 pb-7 flex flex-col gap-6"
+            className="flex-shrink-0 border-t border-border-subtle px-6 pt-6 pb-7 flex flex-col gap-4"
           >
-            {/* Primary beat: the learning question carries full weight —
-                font-display heading + a prominent two-way choice. This is
-                the peak-end of the drill, so the companion lands here. */}
-            <div className="flex flex-col gap-3">
-              <p className="font-display text-lg text-text-primary leading-snug">
-                {t('drill.reviewStudiedQuestion')}
-              </p>
-              <DrillComfortChoice
-                value={reviewStudied}
-                onChange={setReviewStudied}
-                yesLabel={t('drill.reviewStudiedYes')}
-                noLabel={t('drill.reviewStudiedNo')}
-              />
+            <p className="font-display text-lg text-text-primary leading-snug">
+              {t('drill.reviewStudiedQuestion')}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={resumeSession}
+                disabled={isResuming}
+              >
+                {isResuming ? (
+                  <svg className="animate-spin w-4 h-4 mx-auto" fill="none" viewBox="0 0 24 24" aria-hidden>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : t('drill.reviewStudiedNo')}
+              </Button>
+              <Button className="flex-1" onClick={handleYes}>
+                {t('drill.reviewStudiedYes')}
+              </Button>
             </div>
-
-            {/* Secondary, quiet: saving the recording is plumbing, not the
-                moment. Demoted to a low-voice checkbox so it never competes
-                with the question above. */}
-            <DrillSaveToggle
-              checked={reviewSave}
-              onChange={setReviewSave}
-              label={t('drill.reviewKeep')}
-            />
-
-            <Button size="md" className="w-full" onClick={handleDone}>
-              {reviewSave ? t('drill.reviewFinishSave') : t('drill.reviewFinish')}
-            </Button>
           </motion.div>
         ) : (
           <motion.div
@@ -752,78 +757,6 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
 
       {toast && <Toast message={toast} />}
     </div>
-  )
-}
-
-// Primary decision: did the phrase land? Two equal-width segments so the
-// choice reads as one deliberate pick, not a survey row. "Not yet" is the
-// default-left (value=false) and "Yes" the right (value=true → marks the
-// item Studied). Asymmetric, human labels — not generic Yes/No toggles.
-function DrillComfortChoice({
-  value,
-  onChange,
-  yesLabel,
-  noLabel,
-}: {
-  value: boolean
-  onChange: (v: boolean) => void
-  yesLabel: string
-  noLabel: string
-}) {
-  const segment = (selected: boolean) => `
-    flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2
-    ${selected
-      ? 'bg-accent-primary text-on-accent'
-      : 'bg-surface-elevated text-text-secondary ring-1 ring-border-subtle hover:bg-border-subtle hover:text-text-primary'}
-  `
-  return (
-    <div className="flex items-center gap-2.5" role="radiogroup">
-      <button type="button" role="radio" aria-checked={!value} onClick={() => onChange(false)} className={segment(!value)}>
-        {noLabel}
-      </button>
-      <button type="button" role="radio" aria-checked={value} onClick={() => onChange(true)} className={segment(value)}>
-        {yesLabel}
-      </button>
-    </div>
-  )
-}
-
-// Secondary, low-voice control: keeping the recording in Review is logistics,
-// not the moment. A checkbox row in text-secondary so it sits quietly beneath
-// the primary question rather than mirroring it as a second toggle.
-function DrillSaveToggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-  label: string
-}) {
-  return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="group flex items-center gap-2.5 text-left focus-visible:outline-none"
-    >
-      <span
-        className={`
-          flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md transition-colors duration-150
-          group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
-          ${checked
-            ? 'bg-accent-primary text-on-accent'
-            : 'bg-surface-elevated ring-1 ring-border group-hover:ring-text-tertiary'}
-        `}
-      >
-        {checked && <Icon name="check" className="h-3.5 w-3.5" />}
-      </span>
-      <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors duration-150">
-        {label}
-      </span>
-    </button>
   )
 }
 

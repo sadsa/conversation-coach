@@ -267,6 +267,7 @@ export function buildResumeSystemPrompt(
   basePrompt: string,
   turns: TranscriptTurn[],
   agentLabel: string,
+  note?: string,
 ): string {
   const settled = turns
     .filter(t => !t.pending)
@@ -284,6 +285,7 @@ export function buildResumeSystemPrompt(
     'The conversation below happened before a brief pause. Resume naturally from where it left off — wait for the user to speak first. Do NOT re-introduce yourself or ask what you were talking about. You have already introduced yourself — do not repeat your introduction.',
     '',
     ...lines,
+    ...(note ? ['', '—— NOTE ——', note] : []),
   ].join('\n')
 
   return `${basePrompt.trimEnd()}\n${block}`

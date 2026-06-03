@@ -63,8 +63,12 @@ _Avoid_: Free flow, Chat
 
 
 **Drill**:
-A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop. Completing a Drill triggers a comfort check; answering "yes" auto-marks the Practice Item as Studied. The primary CTA to launch a Drill is on the WriteSheet.
+A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop. Completing a Drill triggers a Comfort Check; answering "yes" auto-marks the Practice Item as Studied. The primary CTA to launch a Drill is on the WriteSheet.
 _Avoid_: Lesson (teacher-led connotation), practice session (conflicts with Practise the loop phase)
+
+**Comfort Check**:
+The prompt shown when a Drill ends: "Are you comfortable now with this phrase?" with Yes / No buttons. Answering Yes marks the Practice Item as Studied (and optionally submits the session recording in the background if the user has enabled Drill recordings in settings). Answering No resumes the Drill — the Coach is told the learner is not yet comfortable and continues drilling. The loop repeats until the user answers Yes.
+_Avoid_: Review (reserved for the Review phase of the learning loop), satisfaction check
 
 **Coach**:
 The AI counterpart in Conversations and Drills. In chat mode it presents as "Coach"; in call mode it adopts a named persona, but the underlying entity is the same. Named in the app title ("Conversation Coach").
