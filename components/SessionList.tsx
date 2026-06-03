@@ -1,46 +1,8 @@
-// components/SessionList.tsx
-//
-// Inbox row with two opposing swipe gestures:
-//   • Swipe LEFT  → optimistic delete with 5s Undo (Gmail/WriteList parity)
-//   • Swipe RIGHT → toggle read/unread in place (reversible, no confirm)
-//
-// Both gestures live on the same row using `react-swipeable`. The translateX
-// during a drag has its sign sniff which side's background to reveal: negative
-// = red delete background on the right; positive = neutral toggle background
-// on the left. Past the 80px threshold the gesture commits on release; below
-// it we snap back.
-//
-// Delete used to open a confirmation Modal — the swipe was already a
-// commit gesture, so the modal added a forced second decision and broke
-// pattern parity with /write (which uses an optimistic-hide + 5s Undo
-// toast). We now mirror /write: hide the row immediately, schedule the
-// network DELETE for UNDO_TIMEOUT_MS later, surface a toast with Undo
-// that cancels the pending request entirely if the user grabs it in time.
-//
-// Read state is signalled by *weight + tone only* — no dot, no border stripe
-// (banned per impeccable rules). Read rows recede to `font-normal` +
-// `text-text-secondary`; unread rows hold the assertive default
-// `font-semibold` + `text-text-primary`. There's no Unread/All filter on top
-// of the list — the weight/tone difference is enough at-a-glance signal, and
-// removing the filter means a read-toggle never causes the row to leave the
-// visible array mid-animation.
-//
-// Row chrome (visual cohesion with the Study queue): each row is a rounded
-// card (`rounded-xl border border-border-subtle bg-surface`) with `space-y-2`
-// gaps between rows, matching `<WriteList>` exactly. The previous edge-to-edge
-// divided-list style was distinctive but it gave Review and Study two
-// completely different visual vocabularies — one inbox, one card stack. The
-// brand wants one list shape across both surfaces; cards win because (1) they
-// already work for Study's per-row trailing action, (2) they contain the
-// swipe reveals inside a rounded shape that feels intentional rather than
-// bleeding into the page edge, and (3) the spacing gaps reinforce the
-// "spacious" principle from .impeccable.md without needing extra padding.
-
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useSwipeable } from 'react-swipeable'
 import { Toast } from '@/components/Toast'
+import { RowActionsMenu, type RowAction } from '@/components/RowActionsMenu'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem } from '@/lib/types'
 import type { UiLanguage } from '@/lib/i18n'
@@ -63,42 +25,7 @@ const STATUS_COLOUR: Record<string, string> = {
 }
 
 const TERMINAL_STATUSES = new Set(['ready', 'error'])
-
-// Threshold past which a release commits the swipe. Matches the delete
-// threshold so users learn one rule for both gestures.
-const SWIPE_COMMIT_PX = 80
-
-// How long the row stays optimistically hidden before the actual DELETE
-// fires. Same window WriteList uses, so the two destructive surfaces feel
-// like one pattern. Tap Undo inside this window and the request never
-// hits the network.
 const UNDO_TIMEOUT_MS = 5000
-
-// Commit-animation choreography. The previous version slid the row off in
-// 220ms, then snapped to collapsing the now-empty space in another 220ms
-// — felt like two separate events ("row left → wait → list rearranged").
-//
-// New version reads as one continuous gesture by overlapping the two phases:
-//
-//   t=0     row starts sliding out + fading
-//   t=160   collapse starts (neighbour begins rising while row is still leaving)
-//   t=240   opacity has reached 0 — row is visually gone
-//   t=360   slide is fully complete
-//   t=520   collapse is fully complete, list at rest
-//
-// Total perceived motion: ~520ms. Sits in the upper layout-change band per
-// the impeccable timing scale, which matches the "patient, spacious" brand
-// (Gmail's swipe-archive runs at a similar tempo). The snap-back from a
-// cancelled drag stays at 220ms — a cancel should feel immediate; only the
-// commit wants to feel deliberate.
-const SLIDE_DURATION_MS = 360
-const FADE_DURATION_MS = 240
-const COLLAPSE_OVERLAP_MS = 160
-const COLLAPSE_DURATION_MS = 360
-const CANCEL_DURATION_MS = 220
-// ease-out-quart per impeccable motion rules — natural deceleration, no
-// bounce/elastic.
-const EASING = 'cubic-bezier(0.25, 1, 0.5, 1)'
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -106,13 +33,6 @@ function formatDuration(seconds: number): string {
   return `${m}m ${s}s`
 }
 
-// The date label is pinned top-right on each row (Drive/Gmail pattern).
-// Without bucket headers for context, the label must be self-sufficient:
-//   • Today            → time only  (e.g. "14:32")
-//   • Yesterday        → "Yesterday"
-//   • Earlier this week → weekday short (e.g. "Tue")
-//   • Older, same year  → short date (e.g. "15 Mar")
-//   • Older, past year  → date + year (e.g. "15 Mar 2024")
 function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date()): string {
   const locale = uiLanguage === 'es' ? 'es-AR' : 'en-GB'
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -139,275 +59,54 @@ function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date(
   )
 }
 
-function SwipeableSessionItem({
+function SessionItem({
   session,
   onDelete,
   onToggleRead,
 }: {
   session: SessionListItem
-  onDelete: (id: string) => Promise<boolean>
-  onToggleRead: (id: string, makeRead: boolean) => Promise<boolean>
+  onDelete: (id: string) => void
+  onToggleRead: (id: string, makeRead: boolean) => void
 }) {
   const { t, uiLanguage } = useTranslation()
-  // translateX is signed: negative = dragging left (delete reveal), positive
-  // = dragging right (toggle reveal). Zero = at rest.
-  const [translateX, setTranslateX] = useState(0)
-  const [rowHeight, setRowHeight] = useState<number | null>(null)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const rowRef = useRef<HTMLLIElement>(null)
-  const mountedRef = useRef(true)
-
-  useEffect(() => {
-    return () => { mountedRef.current = false }
-  }, [])
-
-  // Optimistic, undoable delete. The row slides off + collapses immediately
-  // (perceived as "done") and the parent surfaces an Undo toast for
-  // UNDO_TIMEOUT_MS. The actual network DELETE is scheduled by the parent
-  // and cancelled if Undo fires. We hand control to the parent through
-  // `onDelete`, which returns true once the user has either confirmed (by
-  // not undoing) or undone the action.
-  async function triggerDelete() {
-    if (isAnimating || !rowRef.current) return
-    setIsAnimating(true)
-
-    // Slide + fade start now; collapse starts mid-slide so the list rearranges
-    // as part of one continuous motion (see SLIDE/COLLAPSE_OVERLAP comments).
-    setTranslateX(-window.innerWidth)
-    const deletePromise = onDelete(session.id)
-
-    await new Promise(r => setTimeout(r, COLLAPSE_OVERLAP_MS))
-    if (!mountedRef.current) return
-
-    setRowHeight(0)
-
-    // Wait for whichever finishes last — the late half of the slide or the
-    // full collapse — before resolving so a failed delete (or an Undo)
-    // can roll the row back from a stable resting state.
-    const remainingMs = Math.max(
-      SLIDE_DURATION_MS - COLLAPSE_OVERLAP_MS,
-      COLLAPSE_DURATION_MS,
-    )
-    const [, deleteResult] = await Promise.allSettled([
-      new Promise(r => setTimeout(r, remainingMs)),
-      deletePromise,
-    ])
-    if (!mountedRef.current) return
-
-    const succeeded = deleteResult.status === 'fulfilled' && deleteResult.value === true
-
-    if (!succeeded) {
-      // Undo or DELETE failure — expand the row back and slide it in.
-      // Use a positive non-null value so the grid-template-rows transition
-      // stays active (null would remove the transition, snapping the height
-      // instantly). translateX → 0 slides it back in over CANCEL_DURATION_MS
-      // and setIsAnimating(false) restores opacity to 1.
-      setRowHeight(1)
-      setTranslateX(0)
-      setIsAnimating(false)
-    }
-    // On success: parent already called onDeleted inside onDelete
-  }
-
-  // Toggling read/unread is non-destructive and stays in-place — the row's
-  // bold/normal weight flip is the only visible change. Optimistic update
-  // happens at the page level via onToggleRead; we just hand off the
-  // request and let the toast surface (in SessionList) handle errors.
-  async function triggerToggleRead() {
-    if (isAnimating || !rowRef.current) return
-    await onToggleRead(session.id, isUnread)
-  }
-
-  const handlers = useSwipeable({
-    delta: 10,
-    onSwiping: (e) => {
-      // Only allow horizontal drag; vertical scrolls fall through naturally.
-      if (e.dir === 'Left') {
-        setTranslateX(-e.absX)
-      } else if (e.dir === 'Right' && session.status === 'ready') {
-        // Right-swipe gesture is only meaningful for ready sessions — there's
-        // no read state to toggle on rows still in the pipeline.
-        setTranslateX(e.absX)
-      } else {
-        setTranslateX(0)
-      }
-    },
-    onSwipedLeft: (e) => {
-      if (e.absX > SWIPE_COMMIT_PX) {
-        // Direct commit — no Modal. The user already swiped to delete;
-        // forcing a second confirm broke pattern parity with /write
-        // and added friction for an action we can fully undo.
-        triggerDelete()
-      } else {
-        setTranslateX(0)
-      }
-    },
-    onSwipedRight: (e) => {
-      if (session.status !== 'ready') {
-        setTranslateX(0)
-        return
-      }
-      if (e.absX > SWIPE_COMMIT_PX) {
-        // Snap back to 0 first so the in-place toggle doesn't fight with
-        // the drag offset.
-        setTranslateX(0)
-        triggerToggleRead()
-      } else {
-        setTranslateX(0)
-      }
-    },
-    trackMouse: false,
-  })
 
   const isProcessing = !TERMINAL_STATUSES.has(session.status)
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
-  // Defer date formatting to the client. `Intl.DateTimeFormat` emits a
-  // different whitespace character between time and AM/PM in Node ICU vs
-  // Chromium ICU (regular space vs U+202F narrow no-break), which produces
-  // visually-identical but byte-different strings — enough to trip a
-  // hydration mismatch on this SSR'd client component and force React to
-  // re-render the whole boundary on the client (perf hit). Computing the
-  // label after mount also bullet-proofs against server/client clock drift
-  // (e.g. a row crossing midnight between SSR and hydration). The nbsp
-  // placeholder during SSR preserves line height; horizontal shift on
-  // hydrate is one tick and visually equivalent to the label appearing
-  // alongside the rest of the row content.
+  const isUnread = session.status === 'ready' && session.last_viewed_at == null
+
   const [dateLabel, setDateLabel] = useState<string>('')
   useEffect(() => {
     setDateLabel(formatRowDate(new Date(session.created_at), uiLanguage))
   }, [session.created_at, uiLanguage])
-  // Unread is meaningful only for ready conversations — in-progress rows
-  // already carry a spinner + status, and errors get a red status. Showing
-  // any unread treatment on those would just add noise.
-  const isUnread = session.status === 'ready' && session.last_viewed_at == null
 
-  // Right-swipe action label flips with current state — same gesture, opposite
-  // verb. When the row isn't toggleable (still processing) we skip the label.
-  const toggleLabel = !isUnread ? t('session.markUnread') : t('session.markRead')
+  const actions: RowAction[] = [
+    ...(session.status === 'ready'
+      ? [{
+          label: isUnread ? t('session.markRead') : t('session.markUnread'),
+          onSelect: () => onToggleRead(session.id, isUnread),
+          testId: `toggle-read-${session.id}`,
+        }]
+      : []),
+    {
+      label: t('session.delete'),
+      onSelect: () => onDelete(session.id),
+      destructive: true,
+      testId: `delete-session-${session.id}`,
+    },
+  ]
 
   return (
-    <li
-      ref={rowRef}
-      // `overflow-hidden` here clips the inner card's content against the
-      // shrinking grid track during the collapse animation — without it the
-      // row's contents would visually spill past the collapsing track. The
-      // rounded card border lives on the inner div so the visible card shape
-      // still reads as rounded; this outer clipper is invisible.
-      className="relative grid overflow-hidden"
-      style={
-        rowHeight !== null
-          ? {
-              gridTemplateRows: rowHeight === 0 ? '0fr' : '1fr',
-              transition: `grid-template-rows ${COLLAPSE_DURATION_MS}ms ${EASING}`,
-            }
-          : { gridTemplateRows: '1fr' }
-      }
-    >
-      {/*
-        Card frame. Holds the rounded border + hover-border (static while
-        the gesture target slides) and the overflow clipping that keeps
-        the swipe-reveal layers inside the rounded shape. Importantly: no
-        bg here — the bg lives on the gesture target below so the slide
-        reveal works correctly (the sliding target obscures the reveal
-        except where it has moved away from). Border-hover bubbles from
-        the gesture target via natural `:hover` propagation, so no group
-        wiring is needed.
-      */}
-      <div className="relative overflow-hidden min-h-0 min-w-0 rounded-xl border border-border-subtle hover:border-border transition-colors">
-      {/* Swipe reveals — only one is mounted at a time based on drag direction
-          (or active commit animation). Both layers are `absolute inset-0`, so
-          if we mounted them simultaneously the second one in the DOM would
-          paint over the first and the user would see the wrong colour for
-          half the gestures. Sign of `translateX` is the source of truth:
-            • negative → row sliding left → reveal delete (red, pinned right)
-            • positive → row sliding right → reveal toggle (chip, pinned left)
-          We only render the toggle layer for ready sessions; for in-progress
-          rows the right-swipe gesture is a no-op and there's nothing to show. */}
-      {translateX < 0 && (
-        <div className="absolute inset-0 bg-status-error flex items-center justify-end pr-5 pointer-events-none">
-          <span className="text-white font-medium">{t('session.delete')}</span>
-        </div>
-      )}
-      {translateX > 0 && session.status === 'ready' && (
-        <div className="absolute inset-0 bg-accent-chip flex items-center justify-start pl-5 pointer-events-none">
-          <span className="text-on-accent-chip font-medium">{toggleLabel}</span>
-        </div>
-      )}
-
-      {/*
-        Session card — gesture target. Carries the resting bg + hover
-        bg so the swipe-reveal layers underneath are properly OCCLUDED
-        by the sliding card surface (and become visible only on the
-        portion the card has slid AWAY from). Hover-bg propagates to
-        the parent's hover-border via natural `:hover` bubbling, so
-        both react together without any group wiring.
-
-        Processing rows tint the gesture target with `bg-accent-chip`
-        instead of `bg-surface`, matching the previous brand-warmth
-        signal. No hover state in that case — processing rows aren't
-        actionable beyond opening status.
-      */}
-      <div
-        {...handlers}
-        style={{
-          transform: `translateX(${translateX}px)`,
-          // Opacity fades only on commit — disguises the moment the row
-          // crosses the screen edge, so by the time the neighbour rises into
-          // its slot the departing row has visually dissolved. No fade
-          // during interactive drag (would mask the cancel affordance) and
-          // no fade on snap-back (the card belongs back at full strength).
-          opacity: isAnimating ? 0 : 1,
-          transition: isAnimating
-            ? `transform ${SLIDE_DURATION_MS}ms ${EASING}, opacity ${FADE_DURATION_MS}ms ${EASING}`
-            : translateX === 0
-            ? `transform ${CANCEL_DURATION_MS}ms ${EASING}`
-            : 'none',
-          userSelect: 'none',
-          touchAction: 'pan-y',
-        }}
-        className={`relative transition-colors ${
-          isProcessing ? 'bg-accent-chip' : 'bg-surface hover:bg-surface-elevated'
-        }`}
-      >
-        {/* Hidden test seam for triggering delete in tests. Kicks off the
-            same optimistic-undo flow the swipe gesture uses, since simulating
-            touch swipes in JSDOM is brittle. */}
-        <button
-          data-testid={`delete-session-${session.id}`}
-          className="sr-only"
-          onClick={e => { e.stopPropagation(); triggerDelete() }}
-          tabIndex={-1}
-          aria-hidden="true"
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore — inert is a valid HTML attribute not yet in React's types
-          inert=""
-        />
-        {/* Hidden test seam for triggering the read/unread toggle. The visible
-            affordance is the swipe gesture; this gives unit tests a stable
-            handle since simulating touch swipes in JSDOM is brittle. */}
-        {session.status === 'ready' && (
-          <button
-            data-testid={`toggle-read-${session.id}`}
-            className="sr-only"
-            onClick={e => { e.stopPropagation(); triggerToggleRead() }}
-            tabIndex={-1}
-            aria-hidden="true"
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore — inert is a valid HTML attribute not yet in React's types
-            inert=""
-          />
-        )}
+    <li className="relative group">
+      <div className={`rounded-xl border border-border-subtle hover:border-border transition-colors overflow-hidden ${
+        isProcessing ? 'bg-accent-chip' : 'bg-surface'
+      }`}>
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
-          onClick={(e) => { if (isAnimating || translateX !== 0) e.preventDefault() }}
-          className="block py-4 px-5 min-w-0"
+          className={`block py-4 pl-5 pr-12 min-w-0 transition-colors ${
+            isProcessing ? '' : 'hover:bg-surface-elevated'
+          }`}
         >
-          {/*
-            Title row. Date is pinned top-right (Drive/Gmail pattern) so it's
-            always adjacent to the title without consuming a second line.
-            Read state lives on weight + tone alone — no dot, no border stripe.
-          */}
           <div className="flex items-baseline justify-between gap-3 min-w-0">
             <p
               className={`text-lg truncate min-w-0 ${
@@ -421,12 +120,8 @@ function SwipeableSessionItem({
                 <span className="sr-only"> — {t('home.recentSessionUnreadAria')}</span>
               )}
             </p>
-            <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel || '\u00A0'}</span>
+            <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel || ' '}</span>
           </div>
-          {/*
-            Metadata row: status and duration. Date moved to title row.
-            Status only appears when it adds information (processing or error).
-          */}
           <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1 flex-wrap tabular-nums">
             {showStatus && (
               <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
@@ -452,7 +147,11 @@ function SwipeableSessionItem({
         </Link>
       </div>
 
-    </div>
+      <RowActionsMenu
+        actions={actions}
+        triggerLabel={t('session.menuAria')}
+        triggerTestId={`session-menu-${session.id}`}
+      />
     </li>
   )
 }
@@ -460,12 +159,6 @@ function SwipeableSessionItem({
 interface Props {
   sessions: SessionListItem[]
   onDeleted?: (id: string) => void
-  /**
-   * Optimistic toggle hook. Called by the row when a swipe-right commits.
-   * The handler should flip the row's `last_viewed_at` (null ↔ timestamp)
-   * locally before awaiting the network so the visual state changes
-   * immediately, and roll back if the API call fails.
-   */
   onToggleRead?: (id: string, makeRead: boolean) => void
 }
 
@@ -475,10 +168,15 @@ interface ToastState {
   key: number
 }
 
-export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
+export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead }: Props) {
   const { t } = useTranslation()
+  const [sessions, setSessions] = useState(initialSessions)
   const [toast, setToast] = useState<ToastState | null>(null)
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setSessions(initialSessions)
+  }, [initialSessions])
 
   useEffect(() => {
     return () => {
@@ -486,76 +184,71 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
     }
   }, [])
 
-  /**
-   * Optimistic, undoable session delete. Returns a long-lived promise
-   * that resolves `true` once the DELETE is confirmed, or `false` if the
-   * user hits Undo or the network call fails.
-   *
-   * Critically: we do NOT hide the row from the `sessions` array here.
-   * The row stays mounted so its own slide+collapse animation can play
-   * in `SwipeableSessionItem`. Once the DELETE succeeds, `onDeleted`
-   * removes the row from the parent array and React unmounts it cleanly
-   * (it's already at height 0 by then). On Undo or failure, the child
-   * restores the row to its pre-swipe visual state.
-   */
-  async function deleteSession(id: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      let cancelled = false
-      let pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null
+  function deleteSession(id: string) {
+    const snapshot = sessions.find(s => s.id === id)
+    if (!snapshot) return
 
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-      setToast({
-        key: Date.now(),
-        message: t('session.movedToTrash'),
-        onUndo: () => {
-          cancelled = true
-          if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer)
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-          setToast(null)
-          resolve(false)
-        },
-      })
-      toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
+    setSessions(prev => prev.filter(s => s.id !== id))
 
-      pendingDeleteTimer = setTimeout(async () => {
-        if (cancelled) return
-        const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
-        if (!res.ok) {
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-          setToast({ key: Date.now(), message: t('session.deleteError') })
-          toastTimerRef.current = setTimeout(() => setToast(null), 3000)
-          resolve(false)
-          return
-        }
-        onDeleted?.(id)
-        resolve(true)
-      }, UNDO_TIMEOUT_MS)
+    let cancelled = false
+    let pendingDeleteTimer: ReturnType<typeof setTimeout> | null = null
+
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({
+      key: Date.now(),
+      message: t('session.movedToTrash'),
+      onUndo: () => {
+        cancelled = true
+        if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer)
+        setSessions(prev =>
+          prev.find(s => s.id === id)
+            ? prev
+            : [...prev, snapshot].sort((a, b) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              )
+        )
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+        setToast(null)
+      },
     })
+    toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
+
+    pendingDeleteTimer = setTimeout(async () => {
+      if (cancelled) return
+      const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        setSessions(prev =>
+          prev.find(s => s.id === id)
+            ? prev
+            : [...prev, snapshot].sort((a, b) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              )
+        )
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+        setToast({ key: Date.now(), message: t('session.deleteError') })
+        toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+        return
+      }
+      onDeleted?.(id)
+    }, UNDO_TIMEOUT_MS)
   }
 
-  async function toggleReadSession(id: string, makeRead: boolean): Promise<boolean> {
-    // Optimistic flip is owned by the parent (so the visual change is
-    // immediate even when the row stays in place). We notify first, await
-    // the network, and ask the parent to roll back on failure via a second
-    // call with the inverse value.
+  function handleToggleRead(id: string, makeRead: boolean) {
     onToggleRead?.(id, makeRead)
-    const res = await fetch(`/api/sessions/${id}`, {
+    fetch(`/api/sessions/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ read: makeRead }),
+    }).then(res => {
+      if (!res.ok) {
+        onToggleRead?.(id, !makeRead)
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+        setToast({ key: Date.now(), message: t('session.toggleReadError') })
+        toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+      }
     })
-    if (!res.ok) {
-      onToggleRead?.(id, !makeRead)
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-      setToast({ key: Date.now(), message: t('session.toggleReadError') })
-      toastTimerRef.current = setTimeout(() => setToast(null), 3000)
-      return false
-    }
-    return true
   }
 
-  // Toast must always render — even when the list is empty (e.g. the user
-  // just swiped away the only row and the Undo toast is up).
   const renderedToast = toast && (
     <Toast
       toastKey={toast.key}
@@ -575,26 +268,16 @@ export function SessionList({ sessions, onDeleted, onToggleRead }: Props) {
 
   return (
     <div>
-      {/*
-        Card-list rhythm matches <WriteList> on /write so the two pillars
-        (Review + Study) read as one brand. `space-y-2` puts an 8px gap
-        between cards — same as Study. We dropped the previous mobile
-        bleed (`-mx-6`) because cards want to feel inset, not glued to
-        the screen edge — and once the rows are bounded by a rounded
-        border, the page's existing `px-6` gutter reads as deliberate
-        rather than awkward.
-      */}
       <ul className="space-y-2">
         {sessions.map(s => (
-          <SwipeableSessionItem
+          <SessionItem
             key={s.id}
             session={s}
             onDelete={deleteSession}
-            onToggleRead={toggleReadSession}
+            onToggleRead={handleToggleRead}
           />
         ))}
       </ul>
-
       {renderedToast}
     </div>
   )

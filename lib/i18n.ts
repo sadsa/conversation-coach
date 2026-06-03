@@ -410,12 +410,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // confirmation modal: the swipe is the commit, the toast is the safety net.
     'session.movedToTrash': 'Conversation moved to trash.',
     'session.undo': 'Undo',
-    // Swipe-right toggle on a session row in the recent inbox.
     'session.markUnread': 'Mark unread',
     'session.markRead': 'Mark read',
     'session.markUnreadAria': 'Mark "{title}" as unread',
     'session.markReadAria': 'Mark "{title}" as read',
     'session.toggleReadError': 'Couldn\'t update — try again.',
+    // Row context menu (⋮)
+    'session.menuAria': 'More actions',
     // Pipeline status
     'pipeline.uploading': 'Uploading',
     'pipeline.transcribing': 'Transcribing',
@@ -608,29 +609,20 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Study list — inline studied section (bottom of same list, dimmed).
     'writeList.archiveHeading': 'Studied',
-    'writeList.markDoneShort': 'Done',
-    'writeList.unmarkDoneShort': 'Undo',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Practise to save your first correction →',
-    'writeList.markRowAria': 'Mark "{original}" as studied',
-    'writeList.unmarkRowAria': 'Move "{original}" back to Study queue',
-    // Toasts only fire on the destructive / error paths now: success
-    // states (mark-written, move-back) are silent because the row leaving
-    // the current tab is more confirmation than the user needs.
     'writeList.movedToTrash': 'Removed. You can grab it back.',
-    'writeList.swipeMarkedWritten': 'Studied.',
     'writeList.undo': 'Undo',
     'writeList.deleteError': 'Couldn\'t delete item — try again.',
     'writeList.markWrittenError': 'Couldn\'t update — try again.',
     'writeList.importanceToggleAria': 'Toggle importance explanation',
-    // Swipe gesture hint (one-shot, above the list on first visit)
-    'writeList.swipeHintText': 'Swipe left to delete, right to mark as studied.',
-    'writeList.swipeHintDismiss': 'Got it',
-    // Swipe reveal labels
-    'writeList.swipeDeleteLabel': 'Delete',
-    'writeList.swipeWrittenLabel': 'Studied',
     'writeList.allStudiedHeading': 'All studied',
     'writeList.allStudiedCta': 'Practise to save more corrections →',
+    // Row context menu (⋮)
+    'writeList.menuAria': 'More actions',
+    'writeList.menuMarkStudied': 'Mark as studied',
+    'writeList.menuMoveBack': 'Move back to Study list',
+    'writeList.menuDelete': 'Delete',
 
     // Study review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
@@ -643,7 +635,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.moveBack': 'Move back to Study list',
     'writeSheet.moveBackBusy': 'Moving back…',
     'writeSheet.moveBackAria': 'Move this correction back to the Study list',
-    'writeSheet.practise': 'Practise this phrase',
+    'writeSheet.practise': 'Drill this phrase',
     // Overflow menu — Delete is undoable for 5 seconds via the toast, so the
     // copy is reassuring rather than threatening.
     'writeSheet.moreActionsAria': 'More actions',
@@ -997,13 +989,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // El gesto deslizar ya es la confirmación; el toast es la red de seguridad.
     'session.movedToTrash': 'Conversación enviada a la papelera.',
     'session.undo': 'Deshacer',
-    // Toggle leído/sin leer al deslizar a la derecha sobre una fila.
     'session.markUnread': 'Sin leer',
     'session.markRead': 'Leída',
     'session.markUnreadAria': 'Marcar "{title}" como sin leer',
     'session.markReadAria': 'Marcar "{title}" como leída',
     'session.toggleReadError': 'No se pudo actualizar — intentá de nuevo.',
-    // Toast de deshacer en el inicio cuando una visita marcó una fila como leída.
+    // Menú contextual de fila (⋮)
+    'session.menuAria': 'Más acciones',
     // Pipeline status
     'pipeline.uploading': 'Subiendo',
     'pipeline.transcribing': 'Transcribiendo',
@@ -1181,27 +1173,20 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
     // principal, Escritos vive como sección inline atenuada al final de la lista).
     'writeList.archiveHeading': 'Estudiados',
-    'writeList.markDoneShort': 'Listo',
-    'writeList.unmarkDoneShort': 'Deshacer',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Practicá para guardar tu primera corrección →',
-    'writeList.markRowAria': 'Marcar "{original}" como estudiado',
-    'writeList.unmarkRowAria': 'Mover "{original}" de vuelta a la cola de Estudiar',
-    // Toasts only fire on the destructive / error paths now: success
-    // states (mark-written, move-back) are silent because the row leaving
-    // the current tab is more confirmation than the user needs.
     'writeList.movedToTrash': 'Eliminada. Podés recuperarla.',
-    'writeList.swipeMarkedWritten': 'Estudiado.',
     'writeList.undo': 'Deshacer',
     'writeList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
     'writeList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
     'writeList.importanceToggleAria': 'Alternar explicación de importancia',
-    'writeList.swipeHintText': 'Deslizá a la izquierda para eliminar, a la derecha para marcar como estudiado.',
-    'writeList.swipeHintDismiss': 'Entendido',
-    'writeList.swipeDeleteLabel': 'Eliminar',
-    'writeList.swipeWrittenLabel': 'Estudiado',
     'writeList.allStudiedHeading': 'Todo estudiado',
     'writeList.allStudiedCta': 'Practicá para guardar más correcciones →',
+    // Menú contextual de fila (⋮)
+    'writeList.menuAria': 'Más acciones',
+    'writeList.menuMarkStudied': 'Marcar como estudiado',
+    'writeList.menuMoveBack': 'Volver a la lista de Estudiar',
+    'writeList.menuDelete': 'Eliminar',
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',

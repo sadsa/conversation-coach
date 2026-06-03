@@ -79,6 +79,11 @@ const ICONS = {
     <circle cx="12" cy="12" r="1.5" />
     <circle cx="19" cy="12" r="1.5" />
   </>,
+  'more-vertical': <>
+    <circle cx="12" cy="5" r="1.5" />
+    <circle cx="12" cy="12" r="1.5" />
+    <circle cx="12" cy="19" r="1.5" />
+  </>,
   spinner: <circle cx="12" cy="12" r="9" strokeDasharray="40 20" className="origin-center animate-spin" />,
   clock: <>
     <circle cx="12" cy="12" r="9" />

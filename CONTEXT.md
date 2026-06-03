@@ -46,7 +46,7 @@ A user-selected Annotation saved to their Study queue. Created by explicit user 
 _Avoid_: Flashcard, saved item, write item
 
 **Studied** (state):
-A Practice Item that the user has marked as done — moved from the active Study queue to the Studied archive. The act is method-agnostic: the user may physically write the phrase, drill it mentally, or review it another way. DB column: `written_down` (stable, not renamed). The archive view is the "Studied" list.
+A Practice Item that the user has marked as done — moved from the active Study queue to the Studied archive. The primary path is completing a Drill and answering "yes" to the comfort check — this auto-marks the item as Studied. Manual "Mark Studied" exists as a fallback (e.g. the user rehearsed offline). DB column: `written_down` (stable, not renamed). The archive view is the "Studied" list.
 _Avoid_: Written, written down (too prescriptive — implies physical writing)
 
 **Conversation**:
@@ -63,7 +63,7 @@ _Avoid_: Free flow, Chat
 
 
 **Drill**:
-A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop.
+A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop. Completing a Drill triggers a comfort check; answering "yes" auto-marks the Practice Item as Studied. The primary CTA to launch a Drill is on the WriteSheet.
 _Avoid_: Lesson (teacher-led connotation), practice session (conflicts with Practise the loop phase)
 
 **Coach**:
