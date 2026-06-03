@@ -290,11 +290,12 @@ export function buildResumeSystemPrompt(
 }
 
 /** Phrase context passed into the lesson — the correction, its explanation,
- *  and the optional [[bracketed]] flashcard front text. */
+ *  and the optional [[bracketed]] flashcard text. */
 export interface LessonPhrase {
   correction: string
   explanation: string
   flashcard_front: string | null
+  flashcard_back: string | null
 }
 
 /** System prompt for lesson sessions. The teacher moves through four phases

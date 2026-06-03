@@ -43,9 +43,14 @@ export function WriteClient({ initialItems, lockedPillars }: Props) {
           correction: lessonItem.correction ?? lessonItem.original,
           explanation: lessonItem.explanation,
           flashcard_front: lessonItem.flashcard_front,
+          flashcard_back: lessonItem.flashcard_back,
           practice_item_id: lessonItem.id,
         }}
         onExit={() => setLessonItem(null)}
+        onStudied={(id) => {
+          setItems(prev => prev.map(i => i.id === id ? { ...i, written_down: true } : i))
+          setLessonItem(null)
+        }}
       />
     )
   }
