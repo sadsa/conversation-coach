@@ -50,14 +50,22 @@ describe('parseFlashcard', () => {
     })
   })
 
-  it('captures only the FIRST bracket pair when multiple are present (defensive)', () => {
-    // The Claude prompt asks for one pair per string. If a second pair
-    // leaks through, we render the first as the focus and leave the
-    // rest of the string (brackets included) untouched in `after`.
+  it('strips [[…]] delimiters from extra pairs in `after`, keeping the phrase text', () => {
+    // Claude occasionally generates two bracket pairs (e.g. marking two words).
+    // The first pair is the focus phrase; subsequent brackets must not
+    // render literally in the DOM — strip the [[ ]] markers, keep the text.
     expect(parseFlashcard('[[uno]] y [[dos]] también')).toEqual({
       before: '',
       phrase: 'uno',
-      after: ' y [[dos]] también',
+      after: ' y dos también',
+    })
+  })
+
+  it('strips multiple extra pairs from `after`', () => {
+    expect(parseFlashcard('Lo que le [[faltaba]] al final [[era]] la sal.')).toEqual({
+      before: 'Lo que le ',
+      phrase: 'faltaba',
+      after: ' al final era la sal.',
     })
   })
 })

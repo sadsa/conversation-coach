@@ -32,9 +32,14 @@ export interface ParsedFlashcard {
 }
 
 const BRACKET_RE = /^([\s\S]*?)\[\[([\s\S]+?)\]\]([\s\S]*)$/
+const EXTRA_BRACKETS_RE = /\[\[([\s\S]+?)\]\]/g
 
 export function parseFlashcard(input: string): ParsedFlashcard {
   const match = input.match(BRACKET_RE)
   if (!match) return { before: input, phrase: '', after: '' }
-  return { before: match[1], phrase: match[2], after: match[3] }
+  return {
+    before: match[1],
+    phrase: match[2],
+    after: match[3].replace(EXTRA_BRACKETS_RE, '$1'),
+  }
 }
