@@ -34,13 +34,32 @@ const defaultProps = {
 }
 
 describe('TranscriptView', () => {
-  it('dims native speaker turns (speaker B when user is A)', () => {
+  it('renders a multi-speaker conversation as side-aligned chat bubbles', () => {
     const { container } = render(
       <TranscriptView segments={segments} annotations={annotations} userSpeakerLabels={['A']} {...defaultProps} />
     )
-    const dimmed = container.querySelector('.opacity-40')
-    expect(dimmed).toBeTruthy()
-    expect(dimmed?.textContent).toContain('¿Qué compraste?')
+    // User turn (speaker A) bubble is right-aligned; partner turn (speaker B)
+    // is left-aligned — matching the live Talk-mode view.
+    const userRow = container.querySelector('[data-speaker-role="user"]')
+    const partnerRow = container.querySelector('[data-speaker-role="partner"]')
+    expect(userRow).toHaveClass('items-end')
+    expect(userRow?.textContent).toContain('Yo fui al mercado.')
+    expect(partnerRow).toHaveClass('items-start')
+    expect(partnerRow?.textContent).toContain('¿Qué compraste?')
+    // No hover-reveal dimming on partner turns in the bubble layout.
+    expect(container.querySelector('.opacity-40')).toBeNull()
+  })
+
+  it('keeps the document layout for a single-speaker recording', () => {
+    const soloSegments: TranscriptSegment[] = [
+      { id: 'seg-solo', session_id: 's1', speaker: 'A', text: 'Yo fui al mercado.', start_ms: 0, end_ms: 2000, position: 0, paragraph_breaks: [] },
+    ]
+    const { container } = render(
+      <TranscriptView segments={soloSegments} annotations={[]} userSpeakerLabels={['A']} {...defaultProps} />
+    )
+    // Document layout uses no side-alignment rows.
+    expect(container.querySelector('.items-end')).toBeNull()
+    expect(container.querySelector('.items-start')).toBeNull()
   })
 
   it('shows modal with annotation content when highlight is clicked', async () => {

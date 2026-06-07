@@ -225,6 +225,68 @@ export function TranscriptView({
   const userLabel = t('transcript.you')
   const themLabel = t('transcript.them')
 
+  // Bubble layout (mirrors the live Talk-mode view) kicks in for any
+  // conversation with two or more distinct speakers — uploads with a
+  // partner, and voice-practice sessions (A = you, B = the agent). A
+  // single-speaker recording (a solo voice note) keeps the document
+  // layout: one-sided bubbles would waste the column and read oddly.
+  const useBubbles = useMemo(
+    () => new Set(segments.map(s => s.speaker)).size >= 2,
+    [segments],
+  )
+
+  // Show the speaker label above the first bubble of each side only — the
+  // left/right alignment carries the speaker identity for every turn after
+  // that, exactly as Talk mode does it.
+  const firstOfRoleSegIds = useMemo(() => {
+    const seen = new Set<boolean>()
+    const ids = new Set<string>()
+    for (const seg of segments) {
+      const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
+      if (!seen.has(isUser)) { seen.add(isUser); ids.add(seg.id) }
+    }
+    return ids
+  }, [segments, userSpeakerLabels])
+
+  // Shared body renderer — turns a segment's paragraphs into <p> blocks,
+  // wiring annotated user paragraphs through AnnotatedText. Used by both
+  // the bubble and document layouts so the annotation behaviour is identical.
+  function renderSegmentBody(
+    isUser: boolean,
+    paragraphs: Array<{ text: string; offset: number }>,
+    segAnns: Annotation[],
+  ) {
+    return paragraphs.map((para, i) => {
+      const paraAnns = isUser
+        ? segAnns.filter(a => a.start_char >= para.offset && a.end_char <= para.offset + para.text.length)
+        : []
+      return (
+        <p key={i}>
+          {paraAnns.length > 0 ? (
+            <AnnotatedText
+              text={para.text}
+              annotations={paraAnns}
+              offsetBase={para.offset}
+              onAnnotationClick={handleClick}
+              savedAnnotationIds={savedAnnotationIds}
+              writtenAnnotationIds={writtenAnnotations}
+              unhelpfulAnnotationIds={unhelpfulAnnotations}
+              activeAnnotationId={activeAnnotationId}
+              openLabel={t('transcript.openCorrection')}
+              stateLabels={{
+                written: t('transcript.markState.written'),
+                saved: t('transcript.markState.saved'),
+                unreviewed: t('transcript.markState.unreviewed'),
+              }}
+            />
+          ) : (
+            para.text
+          )}
+        </p>
+      )
+    })
+  }
+
   return (
     <div>
       {/* Inline legend — first-time onboarding only. Hides itself the moment
@@ -265,11 +327,20 @@ export function TranscriptView({
       )}
 
       <div
-        className="space-y-6 max-w-prose"
-        // Bottom padding makes room for the docked sheet on mobile so the
-        // last few turns can scroll above it. Removed automatically when
-        // the sheet closes.
-        style={activeAnnotationId ? { paddingBottom: '60vh' } : undefined}
+        className={useBubbles ? 'flex flex-col gap-3 max-w-prose' : 'space-y-6 max-w-prose'}
+        // Bottom clearance so the last turn never collides with a fixed
+        // overlay. Sheet open → reserve 60vh for the docked sheet on mobile.
+        // Otherwise, if a bottom-floating cue is up (the "see corrections"
+        // pill or the Study pill, both anchored ~5rem from the bottom and
+        // ~3rem tall), reserve enough that the final turn scrolls clear of
+        // it — the <main> padding only covers the nav, not these cues.
+        style={
+          activeAnnotationId
+            ? { paddingBottom: '60vh' }
+            : showPill || studyCount > 0
+              ? { paddingBottom: '4rem' }
+              : undefined
+        }
       >
         {segments.map(seg => {
           const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
@@ -290,45 +361,48 @@ export function TranscriptView({
               }
             }
           }
+
+          // ── Bubble layout (multi-speaker) ──────────────────────────────
+          // Mirrors Talk mode: user turns right, partner turns left. Both
+          // bubbles share the neutral surface + quiet `border-subtle` ring —
+          // side alignment and the once-shown role label carry the speaker
+          // identity, so no accent border is needed. A neutral surface also
+          // keeps annotation marks legible (a violet bubble would swallow the
+          // saved-correction tint).
+          if (useBubbles) {
+            return (
+              <div
+                key={seg.id}
+                data-speaker-role={isUser ? 'user' : 'partner'}
+                className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
+              >
+                {firstOfRoleSegIds.has(seg.id) && (
+                  <p className="text-[11px] text-text-tertiary uppercase tracking-wide font-medium px-1">
+                    {isUser ? userLabel : themLabel}
+                  </p>
+                )}
+                <div
+                  className="
+                    max-w-[88%] md:max-w-[80%] rounded-2xl px-4 py-3
+                    text-base md:text-lg leading-[1.7] break-words text-text-primary
+                    space-y-2 bg-surface-elevated ring-1 ring-border-subtle
+                  "
+                >
+                  {renderSegmentBody(isUser, paragraphs, segAnns)}
+                </div>
+              </div>
+            )
+          }
+
+          // ── Document layout (single speaker — e.g. a solo voice note) ───
           return (
             <div key={seg.id}>
-              <div
-                className={!isUser ? 'opacity-40 hover:opacity-100 focus-within:opacity-100 transition-opacity' : ''}
-                data-speaker-role={isUser ? 'user' : 'partner'}
-              >
+              <div data-speaker-role={isUser ? 'user' : 'partner'}>
                 <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1.5 font-medium">
                   {isUser ? userLabel : themLabel}
                 </p>
                 <div className="space-y-3 md:space-y-4 text-base md:text-lg leading-[1.8] break-words text-text-primary">
-                  {paragraphs.map((para, i) => {
-                    const paraAnns = isUser
-                      ? segAnns.filter(a => a.start_char >= para.offset && a.end_char <= para.offset + para.text.length)
-                      : []
-                    return (
-                      <p key={i}>
-                        {paraAnns.length > 0 ? (
-                          <AnnotatedText
-                            text={para.text}
-                            annotations={paraAnns}
-                            offsetBase={para.offset}
-                            onAnnotationClick={handleClick}
-                            savedAnnotationIds={savedAnnotationIds}
-                            writtenAnnotationIds={writtenAnnotations}
-                            unhelpfulAnnotationIds={unhelpfulAnnotations}
-                            activeAnnotationId={activeAnnotationId}
-                            openLabel={t('transcript.openCorrection')}
-                            stateLabels={{
-                              written: t('transcript.markState.written'),
-                              saved: t('transcript.markState.saved'),
-                              unreviewed: t('transcript.markState.unreviewed'),
-                            }}
-                          />
-                        ) : (
-                          para.text
-                        )}
-                      </p>
-                    )
-                  })}
+                  {renderSegmentBody(isUser, paragraphs, segAnns)}
                 </div>
               </div>
             </div>
