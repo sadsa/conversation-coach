@@ -667,35 +667,16 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="flex-shrink-0 border-t border-border-subtle px-6 pt-3 pb-3 flex flex-col items-center gap-3"
+            className="flex-shrink-0 px-6 pt-3 pb-3 flex flex-col items-center gap-3"
           >
-            {/* Status row: audio dots + optional label (Muted / Wrapping up). */}
-            <div className="flex items-center gap-2 h-5">
-              <AudioReactiveDots
-                audioTickCallbacksRef={audioTickCallbacksRef}
-                compact
-                className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
-              />
-              <AnimatePresence mode="wait">
-                {statusLabel && (
-                  <motion.span
-                    key={statusLabel}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className={`text-xs font-medium select-none ${
-                      isEnding
-                        ? 'text-text-tertiary'
-                        : 'text-amber-600 dark:text-amber-400'
-                    }`}
-                  >
-                    {statusLabel}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-
+            {/* Call action row — Mute · live waveform · End. The waveform
+                shares the controls line rather than sitting on its own row
+                above, so the live surface stays compact. It's the center
+                column of a three-up rhythm: each column is a glyph (circle
+                or dots) over a label slot. The center label slot carries the
+                muted / wrapping-up status that used to live in the standalone
+                status row, so no notable state is lost in the consolidation.
+                Kept in sync with PracticeClient's controls row. */}
             <div className="flex items-end justify-center gap-12 sm:gap-16">
               <button
                 type="button"
@@ -725,6 +706,41 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
                   {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
                 </span>
               </button>
+
+              {/* Live waveform + status — center column. Dots align with the
+                  flanking circles (centered in a matching h-14 box); the
+                  label slot below mirrors the buttons' labels and holds the
+                  notable-state cue (muted / ending). The slot keeps a fixed
+                  height so the dots don't shift when the label appears. */}
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="h-14 flex items-center justify-center">
+                  <AudioReactiveDots
+                    audioTickCallbacksRef={audioTickCallbacksRef}
+                    compact
+                    className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
+                  />
+                </div>
+                <div className="h-4 flex items-center" aria-live="polite">
+                  <AnimatePresence mode="wait">
+                    {statusLabel && (
+                      <motion.span
+                        key={statusLabel}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                        className={`text-xs font-medium select-none ${
+                          isEnding
+                            ? 'text-text-tertiary'
+                            : 'text-amber-600 dark:text-amber-400'
+                        }`}
+                      >
+                        {statusLabel}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
 
               <button
                 type="button"
