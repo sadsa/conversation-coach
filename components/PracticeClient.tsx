@@ -63,7 +63,6 @@ import { buildPersonaSystemPrompt } from '@/lib/persona'
 import { playRingtone, type Ringtone } from '@/lib/ringtone'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { Toast } from '@/components/Toast'
 import { AudioReactiveDots } from '@/components/AudioReactiveDots'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { ProcessingGraphic } from '@/components/ProcessingGraphic'
@@ -1375,11 +1374,36 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
         })}
       </div>
 
-      {/* ── Bottom bar: call controls ↔ review prompt ────────────────────────
+      {/* ── Bottom region: toast + call controls ↔ review prompt ─────────────
           AnimatePresence cross-fades between the live call controls and the
           save/discard prompt when the session ends. The transcript above
           stays visible throughout — the user never loses their conversational
-          context. */}
+          context.
+
+          `relative` anchors the in-session toast (e.g. the T-60s "1 minute
+          left" warning) to the TOP edge of whichever bar is shown. The shared
+          <Toast> is `fixed` at `--toast-bottom`, which inside this full-bleed
+          fixed surface lands directly over the Mute / End buttons and — being
+          a higher layer — swallows their taps. Floating it at `bottom-full`
+          keeps it clear of the controls at any controls height, and being
+          absolute it adds no layout shift when it appears / dismisses. */}
+      <div className="relative flex-shrink-0">
+        {toast && (
+          <div
+            key={toast}
+            role="alert"
+            className="
+              absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50
+              w-max max-w-[calc(100%-2rem)]
+              flex items-center gap-3 px-4 py-2.5
+              bg-surface-elevated border border-border rounded-xl
+              text-sm text-text-primary shadow-lg
+              animate-toast-in
+            "
+          >
+            <span>{toast}</span>
+          </div>
+        )}
       <AnimatePresence mode="wait">
         {isReview ? (
           <motion.div
@@ -1570,8 +1594,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
           </motion.div>
         )}
       </AnimatePresence>
-
-      {toast && <Toast message={toast} />}
+      </div>
     </div>
   )
 }
