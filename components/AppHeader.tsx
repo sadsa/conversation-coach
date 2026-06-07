@@ -68,15 +68,15 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
       </a>
 
       <header
-        // The header's tinted background extends up under the iOS status
-        // bar (safe-area-inset-top) so the system bar doesn't sit on a
-        // bare body color. Inner row keeps `var(--header-height)` so all
+        // The header shares the page background and extends up under the
+        // iOS status bar (safe-area-inset-top) so it blends seamlessly with
+        // the content below. Inner row keeps `var(--header-height)` so all
         // the existing 44px hit-areas and visual rhythm stay correct.
         style={{
           height: 'calc(var(--header-height) + env(safe-area-inset-top))',
           paddingTop: 'env(safe-area-inset-top)',
         }}
-        className="fixed top-0 left-0 right-0 z-40 bg-surface border-b border-border-subtle"
+        className="fixed top-0 left-0 right-0 z-40 bg-bg"
       >
         {/* Header inner row tracks the same 672px reading column the page
             content uses (see <main> in app/layout.tsx). Without this match

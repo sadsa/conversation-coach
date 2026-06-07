@@ -92,7 +92,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
           warm-cream surface underneath. */}
       <div
         data-testid="nav-backdrop"
-        className={`fixed inset-0 z-30 bg-scrim transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[45] bg-scrim transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -108,14 +108,14 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         aria-modal="true"
         aria-label="Navigation"
         style={{ transitionTimingFunction: isOpen ? 'cubic-bezier(0.25, 1, 0.5, 1)' : 'cubic-bezier(0.5, 0, 0.75, 0)' }}
-        className={`fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-surface border-r border-border-subtle flex flex-col transition-transform duration-300 ${
+        className={`fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-bg flex flex-col transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Close button — same height as the header bar. Mirrored to the
             top-left so it occupies the same screen position as the hamburger
             that opened it. */}
-        <div className="flex items-center h-11 px-4 border-b border-border-subtle">
+        <div className="flex items-center h-11 px-4">
           <button
             ref={closeButtonRef}
             onClick={onClose}

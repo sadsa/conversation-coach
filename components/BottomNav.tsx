@@ -14,7 +14,7 @@ export function BottomNav() {
     // of nav truth, so this strip is hidden to avoid a stranded mobile pattern
     // on desktop.
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-border-subtle"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-bg"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Quick navigation"
     >
