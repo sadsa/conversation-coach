@@ -12,29 +12,6 @@ interface AppHeaderProps {
 }
 
 /**
- * Derive a header label from the current route.
- *
- * Top-level sections use their nav.* translation key. Session sub-routes
- * intentionally render no label here — the back arrow conveys context
- * and the page renders the conversation title prominently below, so a
- * generic "Session" string would just be redundant chrome.
- */
-function sectionKeyFor(pathname: string | null): string {
-  if (!pathname) return ''
-  // `/` is the Practise home, `/review` is the conversations inbox, and
-  // `/write` keeps its underlying route but reads as "Study" in the nav.
-  // Live voice sessions now mount in place on `/` (the standalone
-  // `/practice` route was retired) so the header label naturally stays
-  // on "Practise" for the duration — the full-bleed call chrome takes
-  // visual precedence, so the label sitting in the header is fine.
-  if (pathname === '/') return 'nav.practise'
-  if (pathname.startsWith('/review')) return 'nav.review'
-  if (pathname.startsWith('/write')) return 'nav.study'
-  if (pathname.startsWith('/settings')) return 'nav.settings'
-  return ''
-}
-
-/**
  * Session sub-routes get a back arrow. The back destination is the
  * Review inbox now (where the user came from to open a transcript),
  * not the Practise home. router.back() is unreliable in PWA/Safari
@@ -51,10 +28,7 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
   const pathname = usePathname()
   const { t } = useTranslation()
 
-  const sectionKey = sectionKeyFor(pathname)
-  const sectionLabel = sectionKey ? t(sectionKey) : ''
   const backHref = backHrefFor(pathname)
-  const showSectionLabel = !!sectionLabel
 
   return (
     <>
@@ -122,12 +96,12 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
               </Link>
             )}
 
-            {/* Section label — mobile only; desktop shows the inline nav */}
-            {showSectionLabel && (
-              <span className="md:hidden ml-1 text-sm font-medium text-text-primary truncate">
-                {sectionLabel}
-              </span>
-            )}
+            {/* No section label on mobile — the page owns its title. The
+                big serif H1 below names the surface (greeting on /,
+                "Your conversations" on /review, etc.), so repeating the
+                pillar name up here was pure redundant chrome. Wayfinding
+                still lives in the bottom nav (active tab) and the
+                methodology eyebrow. Desktop shows the inline nav below. */}
 
             {/* Inline nav links — desktop only */}
             <nav
