@@ -5,7 +5,7 @@ import { deleteObject } from '@/lib/r2'
 import { sendPushNotification } from '@/lib/push'
 import { log } from '@/lib/logger'
 import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
-import { SUB_CATEGORIES, SUB_CATEGORY_TYPE_MAP } from '@/lib/types'
+import { normaliseAnnotations } from '@/lib/annotations'
 import type { ClaudeAnnotation } from '@/lib/claude'
 
 export async function runClaudeAnalysis(sessionId: string, targetLanguage: TargetLanguage = 'es-AR'): Promise<void> {
@@ -52,39 +52,13 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
   // Build a map so we can validate/correct character offsets from Claude
   const segmentTextById = new Map(userTurns.map(t => [t.id, t.text]))
 
-  const correctedAnnotations = annotations.map(a => {
-    let corrected = { ...a }
+  const preNormalise = annotations.length
+  const filteredAnnotations = normaliseAnnotations(annotations, segmentTextById)
 
-    // Correct character offsets if they don't match
-    const segText = segmentTextById.get(a.segment_id)
-    if (segText && segText.slice(corrected.start_char, corrected.end_char) !== corrected.original) {
-      const idx = segText.indexOf(corrected.original)
-      if (idx !== -1) {
-        corrected = { ...corrected, start_char: idx, end_char: idx + corrected.original.length }
-      }
-    }
-
-    // Validate sub_category: must be in taxonomy and match the annotation type
-    const rawSubCat = corrected.sub_category
-    const isValidKey = typeof rawSubCat === 'string' && (SUB_CATEGORIES as readonly string[]).includes(rawSubCat)
-    const expectedType = isValidKey ? SUB_CATEGORY_TYPE_MAP[rawSubCat as keyof typeof SUB_CATEGORY_TYPE_MAP] : undefined
-    const subCategory = (isValidKey && (expectedType === undefined || expectedType === corrected.type))
-      ? rawSubCat
-      : 'other'
-
-    return { ...corrected, sub_category: subCategory }
-  })
-
-  // Safety net: drop any annotation Claude rated importance_score === 1.
-  // The prompt forbids score=1 and the claude.ts validator now coerces it
-  // to null, but enforce it here too so nothing slips through.
-  // null scores are kept (no judgement available — rare case).
-  const filteredAnnotations = correctedAnnotations.filter(a => a.importance_score !== 1)
-
-  if (filteredAnnotations.length < correctedAnnotations.length) {
+  if (filteredAnnotations.length < preNormalise) {
     log.info('Dropped low-importance annotations', {
       sessionId,
-      dropped: correctedAnnotations.length - filteredAnnotations.length,
+      dropped: preNormalise - filteredAnnotations.length,
       kept: filteredAnnotations.length,
     })
   }
@@ -127,7 +101,7 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     await db.from('sessions').update({ audio_r2_key: null }).eq('id', sessionId)
   }
 
-  log.info('Claude analysis complete', { sessionId, annotationCount: filteredAnnotations.length, claudeAnnotationCount: correctedAnnotations.length })
+  log.info('Claude analysis complete', { sessionId, annotationCount: filteredAnnotations.length })
   await db.from('sessions').update({
     status: 'ready',
     title,

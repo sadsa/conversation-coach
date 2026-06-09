@@ -4,8 +4,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { analyseUserTurns } from '@/lib/claude'
 import { log } from '@/lib/logger'
-import { SUB_CATEGORIES, SUB_CATEGORY_TYPE_MAP } from '@/lib/types'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
+import { normaliseAnnotations } from '@/lib/annotations'
 
 function formatSessionTitle(date: Date): string {
   return `Practice — ${date.getDate()} ${date.toLocaleString('en', { month: 'short' })}`
@@ -115,26 +115,8 @@ export async function POST(req: NextRequest) {
 
     const { title, annotations } = await analyseUserTurns(claudeTurns, null, sessionId, targetLanguage)
 
-    // Offset validation + sub_category normalization (mirrors pipeline.ts)
     const segmentTextById = new Map(claudeTurns.map(t => [t.id, t.text]))
-
-    const correctedAnnotations = annotations.map(a => {
-      let corrected = { ...a }
-      const segText = segmentTextById.get(a.segment_id)
-      if (segText && segText.slice(corrected.start_char, corrected.end_char) !== corrected.original) {
-        const idx = segText.indexOf(corrected.original)
-        if (idx !== -1) {
-          corrected = { ...corrected, start_char: idx, end_char: idx + corrected.original.length }
-        }
-      }
-      const rawSubCat = corrected.sub_category
-      const isValidKey = typeof rawSubCat === 'string' && (SUB_CATEGORIES as readonly string[]).includes(rawSubCat)
-      const expectedType = isValidKey ? SUB_CATEGORY_TYPE_MAP[rawSubCat as keyof typeof SUB_CATEGORY_TYPE_MAP] : undefined
-      const subCategory = (isValidKey && (expectedType === undefined || expectedType === corrected.type))
-        ? rawSubCat
-        : 'other'
-      return { ...corrected, sub_category: subCategory }
-    })
+    const correctedAnnotations = normaliseAnnotations(annotations, segmentTextById)
 
     if (correctedAnnotations.length > 0) {
       const { error: annError } = await db.from('annotations').insert(
