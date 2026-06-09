@@ -60,9 +60,9 @@ export function TranscriptView({
   // because we need to react to the user's first click within the session
   // even if localStorage already says "learned".
   const [legendVisible, setLegendVisible] = useState(true)
-  // Pill: true once the first annotation element is visible in the viewport.
-  // Starts false so the pill shows until the user scrolls down to it.
-  const [firstAnnotationVisible, setFirstAnnotationVisible] = useState(false)
+  // Pill: true when the last annotation is still below the fold (not yet
+  // scrolled into view). Starts false — pill shows only after settle delay.
+  const [hasAnnotationBelowFold, setHasAnnotationBelowFold] = useState(false)
   // Delayed gate: pill shouldn't snap into view before the page has settled.
   const [pillReady, setPillReady] = useState(false)
   const pillObserverRef = useRef<IntersectionObserver | null>(null)
@@ -100,28 +100,32 @@ export function TranscriptView({
     })
   }, [segments, userSpeakerLabels, annotationsBySegment])
 
-  const firstAnnotationId = orderedAnnotations[0]?.id ?? null
+  const lastAnnotationId = orderedAnnotations[orderedAnnotations.length - 1]?.id ?? null
 
   // Show the pill after a short settle delay — avoids it flashing on arrival
   // before the user has had a chance to read the page header.
   useEffect(() => {
-    if (!firstAnnotationId) return
+    if (!lastAnnotationId) return
     const timer = setTimeout(() => setPillReady(true), 500)
     return () => clearTimeout(timer)
-  }, [firstAnnotationId])
+  }, [lastAnnotationId])
 
-  // Track whether the first annotation mark is scrolled into view. Once it is,
-  // the pill has served its purpose and disappears.
+  // Track whether any correction remains below the fold by observing the last
+  // annotation. Pill shows when the last annotation is below the viewport;
+  // hides once it's in view or has already scrolled above.
   useEffect(() => {
-    if (!firstAnnotationId || typeof window === 'undefined') return
-    // The annotation element may not be in the DOM yet on the first render pass.
-    // Use rAF to defer the lookup until after paint.
+    if (!lastAnnotationId || typeof window === 'undefined') return
     const rafId = requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-annotation-id="${firstAnnotationId}"]`)
+      const el = document.querySelector(`[data-annotation-id="${lastAnnotationId}"]`)
       if (!(el instanceof Element)) return
       pillObserverRef.current?.disconnect()
       const observer = new IntersectionObserver(
-        ([entry]) => setFirstAnnotationVisible(entry.isIntersecting),
+        ([entry]) => {
+          // isIntersecting covers "in viewport"; boundingClientRect.top <= 0
+          // covers "scrolled above" — both mean no corrections remain below.
+          const belowFold = !entry.isIntersecting && entry.boundingClientRect.top > 0
+          setHasAnnotationBelowFold(belowFold)
+        },
         { threshold: 0 }
       )
       observer.observe(el)
@@ -132,13 +136,13 @@ export function TranscriptView({
       pillObserverRef.current?.disconnect()
       pillObserverRef.current = null
     }
-  }, [firstAnnotationId])
+  }, [lastAnnotationId])
 
   // Mutually exclusive with the StudyPrompt pill: both anchor bottom-center,
   // so once the user has saved anything (`studyCount > 0`) the StudyPrompt wins
   // and the "see corrections" cue stands down rather than stacking on top of it.
   const showPill =
-    pillReady && !!firstAnnotationId && !firstAnnotationVisible && !activeAnnotationId && studyCount === 0
+    pillReady && hasAnnotationBelowFold && !activeAnnotationId && studyCount === 0
 
   const activeIndex = activeAnnotationId
     ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
@@ -170,19 +174,23 @@ export function TranscriptView({
     }
   }
 
-  function handleScrollToFirst() {
-    if (!firstAnnotationId || typeof window === 'undefined') return
-    const el = document.querySelector(`[data-annotation-id="${firstAnnotationId}"]`)
-    if (!(el instanceof HTMLElement)) return
+  function handleScrollToNextBelow() {
+    if (typeof window === 'undefined') return
+    const els = Array.from(document.querySelectorAll('[data-annotation-id]'))
+    // Find the annotation element closest below the viewport bottom.
+    const below = els
+      .map(el => ({ el, top: el.getBoundingClientRect().top }))
+      .filter(({ top }) => top > window.innerHeight)
+      .sort((a, b) => a.top - b.top)[0]
+    if (!below) return
     const reduced = typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : true
     const isWide = typeof window.matchMedia === 'function'
       ? window.matchMedia('(min-width: 768px)').matches
       : false
-    const rect = el.getBoundingClientRect()
     const targetY = isWide ? window.innerHeight * 0.4 : window.innerHeight * 0.25
-    const delta = rect.top - targetY
+    const delta = below.top - targetY
     if (typeof window.scrollBy === 'function') {
       window.scrollBy({ top: delta, behavior: reduced ? 'auto' : 'smooth' })
     }
@@ -377,7 +385,7 @@ export function TranscriptView({
                 className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
               >
                 {firstOfRoleSegIds.has(seg.id) && (
-                  <p className="text-[11px] text-text-tertiary uppercase tracking-wide font-medium px-1">
+                  <p className="text-eyebrow px-1">
                     {isUser ? userLabel : themLabel}
                   </p>
                 )}
@@ -446,11 +454,11 @@ export function TranscriptView({
           >
             <button
               type="button"
-              onClick={handleScrollToFirst}
+              onClick={handleScrollToNextBelow}
               className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent-primary text-white shadow-lg text-sm font-medium"
             >
               <Icon name="caret-down" className="w-4 h-4" />
-              {t('transcript.correctionsBelow', { n: orderedAnnotations.length })}
+              {t('transcript.nextCorrection')}
             </button>
           </motion.div>
         )}
