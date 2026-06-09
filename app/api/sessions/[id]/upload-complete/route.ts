@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from '@/lib/auth'
 import { createJob } from '@/lib/assemblyai'
 import { publicUrl } from '@/lib/r2'
 import { log } from '@/lib/logger'
+import { transitionToTranscribing, transitionToTranscribingError } from '@/lib/session-pipeline'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthenticatedUser()
@@ -14,7 +15,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     duration_seconds?: number
   }
   const db = createServerClient()
-
   const { data: session } = await db
     .from('sessions')
     .select('audio_r2_key')
@@ -33,20 +33,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     jobId = await createJob(audioUrl)
   } catch (err) {
     log.error('AssemblyAI job creation failed', { sessionId: params.id, err })
-    await db.from('sessions').update({
-      status: 'error',
-      error_stage: 'transcribing',
-    }).eq('id', params.id).eq('user_id', user.id)
+    await transitionToTranscribingError(params.id)
     return NextResponse.json({ error: 'AssemblyAI job creation failed' }, { status: 500 })
   }
 
   log.info('AssemblyAI job created', { sessionId: params.id, jobId })
 
-  await db.from('sessions').update({
-    status: 'transcribing',
-    assemblyai_job_id: jobId,
-    ...(duration_seconds != null ? { duration_seconds } : {}),
-  }).eq('id', params.id).eq('user_id', user.id)
+  await transitionToTranscribing(params.id, { jobId, ...(duration_seconds != null ? { durationSeconds: duration_seconds } : {}) })
 
   return NextResponse.json({ ok: true })
 }

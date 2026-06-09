@@ -6,6 +6,7 @@ import { analyseUserTurns } from '@/lib/claude'
 import { log } from '@/lib/logger'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
 import { normaliseAnnotations } from '@/lib/annotations'
+import { transitionToReady, transitionToAnalysisError } from '@/lib/session-pipeline'
 
 function formatSessionTitle(date: Date): string {
   return `Practice — ${date.getDate()} ${date.toLocaleString('en', { month: 'short' })}`
@@ -140,14 +141,14 @@ export async function POST(req: NextRequest) {
       if (annError) throw new Error(`Annotation insert failed: ${annError.message}`)
     }
 
-    await db.from('sessions').update({ status: 'ready', title, processing_completed_at: new Date().toISOString() }).eq('id', sessionId)
+    await transitionToReady(sessionId, { title })
     log.info('Practice session analysis complete', { sessionId, annotationCount: correctedAnnotations.length })
 
     return NextResponse.json({ session_id: sessionId }, { status: 201 })
 
   } catch (err) {
     log.error('Practice session analysis failed', { sessionId, err })
-    await db.from('sessions').update({ status: 'error', error_stage: 'analysing' }).eq('id', sessionId)
+    await transitionToAnalysisError(sessionId)
     return NextResponse.json({ error: 'Analysis failed' }, { status: 500 })
   }
 }

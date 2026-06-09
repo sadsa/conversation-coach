@@ -7,6 +7,7 @@ import { log } from '@/lib/logger'
 import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
 import { normaliseAnnotations } from '@/lib/annotations'
 import type { ClaudeAnnotation } from '@/lib/claude'
+import { transitionToReady, transitionToAnalysisError } from '@/lib/session-pipeline'
 
 export async function runClaudeAnalysis(sessionId: string, targetLanguage: TargetLanguage = 'es-AR'): Promise<void> {
   const db = createServerClient()
@@ -42,10 +43,7 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     title = result.title
   } catch (err) {
     log.error('Claude analysis failed', { sessionId, err })
-    await db.from('sessions').update({
-      status: 'error',
-      error_stage: 'analysing',
-    }).eq('id', sessionId)
+    await transitionToAnalysisError(sessionId)
     throw err
   }
 
@@ -102,11 +100,7 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
   }
 
   log.info('Claude analysis complete', { sessionId, annotationCount: filteredAnnotations.length })
-  await db.from('sessions').update({
-    status: 'ready',
-    title,
-    processing_completed_at: new Date().toISOString(),
-  }).eq('id', sessionId)
+  await transitionToReady(sessionId, { title })
 
   await sendPushNotification(sessionId, title)
 }

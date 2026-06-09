@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from '@/lib/auth'
 import { createJob, cancelJob } from '@/lib/assemblyai'
 import { presignedUploadUrl, publicUrl, deleteObject } from '@/lib/r2'
 import { log } from '@/lib/logger'
+import { transitionRetryToUploading, transitionRetryToTranscribing } from '@/lib/session-pipeline'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthenticatedUser()
@@ -28,11 +29,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     const ext = session.audio_r2_key?.split('.').pop() ?? 'mp3'
     const { key, url } = await presignedUploadUrl(ext)
 
-    await db.from('sessions').update({
-      status: 'uploading',
-      error_stage: null,
-      audio_r2_key: key,
-    }).eq('id', params.id).eq('user_id', user.id)
+    await transitionRetryToUploading(params.id, { audioR2Key: key })
 
     return NextResponse.json({ upload_url: url })
   }
@@ -50,11 +47,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     const audioUrl = publicUrl(session.audio_r2_key)
     const jobId = await createJob(audioUrl)
 
-    await db.from('sessions').update({
-      status: 'transcribing',
-      error_stage: null,
-      assemblyai_job_id: jobId,
-    }).eq('id', params.id).eq('user_id', user.id)
+    await transitionRetryToTranscribing(params.id, { jobId })
 
     return NextResponse.json({ status: 'transcribing' })
   }

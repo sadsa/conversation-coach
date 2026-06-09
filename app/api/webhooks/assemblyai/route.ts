@@ -7,6 +7,7 @@ import { parseWebhookBody, getTranscript, getParagraphs, mapParagraphsToSegments
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
 import type { TargetLanguage } from '@/lib/types'
+import { transitionToTranscribingError, transitionToAnalysing, transitionToIdentifying } from '@/lib/session-pipeline'
 
 export const maxDuration = 300
 
@@ -52,10 +53,7 @@ export async function POST(req: NextRequest) {
     fullTranscript = await getTranscript(jobId)
   } catch (err) {
     log.error('getTranscript failed', { sessionId: session.id, jobId, err })
-    await db.from('sessions').update({
-      status: 'error',
-      error_stage: 'transcribing',
-    }).eq('id', session.id)
+    await transitionToTranscribingError(session.id)
     return NextResponse.json({ ok: true })
   }
 
@@ -64,10 +62,7 @@ export async function POST(req: NextRequest) {
     parsed = parseWebhookBody(fullTranscript)
   } catch (err) {
     log.error('parseWebhookBody failed', { sessionId: session.id, jobId, err })
-    await db.from('sessions').update({
-      status: 'error',
-      error_stage: 'transcribing',
-    }).eq('id', session.id)
+    await transitionToTranscribingError(session.id)
     return NextResponse.json({ ok: true })
   }
 
@@ -76,10 +71,7 @@ export async function POST(req: NextRequest) {
     paragraphs = await getParagraphs(jobId)
   } catch (err) {
     log.error('getParagraphs failed', { sessionId: session.id, jobId, err })
-    await db.from('sessions').update({
-      status: 'error',
-      error_stage: 'transcribing',
-    }).eq('id', session.id)
+    await transitionToTranscribingError(session.id)
     return NextResponse.json({ ok: true })
   }
 
@@ -88,10 +80,7 @@ export async function POST(req: NextRequest) {
     segmentsWithBreaks = mapParagraphsToSegments(parsed.segments, paragraphs)
   } catch (err) {
     log.error('mapParagraphsToSegments failed', { sessionId: session.id, jobId, err })
-    await db.from('sessions').update({
-      status: 'error',
-      error_stage: 'transcribing',
-    }).eq('id', session.id)
+    await transitionToTranscribingError(session.id)
     return NextResponse.json({ ok: true })
   }
 
@@ -111,12 +100,7 @@ export async function POST(req: NextRequest) {
   log.info('Speaker count determined', { sessionId: session.id, speakerCount: parsed.speakerCount })
 
   if (parsed.speakerCount === 1) {
-    const { error: updateError } = await db.from('sessions').update({
-      status: 'analysing',
-      detected_speaker_count: 1,
-      user_speaker_labels: ['A'],
-    }).eq('id', session.id)
-    if (updateError) log.error('Status update failed', { sessionId: session.id, error: updateError.message })
+    await transitionToAnalysing(session.id)
 
     // Look up the user's target language via the admin API (user_id is null for pre-migration sessions)
     let targetLanguage: TargetLanguage = 'es-AR'
@@ -129,11 +113,7 @@ export async function POST(req: NextRequest) {
       log.error('Claude analysis failed (fire-and-forget)', { sessionId: session.id, err })
     ))
   } else {
-    const { error: updateError } = await db.from('sessions').update({
-      status: 'identifying',
-      detected_speaker_count: parsed.speakerCount,
-    }).eq('id', session.id)
-    if (updateError) log.error('Status update failed', { sessionId: session.id, error: updateError.message })
+    await transitionToIdentifying(session.id, { speakerCount: parsed.speakerCount })
   }
 
   return NextResponse.json({ ok: true })

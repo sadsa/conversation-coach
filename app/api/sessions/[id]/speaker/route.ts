@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from '@/lib/auth'
 import { runClaudeAnalysis } from '@/lib/pipeline'
 import { log } from '@/lib/logger'
 import type { TargetLanguage } from '@/lib/types'
+import { transitionFromIdentifyingToAnalysing } from '@/lib/session-pipeline'
 
 export const maxDuration = 300
 
@@ -21,25 +22,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'speaker_labels must be a non-empty array of A or B' }, { status: 400 })
   }
   const db = createServerClient()
-  const { data: session } = await db
+  const { data: owned } = await db
     .from('sessions')
-    .select('status')
+    .select('id')
     .eq('id', params.id)
     .eq('user_id', user.id)
     .single()
 
-  if (!session) {
+  if (!owned) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  if (session.status !== 'identifying') {
-    return NextResponse.json({ error: 'Session is not awaiting speaker identification' }, { status: 409 })
+  const result = await transitionFromIdentifyingToAnalysing(params.id, { userSpeakerLabels: speaker_labels })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.detail }, { status: result.reason === 'not_found' ? 404 : 409 })
   }
-
-  await db.from('sessions').update({
-    user_speaker_labels: speaker_labels,
-    status: 'analysing',
-  }).eq('id', params.id).eq('user_id', user.id)
 
   const targetLanguage = (user.targetLanguage as TargetLanguage | null) ?? 'es-AR'
   log.info('Analysis triggered after speaker identification', { sessionId: params.id, speaker_labels, targetLanguage })
