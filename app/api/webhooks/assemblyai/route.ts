@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
 
   const db = createServerClient()
 
+  // This route deliberately does NOT cross the ownership seam in lib/ownership.
+  // There is no authenticated user here — it's an AssemblyAI callback. Identity
+  // is established by the HMAC-equivalent shared-secret header verified above,
+  // and the row is located by `assemblyai_job_id`, a server-issued id we set at
+  // submit time (the user never supplies it). `user_id` is even nullable for
+  // pre-migration sessions. Scoping by user is neither possible nor meaningful
+  // here; the secret header is the trust boundary.
   const { data: session, error } = await db
     .from('sessions')
     .select('id, user_id')

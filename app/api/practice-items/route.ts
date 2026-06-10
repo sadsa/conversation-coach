@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { verifyOwnedSession } from '@/lib/ownership'
 import { loadPracticeItems } from '@/lib/loaders'
 
 export async function GET(req: NextRequest) {
@@ -25,14 +26,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const db = createServerClient()
 
-  const { data: session } = await db
-    .from('sessions')
-    .select('id')
-    .eq('id', body.session_id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  // The user can only attach a practice item to a session they own.
+  if (!(await verifyOwnedSession(db, body.session_id, user.id))) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  }
 
   const { data, error } = await db
     .from('practice_items')

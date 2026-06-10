@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { getOwnedSession } from '@/lib/ownership'
 import { createJob, cancelJob } from '@/lib/assemblyai'
 import { presignedUploadUrl, publicUrl, deleteObject } from '@/lib/r2'
 import { log } from '@/lib/logger'
@@ -12,12 +13,11 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const db = createServerClient()
-  const { data: session } = await db
-    .from('sessions')
-    .select('error_stage, audio_r2_key, assemblyai_job_id')
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-    .single()
+  const session = await getOwnedSession<{
+    error_stage: string | null
+    audio_r2_key: string | null
+    assemblyai_job_id: string | null
+  }>(db, params.id, user.id, 'error_stage, audio_r2_key, assemblyai_job_id')
 
   if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

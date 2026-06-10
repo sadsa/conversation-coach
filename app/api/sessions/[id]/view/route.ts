@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { getOwnedSession } from '@/lib/ownership'
 
 type Params = { params: { id: string } }
 
@@ -22,14 +23,11 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   const db = createServerClient()
 
-  const { data: existing, error: readError } = await db
-    .from('sessions')
-    .select('id, last_viewed_at')
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-    .single()
+  const existing = await getOwnedSession<{ id: string; last_viewed_at: string | null }>(
+    db, params.id, user.id, 'id, last_viewed_at',
+  )
 
-  if (readError || !existing) {
+  if (!existing) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 

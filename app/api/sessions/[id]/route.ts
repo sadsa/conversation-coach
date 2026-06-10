@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { verifyOwnedSession } from '@/lib/ownership'
 import { loadSessionDetail } from '@/lib/loaders'
 
 type Params = { params: { id: string } }
@@ -53,7 +54,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createServerClient()
+
+  // Cross the ownership seam before deleting. Previously this route had no
+  // auth and no user scoping — any signed-in caller could delete any session
+  // by id. 404 (not 403) for an unowned session, matching the route convention.
+  const owned = await verifyOwnedSession(db, params.id, user.id)
+  if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
   const { error } = await db
     .from('sessions')
     .delete()

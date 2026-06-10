@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { getOwnedSession } from '@/lib/ownership'
 import { createJob } from '@/lib/assemblyai'
 import { publicUrl } from '@/lib/r2'
 import { log } from '@/lib/logger'
@@ -15,12 +16,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     duration_seconds?: number
   }
   const db = createServerClient()
-  const { data: session } = await db
-    .from('sessions')
-    .select('audio_r2_key')
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-    .single()
+  const session = await getOwnedSession<{ audio_r2_key: string | null }>(
+    db, params.id, user.id, 'audio_r2_key',
+  )
 
   if (!session?.audio_r2_key) {
     return NextResponse.json({ error: 'No audio key found' }, { status: 400 })

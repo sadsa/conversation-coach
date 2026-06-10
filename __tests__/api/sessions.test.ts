@@ -424,11 +424,26 @@ describe('POST /api/sessions/:id/view', () => {
 })
 
 describe('DELETE /api/sessions/:id', () => {
-  it('deletes the session and returns ok', async () => {
-    const eqMock = vi.fn().mockResolvedValue({ error: null })
-    const mockDb = {
-      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
+  // DELETE now crosses the ownership seam: verifyOwnedSession does
+  // `.from('sessions').select('id').eq('id').eq('user_id').single()` before the
+  // delete fires. ownedRow=null simulates an unowned/unknown session.
+  function makeDeleteDb(ownedRow: unknown, deleteResult: { error: unknown } = { error: null }) {
+    const deleteEq = vi.fn().mockResolvedValue(deleteResult)
+    const ownershipSingle = vi.fn().mockResolvedValue({ data: ownedRow, error: ownedRow ? null : { message: 'no rows' } })
+    const selectChain = {
+      eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: ownershipSingle }) }),
     }
+    const mockDb = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue(selectChain),
+        delete: vi.fn().mockReturnValue({ eq: deleteEq }),
+      }),
+    }
+    return { mockDb, deleteEq }
+  }
+
+  it('deletes the session and returns ok when owned', async () => {
+    const { mockDb, deleteEq } = makeDeleteDb({ id: 'sess-1' })
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
 
     const req = new NextRequest('http://localhost', { method: 'DELETE' })
@@ -436,14 +451,29 @@ describe('DELETE /api/sessions/:id', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toEqual({ ok: true })
-    expect(eqMock).toHaveBeenCalledWith('id', 'sess-1')
+    expect(deleteEq).toHaveBeenCalledWith('id', 'sess-1')
+  })
+
+  it('returns 404 when the session is not owned (privilege-escalation guard)', async () => {
+    const { mockDb, deleteEq } = makeDeleteDb(null)
+    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: { id: 'someone-elses' } })
+    expect(res.status).toBe(404)
+    // The delete must never fire for an unowned session.
+    expect(deleteEq).not.toHaveBeenCalled()
+  })
+
+  it('returns 401 when unauthenticated', async () => {
+    vi.mocked(getAuthenticatedUser).mockResolvedValueOnce(null)
+    const req = new NextRequest('http://localhost', { method: 'DELETE' })
+    const res = await DELETE(req, { params: { id: 'sess-1' } })
+    expect(res.status).toBe(401)
   })
 
   it('returns 500 when the database delete fails', async () => {
-    const eqMock = vi.fn().mockResolvedValue({ error: { message: 'DB error' } })
-    const mockDb = {
-      from: vi.fn().mockReturnValue({ delete: vi.fn().mockReturnValue({ eq: eqMock }) }),
-    }
+    const { mockDb } = makeDeleteDb({ id: 'sess-1' }, { error: { message: 'DB error' } })
     vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
 
     const req = new NextRequest('http://localhost', { method: 'DELETE' })

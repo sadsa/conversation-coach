@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
+import { verifyOwnedViaSession } from '@/lib/ownership'
 
 type RouteParams = { id: string } | Promise<{ id: string }>
 type Params = { params: RouteParams }
@@ -11,32 +12,13 @@ async function getItemId(params: RouteParams): Promise<string> {
   return resolved.id
 }
 
-async function verifyOwnership(db: ReturnType<typeof createServerClient>, itemId: string, userId: string) {
-  const { data: item } = await db
-    .from('practice_items')
-    .select('session_id')
-    .eq('id', itemId)
-    .single()
-
-  if (!item) return false
-
-  const { data: session } = await db
-    .from('sessions')
-    .select('id')
-    .eq('id', item.session_id)
-    .eq('user_id', userId)
-    .single()
-
-  return !!session
-}
-
 export async function PATCH(req: NextRequest, { params }: Params) {
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const itemId = await getItemId(params)
   const db = createServerClient()
-  const owned = await verifyOwnership(db, itemId, user.id)
+  const owned = await verifyOwnedViaSession(db, 'practice_items', itemId, user.id)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json() as { reviewed?: boolean; written_down?: boolean }
@@ -62,7 +44,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const itemId = await getItemId(params)
   const db = createServerClient()
-  const owned = await verifyOwnership(db, itemId, user.id)
+  const owned = await verifyOwnedViaSession(db, 'practice_items', itemId, user.id)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { error } = await db
