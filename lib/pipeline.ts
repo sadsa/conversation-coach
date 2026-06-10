@@ -5,7 +5,7 @@ import { deleteObject } from '@/lib/r2'
 import { sendPushNotification } from '@/lib/push'
 import { log } from '@/lib/logger'
 import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
-import { normaliseAnnotations } from '@/lib/annotations'
+import { persistAnnotations } from '@/lib/annotation-persistence'
 import type { ClaudeAnnotation } from '@/lib/claude'
 import { transitionToReady, transitionToAnalysisError } from '@/lib/session-pipeline'
 
@@ -47,51 +47,7 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     throw err
   }
 
-  // Build a map so we can validate/correct character offsets from Claude
-  const segmentTextById = new Map(userTurns.map(t => [t.id, t.text]))
-
-  const preNormalise = annotations.length
-  const filteredAnnotations = normaliseAnnotations(annotations, segmentTextById)
-
-  if (filteredAnnotations.length < preNormalise) {
-    log.info('Dropped low-importance annotations', {
-      sessionId,
-      dropped: preNormalise - filteredAnnotations.length,
-      kept: filteredAnnotations.length,
-    })
-  }
-
-  if (filteredAnnotations.length > 0) {
-    const { error: annotationError } = await db.from('annotations').insert(
-      filteredAnnotations.map(a => ({
-        session_id: sessionId,
-        segment_id: a.segment_id,
-        type: a.type,
-        original: a.original,
-        start_char: a.start_char,
-        end_char: a.end_char,
-        correction: a.correction,
-        explanation: a.explanation,
-        sub_category: a.sub_category,
-        flashcard_front: a.flashcard_front ?? null,
-        flashcard_back: a.flashcard_back ?? null,
-        flashcard_note: a.flashcard_note ?? null,
-        importance_score: a.importance_score ?? null,
-        importance_note: a.importance_note ?? null,
-      }))
-    )
-
-    if (annotationError) {
-      log.error('Annotation insert failed', {
-        sessionId,
-        error: annotationError.message,
-        code: annotationError.code,
-        details: annotationError.details,
-        hint: annotationError.hint,
-      })
-      throw new Error(`Failed to insert annotations: ${annotationError.message}`)
-    }
-  }
+  const annotationCount = await persistAnnotations(db, sessionId, annotations, userTurns)
 
   // Delete audio from R2
   if (session.audio_r2_key) {
@@ -99,7 +55,7 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
     await db.from('sessions').update({ audio_r2_key: null }).eq('id', sessionId)
   }
 
-  log.info('Claude analysis complete', { sessionId, annotationCount: filteredAnnotations.length })
+  log.info('Claude analysis complete', { sessionId, annotationCount })
   await transitionToReady(sessionId, { title })
 
   await sendPushNotification(sessionId, title)

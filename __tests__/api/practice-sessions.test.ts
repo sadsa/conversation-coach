@@ -40,8 +40,17 @@ function makeDb() {
   const eqUpdateMock = vi.fn().mockResolvedValue({ error: null })
   const updateMock = vi.fn().mockReturnValue({ eq: eqUpdateMock })
 
+  // transitionToReady looks the session row back up via
+  // `.from('sessions').select('id').eq('id', ...).single()` — distinct from the
+  // insert().select().single() chain above.
+  const selectSessionRowMock = vi.fn().mockReturnValue({
+    eq: vi.fn().mockReturnValue({
+      single: vi.fn().mockResolvedValue({ data: { id: 'session-abc' }, error: null }),
+    }),
+  })
+
   const fromMock = vi.fn().mockImplementation((table: string) => {
-    if (table === 'sessions') return { insert: insertSessionMock, update: updateMock }
+    if (table === 'sessions') return { insert: insertSessionMock, update: updateMock, select: selectSessionRowMock }
     if (table === 'transcript_segments') return { insert: insertSegmentsWithSelectMock }
     if (table === 'annotations') return { insert: insertAnnotationsMock }
     return {}

@@ -5,7 +5,7 @@ import { getAuthenticatedUser } from '@/lib/auth'
 import { analyseUserTurns } from '@/lib/claude'
 import { log } from '@/lib/logger'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
-import { normaliseAnnotations } from '@/lib/annotations'
+import { persistAnnotations } from '@/lib/annotation-persistence'
 import { transitionToReady, transitionToAnalysisError } from '@/lib/session-pipeline'
 
 function formatSessionTitle(date: Date): string {
@@ -116,33 +116,10 @@ export async function POST(req: NextRequest) {
 
     const { title, annotations } = await analyseUserTurns(claudeTurns, null, sessionId, targetLanguage)
 
-    const segmentTextById = new Map(claudeTurns.map(t => [t.id, t.text]))
-    const correctedAnnotations = normaliseAnnotations(annotations, segmentTextById)
-
-    if (correctedAnnotations.length > 0) {
-      const { error: annError } = await db.from('annotations').insert(
-        correctedAnnotations.map(a => ({
-          session_id: sessionId,
-          segment_id: a.segment_id,
-          type: a.type,
-          original: a.original,
-          start_char: a.start_char,
-          end_char: a.end_char,
-          correction: a.correction,
-          explanation: a.explanation,
-          sub_category: a.sub_category,
-          flashcard_front: a.flashcard_front ?? null,
-          flashcard_back: a.flashcard_back ?? null,
-          flashcard_note: a.flashcard_note ?? null,
-          importance_score: a.importance_score ?? null,
-          importance_note: a.importance_note ?? null,
-        }))
-      )
-      if (annError) throw new Error(`Annotation insert failed: ${annError.message}`)
-    }
+    const annotationCount = await persistAnnotations(db, sessionId, annotations, claudeTurns)
 
     await transitionToReady(sessionId, { title })
-    log.info('Practice session analysis complete', { sessionId, annotationCount: correctedAnnotations.length })
+    log.info('Practice session analysis complete', { sessionId, annotationCount })
 
     return NextResponse.json({ session_id: sessionId }, { status: 201 })
 
