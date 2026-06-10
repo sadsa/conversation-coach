@@ -206,7 +206,7 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
             </motion.p>
           )}
         </AnimatePresence>
-        <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+        <h1 className="text-page-title">
           {greeting}
         </h1>
 

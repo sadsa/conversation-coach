@@ -414,7 +414,7 @@ export default function LoginPage() {
             <Wordmark />
           </div>
           <div className="space-y-2">
-            <h1 className="font-display text-3xl font-medium text-text-primary">
+            <h1 className="text-page-title">
               {savedEmail ? t('auth.welcomeBack') : t('auth.signInTitle')}
             </h1>
             {/* Subtitle is first-time only — returning users already

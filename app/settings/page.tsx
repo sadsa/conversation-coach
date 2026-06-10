@@ -61,7 +61,7 @@ export default function SettingsPage() {
     // down to 32px keeps Settings calm without it feeling looser than
     // its siblings.
     <div className="space-y-8">
-      <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+      <h1 className="text-page-title">
         {t('settings.title')}
       </h1>
 
@@ -123,7 +123,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{t('settings.account')}</h2>
+        <h2 className="text-eyebrow text-text-secondary">{t('settings.account')}</h2>
         <button
           type="button"
           onClick={signOut}

@@ -58,7 +58,7 @@ export function HushStack({ eyebrow, original, correction, answerId, eyebrowActi
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <div
-          className="text-[0.6875rem] font-semibold tracking-[0.18em] uppercase text-text-tertiary"
+          className="text-eyebrow"
           aria-hidden="true"
         >
           {eyebrow}

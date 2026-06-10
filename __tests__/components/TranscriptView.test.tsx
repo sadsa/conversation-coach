@@ -89,7 +89,9 @@ describe('TranscriptView', () => {
     )
     const label = screen.getByText('You')
     expect(label.tagName).toBe('P')
-    expect(label).toHaveClass('uppercase')
+    // The uppercase/tracking/weight treatment now lives in the shared
+    // `text-eyebrow` token (globals.css) rather than inline utilities.
+    expect(label).toHaveClass('text-eyebrow')
   })
 
   it('applies saved class to a highlight when annotation is in addedAnnotations', () => {

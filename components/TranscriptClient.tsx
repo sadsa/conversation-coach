@@ -179,7 +179,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
               value={title}
               onSave={handleRename}
               ariaLabel={t('transcript.editTitle')}
-              className="font-display text-2xl md:text-3xl font-medium leading-tight tracking-[-0.01em] break-words text-text-primary"
+              className="text-detail-title leading-tight tracking-[-0.01em] break-words"
             />
           </div>
 

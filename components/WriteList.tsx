@@ -286,7 +286,7 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
       {studiedItems.length > 0 && (
         <>
           <div className="flex items-center gap-1.5 pt-1" data-testid="studied-divider">
-            <h2 className="text-xs font-medium text-text-tertiary tracking-wide">
+            <h2 className="text-eyebrow">
               {t('writeList.archiveHeading')}
             </h2>
             <span className="text-xs text-text-tertiary tabular-nums" aria-label={`${studiedItems.length} items`}>

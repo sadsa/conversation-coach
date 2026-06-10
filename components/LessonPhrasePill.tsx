@@ -53,7 +53,7 @@ export function LessonPhrasePill({ correction, flashcard_back }: Props) {
 
   return (
     <div className="mx-4 mt-3 px-3 py-2.5 bg-surface border border-border-subtle rounded-[10px] flex-shrink-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-text-tertiary mb-1">
+      <p className="text-eyebrow mb-1">
         {t('lesson.studying')}
       </p>
       <p className="font-display text-[15px] text-text-primary leading-snug">

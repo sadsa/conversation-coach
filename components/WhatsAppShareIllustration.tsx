@@ -77,7 +77,7 @@ function ChatHeader({ contactName, initial }: { contactName: string; initial: st
         />
       </svg>
       <div className="w-5 h-5 rounded-full bg-accent-chip flex items-center justify-center shrink-0">
-        <span className="text-[9px] font-bold text-on-accent-chip leading-none">{initial}</span>
+        <span className="text-[9px] font-semibold text-on-accent-chip leading-none">{initial}</span>
       </div>
       <span className="text-[11px] font-semibold text-text-primary leading-none">{contactName}</span>
     </div>
@@ -174,7 +174,7 @@ function ShareSheet({ shareTitle, appLabels }: { shareTitle: string; appLabels: 
               }`}
             >
               {app.coach ? (
-                <span className="text-white text-[9px] font-bold leading-none">CC</span>
+                <span className="text-white text-[9px] font-semibold leading-none">CC</span>
               ) : (
                 <span className="text-base leading-none">{app.icon}</span>
               )}

@@ -41,7 +41,7 @@ export function DashboardInProgress({ sessions }: Props) {
       <header className="flex items-center justify-between gap-3">
         <h2
           id="in-progress-heading"
-          className="text-sm font-medium text-text-secondary uppercase tracking-wider"
+          className="text-eyebrow text-text-secondary"
         >
           {t('home.inProgressTitle')}
         </h2>

@@ -60,7 +60,7 @@ export function WriteClient({ initialItems, lockedPillars }: Props) {
     // header and content section, same as the other three tabs.
     <div className="space-y-8">
       <header className="space-y-2">
-        <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+        <h1 className="text-page-title">
           {t('write.title')}
         </h1>
         <MethodologyEyebrow active="study" lockedPillars={lockedPillars} />

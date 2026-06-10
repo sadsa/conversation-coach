@@ -191,7 +191,7 @@ export function ReviewClient({ initialSessions, lockedPillars }: Props) {
     // --bottom-nav-h directly.
     <div className="space-y-8">
       <header className="space-y-2">
-        <h1 className="font-display text-3xl md:text-4xl font-medium text-text-primary">
+        <h1 className="text-page-title">
           {t('review.title')}
         </h1>
         <MethodologyEyebrow active="review" lockedPillars={lockedPillars} />

@@ -39,7 +39,7 @@ export default function AccessDeniedPage() {
     <div className="flex items-center justify-center flex-1 px-6">
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="space-y-2">
-          <h1 className="font-display text-3xl font-medium text-text-primary">
+          <h1 className="text-page-title">
             {t('accessDenied.title')}
           </h1>
           <p className="text-sm text-text-secondary">

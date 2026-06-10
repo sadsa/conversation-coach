@@ -286,6 +286,44 @@
   }
 }
 
+@layer components {
+  /* ── Typography roles ──────────────────────────────────────────────────
+     Three named classes so surfaces stop hand-rolling title/eyebrow values.
+     Before these, page H1s drifted across eight size/breakpoint combos and
+     the small-caps section label had eight different size/weight/tracking/
+     colour treatments. Reach for these instead of re-deriving the scale.
+
+       • text-page-title  — top-level page H1 (Practise/Review/Study, auth,
+                            settings, onboarding, admin). Source Serif display.
+       • text-detail-title — secondary detail-screen H1, one step down
+                            (session status / identify / transcript title).
+       • text-eyebrow     — the uppercase small-caps section label. Tertiary
+                            by default; append `text-text-secondary` where the
+                            label heads a true page section (settings groups,
+                            dashboard sections).
+
+     The display titles inline the same OpenType / tracking / leading tweaks
+     as the base `.font-display` rule so they're self-contained — components
+     no longer need to also carry a literal `font-display` class. */
+  .text-page-title {
+    @apply font-display text-3xl md:text-4xl font-medium text-text-primary;
+    font-feature-settings: 'kern', 'liga', 'calt';
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+
+  .text-detail-title {
+    @apply font-display text-2xl md:text-3xl font-medium text-text-primary;
+    font-feature-settings: 'kern', 'liga', 'calt';
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+
+  .text-eyebrow {
+    @apply text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-text-tertiary;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

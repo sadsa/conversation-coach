@@ -243,7 +243,7 @@ export default function AdminClient({ users: initialUsers }: AdminClientProps) {
         <p className="text-xs font-semibold tracking-widest uppercase text-accent-primary">
           {t('admin.eyebrow')}
         </p>
-        <h1 className="font-display text-2xl font-medium text-text-primary">
+        <h1 className="text-page-title">
           {t('admin.title')}
         </h1>
       </div>
@@ -252,7 +252,7 @@ export default function AdminClient({ users: initialUsers }: AdminClientProps) {
         {/* Pending — always expanded, this is the action surface */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-text-primary">{t('admin.pending')}</h2>
+            <h2 className="text-eyebrow text-text-secondary">{t('admin.pending')}</h2>
             {pending.length > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full border bg-[--annotation-unreviewed-bg] text-[--annotation-unreviewed-text] border-[--annotation-unreviewed-border]">
                 {t('admin.waiting', { n: String(pending.length) })}
