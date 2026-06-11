@@ -63,7 +63,7 @@ export function WriteClient({ initialItems, lockedPillars }: Props) {
         <h1 className="text-page-title">
           {t('write.title')}
         </h1>
-        <MethodologyEyebrow active="study" lockedPillars={lockedPillars} />
+        <MethodologyEyebrow active="refine" lockedPillars={lockedPillars} />
       </header>
       <WriteList
         items={items}

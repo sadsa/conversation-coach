@@ -48,9 +48,9 @@ vi.mock('@/components/LanguageProvider', () => ({
       // through to the key (matches the real t() fallback).
       const dict: Record<string, string> = {
         'review.title': 'Your conversations',
-        'home.pillarPractise': 'Practise',
+        'home.pillarSpeak': 'Speak',
         'home.pillarReview': 'Review',
-        'home.pillarStudy': 'Study',
+        'home.pillarRefine': 'Refine',
         'home.pillarAria': 'Methodology',
         'home.recentSessionsTitle': 'Your conversations',
         'home.noRecordingsYet': 'No conversations yet.',
@@ -95,11 +95,11 @@ describe('ReviewClient — page header', () => {
 })
 
 describe('ReviewClient — methodology eyebrow', () => {
-  it('renders all three pillar words (Practise · Review · Study)', () => {
+  it('renders all three pillar words (Speak · Review · Refine)', () => {
     render(<ReviewClient initialSessions={[mockSession]} />)
-    expect(screen.getByText('Practise')).toBeInTheDocument()
+    expect(screen.getByText('Speak')).toBeInTheDocument()
     expect(screen.getByText('Review')).toBeInTheDocument()
-    expect(screen.getByText('Study')).toBeInTheDocument()
+    expect(screen.getByText('Refine')).toBeInTheDocument()
   })
 
   it('marks Review as the active pillar (aria-current="page")', () => {
@@ -108,10 +108,10 @@ describe('ReviewClient — methodology eyebrow', () => {
     expect(reviewEl).toHaveAttribute('aria-current', 'page')
   })
 
-  it('Study pillar is a plain link to /write (no count badge) when not locked', () => {
+  it('Refine pillar is a plain link to /refine (no count badge) when not locked', () => {
     render(<ReviewClient initialSessions={[mockSession]} />)
-    const studyLink = screen.getByText('Study').closest('a')
-    expect(studyLink).toHaveAttribute('href', '/write')
+    const refineLink = screen.getByText('Refine').closest('a')
+    expect(refineLink).toHaveAttribute('href', '/refine')
     expect(screen.queryByTestId('home-study-chip')).not.toBeInTheDocument()
   })
 
@@ -120,20 +120,20 @@ describe('ReviewClient — methodology eyebrow', () => {
   // dashed-lock so the eyebrow stops pointing at the empty Write queue.
   // The page-level RSC derives this from loadEmptyAccountFlags and
   // hands the array in; the component just renders it.
-  it('renders Study as a locked non-link span when lockedPillars contains "study"', () => {
+  it('renders Refine as a locked non-link span when lockedPillars contains "refine"', () => {
     // Avoid getByLabelText — see PractiseClient test for the normalizer
     // patch gotcha (vitest.setup.ts).
     const { container } = render(
       <ReviewClient
         initialSessions={[mockSession]}
-        lockedPillars={['study']}
+        lockedPillars={['refine']}
       />,
     )
-    expect(screen.getByText('Study').closest('a')).toBeNull()
-    const studyWrapper = container.querySelector('[data-locked="true"]')
-    expect(studyWrapper).not.toBeNull()
-    expect(studyWrapper?.getAttribute('aria-label')).toMatch(
-      /Study — home\.pillarLockedStudy/,
+    expect(screen.getByText('Refine').closest('a')).toBeNull()
+    const refineWrapper = container.querySelector('[data-locked="true"]')
+    expect(refineWrapper).not.toBeNull()
+    expect(refineWrapper?.getAttribute('aria-label')).toMatch(
+      /Refine — home\.pillarLockedRefine/,
     )
   })
 })

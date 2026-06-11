@@ -61,9 +61,11 @@ interface Props {
    * behaviour).
    */
   lockedPillars?: ReadonlyArray<Pillar>
+  /** First name from Google OAuth user_metadata. Absent for magic-link users. */
+  displayName?: string | null
 }
 
-export function PractiseClient({ lockedPillars }: Props = {}) {
+export function PractiseClient({ lockedPillars, displayName }: Props = {}) {
   const { t, targetLanguage } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -211,7 +213,7 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
           {greeting}
         </h1>
 
-        <MethodologyEyebrow active="practise" lockedPillars={lockedPillars} />
+        <MethodologyEyebrow active="speak" lockedPillars={lockedPillars} />
         <InstallBanner />
       </header>
 

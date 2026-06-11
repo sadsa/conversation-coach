@@ -1,7 +1,7 @@
 // components/MethodologyEyebrow.tsx
 //
 // The orientation strip that sits beneath the page H1 on /, /review, and
-// /write. Names the three pillars of the methodology and shows which one
+// /refine. Names the three pillars of the methodology and shows which one
 // the user is currently inside.
 //
 // Surface shape: a numbered step rail, NOT the older arrow-text row.
@@ -51,7 +51,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 // `lockedPillars` array without rebuilding the union type at every call
 // site. Keeping the canonical definition here also means future pillar
 // changes (rename / add) only update one place.
-export type Pillar = 'practise' | 'review' | 'study'
+export type Pillar = 'speak' | 'review' | 'refine'
 
 interface Props {
   active: Pillar
@@ -67,15 +67,15 @@ interface Props {
 }
 
 const PILLAR_HREF: Record<Pillar, string> = {
-  practise: '/',
+  speak: '/',
   review: '/review',
-  study: '/write',
+  refine: '/refine',
 }
 
 const PILLAR_LABEL_KEY: Record<Pillar, string> = {
-  practise: 'home.pillarPractise',
+  speak: 'home.pillarSpeak',
   review: 'home.pillarReview',
-  study: 'home.pillarStudy',
+  refine: 'home.pillarRefine',
 }
 
 // Aria-label for the locked state. Practise is the methodology's entry
@@ -83,13 +83,13 @@ const PILLAR_LABEL_KEY: Record<Pillar, string> = {
 // `/` accessible), so it doesn't need a key here.
 const PILLAR_LOCKED_KEY: Partial<Record<Pillar, string>> = {
   review: 'home.pillarLockedReview',
-  study: 'home.pillarLockedStudy',
+  refine: 'home.pillarLockedRefine',
 }
 
 // Ordered list — render order is the methodology order. Step number is
 // `index + 1`, not stored separately, so we never get a "PRACTISE 2,
 // REVIEW 1" desync between order and numbering.
-const PILLARS: ReadonlyArray<Pillar> = ['practise', 'review', 'study']
+const PILLARS: ReadonlyArray<Pillar> = ['speak', 'review', 'refine']
 
 // Shared layout for the inner content of each step (circle + label).
 // Lives outside renderStep because it's identical between the active

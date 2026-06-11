@@ -25,7 +25,7 @@ export function StudyPrompt({ count }: Props) {
           style={{ bottom: 'var(--toast-bottom)' }}
         >
           <Link
-            href="/write"
+            href="/refine"
             aria-label={t('transcript.studyPromptAria', { n: count })}
             className="
               pointer-events-auto flex items-center gap-2

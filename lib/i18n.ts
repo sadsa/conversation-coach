@@ -44,10 +44,11 @@ export function targetLanguageGreeting(target: TargetLanguage, date: Date): stri
   return TARGET_LANGUAGE_GREETINGS[target][time]
 }
 
-export function nativeLanguageGreeting(target: TargetLanguage, date: Date): string {
+export function nativeLanguageGreeting(target: TargetLanguage, date: Date, name?: string | null): string {
   const hour = date.getHours()
   const time: TimeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
-  return NATIVE_LANGUAGE_GREETINGS[target][time]
+  const base = NATIVE_LANGUAGE_GREETINGS[target][time]
+  return name ? `${base}, ${name}` : base
 }
 
 type Replacements = Record<string, string | number>
@@ -65,15 +66,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Navigation
     //
-    // Labels match the three pillars of the methodology — Practise → Review →
-    // Study → Settings. `nav.recordings` (was "Conversations") was retired
+    // Labels match the three pillars of the methodology — Speak → Review →
+    // Refine → Settings. `nav.recordings` (was "Conversations") was retired
     // when the home dashboard moved to its own /review route; existing
-    // imports were swept over to `nav.review`. Same with `nav.write` →
-    // `nav.study`. Old keys deliberately removed so a stale reference
-    // surfaces as the literal key in dev rather than the wrong label.
-    'nav.practise': 'Practise',
+    // imports were swept over to `nav.review`. `nav.write` → `nav.study` →
+    // `nav.refine`; `nav.practise` → `nav.speak`. Old keys deliberately
+    // removed so a stale reference surfaces as the literal key in dev.
+    'nav.speak': 'Speak',
     'nav.review': 'Review',
-    'nav.study': 'Study',
+    'nav.refine': 'Refine',
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
     'nav.back': 'Back',
@@ -328,20 +329,20 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // completion (via ?welcome=true). Auto-dismisses after ~3s.
     'home.welcomeBeat': 'All set. Ready when you are.',
 
-    // Methodology eyebrow — small "Practise · Review · Study" row beneath
+    // Methodology eyebrow — small "Speak · Review · Refine" row beneath
     // the greeting that surfaces the three pillars. The current pillar
-    // (Practise on /) tints accent; Study carries a numeric badge when
-    // the user has unseen corrections in their Study queue.
-    'home.pillarPractise': 'Practise',
+    // (Speak on /) tints accent; Refine carries a numeric badge when
+    // the user has unseen corrections in their Refine queue.
+    'home.pillarSpeak': 'Speak',
     'home.pillarReview': 'Review',
-    'home.pillarStudy': 'Study',
-    'home.pillarAria': 'Methodology: Practise, then review, then study',
+    'home.pillarRefine': 'Refine',
+    'home.pillarAria': 'Methodology: Speak, then review, then refine',
     // Locked-pillar aria-label (used by both screen-reader announcements and
     // a small visible caption beneath dashed/dimmed pillar nodes). Surfaces
     // when the user has no data flowing through that pillar yet — keeps
     // first-time users from tapping into a dead-end empty state.
     'home.pillarLockedReview': 'Unlocks after your first conversation',
-    'home.pillarLockedStudy': 'Unlocks when you save your first correction',
+    'home.pillarLockedRefine': 'Unlocks when you save your first correction',
 
     // Mode cards — the three doors out of the home. Call + Chat reuse the
     // existing practice.modeCall*/modeChat* copy. The third door is the
@@ -740,12 +741,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Navigation
     //
-    // Labels coinciden con los tres pilares: Practicar → Revisar → Estudiar
+    // Labels coinciden con los tres pilares: Hablar → Revisar → Refinar
     // → Configuración. `nav.recordings` (antes "Conversaciones") se retiró
-    // cuando el dashboard se mudó a /review; `nav.write` → `nav.study`.
-    'nav.practise': 'Practicar',
+    // cuando el dashboard se mudó a /review; `nav.write` → `nav.study` →
+    // `nav.refine`; `nav.practise` → `nav.speak`.
+    'nav.speak': 'Hablar',
     'nav.review': 'Revisar',
-    'nav.study': 'Estudiar',
+    'nav.refine': 'Refinar',
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
     'nav.back': 'Atrás',
@@ -931,15 +933,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.modesAria': 'Modos de práctica',
     'home.welcomeBeat': 'Todo listo. Empezá cuando quieras.',
 
-    // Eyebrow de metodología — pequeña fila "Practicar · Revisar · Estudiar"
-    // bajo el saludo. El pilar actual (Practicar en /) toma el acento;
-    // Estudiar lleva un badge numérico cuando hay correcciones pendientes.
-    'home.pillarPractise': 'Practicar',
+    // Eyebrow de metodología — pequeña fila "Hablar · Revisar · Refinar"
+    // bajo el saludo. El pilar actual (Hablar en /) toma el acento;
+    // Refinar lleva un badge numérico cuando hay correcciones pendientes.
+    'home.pillarSpeak': 'Hablar',
     'home.pillarReview': 'Revisar',
-    'home.pillarStudy': 'Estudiar',
-    'home.pillarAria': 'Metodología: practicá, luego revisá, luego estudiá',
+    'home.pillarRefine': 'Refinar',
+    'home.pillarAria': 'Metodología: hablá, luego revisá, luego refiná',
     'home.pillarLockedReview': 'Se desbloquea con tu primera conversación',
-    'home.pillarLockedStudy': 'Se desbloquea cuando guardás tu primera corrección',
+    'home.pillarLockedRefine': 'Se desbloquea cuando guardás tu primera corrección',
 
     // Tarjetas de modo — las tres puertas del home. Llamada + Chat
     // reutilizan practice.modeCall*/modeChat*. La tercera puerta es

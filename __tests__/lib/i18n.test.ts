@@ -12,10 +12,10 @@ describe('inferUiLanguage', () => {
 
 describe('t()', () => {
   it('returns English string for en', () => {
-    expect(t('nav.practise', 'en')).toBe('Practise')
+    expect(t('nav.speak', 'en')).toBe('Speak')
   })
   it('returns Spanish string for es', () => {
-    expect(t('nav.practise', 'es')).toBe('Practicar')
+    expect(t('nav.speak', 'es')).toBe('Hablar')
   })
   it('returns the key itself when not found', () => {
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')
@@ -33,15 +33,12 @@ describe('t()', () => {
 })
 
 describe('nav.* renamed for the three-pillar methodology', () => {
-  // The Practise-as-home redesign renamed two nav keys to match the
-  // methodology — `nav.recordings` → `nav.review` (the inbox of
-  // recorded conversations) and `nav.write` → `nav.study` (the queue of
-  // corrections to study). `nav.practice` was retired entirely: the
-  // home tab now reads `nav.practise` (British spelling, matching the
-  // pillar name) since the /practice route lost its dedicated tab and
-  // is reached from the home mode cards.
-  it('nav.practise + nav.review + nav.study + nav.settings are the four tabs', () => {
-    for (const key of ['nav.practise', 'nav.review', 'nav.study', 'nav.settings']) {
+  // Speak → Review → Refine → Settings. History of renames:
+  // `nav.recordings` → `nav.review`; `nav.write` → `nav.study` →
+  // `nav.refine`; `nav.practise` → `nav.speak`. Old keys deliberately
+  // removed so a stale reference surfaces as the literal key in dev.
+  it('nav.speak + nav.review + nav.refine + nav.settings are the four tabs', () => {
+    for (const key of ['nav.speak', 'nav.review', 'nav.refine', 'nav.settings']) {
       expect(t(key, 'en')).not.toBe(key)
       expect(t(key, 'es')).not.toBe(key)
     }
@@ -52,23 +49,33 @@ describe('nav.* renamed for the three-pillar methodology', () => {
     expect(t('nav.recordings', 'es')).toBe('nav.recordings')
   })
 
-  it('nav.write is retired (use nav.study for the corrections queue)', () => {
+  it('nav.write is retired (use nav.refine for the corrections queue)', () => {
     expect(t('nav.write', 'en')).toBe('nav.write')
     expect(t('nav.write', 'es')).toBe('nav.write')
   })
 
-  it('nav.practice is retired (use nav.practise — British spelling matches the pillar)', () => {
+  it('nav.study is retired (use nav.refine for the corrections queue)', () => {
+    expect(t('nav.study', 'en')).toBe('nav.study')
+    expect(t('nav.study', 'es')).toBe('nav.study')
+  })
+
+  it('nav.practise is retired (use nav.speak for the home tab)', () => {
+    expect(t('nav.practise', 'en')).toBe('nav.practise')
+    expect(t('nav.practise', 'es')).toBe('nav.practise')
+  })
+
+  it('nav.practice is retired (no dedicated tab — reached from home mode cards)', () => {
     expect(t('nav.practice', 'en')).toBe('nav.practice')
     expect(t('nav.practice', 'es')).toBe('nav.practice')
   })
 })
 
 describe('home.* methodology eyebrow + three doors', () => {
-  it('home.pillarPractise / Review / Study read as the pillar names', () => {
-    expect(t('home.pillarPractise', 'en')).toBe('Practise')
+  it('home.pillarSpeak / Review / Refine read as the pillar names', () => {
+    expect(t('home.pillarSpeak', 'en')).toBe('Speak')
     expect(t('home.pillarReview', 'en')).toBe('Review')
-    expect(t('home.pillarStudy', 'en')).toBe('Study')
-    expect(t('home.pillarPractise', 'es')).toBe('Practicar')
+    expect(t('home.pillarRefine', 'en')).toBe('Refine')
+    expect(t('home.pillarSpeak', 'es')).toBe('Hablar')
   })
 
   it('home.subhead is the new under-greeting tagline (drives the three doors)', () => {
@@ -204,9 +211,9 @@ describe('annotation action i18n keys', () => {
     expect(t('writeList.emptyWriteCaption', 'es')).not.toBe('writeList.emptyWriteCaption')
     expect(t('writeList.emptyWriteCta', 'es')).not.toBe('writeList.emptyWriteCta')
   })
-  it('nav.study replaced nav.write for the corrections queue tab', () => {
-    expect(t('nav.study', 'en')).toBe('Study')
-    expect(t('nav.study', 'es')).toBe('Estudiar')
+  it('nav.refine replaced nav.study for the corrections queue tab', () => {
+    expect(t('nav.refine', 'en')).toBe('Refine')
+    expect(t('nav.refine', 'es')).toBe('Refinar')
   })
   it('practice.title and practiceList.* keys are retired (fall back to key)', () => {
     expect(t('practice.title', 'en')).toBe('practice.title')

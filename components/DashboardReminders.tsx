@@ -73,7 +73,7 @@ export function DashboardReminders({ summary }: Props) {
         {t('home.remindersAria')}
       </h2>
       <Link
-        href="/write"
+        href="/refine"
         data-testid="widget-write-down"
         className="group flex items-center justify-between gap-4 rounded-2xl border border-widget-write-border bg-widget-write-bg/40 px-6 py-5 hover:bg-widget-write-bg/60 transition-colors"
       >

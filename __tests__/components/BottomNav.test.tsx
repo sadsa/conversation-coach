@@ -25,28 +25,26 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/')
   })
 
-  // Tabs renamed in the Practise-as-home redesign: Recordings → Review,
-  // Write → Study, plus a new Practise tab at /. Order reflects the
-  // methodology: Practise → Review → Study → Settings.
-  it('renders all four nav tabs (Practise, Review, Study, Settings)', () => {
+  // Speak → Review → Refine → Settings.
+  it('renders all four nav tabs (Speak, Review, Refine, Settings)', () => {
     wrap()
-    expect(screen.getByRole('link', { name: /practise/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /speak/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /study/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /refine/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
   })
 
   it('marks Practise active on "/"', () => {
     mockPathname.mockReturnValue('/')
     wrap()
-    expect(screen.getByRole('link', { name: /practise/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /study/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /speak/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /refine/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Practise active on "/write" (exact match required)', () => {
-    mockPathname.mockReturnValue('/write')
+  it('does NOT mark Speak active on "/refine" (exact match required)', () => {
+    mockPathname.mockReturnValue('/refine')
     wrap()
-    expect(screen.getByRole('link', { name: /practise/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
 
   it('marks Review active on "/review"', () => {
@@ -55,23 +53,23 @@ describe('BottomNav', () => {
     expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Study active on "/write" (route name unchanged, label is "Study")', () => {
-    mockPathname.mockReturnValue('/write')
+  it('marks Refine active on "/refine"', () => {
+    mockPathname.mockReturnValue('/refine')
     wrap()
-    expect(screen.getByRole('link', { name: /study/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Study active on a sub-route like "/write/something"', () => {
-    mockPathname.mockReturnValue('/write/something')
+  it('marks Refine active on a sub-route like "/refine/something"', () => {
+    mockPathname.mockReturnValue('/refine/something')
     wrap()
-    expect(screen.getByRole('link', { name: /study/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
   })
 
   it('marks Settings active on "/settings"', () => {
     mockPathname.mockReturnValue('/settings')
     wrap()
     expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /practise/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
 
   it('hides itself on md+ viewports via the md:hidden utility', () => {

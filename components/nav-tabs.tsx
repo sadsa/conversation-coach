@@ -4,12 +4,10 @@
 // nav surfaces can never drift apart. CLAUDE.md called this out as a known
 // gotcha — keep all routes here.
 //
-// Tab order mirrors the methodology: Practise → Review → Study → Settings.
-// `/` is the Practise home (mode-picker for voice agent sessions and the
+// Tab order mirrors the methodology: Speak → Review → Refine → Settings.
+// `/` is the Speak home (mode-picker for voice agent sessions and the
 // "share a voice note" deep-dive); `/review` is the inbox of recorded
-// conversations and saved corrections; `/write` keeps its underlying
-// route but the user-facing label is "Study" so the nav, the methodology
-// eyebrow on the home, and the brand vocabulary all match. Active voice
+// conversations; `/refine` is the queue of saved corrections. Active voice
 // sessions used to live on a separate /practice route — that's gone now;
 // PracticeClient mounts in place on `/` when the user taps a mode door
 // and unmounts on discard, so there's no second route to surface here.
@@ -84,7 +82,7 @@ function phIcon(glyph: keyof typeof PHOSPHOR_PATHS, size: 'sm' | 'lg') {
 export const NAV_TABS: NavTab[] = [
   {
     href: '/',
-    labelKey: 'nav.practise',
+    labelKey: 'nav.speak',
     exact: true,
     icon: phIcon('microphone', 'sm'),
     iconLg: phIcon('microphone', 'lg'),
@@ -97,8 +95,8 @@ export const NAV_TABS: NavTab[] = [
     iconLg: phIcon('chats', 'lg'),
   },
   {
-    href: '/write',
-    labelKey: 'nav.study',
+    href: '/refine',
+    labelKey: 'nav.refine',
     exact: false,
     icon: phIcon('bookOpen', 'sm'),
     iconLg: phIcon('bookOpen', 'lg'),

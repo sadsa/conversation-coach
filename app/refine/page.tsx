@@ -1,9 +1,10 @@
-// app/write/page.tsx
+// app/refine/page.tsx
 //
-// "To write down" surface. Server Component: fetches the user's
-// outstanding practice items in one round-trip and hands them to the
-// client component, so the page lands with real content (or an empty
-// state) instead of skeleton -> fetch -> render.
+// "Refine" surface — the queue of saved corrections to work through.
+// Server Component: fetches the user's outstanding practice items in
+// one round-trip and hands them to the client component, so the page
+// lands with real content (or an empty state) instead of skeleton ->
+// fetch -> render.
 //
 // While the server is rendering, Next.js shows `loading.tsx` in this
 // folder, which mirrors the page's actual shape so the transition

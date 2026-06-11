@@ -12,7 +12,7 @@
 //   • Both doors are in-place `<button>`s (they mount <PracticeClient> on
 //     tap — the standalone /practice route was retired so discard returns
 //     to these doors).
-//   • Renders the Practise · Review · Study eyebrow with Practise as the
+//   • Renders the Speak · Review · Refine eyebrow with Speak as the
 //     active pillar and the other two as plain links to their routes.
 //   • Picks up a pending share-target file from IndexedDB and routes
 //     straight to the per-session status screen before the R2 PUT
@@ -63,9 +63,9 @@ vi.mock('@/components/LanguageProvider', () => ({
         'practice.chatStarter.0': 'Your weekend plans',
         'practice.chatStarter.1': 'A recent meal',
         'practice.chatStarter.2': 'Getting around the city',
-        'home.pillarPractise': 'Practise',
+        'home.pillarSpeak': 'Speak',
         'home.pillarReview': 'Review',
-        'home.pillarStudy': 'Study',
+        'home.pillarRefine': 'Refine',
         'home.pillarAria': 'Methodology',
         'home.welcomeBeat': 'All set. Ready when you are.',
       }
@@ -154,17 +154,17 @@ describe('PractiseClient — starter chips', () => {
 })
 
 describe('PractiseClient — methodology eyebrow', () => {
-  it('renders all three pillar words (Practise · Review · Study)', () => {
+  it('renders all three pillar words (Speak · Review · Refine)', () => {
     render(<PractiseClient />)
-    expect(screen.getByText('Practise')).toBeInTheDocument()
+    expect(screen.getByText('Speak')).toBeInTheDocument()
     expect(screen.getByText('Review')).toBeInTheDocument()
-    expect(screen.getByText('Study')).toBeInTheDocument()
+    expect(screen.getByText('Refine')).toBeInTheDocument()
   })
 
-  it('marks Practise as the active pillar (aria-current="page")', () => {
+  it('marks Speak as the active pillar (aria-current="page")', () => {
     render(<PractiseClient />)
-    const practiseEl = screen.getByText('Practise')
-    expect(practiseEl).toHaveAttribute('aria-current', 'page')
+    const speakEl = screen.getByText('Speak')
+    expect(speakEl).toHaveAttribute('aria-current', 'page')
   })
 
   it('Review pillar links to /review', () => {
@@ -173,10 +173,10 @@ describe('PractiseClient — methodology eyebrow', () => {
     expect(reviewLink).toHaveAttribute('href', '/review')
   })
 
-  it('Study pillar is a plain link to /write (no count badge anywhere)', () => {
+  it('Refine pillar is a plain link to /refine (no count badge anywhere)', () => {
     render(<PractiseClient />)
-    const studyLink = screen.getByText('Study').closest('a')
-    expect(studyLink).toHaveAttribute('href', '/write')
+    const refineLink = screen.getByText('Refine').closest('a')
+    expect(refineLink).toHaveAttribute('href', '/refine')
     // The retired study-count chip should never render again.
     expect(screen.queryByTestId('home-study-chip')).not.toBeInTheDocument()
   })
@@ -189,17 +189,17 @@ describe('PractiseClient — methodology eyebrow', () => {
 // loadEmptyAccountFlags and passes it down; PractiseClient just hands it
 // through. These tests cover the rendering contract.
 describe('PractiseClient — locked pillars (empty account)', () => {
-  it('renders Review/Study as non-link spans when both are locked', () => {
-    render(<PractiseClient lockedPillars={['review', 'study']} />)
+  it('renders Review/Refine as non-link spans when both are locked', () => {
+    render(<PractiseClient lockedPillars={['review', 'refine']} />)
     // The labels are still in the DOM (we want users to read where they
     // ARE going to get to), just not wrapped in a navigable `<a>`.
     expect(screen.getByText('Review').closest('a')).toBeNull()
-    expect(screen.getByText('Study').closest('a')).toBeNull()
+    expect(screen.getByText('Refine').closest('a')).toBeNull()
   })
 
-  it('keeps Practise active even with both other pillars locked', () => {
-    render(<PractiseClient lockedPillars={['review', 'study']} />)
-    expect(screen.getByText('Practise')).toHaveAttribute('aria-current', 'page')
+  it('keeps Speak active even with both other pillars locked', () => {
+    render(<PractiseClient lockedPillars={['review', 'refine']} />)
+    expect(screen.getByText('Speak')).toHaveAttribute('aria-current', 'page')
   })
 
   it('locked pillar wrapper carries an aria-label with the unlock copy', () => {
@@ -214,10 +214,10 @@ describe('PractiseClient — locked pillars (empty account)', () => {
     )
   })
 
-  it('only locks the pillars listed — Study stays a live link when not in the set', () => {
+  it('only locks the pillars listed — Refine stays a live link when not in the set', () => {
     render(<PractiseClient lockedPillars={['review']} />)
     expect(screen.getByText('Review').closest('a')).toBeNull()
-    expect(screen.getByText('Study').closest('a')).toHaveAttribute('href', '/write')
+    expect(screen.getByText('Refine').closest('a')).toHaveAttribute('href', '/refine')
   })
 })
 
