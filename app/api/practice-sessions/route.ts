@@ -7,6 +7,7 @@ import { log } from '@/lib/logger'
 import type { TranscriptTurn, TargetLanguage } from '@/lib/types'
 import { persistAnnotations } from '@/lib/annotation-persistence'
 import { transitionToReady, transitionToAnalysisError } from '@/lib/session-pipeline'
+import { trackEvent } from '@/lib/analytics'
 
 function formatSessionTitle(date: Date): string {
   return `Practice — ${date.getDate()} ${date.toLocaleString('en', { month: 'short' })}`
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
     const annotationCount = await persistAnnotations(db, sessionId, annotations, claudeTurns)
 
     await transitionToReady(sessionId, { title })
+    trackEvent(user.id, 'session_completed', { session_id: sessionId, session_type: resolvedSessionType })
     log.info('Practice session analysis complete', { sessionId, annotationCount })
 
     return NextResponse.json({ session_id: sessionId }, { status: 201 })

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { verifyOwnedViaSession } from '@/lib/ownership'
+import { trackEvent } from '@/lib/analytics'
 
 type RouteParams = { id: string } | Promise<{ id: string }>
 type Params = { params: RouteParams }
@@ -35,6 +36,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     .eq('id', itemId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (body.written_down === true)
+    trackEvent(user.id, 'practice_item_studied', { practice_item_id: itemId, method: 'manual' })
+
   return NextResponse.json({ ok: true })
 }
 

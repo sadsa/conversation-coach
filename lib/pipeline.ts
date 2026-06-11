@@ -8,13 +8,14 @@ import type { TranscriptSegment, TargetLanguage } from '@/lib/types'
 import { persistAnnotations } from '@/lib/annotation-persistence'
 import type { ClaudeAnnotation } from '@/lib/claude'
 import { transitionToReady, transitionToAnalysisError } from '@/lib/session-pipeline'
+import { trackEvent } from '@/lib/analytics'
 
 export async function runClaudeAnalysis(sessionId: string, targetLanguage: TargetLanguage = 'es-AR'): Promise<void> {
   const db = createServerClient()
 
   const { data: session } = await db
     .from('sessions')
-    .select('user_speaker_labels, audio_r2_key, original_filename')
+    .select('user_id, session_type, user_speaker_labels, audio_r2_key, original_filename')
     .eq('id', sessionId)
     .single()
 
@@ -57,6 +58,9 @@ export async function runClaudeAnalysis(sessionId: string, targetLanguage: Targe
 
   log.info('Claude analysis complete', { sessionId, annotationCount })
   await transitionToReady(sessionId, { title })
+
+  if (session.user_id)
+    trackEvent(session.user_id, 'session_completed', { session_id: sessionId, session_type: session.session_type })
 
   await sendPushNotification(sessionId, title)
 }

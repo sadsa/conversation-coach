@@ -4,10 +4,13 @@ import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
 import { verifyOwnedSession } from '@/lib/ownership'
 import { loadPracticeItems } from '@/lib/loaders'
+import { trackEvent } from '@/lib/analytics'
 
 export async function GET(req: NextRequest) {
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  trackEvent(user.id, 'study_queue_opened')
 
   const url = new URL(req.url)
   const sort = url.searchParams.get('sort') === 'importance' ? 'importance' : 'created'
@@ -38,5 +41,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  trackEvent(user.id, 'annotation_saved', { session_id: body.session_id, annotation_id: body.annotation_id })
   return NextResponse.json(data, { status: 201 })
 }
