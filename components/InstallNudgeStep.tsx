@@ -12,15 +12,21 @@ function isIosSafari(): boolean {
   return /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/chrome|crios|fxios/i.test(ua)
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /android/i.test(navigator.userAgent)
+}
+
 export function InstallNudgeStep() {
   const { t } = useTranslation()
   const router = useRouter()
   const { isSupported, prompt } = useInstallPrompt()
   const ios = isIosSafari()
 
-  // Android when the native install prompt is supported; iOS otherwise.
-  // (Android Chrome fires beforeinstallprompt; iOS Safari does not.)
-  const showAndroid = isSupported && !ios
+  // Use UA to pick the illustration; isSupported gates whether the CTA can
+  // trigger the native prompt (beforeinstallprompt fires asynchronously and
+  // may not have arrived yet when the component first renders).
+  const showAndroid = isAndroid() && !ios
 
   async function handleInstall() {
     if (showAndroid) {
