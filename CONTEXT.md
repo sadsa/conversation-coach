@@ -85,6 +85,12 @@ A persistent floating pill on the Session page that appears whenever the user ha
 **Annotation Review Model (mobile vs desktop)**:
 On mobile, saving a Practice Item closes the `AnnotationSheet` entirely. The user returns to the transcript and taps the next annotation deliberately. On desktop, the right panel stays open with prev/next navigation so the user can step through corrections while the transcript remains visible on the left. See `docs/adr/0001-annotation-sheet-mobile-interaction-model.md`.
 
+### Installation
+
+**Install Nudge**:
+The two-surface prompt that teaches new mobile users to add the app to their home screen. Surface 1: a skippable onboarding step shown after the language pick (first login only); Surface 2: a dismissible banner on `/` for users who skipped. Both surfaces disappear permanently once the app is running in standalone mode (already installed). Desktop users never see either surface.
+_Avoid_: Install prompt, install banner (too narrow — describes only one surface)
+
 ## Example dialogue
 
 > **Dev:** A user saves three phrases, then leaves the session page without going to Study. Next time they open that session, does the Study Prompt show?

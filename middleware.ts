@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { log } from '@/lib/logger'
 
-const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/pending-approval', '/api/webhooks', '/api/access-request']
+const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/pending-approval', '/api/webhooks', '/api/access-request', '/dev']
 
 /**
  * Header names used to forward the verified user identity from middleware

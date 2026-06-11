@@ -1,0 +1,67 @@
+'use client'
+import { useRouter } from 'next/navigation'
+import { OnboardingStep } from '@/components/OnboardingStep'
+import { IosInstallIllustration } from '@/components/IosInstallIllustration'
+import { AndroidInstallIllustration } from '@/components/AndroidInstallIllustration'
+import { useInstallPrompt } from '@/hooks/useInstallPrompt'
+import { useTranslation } from '@/components/LanguageProvider'
+
+function isIosSafari(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  return /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/chrome|crios|fxios/i.test(ua)
+}
+
+export function InstallNudgeStep() {
+  const { t } = useTranslation()
+  const router = useRouter()
+  const { isSupported, prompt } = useInstallPrompt()
+  const ios = isIosSafari()
+
+  // Android when the native install prompt is supported; iOS otherwise.
+  // (Android Chrome fires beforeinstallprompt; iOS Safari does not.)
+  const showAndroid = isSupported && !ios
+
+  async function handleInstall() {
+    if (showAndroid) {
+      await prompt()
+    }
+    router.push('/?welcome=true')
+  }
+
+  function handleSkip() {
+    router.push('/?welcome=true')
+  }
+
+  const ctaLabel = showAndroid
+    ? t('onboarding.install.ctaInstall')
+    : t('onboarding.install.ctaGotIt')
+
+  const illustration = showAndroid ? (
+    <AndroidInstallIllustration ariaLabel={t('onboarding.install.androidAriaLabel')} />
+  ) : (
+    <IosInstallIllustration ariaLabel={t('onboarding.install.iosAriaLabel')} />
+  )
+
+  return (
+    <div className="flex h-full flex-col gap-6">
+      <OnboardingStep
+        step={1}
+        totalSteps={1}
+        illustration={illustration}
+        heading={t('onboarding.install.heading')}
+        body={t('onboarding.install.body')}
+        ctaLabel={ctaLabel}
+        onNext={handleInstall}
+        stepOfTotalLabel={t('onboarding.stepOfTotal', { n: 1, total: 1 })}
+      />
+      <button
+        type="button"
+        onClick={handleSkip}
+        className="w-full flex-shrink-0 py-3 text-sm text-text-tertiary hover:text-text-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 rounded-xl"
+      >
+        {t('onboarding.install.skip')}
+      </button>
+    </div>
+  )
+}

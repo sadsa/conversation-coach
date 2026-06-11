@@ -36,6 +36,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
 import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
+import { InstallBanner } from '@/components/InstallBanner'
 import { useTranslation } from '@/components/LanguageProvider'
 import { nativeLanguageGreeting, inferUiLanguage } from '@/lib/i18n'
 import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
@@ -211,6 +212,7 @@ export function PractiseClient({ lockedPillars }: Props = {}) {
         </h1>
 
         <MethodologyEyebrow active="practise" lockedPillars={lockedPillars} />
+        <InstallBanner />
       </header>
 
       {/* ── Two doors ──────────────────────────────────────────────────

@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { OnboardingStep } from '@/components/OnboardingStep'
 import { WhatsAppShareIllustration } from '@/components/WhatsAppShareIllustration'
+import { InstallNudgeStep } from '@/components/InstallNudgeStep'
 import { Wordmark } from '@/components/Wordmark'
 import { buttonStyles } from '@/components/Button'
+import { useIsInstalled } from '@/hooks/useIsInstalled'
 import type { TargetLanguage } from '@/lib/types'
 
 // URL semantics:
@@ -55,6 +57,7 @@ function OnboardingContent() {
   const searchParams = useSearchParams()
   const { t, setTargetLanguage } = useTranslation()
   const radioRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const isInstalled = useIsInstalled()
 
   const stepParam = searchParams.get('step')
   const revisit = searchParams.get('revisit') === 'true'
@@ -64,11 +67,15 @@ function OnboardingContent() {
   function handleLanguageConfirm() {
     if (!selected) return
     setTargetLanguage(selected)
-    // First-run completion lands on home with the peak-end beat — the
-    // language pick is now the entire wizard, so this is the moment to fire
-    // "all set." The hub used to sit between here and home; with that gone,
-    // the user is one tap from the dashboard the moment they commit.
-    router.push('/?welcome=true')
+    // On mobile + not yet installed, show the install nudge step first.
+    // Desktop and already-installed users skip straight to the welcome beat.
+    const isMobile =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    if (isMobile && !isInstalled) {
+      router.push('/onboarding?step=3')
+    } else {
+      router.push('/?welcome=true')
+    }
   }
 
   // Radiogroup keyboard nav: Arrow keys move focus AND selection between
@@ -181,6 +188,17 @@ function OnboardingContent() {
           >
             {t('onboarding.languageSelect.cta')}
           </button>
+        </div>
+      </OnboardingShell>
+    )
+  }
+
+  // ── Install nudge (step 3) ────────────────────────────────────────────────────
+  if (step === 3) {
+    return (
+      <OnboardingShell>
+        <div className="mx-auto h-full w-full max-w-sm">
+          <InstallNudgeStep />
         </div>
       </OnboardingShell>
     )

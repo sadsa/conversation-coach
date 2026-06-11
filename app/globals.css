@@ -452,6 +452,54 @@
   .oa-sheet    { animation: oa-sheet    4s var(--ease-out-expo)  both; }
   .oa-pulse    { animation: oa-pulse    4s var(--ease-out-quart) both; }
 
+  /* Install illustration animations (ia-*)
+     ───────────────────────────────────────────────────────────────────────
+     Used by IosInstallIllustration and AndroidInstallIllustration (step 3
+     of onboarding). Same 4s cycle, same `animation-fill-mode: both` rule
+     so reduced-motion users snap to the teaching end-frame.
+     Keyframe timing mirrors the oa-* vocabulary (same % breakpoints) so
+     the two illustration families share the same cognitive rhythm.
+     Timing key: 20%≈0.8s, 35%≈1.4s, 55%≈2.2s, 62%≈2.5s, 87%≈3.5s */
+
+  @keyframes ia-touch {
+    /* Finger tap appears on the target button */
+    0%, 20%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.4); }
+    25%       { opacity: 0.45; transform: translate(-50%, -50%) scale(0.95); }
+    35%       { opacity: 0.45; transform: translate(-50%, -50%) scale(1); }
+    42%, 100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.1); }
+  }
+
+  @keyframes ia-sheet {
+    /* Install bottom sheet slides up after the tap */
+    0%, 35%   { transform: translateY(100%); }
+    55%, 100% { transform: translateY(0); }
+  }
+
+  @keyframes ia-backdrop {
+    /* Dims the page behind the rising sheet */
+    0%, 35%   { opacity: 0; }
+    55%, 100% { opacity: 0.22; }
+  }
+
+  @keyframes ia-pulse {
+    /* Accent ring pulses on the install CTA / destination row */
+    0%, 62%    { opacity: 0;   transform: scale(1); }
+    68%        { opacity: 0.6; transform: scale(1); }
+    87%, 100%  { opacity: 0;   transform: scale(1.55); }
+  }
+
+  @keyframes ia-dropdown {
+    /* Dropdown menu scales in from top-right corner after the ⋮ tap */
+    0%, 35%   { opacity: 0; transform: scale(0.85); }
+    55%, 100% { opacity: 1; transform: scale(1); }
+  }
+
+  .ia-touch    { animation: ia-touch    4s var(--ease-out-quart) both; }
+  .ia-backdrop { animation: ia-backdrop 4s var(--ease-out-quart) both; }
+  .ia-sheet    { animation: ia-sheet    4s var(--ease-out-expo)  both; }
+  .ia-pulse    { animation: ia-pulse    4s var(--ease-out-quart) both; }
+  .ia-dropdown { animation: ia-dropdown 4s var(--ease-out-expo)  both; transform-origin: top right; }
+
   /* Processing graphic — the consolidated "we're working on it" visual
      ───────────────────────────────────────────────────────────────────────
      Used by both the audio-upload pipeline and the practice-conversation
