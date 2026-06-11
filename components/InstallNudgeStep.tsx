@@ -20,7 +20,7 @@ function isAndroid(): boolean {
 export function InstallNudgeStep() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { prompt } = useInstallPrompt()
+  const { prompt, isSupported } = useInstallPrompt()
   const ios = isIosSafari()
 
   // Use UA to pick the illustration; isSupported gates whether the CTA can
@@ -29,17 +29,19 @@ export function InstallNudgeStep() {
   const showAndroid = isAndroid() && !ios
 
   async function handleInstall() {
-    if (showAndroid) {
+    if (showAndroid && isSupported) {
       await prompt()
     }
+    localStorage.setItem('cc:install-dismissed', '1')
     router.push('/?welcome=true')
   }
 
   function handleSkip() {
+    localStorage.setItem('cc:install-dismissed', '1')
     router.push('/?welcome=true')
   }
 
-  const ctaLabel = showAndroid
+  const ctaLabel = showAndroid && isSupported
     ? t('onboarding.install.ctaInstall')
     : t('onboarding.install.ctaGotIt')
 

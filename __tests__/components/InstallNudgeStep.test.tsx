@@ -47,6 +47,7 @@ function setAndroidUA() {
 
 beforeEach(() => {
   mockPush.mockClear()
+  localStorage.clear()
   setAndroidUA()
 })
 
@@ -73,6 +74,31 @@ describe('InstallNudgeStep — Android branch', () => {
     expect(prompt).toHaveBeenCalledOnce()
     expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
   })
+
+  it('Install CTA sets cc:install-dismissed', async () => {
+    render(<InstallNudgeStep />)
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.install.ctaInstall' }))
+    expect(localStorage.getItem('cc:install-dismissed')).toBe('1')
+  })
+})
+
+describe('InstallNudgeStep — Android without native prompt', () => {
+  beforeEach(() => {
+    mockUseInstallPrompt.mockReturnValue({ isSupported: false, prompt: vi.fn() })
+  })
+
+  it('shows "Got it" when beforeinstallprompt has not fired', () => {
+    render(<InstallNudgeStep />)
+    expect(screen.getByRole('button', { name: 'onboarding.install.ctaGotIt' })).toBeInTheDocument()
+  })
+
+  it('does not call prompt() when isSupported is false', async () => {
+    const prompt = vi.fn()
+    mockUseInstallPrompt.mockReturnValue({ isSupported: false, prompt })
+    render(<InstallNudgeStep />)
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.install.ctaGotIt' }))
+    expect(prompt).not.toHaveBeenCalled()
+  })
 })
 
 describe('InstallNudgeStep — iOS branch', () => {
@@ -96,6 +122,12 @@ describe('InstallNudgeStep — iOS branch', () => {
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.install.ctaGotIt' }))
     expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
   })
+
+  it('Got it CTA sets cc:install-dismissed', async () => {
+    render(<InstallNudgeStep />)
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.install.ctaGotIt' }))
+    expect(localStorage.getItem('cc:install-dismissed')).toBe('1')
+  })
 })
 
 describe('InstallNudgeStep — Maybe Later', () => {
@@ -112,5 +144,12 @@ describe('InstallNudgeStep — Maybe Later', () => {
     render(<InstallNudgeStep />)
     await userEvent.click(screen.getByRole('button', { name: 'onboarding.install.skip' }))
     expect(mockPush).toHaveBeenCalledWith('/?welcome=true')
+  })
+
+  it('sets cc:install-dismissed on skip', async () => {
+    mockUseInstallPrompt.mockReturnValue({ isSupported: true, prompt: vi.fn() })
+    render(<InstallNudgeStep />)
+    await userEvent.click(screen.getByRole('button', { name: 'onboarding.install.skip' }))
+    expect(localStorage.getItem('cc:install-dismissed')).toBe('1')
   })
 })

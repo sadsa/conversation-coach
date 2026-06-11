@@ -232,13 +232,15 @@ export interface AllowedUserRow {
   requested_at: string
   approved_at: string | null
   user_id: string | null
+  geo_country: string | null
+  geo_city: string | null
 }
 
 export async function loadAllowedUsers(): Promise<AllowedUserRow[]> {
   const db = createServerClient()
   const { data, error } = await db
     .from('allowed_users')
-    .select('email, status, name, avatar_url, source, requested_at, approved_at, user_id')
+    .select('email, status, name, avatar_url, source, requested_at, approved_at, user_id, geo_country, geo_city')
     .order('requested_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as AllowedUserRow[]

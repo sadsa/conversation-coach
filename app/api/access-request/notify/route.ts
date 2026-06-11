@@ -8,6 +8,31 @@ import { log } from '@/lib/logger'
 // giving OAuth flows enough time to complete
 const FRESH_WINDOW_MS = 5 * 60_000
 
+interface IpApiResponse {
+  status: 'success' | 'fail'
+  country?: string
+  city?: string
+}
+
+async function resolveGeo(ip: string): Promise<{ country: string | null; city: string | null }> {
+  try {
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,city`, {
+      signal: AbortSignal.timeout(3000),
+    })
+    const data: IpApiResponse = await res.json()
+    if (data.status !== 'success') return { country: null, city: null }
+    return { country: data.country ?? null, city: data.city ?? null }
+  } catch {
+    return { country: null, city: null }
+  }
+}
+
+function extractIp(request: NextRequest): string | null {
+  const forwarded = request.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0].trim()
+  return null
+}
+
 export async function POST(request: NextRequest) {
   let body: { email?: string }
   try {
@@ -35,6 +60,16 @@ export async function POST(request: NextRequest) {
     return new NextResponse(null, { status: 204 })
   }
 
+  const ip = extractIp(request)
+  const geo = ip ? await resolveGeo(ip) : { country: null, city: null }
+
+  if (ip) {
+    await db
+      .from('allowed_users')
+      .update({ ip_address: ip, geo_country: geo.country, geo_city: geo.city })
+      .eq('email', email)
+  }
+
   const requestedAt = new Date(row.requested_at).toLocaleString('en-AU', {
     weekday: 'long',
     year: 'numeric',
@@ -44,11 +79,14 @@ export async function POST(request: NextRequest) {
     minute: '2-digit',
   })
 
+  const location = [geo.city, geo.country].filter(Boolean).join(', ') || null
+
   try {
     await sendAdminNotification({
       name: row.name ?? '',
       email,
       requestedAt,
+      location,
     })
   } catch (err) {
     log.error('access-request/notify: email failed', { email, error: err })

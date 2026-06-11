@@ -9,9 +9,10 @@ interface Props {
   email: string
   requestedAt: string
   adminUrl: string
+  location?: string
 }
 
-export default function AdminNotification({ name, email, requestedAt, adminUrl }: Props) {
+export default function AdminNotification({ name, email, requestedAt, adminUrl, location }: Props) {
   return (
     <Html lang="en">
       <Head />
@@ -30,6 +31,13 @@ export default function AdminNotification({ name, email, requestedAt, adminUrl }
             <Hr style={s.infoSep} />
             <Text style={s.infoLabel}>Requested</Text>
             <Text style={{ ...s.infoValue, color: '#5c5750', fontWeight: 400 }}>{requestedAt}</Text>
+            {location && (
+              <>
+                <Hr style={s.infoSep} />
+                <Text style={s.infoLabel}>Location</Text>
+                <Text style={{ ...s.infoValue, color: '#5c5750', fontWeight: 400 }}>{location}</Text>
+              </>
+            )}
           </Section>
 
           <Section style={s.ctaSection}>

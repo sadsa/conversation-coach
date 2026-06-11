@@ -19,10 +19,12 @@ export async function sendAdminNotification({
   name,
   email,
   requestedAt,
+  location,
 }: {
   name: string
   email: string
   requestedAt: string
+  location?: string | null
 }): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     log.warn('email: RESEND_API_KEY not set — skipping admin notification')
@@ -38,6 +40,7 @@ export async function sendAdminNotification({
         name={name}
         email={email}
         requestedAt={requestedAt}
+        location={location ?? undefined}
         adminUrl={`${process.env.APP_URL ?? ''}/admin`}
       />
     )

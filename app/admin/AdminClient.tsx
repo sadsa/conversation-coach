@@ -87,6 +87,11 @@ function UserCard({ user, onApprove, onDeny }: UserCardProps) {
             </span>
             <ProviderPill source={user.source} />
           </div>
+          {(user.geo_city || user.geo_country) && (
+            <p className="text-xs text-text-tertiary mt-0.5">
+              {[user.geo_city, user.geo_country].filter(Boolean).join(', ')}
+            </p>
+          )}
         </div>
       </div>
       {localError && (
