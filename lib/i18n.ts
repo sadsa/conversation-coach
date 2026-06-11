@@ -697,14 +697,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Install nudge — onboarding step 3 (mobile only)
     'onboarding.install.heading': 'Add to your Home Screen',
     'onboarding.install.body':
-      'Install the app for the fastest way to practice — no browser chrome, one tap from your home screen.',
+      'One tap from your home screen. No browser bar.',
     'onboarding.install.ctaInstall': 'Install',
     'onboarding.install.ctaGotIt': 'Got it',
     'onboarding.install.skip': 'Maybe Later',
     'onboarding.install.iosAriaLabel':
       'Animation showing: tap the Safari share button, then choose Add to Home Screen from the sheet that rises.',
     'onboarding.install.androidAriaLabel':
-      'Animation showing: tap the install icon in the Chrome address bar, then tap Install in the sheet that rises.',
+      'Animation showing: tap the three-dot menu at the top right of Chrome, then tap Add to Home screen in the dropdown.',
 
     // Install banner — dismissible home page reminder chip
     'install.bannerLabel': 'Add to Home Screen for one-tap practice',
@@ -1273,14 +1273,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Nudge de instalación — paso 3 del onboarding (solo mobile)
     'onboarding.install.heading': 'Agregá a tu pantalla de inicio',
     'onboarding.install.body':
-      'Instalá la app para practicar más rápido — sin chrome del navegador, un toque desde tu pantalla de inicio.',
+      'Un toque desde tu pantalla de inicio. Sin barra del navegador.',
     'onboarding.install.ctaInstall': 'Instalar',
     'onboarding.install.ctaGotIt': 'Entendido',
     'onboarding.install.skip': 'Quizás después',
     'onboarding.install.iosAriaLabel':
       'Animación que muestra: tocá el botón de compartir de Safari, luego elegí "Agregar a inicio" en la hoja que sube.',
     'onboarding.install.androidAriaLabel':
-      'Animación que muestra: tocá el ícono de instalación en la barra de Chrome, luego tocá Instalar en la hoja que sube.',
+      'Animación que muestra: tocá el menú de tres puntos en Chrome, luego tocá Agregar a inicio en el menú desplegable.',
 
     // Banner de instalación — chip recordatorio en la home
     'install.bannerLabel': 'Agregá a tu pantalla de inicio para practicar de un toque',
