@@ -20,7 +20,7 @@ function isAndroid(): boolean {
 export function InstallNudgeStep() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { isSupported, prompt } = useInstallPrompt()
+  const { prompt } = useInstallPrompt()
   const ios = isIosSafari()
 
   // Use UA to pick the illustration; isSupported gates whether the CTA can
