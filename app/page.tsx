@@ -28,7 +28,7 @@ export default async function HomePage() {
   // transient query error shouldn't lock a user out of their own data.
   const lockedPillars: Pillar[] = []
   if (!hasSessions) lockedPillars.push('review')
-  if (!hasPracticeItems) lockedPillars.push('study')
+  if (!hasPracticeItems) lockedPillars.push('refine')
 
-  return <PractiseClient lockedPillars={lockedPillars} />
+  return <PractiseClient lockedPillars={lockedPillars} displayName={user.displayName} />
 }

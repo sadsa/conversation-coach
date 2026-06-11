@@ -65,7 +65,7 @@ interface Props {
   displayName?: string | null
 }
 
-export function PractiseClient({ lockedPillars, displayName }: Props = {}) {
+export function PractiseClient({ lockedPillars, displayName: _displayName }: Props = {}) {
   const { t, targetLanguage } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()

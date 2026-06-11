@@ -21,6 +21,7 @@ const PUBLIC_PREFIXES = ['/login', '/auth', '/access-denied', '/pending-approval
 export const USER_ID_HEADER = 'x-cc-user-id'
 export const USER_EMAIL_HEADER = 'x-cc-user-email'
 export const USER_TARGET_LANGUAGE_HEADER = 'x-cc-user-target-language'
+export const USER_NAME_HEADER = 'x-cc-user-name'
 /**
  * Set on request headers by middleware for public paths (login, auth/callback,
  * access-denied, webhooks). The root layout's getAuthenticatedUser() checks
@@ -54,6 +55,7 @@ export async function middleware(request: NextRequest) {
   requestHeaders.delete(USER_ID_HEADER)
   requestHeaders.delete(USER_EMAIL_HEADER)
   requestHeaders.delete(USER_TARGET_LANGUAGE_HEADER)
+  requestHeaders.delete(USER_NAME_HEADER)
   requestHeaders.delete(PUBLIC_PATH_HEADER)
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
@@ -122,6 +124,9 @@ export async function middleware(request: NextRequest) {
   if (user.email) requestHeaders.set(USER_EMAIL_HEADER, user.email)
   const targetLanguage = (user.user_metadata?.target_language as string | undefined) ?? ''
   if (targetLanguage) requestHeaders.set(USER_TARGET_LANGUAGE_HEADER, targetLanguage)
+  const fullName = (user.user_metadata?.full_name as string | undefined) ?? ''
+  const firstName = fullName.split(' ')[0] ?? ''
+  if (firstName) requestHeaders.set(USER_NAME_HEADER, firstName)
 
   // Rebuild with the identity-enriched requestHeaders.
   supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })

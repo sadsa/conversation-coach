@@ -40,7 +40,7 @@ export default async function ReviewPage() {
   const lockedPillars: Pillar[] = []
   // Review itself is the active surface, so it never locks here. We
   // still respect the Study lock — same rule across the methodology.
-  if (!flags.hasPracticeItems) lockedPillars.push('study')
+  if (!flags.hasPracticeItems) lockedPillars.push('refine')
 
   return (
     <ReviewClient
