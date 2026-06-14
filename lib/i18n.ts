@@ -110,7 +110,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Topic-led home: the question headlines the page; a fresh set of
     // generated topics sits beneath it. `startersLabel` is retained as a
     // fallback string but no longer rendered on the home surface.
-    'home.topicHeading': 'What would you like to talk about today?',
+    'home.topicHeading': "What's on your mind?",
     'practice.startersLabel': 'Need a topic?',
     'practice.chatStarter.0': 'Your weekend plans',
     'practice.chatStarter.1': 'A recent meal',
