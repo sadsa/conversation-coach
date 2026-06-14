@@ -27,8 +27,13 @@
 export type ThemeName = 'light' | 'dark'
 
 export const THEME_COLOR: Record<ThemeName, string> = {
-  light: '#f8f6f2', // mirrors --color-bg in light mode
-  dark: '#13151c',  // mirrors --color-bg in dark mode (oklch 14% 0.02 265)
+  // EXACT sRGB rendering of --color-bg (verified via canvas pixel probe in
+  // Chrome). These MUST match byte-for-byte — any drift paints the status
+  // bar a different shade than the page below it, producing a visible seam
+  // at the top of the viewport (worst in dark mode). Re-probe and update
+  // here whenever the --color-bg oklch tokens change.
+  light: '#faf6f1', // = oklch(97.5% 0.008 75)
+  dark: '#060911',  // = oklch(14% 0.02 265)
 }
 
 export const STATUS_BAR_STYLE: Record<ThemeName, 'default' | 'black' | 'black-translucent'> = {
