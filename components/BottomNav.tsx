@@ -42,7 +42,7 @@ export function BottomNav({ unreviewedCount }: Props) {
                 {showBadge && (
                   <span
                     aria-label={t('nav.unreviewedBadge', { n: unreviewedCount })}
-                    className="absolute -top-1 -right-1.5 min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full bg-accent-primary text-on-accent text-[10px] font-semibold leading-none tabular-nums pointer-events-none"
+                    className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full bg-accent-primary text-on-accent text-[10px] font-semibold leading-none tabular-nums pointer-events-none"
                   >
                     {badgeLabel}
                   </span>

@@ -239,8 +239,8 @@ export async function loadAllowedUsers(): Promise<AllowedUserRow[]> {
 
 /**
  * Count of sessions the user has not yet explicitly reviewed (reviewed_at IS
- * NULL), excluding errored sessions that can never be reviewed. Used for the
- * unreviewed badge on the Review nav tab.
+ * NULL). Only counts ready sessions — in-progress and errored sessions never
+ * appear in the Review inbox so they must not inflate the badge.
  */
 export async function loadUnreviewedCount(userId: string): Promise<number> {
   const db = createServerClient()
@@ -248,8 +248,8 @@ export async function loadUnreviewedCount(userId: string): Promise<number> {
     .from('sessions')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
+    .eq('status', 'ready')
     .is('reviewed_at', null)
-    .neq('status', 'error')
   if (error) return 0
   return count ?? 0
 }
