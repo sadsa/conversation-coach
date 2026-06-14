@@ -99,10 +99,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': "Pick how you'd like to start.",
     'practice.modeCallTitle': 'Real Life Scenario',
     'practice.modeCallBlurb':
-      "Someone you've never met calls. They introduce themselves — take it from there.",
+      'A real call in Spanish. They say hi, you take it from there.',
     'practice.modeChatTitle': 'Talk freely',
     'practice.modeChatBlurb':
-      'You lead. Talk about anything — the Coach keeps pace.',
+      'Your turn to speak Spanish. Talk about anything, out loud.',
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start talking',
     // Home: two labelled mode sections. `practiseHeading` frames the
@@ -787,10 +787,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': 'Elegí cómo querés empezar.',
     'practice.modeCallTitle': 'Escenario de vida real',
     'practice.modeCallBlurb':
-      'Te llama alguien que no conocés. Se presenta — de ahí, seguís vos.',
+      'Una llamada real en inglés. Te saludan y seguís vos.',
     'practice.modeChatTitle': 'Hablá libremente',
     'practice.modeChatBlurb':
-      'Vos llevás la conversación. Hablá de lo que quieras — el Coach sigue el hilo.',
+      'Tu turno de hablar en inglés. De lo que quieras, en voz alta.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
     'home.practiseHeading': '¿Cómo querés practicar hoy?',
