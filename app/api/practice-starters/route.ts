@@ -67,7 +67,12 @@ export async function GET(request: Request) {
     })
 
     const raw = message.content[0]?.type === 'text' ? message.content[0].text.trim() : ''
-    const parsed = JSON.parse(raw) as unknown
+    // Haiku frequently wraps JSON in a ```json fence despite the "ONLY JSON"
+    // instruction. Strip it before parsing (same pattern as lib/persona.ts) —
+    // otherwise JSON.parse throws, the route 500s, and the client silently
+    // falls back to the static starter strings on every load.
+    const json = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim()
+    const parsed = JSON.parse(json) as unknown
 
     if (!Array.isArray(parsed) || parsed.length < 3) {
       throw new Error('Unexpected shape from model')

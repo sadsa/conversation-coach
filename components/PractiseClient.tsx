@@ -70,6 +70,14 @@ function coerceCategory(value: unknown): Category {
   return STARTER_CATEGORIES.includes(value as Category) ? (value as Category) : 'misc'
 }
 
+// Generated topics are capitalised noun phrases ("Your weekend plans"). The
+// rows frame them as an action ("Talk about your weekend plans"), so the lead
+// letter is lowercased to read as one sentence. Display-only — the untouched
+// topic still seeds the session.
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1)
+}
+
 // Peak-end welcome beat — shows for ~3s when the user arrives from
 // onboarding completion (`/?welcome=true`). Onboarding sets the flag in
 // `handleExit` / `handleShareNext`; we read it once on mount, immediately
@@ -253,15 +261,18 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
           The page offers exactly two Conversation modes (CONTEXT.md). Each
           is its own titled section (h2 + one-line "what it is") so the
           difference between them is explicit rather than inferred from a
-          flat list. Talk freely is primary and expanded — the generated
-          topic chips nest inside it as quick-starts (they all start a chat
-          session, just seeded with a topic), with a neutral "no topic" row
-          beneath. Real Life Scenario is the compact secondary mode. */}
+          flat list. The two modes read as equal-weight peers: the H1
+          question is the only loud text, every action row shares one
+          medium-weight treatment, and the section h2 (semibold) is the only
+          step up from its rows. Talk freely simply carries more structure —
+          the generated topic chips nest inside it as quick-starts (they all
+          start a chat session, just seeded with a topic), with a neutral
+          "no topic" row beneath — but it is not promoted by weight. */}
 
-      {/* Talk freely — primary mode. Topic chips are shortcuts into this
-          mode (each seeds a chat session); the trailing row is the no-topic
-          entry. Nothing here carries extra fill — the chips' accent tiles
-          are the only colour, so the section reads as one grouped mode. */}
+      {/* Talk freely. Topic chips are shortcuts into this mode (each seeds a
+          chat session); the trailing row is the no-topic entry. Nothing here
+          carries extra fill — the chips' accent tiles are the only colour,
+          so the section reads as one grouped mode. */}
       <section aria-labelledby="mode-chat-heading" className="space-y-3">
         <div className="space-y-1">
           <h2
@@ -292,8 +303,8 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
                   <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-chip text-accent-primary flex items-center justify-center">
                     <Icon name={CATEGORY_ICON[s.category]} className="w-5 h-5" aria-hidden />
                   </span>
-                  <p className="flex-1 min-w-0 text-base md:text-lg font-semibold text-text-primary">
-                    {s.topic}
+                  <p className="flex-1 min-w-0 text-base md:text-lg font-medium text-text-primary">
+                    {t('practice.chatStarterAction', { topic: lowerFirst(s.topic) })}
                   </p>
                   <ChevronRight />
                 </button>
@@ -312,7 +323,7 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
             <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center">
               <Icon name="mic" className="w-5 h-5" aria-hidden />
             </span>
-            <p className="flex-1 min-w-0 text-base md:text-lg font-semibold text-text-primary">
+            <p className="flex-1 min-w-0 text-base md:text-lg font-medium text-text-primary">
               {t('practice.modeChatNoTopic')}
             </p>
             <ChevronRight />
@@ -320,10 +331,10 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
         </div>
       </section>
 
-      {/* Real Life Scenario — secondary mode, beta. Compact: title + blurb,
-          then a single action row. The emerald icon tile signals "call" via
-          colour. Beta badge sits beside the title to surface maturity before
-          the user taps. */}
+      {/* Real Life Scenario — beta. Compact: title + blurb, then a single
+          action row, equal in weight to the Talk freely rows. The emerald
+          icon tile signals "call" via colour only. Beta badge sits beside
+          the title to surface maturity before the user taps. */}
       <section aria-labelledby="mode-call-heading" className="space-y-3">
         <div className="space-y-1">
           <h2
@@ -349,7 +360,7 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
           <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-call-fill text-white flex items-center justify-center">
             <Icon name="phone" className="w-5 h-5" aria-hidden />
           </span>
-          <p className="flex-1 min-w-0 text-base md:text-lg font-semibold text-text-primary">
+          <p className="flex-1 min-w-0 text-base md:text-lg font-medium text-text-primary">
             {t('practice.modeCallStart')}
           </p>
           <ChevronRight />

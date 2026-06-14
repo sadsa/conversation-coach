@@ -113,7 +113,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // `topicHeading` / `startersLabel` keys are retained as fallbacks but
     // no longer rendered on the home surface.
     'home.practiseHeading': 'How do you want to practise?',
-    'practice.modeChatNoTopic': 'Start with no topic',
+    'practice.modeChatNoTopic': 'Just start talking',
+    // Action framing for the generated topic rows. `{topic}` is the
+    // generated noun phrase, lowercased so it reads as one sentence. This
+    // is display-only — the bare `topic` is still what seeds the session.
+    'practice.chatStarterAction': 'Talk about {topic}',
     'practice.modeCallStart': 'Answer a call',
     'home.topicHeading': "What's on your mind?",
     'practice.startersLabel': 'Need a topic?',
@@ -794,7 +798,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
     'home.practiseHeading': '¿Cómo querés practicar hoy?',
-    'practice.modeChatNoTopic': 'Empezar sin tema',
+    'practice.modeChatNoTopic': 'Empezá a hablar',
+    'practice.chatStarterAction': 'Hablá de {topic}',
     'practice.modeCallStart': 'Atender una llamada',
     'home.topicHeading': '¿De qué querés hablar hoy?',
     'practice.startersLabel': '¿Necesitás un tema?',

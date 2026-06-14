@@ -43,7 +43,7 @@ vi.mock('@/components/PracticeClient', () => ({
 }))
 vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
+    t: (key: string, replacements?: Record<string, string | number>) => {
       // Just enough strings to drive the assertions. Anything else falls
       // through to the key (matches the real t() fallback behaviour).
       const dict: Record<string, string> = {
@@ -55,9 +55,12 @@ vi.mock('@/components/LanguageProvider', () => ({
         'practice.chatStarter.0': 'Your weekend plans',
         'practice.chatStarter.1': 'A recent meal',
         'practice.chatStarter.2': 'Getting around the city',
+        'practice.chatStarterAction': 'Talk about {topic}',
         'home.welcomeBeat': 'All set. Ready when you are.',
       }
-      return dict[key] ?? key
+      const template = dict[key] ?? key
+      if (!replacements) return template
+      return template.replace(/\{(\w+)\}/g, (_, k) => String(replacements[k] ?? ''))
     },
     uiLanguage: 'en' as const,
     targetLanguage: 'es-AR' as const,
@@ -126,10 +129,10 @@ describe('PractiseClient — topic buttons', () => {
     expect(screen.getByTestId('home-starter-2')).toBeInTheDocument()
   })
 
-  it('topic buttons show the translated topic text', async () => {
+  it('topic buttons frame the topic as an action', async () => {
     render(<PractiseClient />)
-    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Your weekend plans')
-    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('A recent meal')
+    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Talk about your weekend plans')
+    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('Talk about a recent meal')
   })
 
   it('clicking a topic button sets chat mode active with that topic', async () => {
