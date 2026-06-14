@@ -6,9 +6,9 @@
 //   • Layout (Hush direction):
 //       — Mobile: anchored to the BOTTOM OF THE VIEWPORT (`bottom-0`). The
 //         sheet paints OVER the bottom nav while open, matching the
-//         iOS / Android system bottom-sheet pattern. BottomNav (z-30) stays
-//         mounted underneath; the sheet (z-40) just covers it visually until
-//         dismiss.
+//         iOS / Android system bottom-sheet pattern. BottomNav (z-30) and the
+//         app header (z-40) stay mounted underneath; the scrim (z-[44]) dims
+//         both and the sheet (z-[45]) just covers them visually until dismiss.
 //       — Desktop: right-anchored full-height panel below the app header.
 //         Same Hush content vocabulary, geometry adapts to the wide viewport.
 //   • Scrim (mobile-only): a soft dim layer sits between the page and the
@@ -51,6 +51,7 @@
 
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useReducedMotion } from 'framer-motion'
 import { useSwipeable } from 'react-swipeable'
 import { IconButton } from '@/components/IconButton'
@@ -363,10 +364,27 @@ export function DockedSheet({
     ? ''
     : 'motion-safe:animate-[fadein_240ms_ease-out_both]'
 
-  return (
+  // Portal the overlay to <body>. The scrim and sheet are `position: fixed`
+  // surfaces meant to be measured against the viewport — but rendered in
+  // place they become children of whatever the consumer mounts DockedSheet
+  // inside, and inherit that context. Concretely: a parent `space-y-*`
+  // utility injects a `margin-top` onto every non-first child (the
+  // lobotomized-owl `> * + *` rule), which shifts the `fixed inset-0` scrim
+  // DOWN by that margin and leaves an undimmed strip at the top of the
+  // viewport (the app header's safe-area band). Portaling to <body> also
+  // immunises the overlay against any ancestor that establishes a containing
+  // block (transform/filter/contain) or a competing stacking context — the
+  // recurring failure modes for fixed overlays. Guard `document` for SSR;
+  // `isOpen` is false on the server so this branch only runs client-side.
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <>
-      {/* Mobile-only scrim. Sits between the page and the sheet (z-30, above
-          BottomNav). Catches taps so the user can't accidentally fire a nav
+      {/* Mobile-only scrim. Sits between the page and the sheet, but ABOVE
+          the app header (z-40) and BottomNav (z-30) so it dims the WHOLE
+          viewport — header included. (A z-30 scrim leaves the fixed header
+          painting on top of the dim, which reads as a bright band the sheet
+          doesn't own.) Catches taps so the user can't accidentally fire a nav
           tab while trying to dismiss; the document-level outside-pointer
           handler converts the tap into an `onClose`. Hidden on desktop —
           the right panel is meant to sit alongside the page, not interrupt
@@ -374,7 +392,7 @@ export function DockedSheet({
       <div
         aria-hidden="true"
         className={`
-          md:hidden fixed inset-0 z-30 bg-scrim
+          md:hidden fixed inset-0 z-[44] bg-scrim
           ${scrimAnimationClass}
         `}
       />
@@ -397,7 +415,7 @@ export function DockedSheet({
         // (interpolating into the className string would not get picked up).
         style={{ '--sheet-mobile-max-h': mobileMaxHeight } as React.CSSProperties}
         className={`
-          fixed left-0 right-0 z-40
+          fixed left-0 right-0 z-[45]
           bottom-0
           md:left-auto md:right-0 md:w-[400px]
           md:top-[calc(var(--header-height)+env(safe-area-inset-top))]
@@ -495,6 +513,7 @@ export function DockedSheet({
           </footer>
         )}
       </aside>
-    </>
+    </>,
+    document.body,
   )
 }
