@@ -107,6 +107,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
       "Say whatever's on your mind. The Coach keeps pace.",
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start talking',
+    // Topic-led home: the question headlines the page; a fresh set of
+    // generated topics sits beneath it. `startersLabel` is retained as a
+    // fallback string but no longer rendered on the home surface.
+    'home.topicHeading': 'What would you like to talk about today?',
     'practice.startersLabel': 'Need a topic?',
     'practice.chatStarter.0': 'Your weekend plans',
     'practice.chatStarter.1': 'A recent meal',
@@ -364,14 +368,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // (peak-end moment after onboarding, and the "I'm back" beat on every
     // return). /review names its surface directly so the user knows what
     // they're looking at without sharing the home's emotional weight.
-    'review.title': 'Your conversations',
+    'review.title': 'Your reviews',
     'review.reviewedTitle': 'Reviewed',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to study right now.',
     'home.recentSessionsTitle': 'Your conversations',
     'home.recentShowAll': 'Show all {n}',
     'home.recentShowFewer': 'Show fewer',
-    'home.recentSessionUnreadAria': 'Unread',
     'home.inProgressTitle': 'Currently processing',
     'home.inProgressCountOne': '1 in progress',
     'home.inProgressCountMany': '{n} in progress',
@@ -494,11 +497,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.you': 'You',
     'transcript.them': 'Them',
     'transcript.reanalyse': 'Re-analyse conversation',
-    'transcript.markUnread': 'Mark as unread',
-    'transcript.markedUnreadToast': 'Marked as unread.',
-    'transcript.markUnreadError': 'Couldn\'t mark as unread — try again.',
     'transcript.moreActions': 'More actions',
-    'transcript.editTitle': 'Rename conversation',
     'transcript.progress': '{saved} saved · {dismissed} dismissed · {remaining} to go',
     'transcript.progressAria': '{n} of {total} reviewed',
     'transcript.progressAllReviewed': 'All {total} reviewed',
@@ -788,6 +787,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
       'Decí lo que se te venga a la cabeza. El Coach sigue el hilo.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
+    'home.topicHeading': '¿De qué querés hablar hoy?',
     'practice.startersLabel': '¿Necesitás un tema?',
     'practice.chatStarter.0': 'Tus planes del finde',
     'practice.chatStarter.1': 'Una comida que cocinaste',
@@ -970,14 +970,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     //
     // H1 de la página /review. El saludo cálido pertenece a la home; aquí
     // nombramos la superficie directamente.
-    'review.title': 'Tus conversaciones',
+    'review.title': 'Tus revisiones',
     'review.reviewedTitle': 'Revisadas',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Tus conversaciones',
     'home.recentShowAll': 'Mostrar las {n}',
     'home.recentShowFewer': 'Mostrar menos',
-    'home.recentSessionUnreadAria': 'Sin leer',
     'home.inProgressTitle': 'Procesando ahora',
     'home.inProgressCountOne': '1 en proceso',
     'home.inProgressCountMany': '{n} en proceso',
@@ -1097,11 +1096,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.you': 'Vos',
     'transcript.them': 'Ellos',
     'transcript.reanalyse': 'Re-analizar conversación',
-    'transcript.markUnread': 'Marcar como sin leer',
-    'transcript.markedUnreadToast': 'Marcada como sin leer.',
-    'transcript.markUnreadError': 'No se pudo marcar como sin leer — intentá de nuevo.',
     'transcript.moreActions': 'Más acciones',
-    'transcript.editTitle': 'Renombrar conversación',
     'transcript.progress': '{saved} guardadas · {dismissed} descartadas · faltan {remaining}',
     'transcript.progressAria': '{n} de {total} revisadas',
     'transcript.progressAllReviewed': '{total} revisadas',

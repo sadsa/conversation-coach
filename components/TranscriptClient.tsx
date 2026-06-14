@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { ReviewCompletionScreen, type SavedPhrase } from '@/components/ReviewCompletionScreen'
 import { LessonClient } from '@/components/LessonClient'
-import { InlineEdit } from '@/components/InlineEdit'
 import { Modal } from '@/components/Modal'
 import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
@@ -24,7 +23,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   // We still keep `detail` in state so optimistic mutations (annotation
   // toggles, dismissals) re-render without a full server round-trip.
   const [detail] = useState<SessionDetail>(initialDetail)
-  const [title, setTitle] = useState(initialDetail.session.title)
+  const title = initialDetail.session.title
   const [addedAnnotations, setAddedAnnotations] = useState<Map<string, string>>(
     new Map(Object.entries(initialDetail.addedAnnotations))
   )
@@ -47,14 +46,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [showCompletion, setShowCompletion] = useState(false)
   const [drillPhrase, setDrillPhrase] = useState<SavedPhrase | null>(null)
 
-  // Auto-mark this session as read on first visit. Idempotent on the server.
-  const autoReadFiredRef = useRef(false)
-  useEffect(() => {
-    if (autoReadFiredRef.current) return
-    autoReadFiredRef.current = true
-    fetch(`/api/sessions/${sessionId}/view`, { method: 'POST' }).catch(() => { /* non-critical */ })
-  }, [sessionId])
-
   useEffect(() => {
     if (!toastMessage) return
     const timer = setTimeout(() => setToastMessage(null), 3000)
@@ -75,15 +66,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       document.removeEventListener('keydown', onKey)
     }
   }, [menuOpen])
-
-  async function handleRename(newTitle: string) {
-    await fetch(`/api/sessions/${sessionId}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: newTitle }),
-    })
-    setTitle(newTitle)
-  }
 
   function handleAnnotationAdded(annotationId: string, practiceItemId: string) {
     setAddedAnnotations(prev => { const next = new Map(prev); next.set(annotationId, practiceItemId); return next })
@@ -122,18 +104,14 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     }).catch(() => { /* non-critical — reviewed state is optimistic */ })
   }
 
-  async function handleMarkUnread() {
+  async function handleMarkUnreviewed() {
     setMenuOpen(false)
-    const res = await fetch(`/api/sessions/${sessionId}`, {
+    setIsReviewed(false)
+    fetch(`/api/sessions/${sessionId}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ read: false }),
-    })
-    if (res.ok) {
-      setToastMessage(t('transcript.markedUnreadToast'))
-    } else {
-      setToastMessage(t('transcript.markUnreadError'))
-    }
+      body: JSON.stringify({ reviewed: false }),
+    }).catch(() => { /* non-critical — reviewed state is optimistic */ })
   }
 
   async function handleDelete() {
@@ -217,12 +195,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     return (
       <div className="space-y-8">
         <header className="space-y-3">
-          <InlineEdit
-            value={title}
-            onSave={handleRename}
-            ariaLabel={t('transcript.editTitle')}
-            className="text-detail-title leading-tight tracking-[-0.01em] break-words"
-          />
+          <p className="text-detail-title leading-tight tracking-[-0.01em] break-words">{title}</p>
           {durationLabel && (
             <p className="text-sm text-text-secondary">{durationLabel}</p>
           )}
@@ -240,19 +213,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       <header className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            {/* font-display medium at 2xl/3xl puts the conversation title
-                in the same brand voice as the section H1s on home /review
-                /write. One notch smaller than those (3xl/4xl) so the
-                transcript reads as a sub-document inside Review rather
-                than a peer section. The break-words guard is unchanged —
-                long auto-titles can still wrap mid-word without forcing
-                horizontal scroll. */}
-            <InlineEdit
-              value={title}
-              onSave={handleRename}
-              ariaLabel={t('transcript.editTitle')}
-              className="text-detail-title leading-tight tracking-[-0.01em] break-words"
-            />
+            <p className="text-detail-title leading-tight tracking-[-0.01em] break-words">{title}</p>
           </div>
 
           {/* Overflow menu — destructive actions live here so they can't be
@@ -276,11 +237,11 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={handleMarkUnread}
+                  onClick={isReviewed ? handleMarkUnreviewed : () => { setMenuOpen(false); handleMarkReviewed() }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-text-primary hover:bg-bg transition-colors"
                 >
                   <Icon name="rotate-ccw" className="w-4 h-4 text-text-tertiary" />
-                  {t('transcript.markUnread')}
+                  {isReviewed ? t('session.markUnreviewed') : t('session.markReviewed')}
                 </button>
                 <button
                   type="button"
