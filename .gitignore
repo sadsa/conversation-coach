@@ -37,5 +37,13 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-.superpowers/
+
+# tool/worktree dirs
 .worktrees/
+.claude/
+.cursor/environment.json
+.cursor/install.sh
+.cursor/settings.json
+.cursor/skills/
+.impeccable/
+.scratch/
