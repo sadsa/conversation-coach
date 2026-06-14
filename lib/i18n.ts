@@ -99,10 +99,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': "Pick how you'd like to start.",
     'practice.modeCallTitle': 'Real Life Scenario',
     'practice.modeCallBlurb':
-      "Someone you've never met calls. They introduce themselves — take it from there.",
+      "Someone you've never met gives you a call. Answer, and take it from there.",
     'practice.modeChatTitle': 'Talk freely',
     'practice.modeChatBlurb':
-      'You lead. Talk about anything — the Coach keeps pace.',
+      'Talk about whatever you want. The Coach follows your lead.',
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start talking',
     // Home: two labelled mode sections. `practiseHeading` frames the
@@ -721,7 +721,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
       'Animation showing: tap the three-dot menu at the top right of Chrome, then tap Add to Home screen in the dropdown.',
 
     // Install banner — dismissible home page reminder chip
-    'install.bannerLabel': 'Add to Home Screen for one-tap practice',
+    'install.bannerLabel': "Add this to your home screen so it's one tap away",
     'install.bannerDismiss': 'Dismiss install nudge',
 
     // Lesson mode — only the lesson-specific copy lives here. Mute, end,
@@ -784,10 +784,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': 'Elegí cómo querés empezar.',
     'practice.modeCallTitle': 'Escenario de vida real',
     'practice.modeCallBlurb':
-      'Te llama alguien que no conocés. Se presenta — de ahí, seguís vos.',
+      'Te llama alguien que no conocés. Atendé y de ahí seguís vos.',
     'practice.modeChatTitle': 'Hablá libremente',
     'practice.modeChatBlurb':
-      'Vos llevás la conversación. Hablá de lo que quieras — el Coach sigue el hilo.',
+      'Hablá de lo que quieras. El Coach te sigue el hilo.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
     'home.practiseHeading': '¿Cómo querés practicar hoy?',
@@ -1304,7 +1304,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
       'Animación que muestra: tocá el menú de tres puntos en Chrome, luego tocá Agregar a inicio en el menú desplegable.',
 
     // Banner de instalación — chip recordatorio en la home
-    'install.bannerLabel': 'Agregá a tu pantalla de inicio para practicar de un toque',
+    'install.bannerLabel': 'Agregá esto a tu pantalla de inicio y tenelo a un toque',
     'install.bannerDismiss': 'Descartar sugerencia de instalación',
 
     // Modo lección — solo el copy específico de la lección vive acá. Mute,
