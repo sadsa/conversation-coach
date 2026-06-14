@@ -36,7 +36,7 @@ describe('SettingsPage', () => {
   it('increments font size when + is clicked', async () => {
     localStorage.setItem('fontSize', '16')
     render(<SettingsPage />)
-    await userEvent.click(screen.getByRole('button', { name: '+' }))
+    await userEvent.click(screen.getByRole('button', { name: /increase text size/i }))
     expect(screen.getByText('18px')).toBeInTheDocument()
     expect(localStorage.getItem('fontSize')).toBe('18')
     expect(document.documentElement.style.fontSize).toBe('18px')
@@ -45,7 +45,7 @@ describe('SettingsPage', () => {
   it('decrements font size when − is clicked', async () => {
     localStorage.setItem('fontSize', '16')
     render(<SettingsPage />)
-    await userEvent.click(screen.getByRole('button', { name: '−' }))
+    await userEvent.click(screen.getByRole('button', { name: /decrease text size/i }))
     expect(screen.getByText('14px')).toBeInTheDocument()
     expect(localStorage.getItem('fontSize')).toBe('14')
     expect(document.documentElement.style.fontSize).toBe('14px')
@@ -54,13 +54,13 @@ describe('SettingsPage', () => {
   it('disables the − button at the minimum size (14)', () => {
     localStorage.setItem('fontSize', '14')
     render(<SettingsPage />)
-    expect(screen.getByRole('button', { name: '−' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /decrease text size/i })).toBeDisabled()
   })
 
   it('disables the + button at the maximum size (22)', () => {
     localStorage.setItem('fontSize', '22')
     render(<SettingsPage />)
-    expect(screen.getByRole('button', { name: '+' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /increase text size/i })).toBeDisabled()
   })
 
   it('renders a preview section', () => {
@@ -68,9 +68,8 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/Hoy fui al mercado/)).toBeInTheDocument()
   })
 
-  it('renders the App section with a version string', () => {
+  it('renders a version string in the footer', () => {
     render(<SettingsPage />)
-    expect(screen.getByText('Version')).toBeInTheDocument()
     // VERSION is either "local" or "local · <date>" in the test environment
     expect(screen.getByText(/local/)).toBeInTheDocument()
   })

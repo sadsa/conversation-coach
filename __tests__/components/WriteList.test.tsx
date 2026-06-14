@@ -403,7 +403,9 @@ describe('WriteList — mark as written from the sheet', () => {
     await act(async () => {
       await userEvent.click(screen.getByTestId('sheet-overflow'))
     })
-    await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    await act(async () => {
+      await userEvent.click(screen.getByTestId('sheet-toggle-written'))
+    })
 
     expect(mockFetch).toHaveBeenCalledWith(
       `/api/practice-items/${grammarItem.id}`,

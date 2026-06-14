@@ -4,7 +4,7 @@ import type { ErrorStage } from '@/lib/types'
 
 export type TransitionResult =
   | { ok: true }
-  | { ok: false; reason: 'not_found' | 'invalid_transition'; detail: string }
+  | { ok: false; reason: 'not_found' | 'invalid_transition' | 'no_transcript'; detail: string }
 
 async function writeError(sessionId: string, errorStage: ErrorStage): Promise<TransitionResult> {
   const db = createServerClient()
@@ -94,7 +94,7 @@ export async function transitionToReanalysing(sessionId: string): Promise<Transi
     return { ok: false, reason: 'invalid_transition', detail: 'Analysis already in progress' }
   }
   if (data.error_stage === 'uploading' || data.error_stage === 'transcribing') {
-    return { ok: false, reason: 'invalid_transition', detail: 'No transcript available to analyse' }
+    return { ok: false, reason: 'no_transcript', detail: 'No transcript available to analyse' }
   }
   if (data.status !== 'ready' && data.error_stage !== 'analysing') {
     return { ok: false, reason: 'invalid_transition', detail: `Session not in analysable state (status: ${data.status})` }

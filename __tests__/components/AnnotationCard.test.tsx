@@ -63,7 +63,7 @@ describe('AnnotationCard — saved + hidden state cues', () => {
 
   it('moves the saved confirmation into the primary button itself', () => {
     render(<AnnotationCard annotation={annotation} {...defaultProps} practiceItemId="pi-1" />)
-    expect(screen.getByRole('button', { name: /remove this correction from your study list/i })).toHaveTextContent(/added to (my )?study list/i)
+    expect(screen.getByRole('button', { name: /remove this correction from your study list/i })).toHaveTextContent(/saved to (my )?study list/i)
     // No secondary "View list" link / hint paragraph anymore — the button is the receipt.
     expect(screen.queryByRole('link', { name: /view list/i })).not.toBeInTheDocument()
   })

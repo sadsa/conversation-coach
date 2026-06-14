@@ -441,7 +441,7 @@ describe('WriteSheet — lesson entry point', () => {
     const onPractise = vi.fn()
     render(<WriteSheet item={baseItem} {...noopProps} onPractise={onPractise} />)
     expect(screen.getByTestId('sheet-practise-btn')).toBeInTheDocument()
-    expect(screen.getByTestId('sheet-practise-btn')).toHaveTextContent(/practise this phrase/i)
+    expect(screen.getByTestId('sheet-practise-btn')).toHaveTextContent(/drill this phrase/i)
   })
 
   it('calls onPractise with the item when practise button is tapped', async () => {

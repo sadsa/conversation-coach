@@ -59,7 +59,7 @@ describe('PipelineStatus', () => {
       />
     )
     // Audio length: 720s = 12 min
-    expect(screen.getByText(/12 min recording/i)).toBeInTheDocument()
+    expect(screen.getByText(/12 min conversation/i)).toBeInTheDocument()
     // Recorded date: month name appears (locale-dependent format)
     expect(screen.getByText(/Recorded/i)).toBeInTheDocument()
   })

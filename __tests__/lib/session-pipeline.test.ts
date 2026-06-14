@@ -176,23 +176,23 @@ describe('transitionToReanalysing', () => {
     expect(updateMock).not.toHaveBeenCalled()
   })
 
-  it('returns invalid_transition when error_stage is uploading', async () => {
+  it('returns no_transcript when error_stage is uploading', async () => {
     const { db, updateMock } = makeDb(true, { status: 'error', error_stage: 'uploading' })
     vi.mocked(createServerClient).mockReturnValue(db)
 
     const result = await transitionToReanalysing('sess-1')
 
-    expect(result).toEqual({ ok: false, reason: 'invalid_transition', detail: expect.any(String) })
+    expect(result).toEqual({ ok: false, reason: 'no_transcript', detail: expect.any(String) })
     expect(updateMock).not.toHaveBeenCalled()
   })
 
-  it('returns invalid_transition when error_stage is transcribing', async () => {
+  it('returns no_transcript when error_stage is transcribing', async () => {
     const { db, updateMock } = makeDb(true, { status: 'error', error_stage: 'transcribing' })
     vi.mocked(createServerClient).mockReturnValue(db)
 
     const result = await transitionToReanalysing('sess-1')
 
-    expect(result).toEqual({ ok: false, reason: 'invalid_transition', detail: expect.any(String) })
+    expect(result).toEqual({ ok: false, reason: 'no_transcript', detail: expect.any(String) })
     expect(updateMock).not.toHaveBeenCalled()
   })
 

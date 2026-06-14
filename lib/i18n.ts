@@ -623,6 +623,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'write.error': 'Error: {msg}',
 
     // Study list — inline studied section (bottom of same list, dimmed).
+    'writeList.tabWrite': 'Study',
+    'writeList.tabWritten': 'Written',
+    'writeList.markRowAria': 'Mark {original} as studied',
     'writeList.archiveHeading': 'Studied',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Practise to save your first correction →',
@@ -1211,6 +1214,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
     // principal, Escritos vive como sección inline atenuada al final de la lista).
+    'writeList.tabWrite': 'Estudiar',
+    'writeList.tabWritten': 'Escritos',
+    'writeList.markRowAria': 'Marcar {original} como estudiado',
     'writeList.archiveHeading': 'Estudiados',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Practicá para guardar tu primera corrección →',

@@ -152,12 +152,9 @@ describe('POST /api/sessions/:id/speaker', () => {
 
 describe('POST /api/sessions/:id/analyse', () => {
   it('returns 409 when analysis is already in progress', async () => {
-    const mockDb = {
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue(makeSelectChain({ status: 'analysing', error_stage: null })),
-      }),
-    }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(createServerClient).mockReturnValue(
+      makeMockDb({ status: 'analysing', error_stage: null }) as unknown as ReturnType<typeof createServerClient>
+    )
     const { POST } = await import('@/app/api/sessions/[id]/analyse/route')
     const req = new NextRequest('http://localhost', { method: 'POST' })
     const res = await POST(req, { params: { id: 'session-1' } })
@@ -165,12 +162,9 @@ describe('POST /api/sessions/:id/analyse', () => {
   })
 
   it('returns 400 when no transcript is available', async () => {
-    const mockDb = {
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue(makeSelectChain({ status: 'error', error_stage: 'uploading' })),
-      }),
-    }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
+    vi.mocked(createServerClient).mockReturnValue(
+      makeMockDb({ status: 'error', error_stage: 'uploading' }) as unknown as ReturnType<typeof createServerClient>
+    )
     const { POST } = await import('@/app/api/sessions/[id]/analyse/route')
     const req = new NextRequest('http://localhost', { method: 'POST' })
     const res = await POST(req, { params: { id: 'session-1' } })

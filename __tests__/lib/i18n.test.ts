@@ -21,14 +21,14 @@ describe('t()', () => {
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')
   })
   it('substitutes {n} replacement', () => {
-    expect(t('home.toWriteDown', 'en', { n: 5 })).toBe('5 corrections to write down')
+    expect(t('home.toWriteDown', 'en', { n: 5 })).toBe('5 corrections to study')
   })
   it('substitutes {n} replacement in Spanish', () => {
-    expect(t('home.toWriteDown', 'es', { n: 5 })).toBe('5 correcciones para anotar')
+    expect(t('home.toWriteDown', 'es', { n: 5 })).toBe('5 correcciones para estudiar')
   })
   it('home.toWriteDownOne uses singular grammar in both langs', () => {
-    expect(t('home.toWriteDownOne', 'en')).toBe('1 correction to write down')
-    expect(t('home.toWriteDownOne', 'es')).toBe('1 corrección para anotar')
+    expect(t('home.toWriteDownOne', 'en')).toBe('1 correction to study')
+    expect(t('home.toWriteDownOne', 'es')).toBe('1 corrección para estudiar')
   })
 })
 
@@ -123,8 +123,8 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista de Estudiar')
   })
   it('annotation.savedPrimary names the destination so the button itself is the receipt', () => {
-    expect(t('annotation.savedPrimary', 'en')).toMatch(/added to (my )?study list/i)
-    expect(t('annotation.savedPrimary', 'es')).toMatch(/agregada/i)
+    expect(t('annotation.savedPrimary', 'en')).toMatch(/saved to (my )?study list/i)
+    expect(t('annotation.savedPrimary', 'es')).toMatch(/guardada/i)
   })
   it('annotation.notUseful is the quiet secondary action label', () => {
     expect(t('annotation.notUseful', 'en')).not.toBe('annotation.notUseful')

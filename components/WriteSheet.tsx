@@ -22,10 +22,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
+import Link from 'next/link'
 import { DockedSheet } from '@/components/DockedSheet'
 import { IconButton } from '@/components/IconButton'
 import { NavHint } from '@/components/NavHint'
 import { HushStack } from '@/components/HushStack'
+import { ImportancePill } from '@/components/ImportancePill'
 import { buttonStyles } from '@/components/Button'
 import type { PracticeItem } from '@/lib/types'
 
@@ -57,6 +59,7 @@ interface OverflowMenuProps {
   primaryLabelKey: string
   primaryBusyKey: string
   initialFocus?: boolean
+  testId?: string
 }
 
 /**
@@ -66,7 +69,7 @@ interface OverflowMenuProps {
  */
 function OverflowMenu({
   isOpen, onOpenChange, onToggleWritten, onDelete,
-  busy, isWritten, primaryLabelKey, primaryBusyKey, initialFocus,
+  busy, isWritten, primaryLabelKey, primaryBusyKey, initialFocus, testId,
 }: OverflowMenuProps) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -109,7 +112,7 @@ function OverflowMenu({
         onClick={() => onOpenChange(!isOpen)}
         disabled={busy}
         size="lg"
-        data-testid="sheet-overflow"
+        {...(testId ? { 'data-testid': testId } : {})}
         {...(initialFocus ? { 'data-initial-focus': true } : {})}
       />
       {isOpen && (
@@ -129,7 +132,7 @@ function OverflowMenu({
             ref={firstItemRef}
             type="button"
             role="menuitem"
-            data-testid="sheet-toggle-written"
+            {...(testId ? { 'data-testid': 'sheet-toggle-written' } : {})}
             onClick={() => { onOpenChange(false); onToggleWritten() }}
             disabled={busy}
             className="
@@ -151,7 +154,7 @@ function OverflowMenu({
             role="menuitem"
             onClick={() => { onOpenChange(false); onDelete() }}
             disabled={busy}
-            data-testid="sheet-delete"
+            {...(testId ? { 'data-testid': 'sheet-delete' } : {})}
             aria-label={t('writeSheet.deleteAria')}
             className="
               w-full flex items-center gap-3 px-3 py-2 text-left
@@ -186,6 +189,7 @@ export function WriteSheet({
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lastFailedAction, setLastFailedAction] = useState<'toggle' | 'delete' | null>(null)
+  const [importanceExpanded, setImportanceExpanded] = useState(false)
 
   const isOpen = item !== null
 
@@ -198,6 +202,7 @@ export function WriteSheet({
     setOverflowOpen(false)
     setErrorMessage(null)
     setLastFailedAction(null)
+    setImportanceExpanded(false)
   }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
@@ -259,6 +264,16 @@ export function WriteSheet({
     >
       <NavHint />
       <div className="space-y-6">
+        {item.session_title && (
+          <Link
+            data-testid="sheet-source-link"
+            href={`/sessions/${item.session_id}`}
+            className="block text-xs text-text-tertiary underline underline-offset-2 hover:text-text-secondary transition-colors"
+          >
+            {item.session_title}
+          </Link>
+        )}
+
         {/* Hush stack — replaces the older CorrectionInContext block. Trades
             surrounding-sentence context for a calmer, sentence-first layout;
             the session source link above is the user's path back to the
@@ -299,6 +314,20 @@ export function WriteSheet({
           {item.explanation}
         </p>
 
+        <ImportancePill
+          score={item.importance_score}
+          note={item.importance_note ?? null}
+          expanded={importanceExpanded}
+          onToggle={() => setImportanceExpanded(v => !v)}
+          toggleAriaKey="writeList.importanceToggleAria"
+        />
+
+        {importanceExpanded && item.importance_note && (
+          <p className="text-text-secondary text-sm leading-relaxed">
+            {item.importance_note}
+          </p>
+        )}
+
         <div className="pt-7 space-y-3">
           {onPractise && (
             <button
@@ -327,6 +356,7 @@ export function WriteSheet({
               primaryLabelKey={primaryLabelKey}
               primaryBusyKey={primaryBusyKey}
               initialFocus={!onPractise}
+              testId="sheet-overflow"
             />
           </div>
         </div>

@@ -84,32 +84,16 @@ describe('DashboardRecentSessions', () => {
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
   })
 
-  it('caps the visible window to 5 by default and exposes a Show-all toggle', async () => {
+  it('renders all sessions — no cap, no show-all toggle', () => {
     const sessions = Array.from({ length: 7 }, (_, i) =>
       makeSession(`s-${i}`, `2026-04-18T${String(10 - i).padStart(2, '0')}:00:00Z`),
     )
 
     render(<DashboardRecentSessions sessions={sessions} />)
-
-    expect(screen.getAllByTestId(/^row-s-/)).toHaveLength(5)
-
-    await userEvent.click(screen.getByRole('button', { name: 'Show all 7' }))
 
     expect(screen.getAllByTestId(/^row-s-/)).toHaveLength(7)
-    expect(screen.getByRole('button', { name: 'Show fewer' })).toBeInTheDocument()
-  })
-
-  it('collapses back to 5 when Show fewer is clicked', async () => {
-    const sessions = Array.from({ length: 7 }, (_, i) =>
-      makeSession(`s-${i}`, `2026-04-18T${String(10 - i).padStart(2, '0')}:00:00Z`),
-    )
-
-    render(<DashboardRecentSessions sessions={sessions} />)
-
-    await userEvent.click(screen.getByRole('button', { name: 'Show all 7' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Show fewer' }))
-
-    expect(screen.getAllByTestId(/^row-s-/)).toHaveLength(5)
+    expect(screen.queryByRole('button', { name: /show all/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /show fewer/i })).not.toBeInTheDocument()
   })
 
   it('hides the show-all toggle when sessions fit within the cap', () => {

@@ -24,7 +24,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const result = await transitionToReanalysing(params.id)
   if (!result.ok) {
-    return NextResponse.json({ error: result.detail }, { status: result.reason === 'not_found' ? 404 : 409 })
+    const status = result.reason === 'not_found' ? 404 : result.reason === 'no_transcript' ? 400 : 409
+    return NextResponse.json({ error: result.detail }, { status })
   }
 
   const targetLanguage = (user.targetLanguage as TargetLanguage | null) ?? 'es-AR'
