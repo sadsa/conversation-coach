@@ -66,7 +66,7 @@ export async function loadSessionDetail(
 
   const { data: session, error: sessionError } = await db
     .from('sessions')
-    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at')
+    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at, reviewed_at')
     .eq('id', sessionId)
     .eq('user_id', userId)
     .single()
@@ -181,17 +181,8 @@ export async function loadPracticeItems(
 }
 
 /**
- * Cheap "does the user have anything yet?" flags that the methodology
- * eyebrow uses to lock pillars an empty account can't fill. Two `limit(1)`
- * probes fired in parallel — the result is `true`/`false` only, not a
- * count, because the UI just needs to gate dashed-locked vs real link.
- *
- * Called by `/`, `/review`, and `/write` RSCs so each page can hand the
- * flags down to `<MethodologyEyebrow>` via a `lockedPillars` prop. The
- * pages that already load one side of the data (Review loads sessions,
- * Write loads practice items) can pass the corresponding flag directly
- * without re-querying, but the cost of the extra probe is small enough
- * that we keep the loader uniform rather than branching on the call site.
+ * Cheap "does the user have anything yet?" flags. Two `limit(1)` probes
+ * fired in parallel — result is `true`/`false` only, not a count.
  */
 export interface EmptyAccountFlags {
   hasSessions: boolean
@@ -244,4 +235,21 @@ export async function loadAllowedUsers(): Promise<AllowedUserRow[]> {
     .order('requested_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as AllowedUserRow[]
+}
+
+/**
+ * Count of sessions the user has not yet explicitly reviewed (reviewed_at IS
+ * NULL), excluding errored sessions that can never be reviewed. Used for the
+ * unreviewed badge on the Review nav tab.
+ */
+export async function loadUnreviewedCount(userId: string): Promise<number> {
+  const db = createServerClient()
+  const { count, error } = await db
+    .from('sessions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('reviewed_at', null)
+    .neq('status', 'error')
+  if (error) return 0
+  return count ?? 0
 }

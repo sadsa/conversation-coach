@@ -12,8 +12,6 @@
 //   • Both doors are in-place `<button>`s (they mount <PracticeClient> on
 //     tap — the standalone /practice route was retired so discard returns
 //     to these doors).
-//   • Renders the Speak · Review · Refine eyebrow with Speak as the
-//     active pillar and the other two as plain links to their routes.
 //   • Picks up a pending share-target file from IndexedDB and routes
 //     straight to the per-session status screen before the R2 PUT
 //     resolves (parity with the previous HomeClient share pickup).
@@ -42,13 +40,6 @@ vi.mock('@/components/PracticeClient', () => ({
     <div data-testid="practice-client" data-starter={starterTopic ?? ''} />
   ),
 }))
-vi.mock('next/link', () => ({
-  default: ({ children, href, ...rest }: {
-    children: React.ReactNode; href: string;
-  } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href} {...rest}>{children}</a>
-  ),
-}))
 vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
     t: (key: string) => {
@@ -63,10 +54,6 @@ vi.mock('@/components/LanguageProvider', () => ({
         'practice.chatStarter.0': 'Your weekend plans',
         'practice.chatStarter.1': 'A recent meal',
         'practice.chatStarter.2': 'Getting around the city',
-        'home.pillarSpeak': 'Speak',
-        'home.pillarReview': 'Review',
-        'home.pillarRefine': 'Refine',
-        'home.pillarAria': 'Methodology',
         'home.welcomeBeat': 'All set. Ready when you are.',
       }
       return dict[key] ?? key
@@ -150,74 +137,6 @@ describe('PractiseClient — starter chips', () => {
         'data-starter', 'Your weekend plans',
       )
     })
-  })
-})
-
-describe('PractiseClient — methodology eyebrow', () => {
-  it('renders all three pillar words (Speak · Review · Refine)', () => {
-    render(<PractiseClient />)
-    expect(screen.getByText('Speak')).toBeInTheDocument()
-    expect(screen.getByText('Review')).toBeInTheDocument()
-    expect(screen.getByText('Refine')).toBeInTheDocument()
-  })
-
-  it('marks Speak as the active pillar (aria-current="page")', () => {
-    render(<PractiseClient />)
-    const speakEl = screen.getByText('Speak')
-    expect(speakEl).toHaveAttribute('aria-current', 'page')
-  })
-
-  it('Review pillar links to /review', () => {
-    render(<PractiseClient />)
-    const reviewLink = screen.getByText('Review').closest('a')
-    expect(reviewLink).toHaveAttribute('href', '/review')
-  })
-
-  it('Refine pillar is a plain link to /refine (no count badge anywhere)', () => {
-    render(<PractiseClient />)
-    const refineLink = screen.getByText('Refine').closest('a')
-    expect(refineLink).toHaveAttribute('href', '/refine')
-    // The retired study-count chip should never render again.
-    expect(screen.queryByTestId('home-study-chip')).not.toBeInTheDocument()
-  })
-})
-
-// First-time-user critique pass (2026-05): empty accounts shouldn't see
-// Review/Study as live links in the eyebrow — tapping them lands in a
-// placeholder empty state that teaches "stuff I don't have" rather than
-// the methodology. The home RSC computes `lockedPillars` from
-// loadEmptyAccountFlags and passes it down; PractiseClient just hands it
-// through. These tests cover the rendering contract.
-describe('PractiseClient — locked pillars (empty account)', () => {
-  it('renders Review/Refine as non-link spans when both are locked', () => {
-    render(<PractiseClient lockedPillars={['review', 'refine']} />)
-    // The labels are still in the DOM (we want users to read where they
-    // ARE going to get to), just not wrapped in a navigable `<a>`.
-    expect(screen.getByText('Review').closest('a')).toBeNull()
-    expect(screen.getByText('Refine').closest('a')).toBeNull()
-  })
-
-  it('keeps Speak active even with both other pillars locked', () => {
-    render(<PractiseClient lockedPillars={['review', 'refine']} />)
-    expect(screen.getByText('Speak')).toHaveAttribute('aria-current', 'page')
-  })
-
-  it('locked pillar wrapper carries an aria-label with the unlock copy', () => {
-    // Avoid getByLabelText — vitest.setup.ts patches makeNormalizer in a
-    // way that breaks its query path (same gotcha LoginPage.test.tsx
-    // documents). Query by attribute selector instead.
-    const { container } = render(<PractiseClient lockedPillars={['review']} />)
-    const reviewWrapper = container.querySelector('[data-locked="true"]')
-    expect(reviewWrapper).not.toBeNull()
-    expect(reviewWrapper?.getAttribute('aria-label')).toMatch(
-      /Review — home\.pillarLockedReview/,
-    )
-  })
-
-  it('only locks the pillars listed — Refine stays a live link when not in the set', () => {
-    render(<PractiseClient lockedPillars={['review']} />)
-    expect(screen.getByText('Review').closest('a')).toBeNull()
-    expect(screen.getByText('Refine').closest('a')).toHaveAttribute('href', '/refine')
   })
 })
 

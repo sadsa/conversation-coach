@@ -17,12 +17,6 @@
 // to null on `onExit` to restore the doors view. The `targetLanguage`
 // prop comes from the server-side auth header for both shells.
 //
-// Above the doors sits a Practise → Review → Study eyebrow that names the
-// pillars of the methodology. The current pillar (Practise on /) reads in
-// the accent colour; the other two are plain links to their routes. The
-// row is the shared `<MethodologyEyebrow>` so /, /review, and /write all
-// render the same chrome.
-//
 // This component also owns the share-target pickup — when WhatsApp/Signal/
 // Telegram hand the app a voice note via the Web Share Target API, the
 // service worker writes the file to IndexedDB and redirects the browser to
@@ -35,7 +29,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
-import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
 import { InstallBanner } from '@/components/InstallBanner'
 import { useTranslation } from '@/components/LanguageProvider'
 import { nativeLanguageGreeting, inferUiLanguage } from '@/lib/i18n'
@@ -47,25 +40,12 @@ import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
 // clear the URL so refresh doesn't retrigger, then dismiss after the beat.
 const WELCOME_HOLD_MS = 3000
 
-// The home page (RSC) loads one small piece of state for us: which
-// pillars to render as locked in the methodology eyebrow. Everything
-// else (greeting, share-target pickup, in-place session host) stays
-// pure-client. `targetLanguage` for the embedded `<PracticeClient>`
-// session still comes from `useTranslation()` (LanguageProvider
-// context, hydrated from the same auth header middleware sets).
 interface Props {
-  /**
-   * Pillars whose pages have no data yet — rendered as dashed/dimmed,
-   * non-interactive nodes in the methodology eyebrow. Optional so legacy
-   * callers / tests can omit it (defaults to "no locks", i.e. previous
-   * behaviour).
-   */
-  lockedPillars?: ReadonlyArray<Pillar>
   /** First name from Google OAuth user_metadata. Absent for magic-link users. */
   displayName?: string | null
 }
 
-export function PractiseClient({ lockedPillars, displayName: _displayName }: Props = {}) {
+export function PractiseClient({ displayName: _displayName }: Props = {}) {
   const { t, targetLanguage } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -213,7 +193,6 @@ export function PractiseClient({ lockedPillars, displayName: _displayName }: Pro
           {greeting}
         </h1>
 
-        <MethodologyEyebrow active="speak" lockedPillars={lockedPillars} />
         <InstallBanner />
       </header>
 

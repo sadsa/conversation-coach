@@ -35,7 +35,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
-import { MethodologyEyebrow, type Pillar } from '@/components/MethodologyEyebrow'
+import { SessionList } from '@/components/SessionList'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
@@ -51,17 +51,9 @@ const POLL_MAX_MS = 30_000
 
 interface Props {
   initialSessions: SessionListItem[]
-  /**
-   * Methodology pillars to render as locked in the eyebrow. The parent
-   * RSC decides — Review itself is never locked (this IS Review), so the
-   * only meaningful entry today is `'study'` (user has sessions but no
-   * saved practice items yet). Optional so legacy callers / tests stay
-   * green when they don't care about the lock state.
-   */
-  lockedPillars?: ReadonlyArray<Pillar>
 }
 
-export function ReviewClient({ initialSessions, lockedPillars }: Props) {
+export function ReviewClient({ initialSessions }: Props) {
   const { t } = useTranslation()
   // Router only retained for parity with HomeClient ergonomics — no
   // route changes are triggered from this component today; remove if
@@ -164,11 +156,11 @@ export function ReviewClient({ initialSessions, lockedPillars }: Props) {
     setSessions(prev => prev.filter(s => s.id !== id))
   }
 
-  const handleToggleRead = useCallback((id: string, makeRead: boolean) => {
+  const handleToggleReviewed = useCallback((id: string, makeReviewed: boolean) => {
     setSessions(prev =>
       prev.map(s =>
         s.id === id
-          ? { ...s, last_viewed_at: makeRead ? new Date().toISOString() : null }
+          ? { ...s, reviewed_at: makeReviewed ? new Date().toISOString() : null }
           : s,
       ),
     )
@@ -178,8 +170,12 @@ export function ReviewClient({ initialSessions, lockedPillars }: Props) {
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
     [sessions],
   )
-  const recentSessions = useMemo(
-    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status)),
+  const unreviewedSessions = useMemo(
+    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status) && s.reviewed_at === null),
+    [sessions],
+  )
+  const reviewedSessions = useMemo(
+    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status) && s.reviewed_at !== null),
     [sessions],
   )
 
@@ -194,7 +190,6 @@ export function ReviewClient({ initialSessions, lockedPillars }: Props) {
         <h1 className="text-page-title">
           {t('review.title')}
         </h1>
-        <MethodologyEyebrow active="review" lockedPillars={lockedPillars} />
       </header>
 
       {/* In-progress strip — only renders when there's at least one
@@ -205,16 +200,35 @@ export function ReviewClient({ initialSessions, lockedPillars }: Props) {
         <DashboardInProgress sessions={inProgressSessions} />
       )}
 
-      {/* Conversations — the bulk of the page. The section header used
-          to read "Your conversations"; we dropped it once the page H1
-          took over that name. Swipe gestures live in SessionList rows;
-          this wrapper just caps the visible count and surfaces the
-          "Show all" / "Show fewer" toggle. */}
+      {/* Unreviewed ready sessions — the primary work queue. All shown,
+          no truncation. Empty state only appears when there are zero
+          sessions at all (both tiers empty). */}
       <DashboardRecentSessions
-        sessions={recentSessions}
+        sessions={unreviewedSessions}
         onDeleted={handleSessionDeleted}
-        onToggleRead={handleToggleRead}
+        onToggleReviewed={handleToggleReviewed}
       />
+
+      {/* Reviewed sessions — only rendered once at least one session has
+          been explicitly marked reviewed. Matches the refine archive
+          pattern: invisible until there's something to show. */}
+      {reviewedSessions.length > 0 && (
+        <section aria-label={t('review.reviewedTitle')} className="space-y-3">
+          <div className="flex items-center gap-1.5 pt-1">
+            <h2 className="text-eyebrow">
+              {t('review.reviewedTitle')}
+            </h2>
+            <span className="text-xs text-text-tertiary tabular-nums" aria-label={`${reviewedSessions.length} sessions`}>
+              · {reviewedSessions.length}
+            </span>
+          </div>
+          <SessionList
+            sessions={reviewedSessions}
+            onDeleted={handleSessionDeleted}
+            onToggleReviewed={handleToggleReviewed}
+          />
+        </section>
+      )}
     </div>
   )
 }
