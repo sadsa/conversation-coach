@@ -694,14 +694,14 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
                     group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
                     group-disabled:opacity-40
                     ${muted
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      ? 'bg-amber-500/15 text-amber-600'
                       : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
                   `}
                 >
                   <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
                 </div>
                 <span
-                  className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
+                  className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600' : 'text-text-secondary'}`}
                 >
                   {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
                 </span>
@@ -732,7 +732,7 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
                         className={`text-xs font-medium select-none ${
                           isEnding
                             ? 'text-text-tertiary'
-                            : 'text-amber-600 dark:text-amber-400'
+                            : 'text-amber-600'
                         }`}
                       >
                         {statusLabel}
@@ -762,7 +762,7 @@ export function LessonClient({ phrase, onExit, onStudied }: Props) {
                 >
                   <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
                 </div>
-                <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
+                <span className="text-xs font-medium text-rose-600 select-none">
                   {t('practice.end')}
                 </span>
               </button>

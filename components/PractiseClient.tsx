@@ -25,7 +25,7 @@
 // forget so the user never lands on the dashboard during the wait.
 
 'use client'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, type ComponentProps } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
@@ -33,6 +33,42 @@ import { InstallBanner } from '@/components/InstallBanner'
 import { useTranslation } from '@/components/LanguageProvider'
 import { nativeLanguageGreeting, inferUiLanguage } from '@/lib/i18n'
 import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
+
+// ── Conversation-starter categories ────────────────────────────────────
+// Kept in lockstep with CATEGORIES in app/api/practice-starters/route.ts.
+// The model returns one of these per topic; the client maps it to a
+// Phosphor/stroke glyph (CATEGORY_ICON) so we never render arbitrary emoji.
+const STARTER_CATEGORIES = [
+  'food', 'travel', 'work', 'home', 'people',
+  'media', 'city', 'plans', 'opinion', 'misc',
+] as const
+type Category = (typeof STARTER_CATEGORIES)[number]
+
+type IconName = ComponentProps<typeof Icon>['name']
+
+// `satisfies` checks at compile time that every value is a real icon name,
+// so a typo'd glyph fails the build rather than rendering blank.
+const CATEGORY_ICON = {
+  food: 'utensils',
+  travel: 'plane',
+  work: 'briefcase',
+  home: 'house',
+  people: 'users',
+  media: 'film',
+  city: 'buildings',
+  plans: 'calendar',
+  opinion: 'lightbulb',
+  misc: 'message',
+} satisfies Record<Category, IconName>
+
+interface Starter {
+  topic: string
+  category: Category
+}
+
+function coerceCategory(value: unknown): Category {
+  return STARTER_CATEGORIES.includes(value as Category) ? (value as Category) : 'misc'
+}
 
 // Peak-end welcome beat — shows for ~3s when the user arrives from
 // onboarding completion (`/?welcome=true`). Onboarding sets the flag in
@@ -86,20 +122,32 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
     [targetLanguage],
   )
 
-  // Dynamic starter chips — fetched fresh on each mount so returning users
-  // always see new suggestions. null = loading (show skeletons); string[] =
-  // loaded. On error we fall back to the static translation strings.
-  const [starters, setStarters] = useState<string[] | null>(null)
+  // Dynamic starter topics — fetched fresh on each mount so returning users
+  // always see new suggestions. null = loading (show skeleton buttons);
+  // Starter[] = loaded. On error (or a malformed payload) we fall back to the
+  // static translation strings with sensible category icons.
+  const [starters, setStarters] = useState<Starter[] | null>(null)
   useEffect(() => {
     const lang = inferUiLanguage(targetLanguage)
+    const fallback: Starter[] = [
+      { topic: t('practice.chatStarter.0'), category: 'plans' },
+      { topic: t('practice.chatStarter.1'), category: 'food' },
+      { topic: t('practice.chatStarter.2'), category: 'city' },
+    ]
     fetch(`/api/practice-starters?lang=${lang}`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(({ starters: s }: { starters: string[] }) => setStarters(s))
-      .catch(() => setStarters([
-        t('practice.chatStarter.0'),
-        t('practice.chatStarter.1'),
-        t('practice.chatStarter.2'),
-      ]))
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(({ starters: s }: { starters?: unknown }) => {
+        if (!Array.isArray(s) || s.length === 0) throw new Error('empty')
+        const cleaned = s
+          .map(item => ({
+            topic: String((item as Starter)?.topic ?? '').trim(),
+            category: coerceCategory((item as Starter)?.category),
+          }))
+          .filter(x => x.topic.length > 0)
+        if (cleaned.length === 0) throw new Error('empty')
+        setStarters(cleaned)
+      })
+      .catch(() => setStarters(fallback))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -167,13 +215,15 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
     // BottomNav overlap that's now solved in app/layout.tsx via
     // --bottom-nav-h.
     <div className="space-y-8">
-      {/* Greeting + peak-end welcome beat. The welcome line floats above
-          the greeting via absolute positioning so it doesn't shift the
-          rest of the page when it mounts/dismisses. We only reserve the
-          `pt-6` slot for the beat when ?welcome=true is in the URL on
-          mount — otherwise the page top sits flush with the layout's
-          baseline, matching Review / Study / Settings. */}
-      <header className={`relative space-y-2${initialWelcome ? ' pt-6' : ''}`}>
+      {/* Greeting kicker + topic question + peak-end welcome beat. The
+          target-language greeting is kept as a small kicker above the H1 —
+          it's the one immersion moment on this surface (and the anchor the
+          welcome beat floats above) — but the headline is now the question,
+          which frames the topic buttons below as the answer. The welcome
+          line floats above via absolute positioning so it doesn't shift the
+          rest of the page when it mounts/dismisses; we only reserve the
+          `pt-6` slot for it when ?welcome=true is in the URL on mount. */}
+      <header className={`relative space-y-1.5${initialWelcome ? ' pt-6' : ''}`}>
         <AnimatePresence>
           {showWelcome && (
             <motion.p
@@ -189,84 +239,107 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
             </motion.p>
           )}
         </AnimatePresence>
-        <h1 className="text-page-title">
+        <p className="text-sm font-medium text-text-tertiary">
           {greeting}
+        </p>
+        <h1 className="text-page-title">
+          {t('home.practiseHeading')}
         </h1>
 
         <InstallBanner />
       </header>
 
-      {/* ── Two doors ──────────────────────────────────────────────────
-          Talk freely (primary) · Real Life Scenario (secondary / beta).
-          Chat is the primary entry point for new learners — it wears the
-          accent-chip tinted background and a filled accent icon tile so it
-          reads as the louder option. Call is a richer feature for returning
-          users; it's been demoted to a neutral surface card and marked Beta
-          so it's discoverable without competing for first attention. */}
-      <section
-        aria-label={t('home.modesAria')}
-        className="space-y-3"
-      >
-        {/* Talk freely — primary door. Card button for plain start; chips sit
-            outside the card (sibling, not child) to avoid nested <button>.
-            The card + chips share a tight `space-y-2` wrapper so they read
-            as one visual unit. */}
-        <div className="space-y-2">
+      {/* ── Two labelled mode sections ─────────────────────────────────
+          The page offers exactly two Conversation modes (CONTEXT.md). Each
+          is its own titled section (h2 + one-line "what it is") so the
+          difference between them is explicit rather than inferred from a
+          flat list. Talk freely is primary and expanded — the generated
+          topic chips nest inside it as quick-starts (they all start a chat
+          session, just seeded with a topic), with a neutral "no topic" row
+          beneath. Real Life Scenario is the compact secondary mode. */}
+
+      {/* Talk freely — primary mode. Topic chips are shortcuts into this
+          mode (each seeds a chat session); the trailing row is the no-topic
+          entry. Nothing here carries extra fill — the chips' accent tiles
+          are the only colour, so the section reads as one grouped mode. */}
+      <section aria-labelledby="mode-chat-heading" className="space-y-3">
+        <div className="space-y-1">
+          <h2
+            id="mode-chat-heading"
+            className="text-lg font-semibold text-text-primary"
+          >
+            {t('practice.modeChatTitle')}
+          </h2>
+          <p className="text-sm text-text-secondary leading-snug">
+            {t('practice.modeChatBlurb')}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {/* Generated topics. null = loading → full-width skeleton buttons
+              so the page is usable instantly (the no-topic row + Call render
+              immediately) and topics stream in without layout shift. */}
+          {starters === null
+            ? [0, 1, 2].map(i => <StarterSkeleton key={i} />)
+            : starters.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  data-testid={`home-starter-${i}`}
+                  onClick={() => setActiveSession({ mode: 'chat', starterTopic: s.topic })}
+                  className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+                >
+                  <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-chip text-accent-primary flex items-center justify-center">
+                    <Icon name={CATEGORY_ICON[s.category]} className="w-5 h-5" aria-hidden />
+                  </span>
+                  <p className="flex-1 min-w-0 text-base md:text-lg font-semibold text-text-primary">
+                    {s.topic}
+                  </p>
+                  <ChevronRight />
+                </button>
+              ))
+          }
+
+          {/* No-topic entry — the plain "just start" door into Talk freely.
+              Neutral icon tile (vs the topic chips' accent tiles) marks it as
+              the topic-free option without adding a louder card. */}
           <button
             type="button"
             onClick={() => setActiveSession({ mode: 'chat' })}
             data-testid="home-mode-chat"
-            className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-accent-chip px-5 py-4 hover:bg-widget-cards-bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+            className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
           >
-            <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-primary text-white flex items-center justify-center">
+            <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center">
               <Icon name="mic" className="w-5 h-5" aria-hidden />
             </span>
-            <div className="flex-1 min-w-0 space-y-0.5">
-              <p className="text-base md:text-lg font-semibold text-text-primary">
-                {t('practice.modeChatTitle')}
-              </p>
-              <p className="text-sm text-text-secondary leading-snug">
-                {t('practice.modeChatBlurb')}
-              </p>
-            </div>
+            <p className="flex-1 min-w-0 text-base md:text-lg font-semibold text-text-primary">
+              {t('practice.modeChatNoTopic')}
+            </p>
             <ChevronRight />
           </button>
+        </div>
+      </section>
 
-          {/* Starter chips — below the card, outside the <button> to satisfy
-              the HTML spec (no nested interactive elements). null = loading,
-              show skeleton chips at approximate widths so the layout doesn't
-              jump when the real topics arrive. */}
-          <div className="flex flex-wrap gap-2 px-1">
-            {starters === null
-              ? ([80, 64, 96] as const).map(w => (
-                  <span
-                    key={w}
-                    className="inline-block h-7 rounded-full bg-surface-elevated animate-pulse"
-                    style={{ width: w }}
-                    aria-hidden="true"
-                  />
-                ))
-              : starters.map((topic, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    data-testid={`home-starter-${i}`}
-                    onClick={() => setActiveSession({ mode: 'chat', starterTopic: topic })}
-                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-border-subtle bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent-primary hover:bg-accent-chip/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
-                  >
-                    {topic}
-                  </button>
-                ))
-            }
-          </div>
+      {/* Real Life Scenario — secondary mode, beta. Compact: title + blurb,
+          then a single action row. The emerald icon tile signals "call" via
+          colour. Beta badge sits beside the title to surface maturity before
+          the user taps. */}
+      <section aria-labelledby="mode-call-heading" className="space-y-3">
+        <div className="space-y-1">
+          <h2
+            id="mode-call-heading"
+            className="text-lg font-semibold text-text-primary flex items-center gap-2"
+          >
+            {t('practice.modeCallTitle')}
+            <span className="text-[0.625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ring-1 ring-border bg-surface-elevated text-text-tertiary leading-none">
+              Beta
+            </span>
+          </h2>
+          <p className="text-sm text-text-secondary leading-snug">
+            {t('practice.modeCallBlurb')}
+          </p>
         </div>
 
-        {/* Real Life Scenario — secondary door, beta. Demoted to a neutral
-            surface card so Talk freely reads as the louder entry point.
-            The emerald icon tile is kept — it signals "call" via colour
-            without making the whole card shout. Beta badge sits beside the
-            title to surface the feature's maturity level to returning users
-            before they tap. */}
         <button
           type="button"
           onClick={() => setActiveSession({ mode: 'call' })}
@@ -276,20 +349,27 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
           <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-call-fill text-white flex items-center justify-center">
             <Icon name="phone" className="w-5 h-5" aria-hidden />
           </span>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <p className="text-base md:text-lg font-semibold text-text-primary flex items-center gap-2">
-              {t('practice.modeCallTitle')}
-              <span className="text-[0.625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ring-1 ring-border bg-surface-elevated text-text-tertiary leading-none">
-                Beta
-              </span>
-            </p>
-            <p className="text-sm text-text-secondary leading-snug">
-              {t('practice.modeCallBlurb')}
-            </p>
-          </div>
+          <p className="flex-1 min-w-0 text-base md:text-lg font-semibold text-text-primary">
+            {t('practice.modeCallStart')}
+          </p>
           <ChevronRight />
         </button>
       </section>
+    </div>
+  )
+}
+
+// Loading placeholder for a topic button — same footprint as the real row
+// (icon tile + label) so topics streaming in don't shift the Talk freely
+// anchor or the Call door below.
+function StarterSkeleton() {
+  return (
+    <div
+      className="w-full flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4"
+      aria-hidden="true"
+    >
+      <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-surface-elevated animate-pulse" />
+      <span className="h-4 flex-1 max-w-[60%] rounded-full bg-surface-elevated animate-pulse" />
     </div>
   )
 }

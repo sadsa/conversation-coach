@@ -6,9 +6,10 @@
 //   • Renders two live-practice doors: Free flow (primary) + Real Life
 //     Scenario (secondary). The Share/upload door was moved to the Review
 //     step (ADR 0002) — it no longer appears here.
-//   • Free flow is rendered first (primary position) and shows conversation
-//     starter chip buttons.
-//   • Clicking a starter chip starts a chat session with that topic.
+//   • Generated conversation-topic buttons render inside the Talk freely
+//     section (above its no-topic row); each seeds a chat session with its
+//     topic.
+//   • Clicking a topic button starts a chat session with that topic.
 //   • Both doors are in-place `<button>`s (they mount <PracticeClient> on
 //     tap — the standalone /practice route was retired so discard returns
 //     to these doors).
@@ -113,24 +114,28 @@ describe('PractiseClient — two doors (no Share)', () => {
   })
 })
 
-describe('PractiseClient — starter chips', () => {
-  it('renders starter chip buttons on the Free flow card', () => {
+describe('PractiseClient — topic buttons', () => {
+  // The default fetch mock resolves to `{}`, which the component treats as a
+  // malformed payload and falls back to the static chatStarter strings. The
+  // fallback applies in a microtask after the fetch settles, so these assert
+  // via findBy* / waitFor rather than synchronous getBy*.
+  it('renders generated topic buttons (fallback) once starters resolve', async () => {
     render(<PractiseClient />)
-    expect(screen.getByTestId('home-starter-0')).toBeInTheDocument()
+    expect(await screen.findByTestId('home-starter-0')).toBeInTheDocument()
     expect(screen.getByTestId('home-starter-1')).toBeInTheDocument()
     expect(screen.getByTestId('home-starter-2')).toBeInTheDocument()
   })
 
-  it('starter chips show the translated topic text', () => {
+  it('topic buttons show the translated topic text', async () => {
     render(<PractiseClient />)
-    expect(screen.getByTestId('home-starter-0')).toHaveTextContent('Your weekend plans')
+    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Your weekend plans')
     expect(screen.getByTestId('home-starter-1')).toHaveTextContent('A recent meal')
   })
 
-  it('clicking a starter chip sets chat mode active with that topic', async () => {
+  it('clicking a topic button sets chat mode active with that topic', async () => {
     const { fireEvent } = await import('@testing-library/react')
     render(<PractiseClient />)
-    fireEvent.click(screen.getByTestId('home-starter-0'))
+    fireEvent.click(await screen.findByTestId('home-starter-0'))
     await waitFor(() => {
       expect(screen.getByTestId('practice-client')).toBeInTheDocument()
       expect(screen.getByTestId('practice-client')).toHaveAttribute(

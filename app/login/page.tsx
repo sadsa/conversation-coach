@@ -46,8 +46,8 @@ function EnvelopeGlyph({ className = '', size = 18 }: { className?: string; size
 }
 
 // First-time loud Google CTA. Visual chrome matches the welcome-back
-// `ContinueAsPill` (dark-navy `bg-google-surface` in light, inverted
-// cream in dark, with a contrasting chip housing the multi-colour G)
+// `ContinueAsPill` (dark-navy `bg-google-surface` with a contrasting
+// chip housing the multi-colour G)
 // — same loud-then-quiet shape as the welcome-back state, so the
 // chooser pattern reads as ONE design told twice (recognised users
 // see their email; unknown users see the provider). Previous treatment
@@ -112,8 +112,8 @@ function ContinueAsPill({
   // visual lines stay as-is.
   const accessibleName = `${verb} ${email}`
 
-  // Provider drives the chrome. Google: dark navy / elevated dark
-  // surface (semantic --color-google-surface, theme-aware). Email:
+  // Provider drives the chrome. Google: dark navy surface (semantic
+  // --color-google-surface). Email:
   // accent-primary violet. Foreground is always the cream "on-*" token
   // so the white G chip + bottom-line email never lose contrast.
   const surface = isGoogle

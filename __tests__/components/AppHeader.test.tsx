@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppHeader } from '@/components/AppHeader'
-import { ThemeProvider } from '@/components/ThemeProvider'
 
 let mockPathname = '/'
 vi.mock('next/navigation', () => ({
@@ -22,11 +21,7 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 function wrap(isOpen: boolean, onOpen = vi.fn()) {
-  return render(
-    <ThemeProvider>
-      <AppHeader isOpen={isOpen} onOpen={onOpen} />
-    </ThemeProvider>
-  )
+  return render(<AppHeader isOpen={isOpen} onOpen={onOpen} />)
 }
 
 describe('AppHeader', () => {
@@ -56,24 +51,6 @@ describe('AppHeader', () => {
   it('sets aria-expanded="true" when isOpen is true', () => {
     wrap(true)
     expect(screen.getByRole('button', { name: /open menu/i })).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('shows "Switch to light mode" button in dark mode (default)', () => {
-    wrap(false)
-    expect(screen.getByRole('button', { name: /switch to light mode/i })).toBeInTheDocument()
-  })
-
-  it('shows "Switch to dark mode" button after switching to light', async () => {
-    wrap(false)
-    await userEvent.click(screen.getByRole('button', { name: /switch to light mode/i }))
-    expect(screen.getByRole('button', { name: /switch to dark mode/i })).toBeInTheDocument()
-  })
-
-  it('switches back to dark from light', async () => {
-    wrap(false)
-    await userEvent.click(screen.getByRole('button', { name: /switch to light mode/i }))
-    await userEvent.click(screen.getByRole('button', { name: /switch to dark mode/i }))
-    expect(screen.getByRole('button', { name: /switch to light mode/i })).toBeInTheDocument()
   })
 })
 

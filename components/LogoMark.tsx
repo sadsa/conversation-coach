@@ -1,8 +1,8 @@
 // components/LogoMark.tsx
 //
 // Robot logo mark without the square background — renders on any surface.
-// The body fill adapts to the active theme via --color-surface so the
-// robot feels at home in both light and dark modes. Brand greens are fixed.
+// The body fill uses --color-surface so the robot feels at home on the
+// app background. Brand greens are fixed.
 //
 // viewBox is cropped to the robot bounds (with stroke clearance), so the
 // rendered square is tight around the character rather than carrying the

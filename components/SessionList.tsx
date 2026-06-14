@@ -73,7 +73,6 @@ function SessionItem({
   const isProcessing = !TERMINAL_STATUSES.has(session.status)
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
-  const isUnread = session.status === 'ready' && session.last_viewed_at == null
   const isReviewed = session.reviewed_at !== null
 
   const [dateLabel, setDateLabel] = useState<string>('')
@@ -109,17 +108,8 @@ function SessionItem({
           }`}
         >
           <div className="flex items-baseline justify-between gap-3 min-w-0">
-            <p
-              className={`text-lg truncate min-w-0 ${
-                isUnread
-                  ? 'font-semibold text-text-primary'
-                  : 'font-normal text-text-secondary'
-              }`}
-            >
+            <p className="text-lg truncate min-w-0 font-normal text-text-secondary">
               {session.title}
-              {isUnread && (
-                <span className="sr-only"> — {t('home.recentSessionUnreadAria')}</span>
-              )}
             </p>
             <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel || ' '}</span>
           </div>

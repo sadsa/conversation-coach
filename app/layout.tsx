@@ -1,7 +1,6 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { FontSizeProvider } from '@/components/FontSizeProvider'
-import { ThemeProvider } from '@/components/ThemeProvider'
 import { ConditionalNav } from '@/components/ConditionalNav'
 import { ScrollToTopOnNavigate } from '@/components/ScrollToTopOnNavigate'
 import { NavProgress } from '@/components/NavProgress'
@@ -11,7 +10,6 @@ import { loadUnreviewedCount } from '@/lib/loaders'
 import type { TargetLanguage } from '@/lib/types'
 import { TARGET_LANGUAGES } from '@/lib/types'
 import { inferUiLanguage } from '@/lib/i18n'
-import { THEME_COLOR, STATUS_BAR_STYLE } from '@/lib/theme-meta'
 import { fontBody, fontDisplay } from './fonts'
 import './globals.css'
 
@@ -29,10 +27,16 @@ export const metadata: Metadata = {
   // standalone launches — without it iOS draws its full Safari chrome.
   appleWebApp: {
     capable: true,
-    statusBarStyle: STATUS_BAR_STYLE.light,
+    statusBarStyle: 'default',
     title: 'Coach',
   },
 }
+
+// System-chrome tint for the Android PWA status bar / Safari address bar.
+// The app is light-only, so this is a single static value — keep it in
+// lock-step with `--color-bg` in globals.css (verified sRGB rendering of
+// oklch(97.5% 0.008 75)). When the bg token changes, update this too.
+const THEME_COLOR_LIGHT = '#faf6f1'
 
 export const viewport: Viewport = {
   // iOS PWA in standalone mode overlays the status bar and home indicator
@@ -41,9 +45,7 @@ export const viewport: Viewport = {
   // the FAB/BottomNav padding-bottom and header padding-top all evaluate
   // to 0 and the chrome ends up sitting under the system bars.
   viewportFit: 'cover',
-  // NOTE: `themeColor` is set dynamically below (raw <meta> + pre-paint
-  // script + ThemeProvider) instead of via this export, because we need it
-  // to follow the user's in-app theme toggle, not the system colour scheme.
+  themeColor: THEME_COLOR_LIGHT,
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -54,27 +56,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const uiLanguage = inferUiLanguage(initialTargetLanguage)
   const unreviewedCount = user ? await loadUnreviewedCount(user.id).catch(() => 0) : 0
 
-  // Inline pre-paint script — runs before React hydrates so the system
-  // chrome (status bar, address bar) is already painted in the user's
-  // chosen theme on first frame. Without this, the page boots with the
-  // light defaults below and snaps to dark a moment later, which is jarring
-  // on every PWA launch for dark-theme users. Keep the THEME_COLOR /
-  // STATUS_BAR_STYLE values here in lock-step with `lib/theme-meta.ts` —
-  // we inline the JSON so the script is self-contained and runs even with
-  // JS bundles still in flight.
-  const themeBootstrapScript = `
+  // Inline pre-paint script — runs before React hydrates so the user's
+  // stored font size is applied on the first frame (FontSizeProvider syncs
+  // it on subsequent changes). Kept inline so it runs even with JS bundles
+  // still in flight.
+  const fontSizeBootstrapScript = `
     (function() {
       try {
         var s = localStorage.getItem('fontSize');
         if (s) document.documentElement.style.fontSize = s + 'px';
-        var t = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-        var color = ${JSON.stringify(THEME_COLOR)}[t];
-        var style = ${JSON.stringify(STATUS_BAR_STYLE)}[t];
-        var tc = document.querySelector('meta[name="theme-color"]');
-        if (tc) tc.setAttribute('content', color);
-        var sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-        if (sb) sb.setAttribute('content', style);
       } catch (e) {}
     })();
   `
@@ -86,13 +76,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`overflow-x-hidden ${fontBody.variable} ${fontDisplay.variable}`}
     >
       <head>
-        {/* Light-theme default for the Android / Safari address-bar tint.
-            The matching iOS PWA `apple-mobile-web-app-status-bar-style`
-            tag is emitted by Next.js from `metadata.appleWebApp` above —
-            don't duplicate it here. The pre-paint script below overrides
-            both with the user's stored theme before first paint, and
-            ThemeProvider keeps them in sync on subsequent toggles. */}
-        <meta name="theme-color" content={THEME_COLOR.light} />
+        {/* The Android / Safari address-bar tint is emitted by Next.js from
+            `viewport.themeColor` above; the matching iOS PWA
+            `apple-mobile-web-app-status-bar-style` tag comes from
+            `metadata.appleWebApp`. The app is light-only, so neither needs
+            runtime overriding. */}
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(function(err) {
@@ -100,14 +88,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             });
           }
         ` }} />
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <script dangerouslySetInnerHTML={{ __html: fontSizeBootstrapScript }} />
       </head>
       <body className="min-h-[100dvh] bg-bg text-text-primary flex flex-col">
         <LanguageProvider initialTargetLanguage={initialTargetLanguage}>
-          <ThemeProvider>
-            <FontSizeProvider />
-            <ScrollToTopOnNavigate />
-            <NavProgress />
+          <FontSizeProvider />
+          <ScrollToTopOnNavigate />
+          <NavProgress />
             {/* tabIndex={-1} so the skip-to-content link in AppHeader actually
                 moves focus here on activation. Without it, browsers scroll to
                 the anchor but the next Tab fires from <body>, defeating the
@@ -136,7 +123,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {children}
             </main>
             <ConditionalNav unreviewedCount={unreviewedCount} />
-          </ThemeProvider>
         </LanguageProvider>
       </body>
     </html>

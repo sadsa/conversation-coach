@@ -104,41 +104,6 @@ describe('SessionList', () => {
   })
 })
 
-describe('SessionList — unread visual (inbox state)', () => {
-  it('marks ready+last_viewed_at=null sessions as unread via weight + tone (no dot)', () => {
-    const { container } = render(<SessionList sessions={[unreadReadySession]} />)
-    expect(container.querySelector('.bg-accent-primary')).not.toBeInTheDocument()
-    const title = screen.getByText('Café with Dani')
-    expect(title.className).toMatch(/font-semibold/)
-    expect(title.className).toMatch(/text-text-primary/)
-    const srOnly = container.querySelector('span.sr-only:not([aria-hidden="true"])')
-    expect(srOnly?.textContent ?? '').toMatch(/\S+/)
-  })
-
-  it('reads recede to font-normal + text-text-secondary (calmer than unread)', () => {
-    render(<SessionList sessions={[readSession]} />)
-    const title = screen.getByText('Chat with María')
-    expect(title.className).toMatch(/font-normal/)
-    expect(title.className).toMatch(/text-text-secondary/)
-  })
-
-  it('does NOT render an unread dot on already-viewed sessions', () => {
-    const { container } = render(<SessionList sessions={[readSession]} />)
-    expect(container.querySelector('.bg-accent-primary')).not.toBeInTheDocument()
-  })
-
-  it('does NOT render an unread sr-only suffix on already-viewed sessions', () => {
-    const { container } = render(<SessionList sessions={[readSession]} />)
-    const ariaSuffixes = Array.from(container.querySelectorAll('span.sr-only'))
-    expect(ariaSuffixes).toHaveLength(0)
-  })
-
-  it('does NOT mark non-ready sessions as unread (still processing)', () => {
-    const { container } = render(<SessionList sessions={[transcribingSession]} />)
-    expect(container.querySelector('.bg-accent-primary')).not.toBeInTheDocument()
-    expect(container.querySelector('span.sr-only')).toBeNull()
-  })
-})
 
 describe('SessionList — row context menu toggles reviewed/unreviewed', () => {
   beforeEach(() => {

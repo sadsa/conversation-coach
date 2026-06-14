@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ConditionalNav } from '@/components/ConditionalNav'
-import { ThemeProvider } from '@/components/ThemeProvider'
 import { LanguageProvider } from '@/components/LanguageProvider'
 
 vi.mock('next/navigation', () => ({
@@ -33,7 +32,7 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 function wrap() {
   return render(
     <LanguageProvider initialTargetLanguage="es-AR">
-      <ThemeProvider><ConditionalNav /></ThemeProvider>
+      <ConditionalNav />
     </LanguageProvider>
   )
 }

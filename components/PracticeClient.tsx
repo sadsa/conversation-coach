@@ -1101,7 +1101,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
           <div
             className="
               w-28 h-28 rounded-full
-              bg-emerald-500/10 dark:bg-emerald-400/10
+              bg-emerald-500/10
               flex items-center justify-center
             "
             style={{ animation: reducedMotion ? undefined : 'cc-call-pulse 1.8s ease-out infinite' }}
@@ -1110,7 +1110,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
             <span style={{ animation: reducedMotion ? undefined : 'cc-call-shake 1.4s ease-in-out infinite', display: 'inline-flex' }}>
               <Icon
                 name="phone"
-                className="h-12 w-12 text-emerald-600 dark:text-emerald-400"
+                className="h-12 w-12 text-emerald-600"
               />
             </span>
           </div>
@@ -1158,7 +1158,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
             >
               <Icon name="phone-hangup" className="h-6 w-6" />
             </div>
-            <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
+            <span className="text-xs font-medium text-rose-600 select-none">
               {t('practice.decline')}
             </span>
           </button>
@@ -1182,7 +1182,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
             >
               <Icon name="phone" className="h-6 w-6" />
             </div>
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 select-none">
+            <span className="text-xs font-medium text-emerald-600 select-none">
               {t('practice.answer')}
             </span>
           </button>
@@ -1472,14 +1472,14 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
                     group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
                     group-disabled:opacity-40
                     ${muted
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      ? 'bg-amber-500/15 text-amber-600'
                       : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
                   `}
                 >
                   <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
                 </div>
                 <span
-                  className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'}`}
+                  className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600' : 'text-text-secondary'}`}
                 >
                   {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
                 </span>
@@ -1510,7 +1510,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
                         className={`text-xs font-medium select-none ${
                           isEnding
                             ? 'text-text-tertiary'
-                            : 'text-amber-600 dark:text-amber-400'
+                            : 'text-amber-600'
                         }`}
                       >
                         {statusLabel}
@@ -1541,7 +1541,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
                 >
                   <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
                 </div>
-                <span className="text-xs font-medium text-rose-600 dark:text-rose-400 select-none">
+                <span className="text-xs font-medium text-rose-600 select-none">
                   {t('practice.end')}
                 </span>
               </button>

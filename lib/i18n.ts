@@ -80,8 +80,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.back': 'Back',
     'nav.openMenu': 'Open menu',
     'nav.closeMenu': 'Close menu',
-    'nav.switchToLight': 'Switch to light mode',
-    'nav.switchToDark': 'Switch to dark mode',
     'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
     'nav.unreviewedBadge': '{n} to review',
@@ -101,15 +99,22 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': "Pick how you'd like to start.",
     'practice.modeCallTitle': 'Real Life Scenario',
     'practice.modeCallBlurb':
-      "You get a call from someone you've never met. They introduce themselves. Go from there.",
+      "Someone you've never met calls. They introduce themselves — take it from there.",
     'practice.modeChatTitle': 'Talk freely',
     'practice.modeChatBlurb':
-      "Say whatever's on your mind. The Coach keeps pace.",
+      'You lead. Talk about anything — the Coach keeps pace.',
     'practice.modeCallCta': 'Pick up',
     'practice.modeChatCta': 'Start talking',
-    // Topic-led home: the question headlines the page; a fresh set of
-    // generated topics sits beneath it. `startersLabel` is retained as a
-    // fallback string but no longer rendered on the home surface.
+    // Home: two labelled mode sections. `practiseHeading` frames the
+    // page-level choice; each mode section carries its own title + blurb
+    // (modeChat*/modeCall*). The Talk freely section nests the generated
+    // topic chips as quick-starts, with `modeChatNoTopic` as the no-topic
+    // row. `modeCallStart` is the Real Life Scenario action row. The older
+    // `topicHeading` / `startersLabel` keys are retained as fallbacks but
+    // no longer rendered on the home surface.
+    'home.practiseHeading': 'How do you want to practise?',
+    'practice.modeChatNoTopic': 'Start with no topic',
+    'practice.modeCallStart': 'Answer a call',
     'home.topicHeading': "What's on your mind?",
     'practice.startersLabel': 'Need a topic?',
     'practice.chatStarter.0': 'Your weekend plans',
@@ -761,8 +766,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.back': 'Atrás',
     'nav.openMenu': 'Abrir menú',
     'nav.closeMenu': 'Cerrar menú',
-    'nav.switchToLight': 'Cambiar a modo claro',
-    'nav.switchToDark': 'Cambiar a modo oscuro',
     'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
     'nav.unreviewedBadge': '{n} para revisar',
@@ -781,12 +784,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeIntro': 'Elegí cómo querés empezar.',
     'practice.modeCallTitle': 'Escenario de vida real',
     'practice.modeCallBlurb':
-      'Te llama alguien que no conocés. Se presenta. De ahí, seguís vos.',
+      'Te llama alguien que no conocés. Se presenta — de ahí, seguís vos.',
     'practice.modeChatTitle': 'Hablá libremente',
     'practice.modeChatBlurb':
-      'Decí lo que se te venga a la cabeza. El Coach sigue el hilo.',
+      'Vos llevás la conversación. Hablá de lo que quieras — el Coach sigue el hilo.',
     'practice.modeCallCta': 'Atender',
     'practice.modeChatCta': 'Empezar a hablar',
+    'home.practiseHeading': '¿Cómo querés practicar hoy?',
+    'practice.modeChatNoTopic': 'Empezar sin tema',
+    'practice.modeCallStart': 'Atender una llamada',
     'home.topicHeading': '¿De qué querés hablar hoy?',
     'practice.startersLabel': '¿Necesitás un tema?',
     'practice.chatStarter.0': 'Tus planes del finde',
