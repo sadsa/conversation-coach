@@ -84,6 +84,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.switchToDark': 'Switch to dark mode',
     'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
+    'nav.unreviewedBadge': '{n} to review',
 
     // Practice
     //
@@ -364,6 +365,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // return). /review names its surface directly so the user knows what
     // they're looking at without sharing the home's emotional weight.
     'review.title': 'Your conversations',
+    'review.reviewedTitle': 'Reviewed',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to study right now.',
     'home.recentSessionsTitle': 'Your conversations',
@@ -411,11 +413,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // confirmation modal: the swipe is the commit, the toast is the safety net.
     'session.movedToTrash': 'Conversation moved to trash.',
     'session.undo': 'Undo',
-    'session.markUnread': 'Mark unread',
-    'session.markRead': 'Mark read',
-    'session.markUnreadAria': 'Mark "{title}" as unread',
-    'session.markReadAria': 'Mark "{title}" as read',
-    'session.toggleReadError': 'Couldn\'t update — try again.',
+    'session.markReviewed': 'Mark as reviewed',
+    'session.markUnreviewed': 'Mark as unreviewed',
+    'session.toggleReviewedError': 'Couldn\'t update — try again.',
     // Row context menu (⋮)
     'session.menuAria': 'More actions',
     // Pipeline status
@@ -514,6 +514,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.nextCorrection': 'Next correction',
     'transcript.studyPrompt': 'Study {n} saved',
     'transcript.studyPromptAria': 'Go to Study — {n} phrases saved',
+    'transcript.markAsReviewed': 'Mark as reviewed',
+
+    // Review completion screen
+    'review.completion.title': 'Review done',
+    'review.completion.phrasesSaved': '{n} phrase saved in Study',
+    'review.completion.phrasesSaved_plural': '{n} phrases saved in Study',
+    'review.completion.nothingSaved': 'Nothing saved this time.',
+    'review.completion.drillPhrase': 'Drill this phrase',
+    'review.completion.backToReviews': 'Back to reviews',
 
     // Re-analyse confirmation
     'reanalyse.title': 'Replace this conversation\'s corrections?',
@@ -757,6 +766,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.switchToDark': 'Cambiar a modo oscuro',
     'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
+    'nav.unreviewedBadge': '{n} para revisar',
 
     // Practice
     //
@@ -961,6 +971,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // H1 de la página /review. El saludo cálido pertenece a la home; aquí
     // nombramos la superficie directamente.
     'review.title': 'Tus conversaciones',
+    'review.reviewedTitle': 'Revisadas',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Tus conversaciones',
@@ -1008,11 +1019,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // El gesto deslizar ya es la confirmación; el toast es la red de seguridad.
     'session.movedToTrash': 'Conversación enviada a la papelera.',
     'session.undo': 'Deshacer',
-    'session.markUnread': 'Sin leer',
-    'session.markRead': 'Leída',
-    'session.markUnreadAria': 'Marcar "{title}" como sin leer',
-    'session.markReadAria': 'Marcar "{title}" como leída',
-    'session.toggleReadError': 'No se pudo actualizar — intentá de nuevo.',
+    'session.markReviewed': 'Marcar como revisada',
+    'session.markUnreviewed': 'Marcar como no revisada',
+    'session.toggleReviewedError': 'No se pudo actualizar — intentá de nuevo.',
     // Menú contextual de fila (⋮)
     'session.menuAria': 'Más acciones',
     // Pipeline status
@@ -1108,6 +1117,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.nextCorrection': 'Siguiente corrección',
     'transcript.studyPrompt': 'Estudiar {n} guardadas',
     'transcript.studyPromptAria': 'Ir a Estudiar — {n} frases guardadas',
+    'transcript.markAsReviewed': 'Marcar como revisado',
+
+    // Review completion screen
+    'review.completion.title': 'Revisión completa',
+    'review.completion.phrasesSaved': '{n} frase guardada en Study',
+    'review.completion.phrasesSaved_plural': '{n} frases guardadas en Study',
+    'review.completion.nothingSaved': 'Nada guardado esta vez.',
+    'review.completion.drillPhrase': 'Practicar esta frase',
+    'review.completion.backToReviews': 'Volver a revisiones',
 
     // Re-analyse confirmation
     'reanalyse.title': '¿Reemplazar las correcciones de esta conversación?',

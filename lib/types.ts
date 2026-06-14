@@ -178,13 +178,18 @@ export interface SessionListItem {
    * the transcript at least once, or explicitly marked it read again.
    */
   last_viewed_at: string | null
+  /**
+   * Review completion signal. NULL = never explicitly marked reviewed.
+   * Set only by the deliberate "Mark as reviewed" user action.
+   */
+  reviewed_at: string | null
 }
 
 export interface SessionDetail {
   session: Pick<Session,
     'id' | 'title' | 'status' | 'error_stage' | 'duration_seconds' |
     'detected_speaker_count' | 'user_speaker_labels' | 'created_at'
-  >
+  > & { reviewed_at: string | null }
   segments: TranscriptSegment[]
   annotations: Annotation[]
   addedAnnotations: Record<string, string>   // annotationId -> practiceItemId

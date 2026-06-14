@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
+import { ReviewCompletionScreen, type SavedPhrase } from '@/components/ReviewCompletionScreen'
+import { LessonClient } from '@/components/LessonClient'
 import { InlineEdit } from '@/components/InlineEdit'
 import { Modal } from '@/components/Modal'
 import { Toast } from '@/components/Toast'
@@ -41,6 +43,9 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [isReviewed, setIsReviewed] = useState(!!initialDetail.session.reviewed_at)
+  const [showCompletion, setShowCompletion] = useState(false)
+  const [drillPhrase, setDrillPhrase] = useState<SavedPhrase | null>(null)
 
   // Auto-mark this session as read on first visit. Idempotent on the server.
   const autoReadFiredRef = useRef(false)
@@ -106,6 +111,17 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     })
   }
 
+  async function handleMarkReviewed() {
+    setIsReviewed(true)
+    setShowCompletion(true)
+    // Fire-and-forget — the UI transitions immediately; the DB write is best-effort.
+    fetch(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reviewed: true }),
+    }).catch(() => { /* non-critical — reviewed state is optimistic */ })
+  }
+
   async function handleMarkUnread() {
     setMenuOpen(false)
     const res = await fetch(`/api/sessions/${sessionId}`, {
@@ -162,6 +178,62 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const durationLabel = session.duration_seconds
     ? `${Math.floor(session.duration_seconds / 60)} ${t('transcript.min')}`
     : ''
+
+  // Saved phrases for the completion screen: join addedAnnotations with annotations
+  const savedPhrases: SavedPhrase[] = Array.from(addedAnnotations.entries())
+    .map(([annotationId, practiceItemId]) => {
+      const annotation = annotations.find(a => a.id === annotationId)
+      if (!annotation) return null
+      return { practiceItemId, annotation }
+    })
+    .filter((x): x is SavedPhrase => x !== null)
+
+  // When drilling a phrase in-place, mount LessonClient instead
+  if (drillPhrase) {
+    return (
+      <LessonClient
+        phrase={{
+          correction: drillPhrase.annotation.correction ?? drillPhrase.annotation.original,
+          explanation: drillPhrase.annotation.explanation,
+          flashcard_front: drillPhrase.annotation.flashcard_front,
+          flashcard_back: drillPhrase.annotation.flashcard_back,
+          practice_item_id: drillPhrase.practiceItemId,
+        }}
+        onExit={() => setDrillPhrase(null)}
+        onStudied={(id) => {
+          setWrittenAnnotations(prev => {
+            const ann = annotations.find(a => addedAnnotations.get(a.id) === id)
+            if (!ann) return prev
+            const next = new Set(prev); next.add(ann.id); return next
+          })
+          setDrillPhrase(null)
+        }}
+      />
+    )
+  }
+
+  // When all corrections reviewed — show completion screen
+  if (showCompletion) {
+    return (
+      <div className="space-y-8">
+        <header className="space-y-3">
+          <InlineEdit
+            value={title}
+            onSave={handleRename}
+            ariaLabel={t('transcript.editTitle')}
+            className="text-detail-title leading-tight tracking-[-0.01em] break-words"
+          />
+          {durationLabel && (
+            <p className="text-sm text-text-secondary">{durationLabel}</p>
+          )}
+        </header>
+        <ReviewCompletionScreen
+          savedPhrases={savedPhrases}
+          onDrillPhrase={setDrillPhrase}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -252,7 +324,8 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         onAnnotationWritten={handleAnnotationWritten}
         onAnnotationUnwritten={handleAnnotationUnwritten}
         onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
-        studyCount={addedAnnotations.size}
+        isReviewed={isReviewed}
+        onMarkReviewed={handleMarkReviewed}
       />
 
       {/* Re-analyse confirmation. Two-step gate on a destructive action that

@@ -11,9 +11,10 @@ import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
 interface NavDrawerProps {
   isOpen: boolean
   onClose: () => void
+  unreviewedCount: number
 }
 
-export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
+export function NavDrawer({ isOpen, onClose, unreviewedCount }: NavDrawerProps) {
   const pathname = usePathname() ?? ''
   const router = useRouter()
   const { t } = useTranslation()
@@ -136,6 +137,8 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
           {NAV_TABS.map(tab => {
             const active = isTabActive(tab, pathname)
             const Icon = tab.icon
+            const showBadge = tab.href === '/review' && unreviewedCount > 0
+            const badgeLabel = unreviewedCount > 99 ? '99+' : String(unreviewedCount)
             return (
               <Link
                 key={tab.href}
@@ -148,7 +151,17 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
                     : 'text-text-tertiary hover:bg-surface-elevated hover:text-text-secondary'
                 }`}
               >
-                <Icon active={active} />
+                <span className="relative">
+                  <Icon active={active} />
+                  {showBadge && (
+                    <span
+                      aria-label={t('nav.unreviewedBadge', { n: unreviewedCount })}
+                      className="absolute -top-1 -right-1.5 min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full bg-accent-primary text-on-accent text-[10px] font-semibold leading-none tabular-nums pointer-events-none"
+                    >
+                      {badgeLabel}
+                    </span>
+                  )}
+                </span>
                 <span className="text-sm font-medium">{t(tab.labelKey)}</span>
               </Link>
             )

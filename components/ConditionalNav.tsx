@@ -8,7 +8,11 @@ import { BottomNav } from '@/components/BottomNav'
 
 const HIDDEN_ON = ['/login', '/access-denied', '/onboarding', '/auth']
 
-export function ConditionalNav() {
+interface Props {
+  unreviewedCount: number
+}
+
+export function ConditionalNav({ unreviewedCount }: Props) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -17,8 +21,8 @@ export function ConditionalNav() {
   return (
     <>
       <AppHeader isOpen={isOpen} onOpen={() => setIsOpen(true)} />
-      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      <BottomNav />
+      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} unreviewedCount={unreviewedCount} />
+      <BottomNav unreviewedCount={unreviewedCount} />
     </>
   )
 }

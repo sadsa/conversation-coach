@@ -20,11 +20,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json() as { title?: string; read?: boolean }
+  const body = await req.json() as { title?: string; read?: boolean; reviewed?: boolean }
 
-  // Build the update dict from whichever fields the caller supplied. Title and
-  // read state are independent — title goes through the existing whitespace
-  // guard; read toggles `last_viewed_at` (timestamp = read, null = unread).
+  // Build the update dict from whichever fields the caller supplied. All three
+  // fields are independent — title through the whitespace guard; read toggles
+  // last_viewed_at; reviewed toggles reviewed_at.
   const update: Record<string, unknown> = {}
 
   if (body.title !== undefined) {
@@ -36,6 +36,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   if (body.read !== undefined) {
     update.last_viewed_at = body.read ? new Date().toISOString() : null
+  }
+
+  if (body.reviewed !== undefined) {
+    update.reviewed_at = body.reviewed ? new Date().toISOString() : null
   }
 
   if (Object.keys(update).length === 0) {

@@ -26,18 +26,21 @@ const readSession: SessionListItem = {
   duration_seconds: 512, created_at: '2026-03-15T10:00:00Z',
   processing_completed_at: '2026-03-15T10:01:23Z',
   last_viewed_at: '2026-03-15T10:05:00Z',
+  reviewed_at: '2026-03-15T10:10:00Z',
 }
 const unreadReadySession: SessionListItem = {
   id: 'sess-3', title: 'Café with Dani', status: 'ready',
   duration_seconds: 240, created_at: '2026-03-16T10:00:00Z',
   processing_completed_at: '2026-03-16T10:01:00Z',
   last_viewed_at: null,
+  reviewed_at: null,
 }
 const transcribingSession: SessionListItem = {
   id: 'sess-2', title: 'Untitled', status: 'transcribing',
   duration_seconds: null, created_at: '2026-03-14T10:00:00Z',
   processing_completed_at: null,
   last_viewed_at: null,
+  reviewed_at: null,
 }
 // Backwards-compat alias for existing test cases that referenced this name
 // when read state didn't exist. The earlier tests don't depend on read state.
@@ -137,42 +140,42 @@ describe('SessionList — unread visual (inbox state)', () => {
   })
 })
 
-describe('SessionList — row context menu toggles read/unread', () => {
+describe('SessionList — row context menu toggles reviewed/unreviewed', () => {
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
   })
 
-  it('PATCHes { read: true } when toggling an unread row', async () => {
+  it('PATCHes { reviewed: true } when toggling an unreviewed row', async () => {
     const onToggle = vi.fn()
     render(
       <SessionList
         sessions={[unreadReadySession]}
-        onToggleRead={onToggle}
+        onToggleReviewed={onToggle}
       />,
     )
     await openSessionMenu('sess-3')
-    await userEvent.click(screen.getByTestId('toggle-read-sess-3'))
+    await userEvent.click(screen.getByTestId('toggle-reviewed-sess-3'))
     expect(onToggle).toHaveBeenCalledWith('sess-3', true)
     await vi.waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith('/api/sessions/sess-3', expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ read: true }),
+        body: JSON.stringify({ reviewed: true }),
       })),
     )
   })
 
-  it('PATCHes { read: false } when toggling an already-read row', async () => {
+  it('PATCHes { reviewed: false } when toggling an already-reviewed row', async () => {
     const onToggle = vi.fn()
     render(
-      <SessionList sessions={[readSession]} onToggleRead={onToggle} />,
+      <SessionList sessions={[readSession]} onToggleReviewed={onToggle} />,
     )
     await openSessionMenu('sess-1')
-    await userEvent.click(screen.getByTestId('toggle-read-sess-1'))
+    await userEvent.click(screen.getByTestId('toggle-reviewed-sess-1'))
     expect(onToggle).toHaveBeenCalledWith('sess-1', false)
     await vi.waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith('/api/sessions/sess-1', expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ read: false }),
+        body: JSON.stringify({ reviewed: false }),
       })),
     )
   })
@@ -181,10 +184,10 @@ describe('SessionList — row context menu toggles read/unread', () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false })
     const onToggle = vi.fn()
     render(
-      <SessionList sessions={[readSession]} onToggleRead={onToggle} />,
+      <SessionList sessions={[readSession]} onToggleReviewed={onToggle} />,
     )
     await openSessionMenu('sess-1')
-    await userEvent.click(screen.getByTestId('toggle-read-sess-1'))
+    await userEvent.click(screen.getByTestId('toggle-reviewed-sess-1'))
     await vi.waitFor(() => expect(onToggle).toHaveBeenCalledTimes(2))
     expect(onToggle).toHaveBeenNthCalledWith(1, 'sess-1', false)
     expect(onToggle).toHaveBeenNthCalledWith(2, 'sess-1', true)
@@ -194,7 +197,7 @@ describe('SessionList — row context menu toggles read/unread', () => {
   it('does NOT render a toggle option for non-ready (still processing) rows', async () => {
     render(<SessionList sessions={[transcribingSession]} />)
     await openSessionMenu('sess-2')
-    expect(screen.queryByTestId('toggle-read-sess-2')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toggle-reviewed-sess-2')).not.toBeInTheDocument()
   })
 })
 

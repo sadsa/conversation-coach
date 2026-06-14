@@ -62,11 +62,11 @@ function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date(
 function SessionItem({
   session,
   onDelete,
-  onToggleRead,
+  onToggleReviewed,
 }: {
   session: SessionListItem
   onDelete: (id: string) => void
-  onToggleRead: (id: string, makeRead: boolean) => void
+  onToggleReviewed: (id: string, makeReviewed: boolean) => void
 }) {
   const { t, uiLanguage } = useTranslation()
 
@@ -74,6 +74,7 @@ function SessionItem({
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
   const isUnread = session.status === 'ready' && session.last_viewed_at == null
+  const isReviewed = session.reviewed_at !== null
 
   const [dateLabel, setDateLabel] = useState<string>('')
   useEffect(() => {
@@ -83,9 +84,9 @@ function SessionItem({
   const actions: RowAction[] = [
     ...(session.status === 'ready'
       ? [{
-          label: isUnread ? t('session.markRead') : t('session.markUnread'),
-          onSelect: () => onToggleRead(session.id, isUnread),
-          testId: `toggle-read-${session.id}`,
+          label: isReviewed ? t('session.markUnreviewed') : t('session.markReviewed'),
+          onSelect: () => onToggleReviewed(session.id, !isReviewed),
+          testId: `toggle-reviewed-${session.id}`,
         }]
       : []),
     {
@@ -159,7 +160,7 @@ function SessionItem({
 interface Props {
   sessions: SessionListItem[]
   onDeleted?: (id: string) => void
-  onToggleRead?: (id: string, makeRead: boolean) => void
+  onToggleReviewed?: (id: string, makeReviewed: boolean) => void
 }
 
 interface ToastState {
@@ -168,7 +169,7 @@ interface ToastState {
   key: number
 }
 
-export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead }: Props) {
+export function SessionList({ sessions: initialSessions, onDeleted, onToggleReviewed }: Props) {
   const { t } = useTranslation()
   const [sessions, setSessions] = useState(initialSessions)
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -233,17 +234,17 @@ export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead
     }, UNDO_TIMEOUT_MS)
   }
 
-  function handleToggleRead(id: string, makeRead: boolean) {
-    onToggleRead?.(id, makeRead)
+  function handleToggleReviewed(id: string, makeReviewed: boolean) {
+    onToggleReviewed?.(id, makeReviewed)
     fetch(`/api/sessions/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ read: makeRead }),
+      body: JSON.stringify({ reviewed: makeReviewed }),
     }).then(res => {
       if (!res.ok) {
-        onToggleRead?.(id, !makeRead)
+        onToggleReviewed?.(id, !makeReviewed)
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-        setToast({ key: Date.now(), message: t('session.toggleReadError') })
+        setToast({ key: Date.now(), message: t('session.toggleReviewedError') })
         toastTimerRef.current = setTimeout(() => setToast(null), 3000)
       }
     })
@@ -274,7 +275,7 @@ export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead
             key={s.id}
             session={s}
             onDelete={deleteSession}
-            onToggleRead={handleToggleRead}
+            onToggleReviewed={handleToggleReviewed}
           />
         ))}
       </ul>

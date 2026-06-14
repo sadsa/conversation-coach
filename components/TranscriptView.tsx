@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
-import { StudyPrompt } from '@/components/StudyPrompt'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import { log } from '@/lib/logger'
@@ -41,8 +40,10 @@ interface Props {
   onAnnotationWritten: (annotationId: string) => void
   onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged: (annotationId: string, isUnhelpful: boolean) => void
-  /** Number of saved study items — drives the StudyPrompt pill. Hidden while the sheet is open. */
-  studyCount?: number
+  /** Whether this session has already been marked reviewed. When true, the bottom bar is hidden. */
+  isReviewed?: boolean
+  /** Called when the user taps "Mark as reviewed". Only shown when all corrections are in view. */
+  onMarkReviewed?: () => void
 }
 
 export function TranscriptView({
@@ -50,7 +51,8 @@ export function TranscriptView({
   addedAnnotations, writtenAnnotations, unhelpfulAnnotations,
   onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
   onAnnotationUnhelpfulChanged,
-  studyCount = 0,
+  isReviewed = false,
+  onMarkReviewed,
 }: Props) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotion()
@@ -138,11 +140,11 @@ export function TranscriptView({
     }
   }, [lastAnnotationId])
 
-  // Mutually exclusive with the StudyPrompt pill: both anchor bottom-center,
-  // so once the user has saved anything (`studyCount > 0`) the StudyPrompt wins
-  // and the "see corrections" cue stands down rather than stacking on top of it.
-  const showPill =
-    pillReady && hasAnnotationBelowFold && !activeAnnotationId && studyCount === 0
+  // Show "Next correction" pill when there are annotations below the fold.
+  // Show "Mark as reviewed" when all are visible. Both hide when sheet is open
+  // or the session is already reviewed.
+  const showNextPill = pillReady && hasAnnotationBelowFold && !activeAnnotationId && !isReviewed
+  const showMarkReviewed = pillReady && !hasAnnotationBelowFold && !activeAnnotationId && !isReviewed && !!onMarkReviewed
 
   const activeIndex = activeAnnotationId
     ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
@@ -196,9 +198,8 @@ export function TranscriptView({
     }
   }
 
-  // Dismiss the sheet after saving — the StudyPrompt pill surfaces in the
-  // transcript below with no overlap risk. The user re-opens the sheet by
-  // tapping another annotation mark.
+  // Dismiss the sheet after saving. The user re-opens the sheet by tapping
+  // another annotation mark.
   function handleAnnotationSaved(annotationId: string, practiceItemId: string) {
     onAnnotationAdded(annotationId, practiceItemId)
     setActiveAnnotationId(null)
@@ -345,7 +346,7 @@ export function TranscriptView({
         style={
           activeAnnotationId
             ? { paddingBottom: '60vh' }
-            : showPill || studyCount > 0
+            : showNextPill || showMarkReviewed
               ? { paddingBottom: '4rem' }
               : undefined
         }
@@ -439,10 +440,8 @@ export function TranscriptView({
         onAnnotationUnhelpfulChanged={onAnnotationUnhelpfulChanged}
       />
 
-      <StudyPrompt count={activeAnnotationId ? 0 : studyCount} />
-
       <AnimatePresence>
-        {showPill && (
+        {showNextPill && (
           <motion.div
             key="corrections-pill"
             initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
@@ -459,6 +458,26 @@ export function TranscriptView({
             >
               <Icon name="caret-down" className="w-4 h-4" />
               {t('transcript.nextCorrection')}
+            </button>
+          </motion.div>
+        )}
+        {showMarkReviewed && (
+          <motion.div
+            key="mark-reviewed"
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.25, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none"
+            style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+          >
+            <button
+              type="button"
+              onClick={onMarkReviewed}
+              className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-full bg-bg border border-border text-text-primary shadow-md text-sm font-medium hover:bg-surface-elevated transition-colors"
+            >
+              <Icon name="check" className="w-4 h-4 text-accent-primary" />
+              {t('transcript.markAsReviewed')}
             </button>
           </motion.div>
         )}
