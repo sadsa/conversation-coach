@@ -9,6 +9,7 @@
 // tier is a work queue and hiding items from it undersells urgency.
 
 'use client'
+import Link from 'next/link'
 import { SessionList } from '@/components/SessionList'
 import { useTranslation } from '@/components/LanguageProvider'
 import type { SessionListItem } from '@/lib/types'
@@ -34,8 +35,14 @@ export function DashboardRecentSessions({
   return (
     <section aria-label={t('home.recentSessionsTitle')} className="space-y-3">
       {sessions.length === 0 ? (
-        <p className="text-sm text-text-tertiary leading-relaxed">
-          {t('home.noRecordingsYet')}
+        <p className="max-w-prose text-base leading-relaxed text-text-secondary text-pretty">
+          {t('review.emptyLine')}{' '}
+          <Link
+            href="/"
+            className="font-semibold text-accent-primary border-b border-accent-primary/35 pb-px transition-colors hover:border-accent-primary"
+          >
+            {t('review.emptyCta')}
+          </Link>
         </p>
       ) : (
         <SessionList

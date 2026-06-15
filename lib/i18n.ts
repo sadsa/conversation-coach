@@ -391,6 +391,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // they're looking at without sharing the home's emotional weight.
     'review.title': 'Your reviews',
     'review.reviewedTitle': 'Reviewed',
+    'review.emptyLine': 'No conversations to review yet.',
+    'review.emptyCta': 'Start a conversation',
     'home.remindersAria': 'Saved corrections',
     'home.allCaughtUp': 'All caught up — nothing to study right now.',
     'home.recentSessionsTitle': 'Your conversations',
@@ -1004,6 +1006,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // nombramos la superficie directamente.
     'review.title': 'Tus revisiones',
     'review.reviewedTitle': 'Revisadas',
+    'review.emptyLine': 'Todavía no hay conversaciones para revisar.',
+    'review.emptyCta': 'Empezá una conversación',
     'home.remindersAria': 'Correcciones guardadas',
     'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Tus conversaciones',
