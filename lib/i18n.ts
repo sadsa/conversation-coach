@@ -517,8 +517,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.grammar': 'grammar',
     'transcript.naturalness': 'naturalness',
     'transcript.min': 'min',
-    'transcript.you': 'You',
-    'transcript.them': 'Them',
     'transcript.reanalyse': 'Re-analyse conversation',
     'transcript.moreActions': 'More actions',
     'transcript.progress': '{saved} saved · {dismissed} dismissed · {remaining} to go',
@@ -591,6 +589,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // underneath, which was redundant. The surface is named "Study" in
     // the brand vocabulary (matches /write's H1 and the bottom nav);
     // the URL keeps `/write` for stability per CLAUDE.md.
+    'annotation.ignore': 'Ignore',
+    'annotation.ignoreAria': 'Skip this correction and move to the next',
     'annotation.savePrimary': 'Save to my Study list',
     'annotation.savingPrimary': 'Saving…',
     'annotation.savedPrimary': 'Saved to my Study list',
@@ -1129,8 +1129,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'transcript.grammar': 'gramática',
     'transcript.naturalness': 'naturalidad',
     'transcript.min': 'min',
-    'transcript.you': 'Vos',
-    'transcript.them': 'Ellos',
     'transcript.reanalyse': 'Re-analizar conversación',
     'transcript.moreActions': 'Más acciones',
     'transcript.progress': '{saved} guardadas · {dismissed} descartadas · faltan {remaining}',
@@ -1190,6 +1188,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // "Agregada a tu lista". El nombre de la superficie es "Estudiar"
     // (coincide con el H1 de /write y la nav inferior); la URL `/write`
     // se mantiene por estabilidad según CLAUDE.md.
+    'annotation.ignore': 'Ignorar',
+    'annotation.ignoreAria': 'Saltear esta corrección y pasar a la siguiente',
     'annotation.savePrimary': 'Guardar en mi lista de Estudiar',
     'annotation.savingPrimary': 'Guardando…',
     'annotation.savedPrimary': 'Guardada en mi lista de Estudiar',

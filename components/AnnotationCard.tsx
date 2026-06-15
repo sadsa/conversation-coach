@@ -150,6 +150,8 @@ interface Props {
   onAnnotationUnhelpfulChanged?: (annotationId: string, isUnhelpful: boolean) => void
   /** Called after a successful save — used on mobile to dismiss the sheet. */
   onClose?: () => void
+  /** Advances to the next annotation, or closes the sheet if on the last one. */
+  onIgnore?: () => void
 }
 
 export function AnnotationCard({
@@ -160,6 +162,7 @@ export function AnnotationCard({
   onAnnotationWritten: _onWritten, onAnnotationUnwritten: _onUnwritten,
   onAnnotationUnhelpfulChanged,
   onClose,
+  onIgnore,
 }: Props) {
   const { t } = useTranslation()
   const [practiceItemId, setPracticeItemId] = useState<string | null>(initialPracticeItemId)
@@ -407,31 +410,42 @@ export function AnnotationCard({
           </p>
         )}
 
-        <button
-          type="button"
-          data-initial-focus
-          onClick={handleHelpful}
-          disabled={busy !== null}
-          aria-label={primaryAria}
-          aria-pressed={!!practiceItemId}
-          className={buttonStyles({
-            variant: practiceItemId ? 'saved' : 'primary',
-            size: 'md',
-            fullWidth: true,
-            className: justSaved ? 'motion-safe:animate-[saved-pulse_650ms_ease-out_both]' : '',
-          })}
-        >
-          {isSaving && (
-            <span
-              aria-hidden="true"
-              className="w-4 h-4 mr-2 rounded-full border-2 border-current border-r-transparent motion-safe:animate-spin"
-            />
-          )}
-          {practiceItemId && (
-            <Icon name="check" className="w-4 h-4 mr-2" />
-          )}
-          {primaryLabel}
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onIgnore}
+            disabled={busy !== null}
+            aria-label={t('annotation.ignoreAria')}
+            className={buttonStyles({ variant: 'secondary', size: 'md', fullWidth: true })}
+          >
+            {t('annotation.ignore')}
+          </button>
+          <button
+            type="button"
+            data-initial-focus
+            onClick={handleHelpful}
+            disabled={busy !== null}
+            aria-label={primaryAria}
+            aria-pressed={!!practiceItemId}
+            className={buttonStyles({
+              variant: practiceItemId ? 'saved' : 'primary',
+              size: 'md',
+              fullWidth: true,
+              className: justSaved ? 'motion-safe:animate-[saved-pulse_650ms_ease-out_both]' : '',
+            })}
+          >
+            {isSaving && (
+              <span
+                aria-hidden="true"
+                className="w-4 h-4 mr-2 rounded-full border-2 border-current border-r-transparent motion-safe:animate-spin"
+              />
+            )}
+            {practiceItemId && (
+              <Icon name="check" className="w-4 h-4 mr-2" />
+            )}
+            {primaryLabel}
+          </button>
+        </div>
       </div>
 
       <div role="status" aria-live="polite" className="min-h-[1rem]">

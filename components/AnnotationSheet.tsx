@@ -58,6 +58,8 @@ export function AnnotationSheet({
 
   if (!isOpen || !annotation) return null
 
+  const handleIgnore = hasNext ? onNext : onClose
+
   return (
     <DockedSheet
       isOpen={isOpen}
@@ -73,7 +75,7 @@ export function AnnotationSheet({
       headerLead={null}
     >
       <NavHint />
-      <AnnotationCard annotation={annotation} onClose={onClose} {...cardProps} />
+      <AnnotationCard annotation={annotation} onClose={onClose} onIgnore={handleIgnore} {...cardProps} />
     </DockedSheet>
   )
 }

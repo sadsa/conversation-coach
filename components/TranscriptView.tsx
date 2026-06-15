@@ -231,9 +231,6 @@ export function TranscriptView({
     }
   }, [activeAnnotationId])
 
-  const userLabel = t('transcript.you')
-  const themLabel = t('transcript.them')
-
   // Bubble layout (mirrors the live Talk-mode view) kicks in for any
   // conversation with two or more distinct speakers — uploads with a
   // partner, and voice-practice sessions (A = you, B = the agent). A
@@ -397,11 +394,6 @@ export function TranscriptView({
                 data-speaker-role={isUser ? 'user' : 'partner'}
                 className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'} ${spacing}`}
               >
-                {isTurnStart && (
-                  <p className="text-eyebrow px-1">
-                    {isUser ? userLabel : themLabel}
-                  </p>
-                )}
                 <div
                   className={`
                     max-w-[88%] md:max-w-[80%] rounded-2xl px-4 py-3
@@ -420,9 +412,6 @@ export function TranscriptView({
           return (
             <div key={seg.id}>
               <div data-speaker-role={isUser ? 'user' : 'partner'}>
-                <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1.5 font-medium">
-                  {isUser ? userLabel : themLabel}
-                </p>
                 <div className="space-y-3 md:space-y-4 text-base md:text-lg leading-[1.8] break-words text-text-primary">
                   {renderSegmentBody(isUser, paragraphs, segAnns)}
                 </div>
