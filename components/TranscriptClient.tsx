@@ -193,13 +193,14 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   // When all corrections reviewed — show completion screen
   if (showCompletion) {
     return (
-      <div className="space-y-8">
-        <header className="space-y-3">
-          <p className="text-detail-title leading-tight tracking-[-0.01em] break-words">{title}</p>
-          {durationLabel && (
-            <p className="text-sm text-text-secondary">{durationLabel}</p>
-          )}
-        </header>
+      <div className="space-y-6">
+        {/* Session context is demoted to a quiet breadcrumb here — the user
+            just left this transcript, so the title no longer needs to lead.
+            ReviewCompletionScreen's "Review done" h1 owns the page outline. */}
+        <p className="text-sm text-text-tertiary break-words">
+          {title}
+          {durationLabel && <span className="text-text-tertiary/70"> · {durationLabel}</span>}
+        </p>
         <ReviewCompletionScreen
           savedPhrases={savedPhrases}
           onDrillPhrase={setDrillPhrase}

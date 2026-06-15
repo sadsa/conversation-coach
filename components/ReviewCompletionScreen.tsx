@@ -12,6 +12,7 @@
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
+import { FlashcardRow } from '@/components/FlashcardRow'
 import type { Annotation } from '@/lib/types'
 
 export interface SavedPhrase {
@@ -97,6 +98,12 @@ function PhraseCard({ phrase, onDrill, drillLabel }: PhraseCardProps) {
   const { annotation } = phrase
   const displayText = annotation.correction ?? annotation.original
 
+  // Prefer the bilingual flashcard pair so the card reads exactly like a
+  // Refine-queue row (native prompt + green-highlighted target). Older items
+  // without flashcard fields fall back to the correction + explanation.
+  const hasFlashcard =
+    annotation.flashcard_front !== null && annotation.flashcard_back !== null
+
   // The entire card is the drill target — drilling is the primary move on this
   // screen, so the whole surface is tappable rather than a small text link.
   return (
@@ -104,18 +111,25 @@ function PhraseCard({ phrase, onDrill, drillLabel }: PhraseCardProps) {
       type="button"
       onClick={onDrill}
       aria-label={`${drillLabel}: ${displayText}`}
-      className="group block w-full text-left rounded-xl bg-surface-elevated ring-1 ring-border-subtle p-4 space-y-3 transition-[box-shadow,background-color,transform] hover:ring-accent-primary/40 active:bg-accent-chip motion-safe:active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+      className="group block w-full text-left rounded-xl bg-surface ring-1 ring-border-subtle p-4 space-y-3 transition-[box-shadow,background-color,transform] hover:ring-accent-primary/40 active:bg-accent-chip motion-safe:active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
     >
-      {/* The correction text in display serif — same register as Study queue */}
-      <p className="font-display text-lg md:text-xl leading-snug text-text-primary tracking-[-0.01em]">
-        {displayText}
-      </p>
-
-      {/* Brief explanation in small body */}
-      {annotation.explanation && (
-        <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">
-          {annotation.explanation}
-        </p>
+      {hasFlashcard ? (
+        <FlashcardRow
+          flashcardFront={annotation.flashcard_front!}
+          flashcardBack={annotation.flashcard_back!}
+        />
+      ) : (
+        <>
+          {/* Correction text in display serif — same register as Study queue */}
+          <p className="font-display text-lg md:text-xl leading-snug text-text-primary tracking-[-0.01em]">
+            {displayText}
+          </p>
+          {annotation.explanation && (
+            <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">
+              {annotation.explanation}
+            </p>
+          )}
+        </>
       )}
 
       {/* Drill affordance — the loud cue. The whole card triggers it; this row
