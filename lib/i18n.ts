@@ -129,7 +129,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // is the regular-weight lead-in rendered before the bold topic phrase.
     'practice.modeChatDoorBlurb': 'The Coach listens and responds to whatever you say.',
     'practice.modeCallDoorBlurb': "Someone you've never met calls. Take it from there.",
-    'practice.startersHeading': 'Conversation starters',
+    'practice.startersHeading': 'Not sure what to talk about?',
     'practice.chatStarterPrefix': 'Talk about',
     'home.topicHeading': "What's on your mind?",
     'practice.startersLabel': 'Need a topic?',
@@ -819,7 +819,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeCallStart': 'Atender una llamada',
     'practice.modeChatDoorBlurb': 'El Coach te escucha y responde a lo que digas.',
     'practice.modeCallDoorBlurb': 'Te llama alguien que no conocés. Seguís vos desde ahí.',
-    'practice.startersHeading': 'Temas para arrancar',
+    'practice.startersHeading': '¿No sabés de qué hablar?',
     'practice.chatStarterPrefix': 'Hablá de',
     'home.topicHeading': '¿De qué querés hablar hoy?',
     'practice.startersLabel': '¿Necesitás un tema?',

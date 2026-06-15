@@ -318,12 +318,17 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
           chat session with its topic (same mode as the chat door above, just
           pre-filled). Bare stroked icon (no filled tile) + regular-weight
           lead-in with the bold topic phrase keeps these visibly subordinate
-          to the two doors. One earned section eyebrow (the system
-          `.text-eyebrow` token) names the group; no second eyebrow on the
-          doors above. null = loading → skeletons so topics stream in without
-          layout shift. */}
+          to the two doors. The group is named by a quiet serif question
+          (Source Serif, the threshold/greeting face) rather than an uppercase
+          eyebrow — it's a conversational prompt to the user, not a category
+          label, so sentence case + the serif voice fit; the small size keeps
+          it below the doors. null = loading → skeletons so topics stream in
+          without layout shift. */}
       <section aria-labelledby="starters-heading" className="space-y-3">
-        <h2 id="starters-heading" className="text-eyebrow">
+        <h2
+          id="starters-heading"
+          className="font-display text-base md:text-lg font-normal text-text-secondary"
+        >
           {t('practice.startersHeading')}
         </h2>
 

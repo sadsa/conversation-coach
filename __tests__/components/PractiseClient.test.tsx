@@ -52,7 +52,7 @@ vi.mock('@/components/LanguageProvider', () => ({
         'practice.modeChatDoorBlurb': 'The Coach listens and responds to whatever you say.',
         'practice.modeCallStart': 'Answer a call',
         'practice.modeCallDoorBlurb': "Someone you've never met calls. Take it from there.",
-        'practice.startersHeading': 'Conversation starters',
+        'practice.startersHeading': 'Not sure what to talk about?',
         'practice.chatStarterPrefix': 'Talk about',
         'practice.chatStarter.0': 'Your weekend plans',
         'practice.chatStarter.1': 'A recent meal',
