@@ -116,7 +116,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 // to compensate with their own pb; with this fix the
                 // wrappers can drop their overrides and every page tab
                 // gets the same baseline.
-                paddingBottom: 'calc(var(--bottom-nav-h) + 1rem)',
+                paddingBottom: 'calc(var(--bottom-nav-h) + 1.5rem)',
               }}
               className="w-full max-w-2xl mx-auto px-6 md:px-10 pt-8 md:pt-12 focus:outline-none flex-1 flex flex-col"
             >

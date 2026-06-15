@@ -18,11 +18,11 @@ export function BottomNav({ unreviewedCount }: Props) {
     // of nav truth, so this strip is hidden to avoid a stranded mobile pattern
     // on desktop.
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-bg"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-border-subtle"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Quick navigation"
     >
-      <div className="flex h-16 max-w-2xl mx-auto">
+      <div className="flex h-16 max-w-2xl mx-auto pt-1.5">
         {NAV_TABS.map(tab => {
           const active = isTabActive(tab, pathname)
           const IconLg = tab.iconLg
