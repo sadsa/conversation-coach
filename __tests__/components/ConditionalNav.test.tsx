@@ -29,10 +29,12 @@ const localStorageMock = (() => {
 })()
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
+const user = { name: 'Joshua', email: 'joshua.b@entelect.co.nz', avatarUrl: null }
+
 function wrap() {
   return render(
     <LanguageProvider initialTargetLanguage="es-AR">
-      <ConditionalNav />
+      <ConditionalNav unreviewedCount={0} user={user} />
     </LanguageProvider>
   )
 }

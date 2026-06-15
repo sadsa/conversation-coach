@@ -23,6 +23,12 @@ export const USER_EMAIL_HEADER = 'x-cc-user-email'
 export const USER_TARGET_LANGUAGE_HEADER = 'x-cc-user-target-language'
 export const USER_NAME_HEADER = 'x-cc-user-name'
 /**
+ * Best-effort OAuth profile picture (Google supplies `avatar_url` / `picture`;
+ * magic-link does not). Pure UX polish for the account menu — never functional.
+ * Falls back to an initials monogram in the UI when absent.
+ */
+export const USER_AVATAR_HEADER = 'x-cc-user-avatar'
+/**
  * Set on request headers by middleware for public paths (login, auth/callback,
  * access-denied, webhooks). The root layout's getAuthenticatedUser() checks
  * for this header to skip the verifyFromCookie() fallback on public paths.
@@ -56,6 +62,7 @@ export async function middleware(request: NextRequest) {
   requestHeaders.delete(USER_EMAIL_HEADER)
   requestHeaders.delete(USER_TARGET_LANGUAGE_HEADER)
   requestHeaders.delete(USER_NAME_HEADER)
+  requestHeaders.delete(USER_AVATAR_HEADER)
   requestHeaders.delete(PUBLIC_PATH_HEADER)
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
@@ -127,6 +134,11 @@ export async function middleware(request: NextRequest) {
   const fullName = (user.user_metadata?.full_name as string | undefined) ?? ''
   const firstName = fullName.split(' ')[0] ?? ''
   if (firstName) requestHeaders.set(USER_NAME_HEADER, firstName)
+  const avatarUrl =
+    (user.user_metadata?.avatar_url as string | undefined) ??
+    (user.user_metadata?.picture as string | undefined) ??
+    ''
+  if (avatarUrl) requestHeaders.set(USER_AVATAR_HEADER, avatarUrl)
 
   // Rebuild with the identity-enriched requestHeaders.
   supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })

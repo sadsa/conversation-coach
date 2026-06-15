@@ -82,6 +82,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.closeMenu': 'Close menu',
     'nav.quickNavAria': 'Quick navigation',
     'nav.signOut': 'Sign out',
+    'nav.account': 'Account',
+    'nav.accountMenu': 'Account menu',
     'nav.unreviewedBadge': '{n} to review',
 
     // Practice
@@ -785,6 +787,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.closeMenu': 'Cerrar menú',
     'nav.quickNavAria': 'Navegación rápida',
     'nav.signOut': 'Cerrar sesión',
+    'nav.account': 'Cuenta',
+    'nav.accountMenu': 'Menú de cuenta',
     'nav.unreviewedBadge': '{n} para revisar',
 
     // Practice

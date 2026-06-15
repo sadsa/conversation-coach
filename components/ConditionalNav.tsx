@@ -5,14 +5,16 @@ import { usePathname } from 'next/navigation'
 import { AppHeader } from '@/components/AppHeader'
 import { NavDrawer } from '@/components/NavDrawer'
 import { BottomNav } from '@/components/BottomNav'
+import type { AccountUser } from '@/components/AccountMenu'
 
 const HIDDEN_ON = ['/login', '/access-denied', '/onboarding', '/auth']
 
 interface Props {
   unreviewedCount: number
+  user: AccountUser
 }
 
-export function ConditionalNav({ unreviewedCount }: Props) {
+export function ConditionalNav({ unreviewedCount, user }: Props) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -20,8 +22,8 @@ export function ConditionalNav({ unreviewedCount }: Props) {
 
   return (
     <>
-      <AppHeader isOpen={isOpen} onOpen={() => setIsOpen(true)} />
-      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} unreviewedCount={unreviewedCount} />
+      <AppHeader isOpen={isOpen} onOpen={() => setIsOpen(true)} user={user} />
+      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} unreviewedCount={unreviewedCount} user={user} />
       <BottomNav unreviewedCount={unreviewedCount} />
     </>
   )

@@ -4,10 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/components/LanguageProvider'
 import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
+import { AccountMenuDesktop, type AccountUser } from '@/components/AccountMenu'
 
 interface AppHeaderProps {
   isOpen: boolean
   onOpen: () => void
+  user: AccountUser
 }
 
 /**
@@ -22,7 +24,7 @@ function backHrefFor(pathname: string | null): string | null {
   return null
 }
 
-export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
+export function AppHeader({ isOpen, onOpen, user }: AppHeaderProps) {
   const pathname = usePathname()
   const { t } = useTranslation()
 
@@ -125,6 +127,10 @@ export function AppHeader({ isOpen, onOpen }: AppHeaderProps) {
               })}
             </nav>
           </div>
+
+          {/* Account — desktop only. Mobile reaches Settings / Sign out via
+              the NavDrawer footer; the avatar would otherwise duplicate it. */}
+          <AccountMenuDesktop user={user} />
         </div>
       </header>
     </>

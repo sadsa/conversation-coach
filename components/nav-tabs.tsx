@@ -4,13 +4,19 @@
 // nav surfaces can never drift apart. CLAUDE.md called this out as a known
 // gotcha — keep all routes here.
 //
-// Tab order mirrors the methodology: Speak → Review → Refine → Settings.
+// Tab order mirrors the methodology: Speak → Review → Refine.
 // `/` is the Speak home (mode-picker for voice agent sessions and the
 // "share a voice note" deep-dive); `/review` is the inbox of recorded
 // conversations; `/refine` is the queue of saved corrections. Active voice
 // sessions used to live on a separate /practice route — that's gone now;
 // PracticeClient mounts in place on `/` when the user taps a mode door
 // and unmounts on discard, so there's no second route to surface here.
+//
+// Settings is deliberately NOT a nav tab. It lives inside the account menu
+// (NavDrawer footer on mobile, AppHeader avatar dropdown on desktop) along
+// with Sign out — both are account-scoped chrome, not methodology pillars,
+// so they shouldn't compete with Speak / Review / Refine in the thumb zone.
+// See `components/AccountMenu.tsx`.
 //
 // Icons are Phosphor (regular + fill) — see `mockups/nav-icons.html` for
 // the exploration that landed here. Active state swaps to the fill weight
@@ -50,12 +56,6 @@ const PHOSPHOR_PATHS = {
   bookOpen: {
     regular: 'M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64Z',
     fill: 'M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z',
-  },
-  // Settings — faders-horizontal. Quieter than a gear; reads as
-  // "preferences / dials" without the mechanical busyness of cog teeth.
-  fadersHorizontal: {
-    regular: 'M176,80a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H184A8,8,0,0,1,176,80ZM40,88H144v16a8,8,0,0,0,16,0V56a8,8,0,0,0-16,0V72H40a8,8,0,0,0,0,16Zm176,80H120a8,8,0,0,0,0,16h96a8,8,0,0,0,0-16ZM88,144a8,8,0,0,0-8,8v16H40a8,8,0,0,0,0,16H80v16a8,8,0,0,0,16,0V152A8,8,0,0,0,88,144Z',
-    fill: 'M184,80a8,8,0,0,1,8-8h24a8,8,0,0,1,0,16H192A8,8,0,0,1,184,80ZM40,88h96v16a8,8,0,0,0,8,8h16a8,8,0,0,0,8-8V56a8,8,0,0,0-8-8H144a8,8,0,0,0-8,8V72H40a8,8,0,0,0,0,16Zm176,80H128a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16ZM96,144H80a8,8,0,0,0-8,8v16H40a8,8,0,0,0,0,16H72v16a8,8,0,0,0,8,8H96a8,8,0,0,0,8-8V152A8,8,0,0,0,96,144Z',
   },
 } as const
 
@@ -99,13 +99,6 @@ export const NAV_TABS: NavTab[] = [
     exact: false,
     icon: phIcon('bookOpen', 'sm'),
     iconLg: phIcon('bookOpen', 'lg'),
-  },
-  {
-    href: '/settings',
-    labelKey: 'nav.settings',
-    exact: false,
-    icon: phIcon('fadersHorizontal', 'sm'),
-    iconLg: phIcon('fadersHorizontal', 'lg'),
   },
 ]
 

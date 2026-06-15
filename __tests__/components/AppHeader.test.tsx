@@ -3,11 +3,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppHeader } from '@/components/AppHeader'
+import { LanguageProvider } from '@/components/LanguageProvider'
 
 let mockPathname = '/'
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({ push: vi.fn() }),
 }))
+vi.mock('@/lib/supabase-browser', () => ({
+  getSupabaseBrowserClient: () => ({
+    auth: { signOut: vi.fn().mockResolvedValue({ error: null }) },
+  }),
+}))
+
+const user = { name: 'Joshua', email: 'joshua.b@entelect.co.nz', avatarUrl: null }
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
@@ -21,7 +30,11 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 function wrap(isOpen: boolean, onOpen = vi.fn()) {
-  return render(<AppHeader isOpen={isOpen} onOpen={onOpen} />)
+  return render(
+    <LanguageProvider initialTargetLanguage="es-AR">
+      <AppHeader isOpen={isOpen} onOpen={onOpen} user={user} />
+    </LanguageProvider>
+  )
 }
 
 describe('AppHeader', () => {

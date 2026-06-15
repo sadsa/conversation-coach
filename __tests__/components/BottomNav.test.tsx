@@ -25,13 +25,18 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/')
   })
 
-  // Speak → Review → Refine → Settings.
-  it('renders all four nav tabs (Speak, Review, Refine, Settings)', () => {
+  // Settings moved into the account menu; the bottom nav is now three
+  // pillars: Speak → Review → Refine.
+  it('renders the three pillar nav tabs (Speak, Review, Refine)', () => {
     wrap()
     expect(screen.getByRole('link', { name: /speak/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /refine/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument()
+  })
+
+  it('does NOT render a Settings tab (moved to the account menu)', () => {
+    wrap()
+    expect(screen.queryByRole('link', { name: /settings/i })).not.toBeInTheDocument()
   })
 
   it('marks Practise active on "/"', () => {
@@ -63,13 +68,6 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/refine/something')
     wrap()
     expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
-  })
-
-  it('marks Settings active on "/settings"', () => {
-    mockPathname.mockReturnValue('/settings')
-    wrap()
-    expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
 
   it('hides itself on md+ viewports via the md:hidden utility', () => {

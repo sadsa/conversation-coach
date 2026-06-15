@@ -122,7 +122,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             >
               {children}
             </main>
-            <ConditionalNav unreviewedCount={unreviewedCount} />
+            <ConditionalNav
+              unreviewedCount={unreviewedCount}
+              user={{
+                name: user?.displayName ?? null,
+                email: user?.email ?? null,
+                avatarUrl: user?.avatarUrl ?? null,
+              }}
+            />
         </LanguageProvider>
       </body>
     </html>

@@ -7,6 +7,7 @@ import {
   USER_EMAIL_HEADER,
   USER_TARGET_LANGUAGE_HEADER,
   USER_NAME_HEADER,
+  USER_AVATAR_HEADER,
   PUBLIC_PATH_HEADER,
 } from '@/middleware'
 
@@ -22,6 +23,8 @@ export interface AuthenticatedUser {
   email: string | null
   targetLanguage: string | null
   displayName: string | null
+  /** OAuth profile picture URL; null for magic-link users. */
+  avatarUrl: string | null
 }
 
 /**
@@ -47,6 +50,7 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       email: headerList.get(USER_EMAIL_HEADER),
       targetLanguage: headerList.get(USER_TARGET_LANGUAGE_HEADER),
       displayName: headerList.get(USER_NAME_HEADER),
+      avatarUrl: headerList.get(USER_AVATAR_HEADER),
     }
   }
   // Middleware explicitly bypassed auth for this path (login, auth/callback,
@@ -89,10 +93,15 @@ async function verifyFromCookie(): Promise<AuthenticatedUser | null> {
   if (!user) return null
   const fullName = (user.user_metadata?.full_name as string | undefined) ?? ''
   const firstName = fullName.split(' ')[0] ?? ''
+  const avatarUrl =
+    (user.user_metadata?.avatar_url as string | undefined) ??
+    (user.user_metadata?.picture as string | undefined) ??
+    null
   return {
     id: user.id,
     email: user.email ?? null,
     targetLanguage: (user.user_metadata?.target_language as string | undefined) ?? null,
     displayName: firstName || null,
+    avatarUrl,
   }
 }
