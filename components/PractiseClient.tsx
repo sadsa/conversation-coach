@@ -70,14 +70,6 @@ function coerceCategory(value: unknown): Category {
   return STARTER_CATEGORIES.includes(value as Category) ? (value as Category) : 'misc'
 }
 
-// Generated topics are capitalised noun phrases ("Your weekend plans"). The
-// rows frame them as an action ("Talk about your weekend plans"), so the lead
-// letter is lowercased to read as one sentence. Display-only — the untouched
-// topic still seeds the session.
-function lowerFirst(text: string): string {
-  return text.charAt(0).toLowerCase() + text.slice(1)
-}
-
 // Peak-end welcome beat — shows for ~3s when the user arrives from
 // onboarding completion (`/?welcome=true`). Onboarding sets the flag in
 // `handleExit` / `handleShareNext`; we read it once on mount, immediately
@@ -222,7 +214,13 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
     // max-w-2xl) and the old `pb-[6rem+safe]` over-corrected for a
     // BottomNav overlap that's now solved in app/layout.tsx via
     // --bottom-nav-h.
-    <div className="space-y-8">
+    //
+    // `md:my-auto`: this is a mobile-first PWA, but on desktop the short
+    // launchpad column used to cling to the top against a sea of empty bg.
+    // The parent <main> is `flex-1 flex flex-col`, so auto vertical margins
+    // centre the column when there's free space and collapse to top-aligned
+    // when content (large font / zoom) overflows. Mobile keeps top alignment.
+    <div className="space-y-8 md:my-auto">
       {/* Greeting kicker + topic question + peak-end welcome beat. The
           target-language greeting is kept as a small kicker above the H1 —
           it's the one immersion moment on this surface (and the anchor the
@@ -257,39 +255,79 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
         <InstallBanner />
       </header>
 
-      {/* ── Two labelled mode sections ─────────────────────────────────
-          The page offers exactly two Conversation modes (CONTEXT.md). Each
-          is its own titled section (h2 + one-line "what it is") so the
-          difference between them is explicit rather than inferred from a
-          flat list. The two modes read as equal-weight peers: the H1
-          question is the only loud text, every action row shares one
-          medium-weight treatment, and the section h2 (semibold) is the only
-          step up from its rows. Talk freely simply carries more structure —
-          the generated topic chips nest inside it as quick-starts (they all
-          start a chat session, just seeded with a topic), with a neutral
-          "no topic" row beneath — but it is not promoted by weight. */}
+      {/* ── Two mode doors lead ────────────────────────────────────────
+          The page offers exactly two Conversation modes (CONTEXT.md). Both
+          lead the screen as heavier doors: a filled icon tile (violet for
+          chat, emerald for call), the door title, and a one-line blurb of
+          what it does. The generated topics drop below into a lighter
+          "Conversation starters" group — they seed a chat session, so they
+          recede as shortcuts rather than competing as peers with the doors.
+          This deliberately promotes the two doors over the seeds (supersedes
+          the earlier "options are calm peers" reading of PRODUCT.md principle
+          4). The chat door is the no-topic entry; the call door is beta.
+          Chevron affordance on every row — no media "play" triangle, since
+          tapping enters a session, not playback. */}
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => setActiveSession({ mode: 'chat' })}
+          data-testid="home-mode-chat"
+          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-5 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+        >
+          <span className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent-primary text-white flex items-center justify-center">
+            <Icon name="mic" className="w-6 h-6" aria-hidden />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-lg font-semibold text-text-primary">
+              {t('practice.modeChatNoTopic')}
+            </span>
+            <span className="block text-sm text-text-secondary leading-snug">
+              {t('practice.modeChatDoorBlurb')}
+            </span>
+          </span>
+          <ChevronRight />
+        </button>
 
-      {/* Talk freely. Topic chips are shortcuts into this mode (each seeds a
-          chat session); the trailing row is the no-topic entry. Nothing here
-          carries extra fill — the chips' accent tiles are the only colour,
-          so the section reads as one grouped mode. */}
-      <section aria-labelledby="mode-chat-heading" className="space-y-3">
-        <div className="space-y-1">
-          <h2
-            id="mode-chat-heading"
-            className="text-lg font-semibold text-text-primary"
-          >
-            {t('practice.modeChatTitle')}
-          </h2>
-          <p className="text-sm text-text-secondary leading-snug">
-            {t('practice.modeChatBlurb')}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveSession({ mode: 'call' })}
+          data-testid="home-mode-call"
+          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-5 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+        >
+          <span className="flex-shrink-0 w-12 h-12 rounded-xl bg-call-fill text-white flex items-center justify-center">
+            <Icon name="phone" className="w-6 h-6" aria-hidden />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="flex items-center gap-2">
+              <span className="text-lg font-semibold text-text-primary">
+                {t('practice.modeCallStart')}
+              </span>
+              <span className="text-[0.625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ring-1 ring-border bg-surface-elevated text-text-secondary leading-none">
+                Beta
+              </span>
+            </span>
+            <span className="block text-sm text-text-secondary leading-snug">
+              {t('practice.modeCallDoorBlurb')}
+            </span>
+          </span>
+          <ChevronRight />
+        </button>
+      </div>
 
-        <div className="space-y-3">
-          {/* Generated topics. null = loading → full-width skeleton buttons
-              so the page is usable instantly (the no-topic row + Call render
-              immediately) and topics stream in without layout shift. */}
+      {/* Conversation starters — the lighter secondary tier. Each row seeds a
+          chat session with its topic (same mode as the chat door above, just
+          pre-filled). Bare stroked icon (no filled tile) + regular-weight
+          lead-in with the bold topic phrase keeps these visibly subordinate
+          to the two doors. One earned section eyebrow (the system
+          `.text-eyebrow` token) names the group; no second eyebrow on the
+          doors above. null = loading → skeletons so topics stream in without
+          layout shift. */}
+      <section aria-labelledby="starters-heading" className="space-y-3">
+        <h2 id="starters-heading" className="text-eyebrow">
+          {t('practice.startersHeading')}
+        </h2>
+
+        <div className="space-y-0.5">
           {starters === null
             ? [0, 1, 2].map(i => <StarterSkeleton key={i} />)
             : starters.map((s, i) => (
@@ -298,88 +336,37 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
                   type="button"
                   data-testid={`home-starter-${i}`}
                   onClick={() => setActiveSession({ mode: 'chat', starterTopic: s.topic })}
-                  className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
+                  className="w-full text-left group flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
                 >
-                  <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-accent-chip text-accent-primary flex items-center justify-center">
-                    <Icon name={CATEGORY_ICON[s.category]} className="w-5 h-5" aria-hidden />
-                  </span>
-                  <p className="flex-1 min-w-0 text-base md:text-lg font-medium text-text-primary">
-                    {t('practice.chatStarterAction', { topic: lowerFirst(s.topic) })}
+                  <Icon
+                    name={CATEGORY_ICON[s.category]}
+                    className="w-5 h-5 flex-shrink-0 text-text-tertiary"
+                    aria-hidden
+                  />
+                  <p className="flex-1 min-w-0 text-sm md:text-base text-text-secondary">
+                    {t('practice.chatStarterPrefix')}{' '}
+                    <strong className="font-semibold text-text-primary">{s.topic}</strong>
                   </p>
                   <ChevronRight />
                 </button>
               ))
           }
-
-          {/* No-topic entry — the plain "just start" door into Talk freely.
-              Neutral icon tile (vs the topic chips' accent tiles) marks it as
-              the topic-free option without adding a louder card. */}
-          <button
-            type="button"
-            onClick={() => setActiveSession({ mode: 'chat' })}
-            data-testid="home-mode-chat"
-            className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
-          >
-            <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center">
-              <Icon name="mic" className="w-5 h-5" aria-hidden />
-            </span>
-            <p className="flex-1 min-w-0 text-base md:text-lg font-medium text-text-primary">
-              {t('practice.modeChatNoTopic')}
-            </p>
-            <ChevronRight />
-          </button>
         </div>
-      </section>
-
-      {/* Real Life Scenario — beta. Compact: title + blurb, then a single
-          action row, equal in weight to the Talk freely rows. The emerald
-          icon tile signals "call" via colour only. Beta badge sits beside
-          the title to surface maturity before the user taps. */}
-      <section aria-labelledby="mode-call-heading" className="space-y-3">
-        <div className="space-y-1">
-          <h2
-            id="mode-call-heading"
-            className="text-lg font-semibold text-text-primary flex items-center gap-2"
-          >
-            {t('practice.modeCallTitle')}
-            <span className="text-[0.625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ring-1 ring-border bg-surface-elevated text-text-tertiary leading-none">
-              Beta
-            </span>
-          </h2>
-          <p className="text-sm text-text-secondary leading-snug">
-            {t('practice.modeCallBlurb')}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setActiveSession({ mode: 'call' })}
-          data-testid="home-mode-call"
-          className="w-full text-left group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4 hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2"
-        >
-          <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-call-fill text-white flex items-center justify-center">
-            <Icon name="phone" className="w-5 h-5" aria-hidden />
-          </span>
-          <p className="flex-1 min-w-0 text-base md:text-lg font-medium text-text-primary">
-            {t('practice.modeCallStart')}
-          </p>
-          <ChevronRight />
-        </button>
       </section>
     </div>
   )
 }
 
-// Loading placeholder for a topic button — same footprint as the real row
-// (icon tile + label) so topics streaming in don't shift the Talk freely
-// anchor or the Call door below.
+// Loading placeholder for a conversation-starter row — matches the real
+// row's lighter footprint (bare icon + label, no filled tile) so topics
+// streaming in don't shift the starters group.
 function StarterSkeleton() {
   return (
     <div
-      className="w-full flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface px-5 py-4"
+      className="w-full flex items-center gap-3 rounded-xl px-3 py-3"
       aria-hidden="true"
     >
-      <span className="flex-shrink-0 w-11 h-11 rounded-xl bg-surface-elevated animate-pulse" />
+      <span className="flex-shrink-0 w-5 h-5 rounded bg-surface-elevated animate-pulse" />
       <span className="h-4 flex-1 max-w-[60%] rounded-full bg-surface-elevated animate-pulse" />
     </div>
   )

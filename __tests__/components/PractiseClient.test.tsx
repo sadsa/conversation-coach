@@ -3,11 +3,12 @@
 // The Practise-as-home redesign moved the methodology entry point to `/`.
 // This suite covers the new home:
 //
-//   • Renders two live-practice doors: Free flow (primary) + Real Life
-//     Scenario (secondary). The Share/upload door was moved to the Review
-//     step (ADR 0002) — it no longer appears here.
-//   • Generated conversation-topic buttons render inside the Talk freely
-//     section (above its no-topic row); each seeds a chat session with its
+//   • Renders two live-practice doors leading the screen: "Just start
+//     talking" (chat, primary) + "Answer a call" (call, beta). The
+//     Share/upload door was moved to the Review step (ADR 0002) — it no
+//     longer appears here.
+//   • Generated conversation-topic buttons render below the doors in the
+//     "Conversation starters" group; each seeds a chat session with its
 //     topic.
 //   • Clicking a topic button starts a chat session with that topic.
 //   • Both doors are in-place `<button>`s (they mount <PracticeClient> on
@@ -47,15 +48,15 @@ vi.mock('@/components/LanguageProvider', () => ({
       // Just enough strings to drive the assertions. Anything else falls
       // through to the key (matches the real t() fallback behaviour).
       const dict: Record<string, string> = {
-        'practice.modeCallTitle': 'Real Life Scenario',
-        'practice.modeCallBlurb': 'Someone new calls.',
-        'practice.modeChatTitle': 'Free flow',
-        'practice.modeChatBlurb': "The Coach opens and you talk about whatever's on your mind.",
-        'practice.startersLabel': 'Need a topic?',
+        'practice.modeChatNoTopic': 'Just start talking',
+        'practice.modeChatDoorBlurb': 'The Coach listens and responds to whatever you say.',
+        'practice.modeCallStart': 'Answer a call',
+        'practice.modeCallDoorBlurb': "Someone you've never met calls. Take it from there.",
+        'practice.startersHeading': 'Conversation starters',
+        'practice.chatStarterPrefix': 'Talk about',
         'practice.chatStarter.0': 'Your weekend plans',
         'practice.chatStarter.1': 'A recent meal',
         'practice.chatStarter.2': 'Getting around the city',
-        'practice.chatStarterAction': 'Talk about {topic}',
         'home.welcomeBeat': 'All set. Ready when you are.',
       }
       const template = dict[key] ?? key
@@ -129,10 +130,10 @@ describe('PractiseClient — topic buttons', () => {
     expect(screen.getByTestId('home-starter-2')).toBeInTheDocument()
   })
 
-  it('topic buttons frame the topic as an action', async () => {
+  it('topic buttons frame the topic as an action (prefix + bold topic phrase)', async () => {
     render(<PractiseClient />)
-    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Talk about your weekend plans')
-    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('Talk about a recent meal')
+    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Talk about Your weekend plans')
+    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('Talk about A recent meal')
   })
 
   it('clicking a topic button sets chat mode active with that topic', async () => {

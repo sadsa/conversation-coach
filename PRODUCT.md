@@ -55,7 +55,7 @@ Voice patterns to avoid: mechanical celebration, productivity-grind framing ("cr
 
 3. **Spacious layout.** Breathing room is a feature, not waste. Sections at `space-y-8`; items inside a section at `space-y-3`. Varied rhythm — tight inside groups, generous between them.
 
-4. **One loud thing per screen; options are calm peers.** Each surface has a single loud element — usually the page question or H1 — and everything beneath it recedes. When several actions sit together (the Practise mode rows), they share one medium-weight treatment and read as equal peers; hierarchy comes from the H1 plus the section title's weight step, not from promoting one action over another. Colour on a tile carries meaning (emerald = call), never extra shout. (Superseded the earlier "emerald Call door is loud, Chat is quiet" rule, which assumed a two-tile screen where one mode was promoted.)
+4. **Lead with a clear primary tier; secondary options recede.** Each surface establishes an unambiguous lead so the eye sorts it in one pass: the page question/H1, and — where the screen's job is to launch something — the primary action doors, which carry weight (filled icon tile + a one-line blurb). Everything below steps down: shortcuts and seeds (the Speak page's conversation starters) take a lighter treatment — bare icon, no fill — so they read as subordinate to the doors, not as peers competing with them. Colour on a tile carries meaning (violet = primary action, emerald = call), not extra shout.
 
 5. **Informative without lecturing.** Explanations are available but never forced. Let the user pull detail on demand. The pipeline narrates the work; it does not apologise for it.
 

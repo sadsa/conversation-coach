@@ -119,6 +119,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // is display-only — the bare `topic` is still what seeds the session.
     'practice.chatStarterAction': 'Talk about {topic}',
     'practice.modeCallStart': 'Answer a call',
+    // Two-door home redesign (2026-06): the chat + call doors lead with a
+    // filled icon tile + their own blurb; the generated topics drop to a
+    // lighter "Conversation starters" group below. `modeChat/CallDoorBlurb`
+    // describe what each door does (distinct jobs, not a restatement of the
+    // title). `startersHeading` labels the secondary group; `chatStarterPrefix`
+    // is the regular-weight lead-in rendered before the bold topic phrase.
+    'practice.modeChatDoorBlurb': 'The Coach listens and responds to whatever you say.',
+    'practice.modeCallDoorBlurb': "Someone you've never met calls. Take it from there.",
+    'practice.startersHeading': 'Conversation starters',
+    'practice.chatStarterPrefix': 'Talk about',
     'home.topicHeading': "What's on your mind?",
     'practice.startersLabel': 'Need a topic?',
     'practice.chatStarter.0': 'Your weekend plans',
@@ -801,6 +811,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'practice.modeChatNoTopic': 'Empezá a hablar',
     'practice.chatStarterAction': 'Hablá de {topic}',
     'practice.modeCallStart': 'Atender una llamada',
+    'practice.modeChatDoorBlurb': 'El Coach te escucha y responde a lo que digas.',
+    'practice.modeCallDoorBlurb': 'Te llama alguien que no conocés. Seguís vos desde ahí.',
+    'practice.startersHeading': 'Temas para arrancar',
+    'practice.chatStarterPrefix': 'Hablá de',
     'home.topicHeading': '¿De qué querés hablar hoy?',
     'practice.startersLabel': '¿Necesitás un tema?',
     'practice.chatStarter.0': 'Tus planes del finde',
