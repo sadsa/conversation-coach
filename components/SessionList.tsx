@@ -27,13 +27,12 @@ const STATUS_COLOUR: Record<string, string> = {
 const TERMINAL_STATUSES = new Set(['ready', 'error'])
 const UNDO_TIMEOUT_MS = 5000
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}m ${s}s`
-}
-
-function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date()): string {
+// Date + time for the metadata row. Now that the timestamp sits below the
+// title (not crammed beside it), there's room to show both the day and the
+// clock time. The day half stays relative ("Today"/"Yesterday"/weekday) for
+// recent rows and falls back to an absolute date further out; the time half
+// is always appended.
+function formatRowDateTime(date: Date, uiLanguage: UiLanguage, now: Date = new Date()): string {
   const locale = uiLanguage === 'es' ? 'es-AR' : 'en-GB'
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfYesterday = new Date(startOfToday)
@@ -41,22 +40,26 @@ function formatRowDate(date: Date, uiLanguage: UiLanguage, now: Date = new Date(
   const startOfWeek = new Date(startOfToday)
   startOfWeek.setDate(startOfWeek.getDate() - 6)
 
+  const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+
+  let day: string
   if (date >= startOfToday) {
-    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+    day = uiLanguage === 'es' ? 'Hoy' : 'Today'
+  } else if (date >= startOfYesterday) {
+    day = uiLanguage === 'es' ? 'Ayer' : 'Yesterday'
+  } else if (date >= startOfWeek) {
+    day = date.toLocaleDateString(locale, { weekday: 'short' })
+  } else {
+    const sameYear = date.getFullYear() === now.getFullYear()
+    day = date.toLocaleDateString(
+      locale,
+      sameYear
+        ? { day: 'numeric', month: 'short' }
+        : { day: 'numeric', month: 'short', year: 'numeric' },
+    )
   }
-  if (date >= startOfYesterday) {
-    return uiLanguage === 'es' ? 'Ayer' : 'Yesterday'
-  }
-  if (date >= startOfWeek) {
-    return date.toLocaleDateString(locale, { weekday: 'short' })
-  }
-  const sameYear = date.getFullYear() === now.getFullYear()
-  return date.toLocaleDateString(
-    locale,
-    sameYear
-      ? { day: 'numeric', month: 'short' }
-      : { day: 'numeric', month: 'short', year: 'numeric' },
-  )
+
+  return `${day}, ${time}`
 }
 
 function SessionItem({
@@ -77,7 +80,7 @@ function SessionItem({
 
   const [dateLabel, setDateLabel] = useState<string>('')
   useEffect(() => {
-    setDateLabel(formatRowDate(new Date(session.created_at), uiLanguage))
+    setDateLabel(formatRowDateTime(new Date(session.created_at), uiLanguage))
   }, [session.created_at, uiLanguage])
 
   const actions: RowAction[] = [
@@ -107,13 +110,10 @@ function SessionItem({
             isProcessing ? '' : 'hover:bg-surface-elevated'
           }`}
         >
-          <div className="flex items-baseline justify-between gap-3 min-w-0">
-            <p className="text-lg truncate min-w-0 font-normal text-text-secondary">
-              {session.title}
-            </p>
-            <span className="text-sm text-text-tertiary tabular-nums shrink-0">{dateLabel || ' '}</span>
-          </div>
-          <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1 flex-wrap tabular-nums">
+          <p className="text-lg font-normal text-text-secondary text-balance">
+            {session.title}
+          </p>
+          <div className="flex items-baseline gap-3 text-sm text-text-tertiary mt-1 flex-wrap tabular-nums">
             {showStatus && (
               <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
                 {isProcessing && (
@@ -131,9 +131,7 @@ function SessionItem({
                 {statusLabel(session.status, t)}
               </span>
             )}
-            {session.duration_seconds != null && (
-              <span className="text-text-tertiary">{formatDuration(session.duration_seconds)}</span>
-            )}
+            <span>{dateLabel || ' '}</span>
           </div>
         </Link>
       </div>

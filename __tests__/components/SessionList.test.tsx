@@ -72,14 +72,8 @@ describe('SessionList', () => {
     expect(screen.getByRole('link')).toHaveAttribute('href', '/sessions/sess-2/status')
   })
 
-  it('shows formatted duration as Xm Ys', () => {
+  it('does not render a duration chunk (Xm Ys) on any row', () => {
     render(<SessionList sessions={[readySession]} />)
-    // 512 seconds = 8m 32s
-    expect(screen.getByText(/8m 32s/)).toBeInTheDocument()
-  })
-
-  it('omits duration when duration_seconds is null', () => {
-    render(<SessionList sessions={[transcribingSession]} />)
     expect(screen.queryByText(/\dm \d+s/)).not.toBeInTheDocument()
   })
 
