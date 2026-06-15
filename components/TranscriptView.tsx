@@ -244,15 +244,19 @@ export function TranscriptView({
     [segments],
   )
 
-  // Show the speaker label above the first bubble of each side only — the
-  // left/right alignment carries the speaker identity for every turn after
-  // that, exactly as Talk mode does it.
-  const firstOfRoleSegIds = useMemo(() => {
-    const seen = new Set<boolean>()
+  // Label every turn *boundary* — the first segment of each contiguous
+  // same-speaker run. This re-orients the reader at each hand-off without
+  // the noise of labelling literally every bubble, and without the old
+  // failure mode of labelling only the first-ever turn (which leaves a long
+  // back-and-forth unanchored once you've scrolled past the top). Consecutive
+  // segments from the same speaker stay grouped under one label.
+  const turnStartSegIds = useMemo(() => {
     const ids = new Set<string>()
+    let prevIsUser: boolean | null = null
     for (const seg of segments) {
       const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
-      if (!seen.has(isUser)) { seen.add(isUser); ids.add(seg.id) }
+      if (isUser !== prevIsUser) ids.add(seg.id)
+      prevIsUser = isUser
     }
     return ids
   }, [segments, userSpeakerLabels])
@@ -336,7 +340,7 @@ export function TranscriptView({
       )}
 
       <div
-        className={useBubbles ? 'flex flex-col gap-3 max-w-prose' : 'space-y-6 max-w-prose'}
+        className={useBubbles ? 'flex flex-col max-w-prose' : 'space-y-6 max-w-prose'}
         // Bottom clearance so the last turn never collides with a fixed
         // overlay. Sheet open → reserve 60vh for the docked sheet on mobile.
         // Otherwise, if a bottom-floating cue is up (the "see corrections"
@@ -351,7 +355,7 @@ export function TranscriptView({
               : undefined
         }
       >
-        {segments.map(seg => {
+        {segments.map((seg, index) => {
           const isUser = userSpeakerLabels === null || userSpeakerLabels.includes(seg.speaker)
           const paragraphs = splitIntoParagraphs(seg.text, seg.paragraph_breaks)
           const segAnns = annotationsBySegment[seg.id] ?? []
@@ -372,30 +376,39 @@ export function TranscriptView({
           }
 
           // ── Bubble layout (multi-speaker) ──────────────────────────────
-          // Mirrors Talk mode: user turns right, partner turns left. Both
-          // bubbles share the neutral surface + quiet `border-subtle` ring —
-          // side alignment and the once-shown role label carry the speaker
-          // identity, so no accent border is needed. A neutral surface also
-          // keeps annotation marks legible (a violet bubble would swallow the
-          // saved-correction tint).
+          // Mirrors Talk mode: user turns right, partner turns left. Speaker
+          // identity is carried by three reinforcing signals — side alignment,
+          // a role label at each turn boundary, and a per-role fill. YOU turns
+          // sit on the lightest near-white surface, THEM turns on a recessed
+          // grey. Counter to the usual "your bubble is the bright accent"
+          // convention, keeping YOU on the *cleanest* surface is deliberate:
+          // every annotation mark lives on a user turn, and the mark tints
+          // (~94–95% L) gain real lightness contrast against near-white that
+          // they'd lose against the grey. Both keep the quiet `border-subtle`
+          // ring so the near-white YOU bubble still separates from the page.
           if (useBubbles) {
+            const isTurnStart = turnStartSegIds.has(seg.id)
+            // Tight stack within a turn, a clear gap at each hand-off. The
+            // first segment overall needs no leading gap.
+            const spacing = index === 0 ? '' : isTurnStart ? 'mt-5' : 'mt-1.5'
             return (
               <div
                 key={seg.id}
                 data-speaker-role={isUser ? 'user' : 'partner'}
-                className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
+                className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'} ${spacing}`}
               >
-                {firstOfRoleSegIds.has(seg.id) && (
+                {isTurnStart && (
                   <p className="text-eyebrow px-1">
                     {isUser ? userLabel : themLabel}
                   </p>
                 )}
                 <div
-                  className="
+                  className={`
                     max-w-[88%] md:max-w-[80%] rounded-2xl px-4 py-3
                     text-base md:text-lg leading-[1.7] break-words text-text-primary
-                    space-y-2 bg-surface-elevated ring-1 ring-border-subtle
-                  "
+                    space-y-2 ring-1 ring-border-subtle
+                    ${isUser ? 'bg-surface' : 'bg-surface-elevated'}
+                  `}
                 >
                   {renderSegmentBody(isUser, paragraphs, segAnns)}
                 </div>
