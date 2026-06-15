@@ -36,7 +36,8 @@ export function DashboardRecentSessions({
     <section aria-label={t('home.recentSessionsTitle')} className="space-y-3">
       {sessions.length === 0 ? (
         <p className="max-w-prose text-base leading-relaxed text-text-secondary text-pretty">
-          {t('review.emptyLine')}{' '}
+          {t('review.emptyLine')}
+          <br />
           <Link
             href="/"
             className="font-semibold text-accent-primary border-b border-accent-primary/35 pb-px transition-colors hover:border-accent-primary"
