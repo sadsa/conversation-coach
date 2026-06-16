@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AnnotatedText } from '@/components/AnnotatedText'
 import { AnnotationSheet } from '@/components/AnnotationSheet'
+import { StudyPrompt } from '@/components/StudyPrompt'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import { log } from '@/lib/logger'
@@ -41,6 +42,13 @@ interface Props {
   isReviewed?: boolean
   /** Called when the user taps "Mark as reviewed". Only shown when all corrections are in view. */
   onMarkReviewed?: () => void
+  /**
+   * Launches the in-place Study session. When provided, the "Study N saved"
+   * pill renders here (alongside the other bottom cues) so it shares their
+   * sheet-open gate — otherwise it would float at z-50 over the open sheet's
+   * action buttons.
+   */
+  onLaunchStudy?: () => void
 }
 
 export function TranscriptView({
@@ -50,6 +58,7 @@ export function TranscriptView({
   onAnnotationUnhelpfulChanged,
   isReviewed = false,
   onMarkReviewed,
+  onLaunchStudy,
 }: Props) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotion()
@@ -467,6 +476,16 @@ export function TranscriptView({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Study pill lives here (not in the parent) so it shares the bottom
+          cues' sheet-open gate. While a sheet is open we pass count={0} so it
+          unmounts rather than floating at z-50 over the sheet's actions. */}
+      {onLaunchStudy && (
+        <StudyPrompt
+          count={activeAnnotationId ? 0 : addedAnnotations.size}
+          onLaunchStudy={onLaunchStudy}
+        />
+      )}
     </div>
   )
 }

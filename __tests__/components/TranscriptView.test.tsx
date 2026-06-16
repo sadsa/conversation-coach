@@ -90,6 +90,30 @@ describe('TranscriptView', () => {
     expect(screen.queryByText('Them')).not.toBeInTheDocument()
   })
 
+  it('hides the Study prompt while an annotation sheet is open (overlap regression)', async () => {
+    // Regression: the "Study N saved" pill (fixed, z-50) used to paint over
+    // the open sheet's Ignore / Save buttons (z-45). It must disappear while
+    // a sheet is open, like the sibling "Next correction" / "Mark reviewed"
+    // cues already do.
+    render(
+      <TranscriptView
+        segments={segments}
+        annotations={annotations}
+        userSpeakerLabels={['A']}
+        {...defaultProps}
+        addedAnnotations={new Map([['ann-1', 'pi-1']])}
+        onLaunchStudy={vi.fn()}
+      />
+    )
+    // Pill is visible while no sheet is open.
+    expect(screen.getByRole('button', { name: /Go to Study/i })).toBeInTheDocument()
+    // Open the annotation sheet.
+    await userEvent.click(screen.getByText('Yo fui'))
+    expect(screen.getByText('Drop pronoun.')).toBeInTheDocument()
+    // Pill must be gone so it can't sit over the sheet's actions.
+    expect(screen.queryByRole('button', { name: /Go to Study/i })).not.toBeInTheDocument()
+  })
+
   it('applies saved class to a highlight when annotation is in addedAnnotations', () => {
     render(
       <TranscriptView

@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { ReviewCompletionScreen, type SavedPhrase } from '@/components/ReviewCompletionScreen'
 import { LessonClient } from '@/components/LessonClient'
-import { StudyPrompt } from '@/components/StudyPrompt'
 import { Modal } from '@/components/Modal'
 import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
@@ -252,6 +251,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         onAnnotationAdded={handleAnnotationAdded}
         onAnnotationRemoved={handleAnnotationRemoved}
         onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
+        onLaunchStudy={() => setStudyMode(true)}
       />
 
       {/* Re-analyse confirmation. Two-step gate on a destructive action that
@@ -334,11 +334,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       </Modal>
 
       {toastMessage && <Toast message={toastMessage} />}
-
-      <StudyPrompt
-        count={addedAnnotations.size}
-        onLaunchStudy={() => setStudyMode(true)}
-      />
     </div>
   )
 }
