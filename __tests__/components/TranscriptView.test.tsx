@@ -114,6 +114,53 @@ describe('TranscriptView', () => {
     expect(screen.queryByRole('button', { name: /Go to Study/i })).not.toBeInTheDocument()
   })
 
+  it('raises the Next-correction cue above the Study pill so the two never overlap (regression)', async () => {
+    // Regression: the Study pill (fixed, z-50, anchored at --toast-bottom) and
+    // the Next-correction cue (fixed, z-40) resolved to the *same* bottom
+    // offset on mobile (--toast-bottom === 5rem + safe-area there), so the
+    // Study pill painted directly over the cue. When both are visible the cue
+    // must anchor higher to clear the Study pill.
+    class IO {
+      cb: IntersectionObserverCallback
+      constructor(cb: IntersectionObserverCallback) { this.cb = cb }
+      observe() {
+        // Report the observed last annotation as below the fold.
+        this.cb(
+          [{ isIntersecting: false, boundingClientRect: { top: 9999 } } as IntersectionObserverEntry],
+          this as unknown as IntersectionObserver,
+        )
+      }
+      unobserve() {}
+      disconnect() {}
+      takeRecords() { return [] }
+    }
+    const orig = window.IntersectionObserver
+    // @ts-expect-error — minimal test stub
+    window.IntersectionObserver = IO
+    try {
+      render(
+        <TranscriptView
+          segments={segments}
+          annotations={annotations}
+          userSpeakerLabels={['A']}
+          {...defaultProps}
+          addedAnnotations={new Map([['ann-1', 'pi-1']])}
+          onLaunchStudy={vi.fn()}
+        />
+      )
+      const studyBtn = await screen.findByRole('button', { name: /Go to Study/i })
+      const nextBtn = await screen.findByRole('button', { name: /Next correction/i }, { timeout: 1500 })
+      const studyDock = studyBtn.closest('.fixed') as HTMLElement
+      const nextDock = nextBtn.closest('.fixed') as HTMLElement
+      // Distinct fixed docks…
+      expect(nextDock).not.toBe(studyDock)
+      // …and the cue is anchored above the Study pill's toast slot, not on it.
+      expect(nextDock.style.bottom).toContain('var(--toast-bottom)')
+    } finally {
+      window.IntersectionObserver = orig
+    }
+  })
+
   it('applies saved class to a highlight when annotation is in addedAnnotations', () => {
     render(
       <TranscriptView

@@ -152,6 +152,17 @@ export function TranscriptView({
   const showNextPill = pillReady && hasAnnotationBelowFold && !activeAnnotationId && !isReviewed
   const showMarkReviewed = pillReady && !hasAnnotationBelowFold && !activeAnnotationId && !isReviewed && !!onMarkReviewed
 
+  // Whether the Study pill is occupying the bottom toast slot. It mirrors
+  // StudyPrompt's own visibility gate (count > 0, no sheet open). The
+  // transient cues below default to `--toast-bottom` too, so when the Study
+  // pill is up they'd stack on the exact same anchor (on mobile
+  // `--toast-bottom` === `5rem + safe-area`) and the z-50 Study pill would
+  // paint over the z-40 cue — raise the cue above it instead.
+  const studyPillShown = !!onLaunchStudy && !activeAnnotationId && addedAnnotations.size > 0
+  const cueBottom = studyPillShown
+    ? 'calc(var(--toast-bottom) + 3.5rem)'
+    : 'calc(5rem + env(safe-area-inset-bottom))'
+
   const activeIndex = activeAnnotationId
     ? orderedAnnotations.findIndex(a => a.id === activeAnnotationId)
     : -1
@@ -338,12 +349,14 @@ export function TranscriptView({
         // Otherwise, if a bottom-floating cue is up (the "see corrections"
         // pill or the Study pill, both anchored ~5rem from the bottom and
         // ~3rem tall), reserve enough that the final turn scrolls clear of
-        // it — the <main> padding only covers the nav, not these cues.
+        // it — the <main> padding only covers the nav, not these cues. When
+        // the cue is stacked above the Study pill it sits ~3.5rem higher, so
+        // reserve extra for that combined height.
         style={
           activeAnnotationId
             ? { paddingBottom: '60vh' }
             : showNextPill || showMarkReviewed
-              ? { paddingBottom: '4rem' }
+              ? { paddingBottom: studyPillShown ? '7.5rem' : '4rem' }
               : undefined
         }
       >
@@ -443,7 +456,7 @@ export function TranscriptView({
             exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.25, 1, 0.5, 1] }}
             className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none"
-            style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+            style={{ bottom: cueBottom }}
           >
             <button
               type="button"
@@ -463,7 +476,7 @@ export function TranscriptView({
             exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.25, ease: [0.25, 1, 0.5, 1] }}
             className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none"
-            style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+            style={{ bottom: cueBottom }}
           >
             <button
               type="button"
