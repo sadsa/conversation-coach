@@ -49,12 +49,12 @@ describe('NavDrawer', () => {
   })
 
   // Settings was moved into the account menu, so the nav list is now three
-  // pillars: Speak → Review → Refine.
-  it('renders the three pillar nav links (Speak, Review, Refine)', () => {
+  // tabs: Speak → Review → Vocabulary.
+  it('renders the three nav links (Speak, Review, Vocabulary)', () => {
     renderDrawer(true, onClose)
     expect(screen.getByRole('link', { name: /speak/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /refine/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /vocabulary/i })).toBeInTheDocument()
   })
 
   it('does NOT render a Settings nav link (moved to the account menu)', () => {
@@ -65,7 +65,7 @@ describe('NavDrawer', () => {
   it('marks the current route with aria-current="page"', () => {
     mockPathname.mockReturnValue('/vocabulary')
     renderDrawer(true, onClose)
-    expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /vocabulary/i })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
 
@@ -95,7 +95,7 @@ describe('NavDrawer', () => {
 
   it('calls onClose when a nav link is clicked', async () => {
     renderDrawer(true, onClose)
-    await userEvent.click(screen.getByRole('link', { name: /refine/i }))
+    await userEvent.click(screen.getByRole('link', { name: /vocabulary/i }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 

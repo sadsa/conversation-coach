@@ -4,18 +4,20 @@
 // nav surfaces can never drift apart. CLAUDE.md called this out as a known
 // gotcha — keep all routes here.
 //
-// Tab order mirrors the methodology: Speak → Review → Refine.
+// Tab order: Speak → Review → Vocabulary.
 // `/` is the Speak home (mode-picker for voice agent sessions and the
 // "share a voice note" deep-dive); `/review` is the inbox of recorded
-// conversations; `/refine` is the queue of saved corrections. Active voice
-// sessions used to live on a separate /practice route — that's gone now;
+// conversations; `/vocabulary` is the cross-session repository of saved
+// corrections (a reference surface, not a methodology pillar — the loop's
+// third step is Study, the voice session launched from the session page).
+// Active voice sessions used to live on a separate /practice route — gone;
 // PracticeClient mounts in place on `/` when the user taps a mode door
 // and unmounts on discard, so there's no second route to surface here.
 //
 // Settings is deliberately NOT a nav tab. It lives inside the account menu
 // (NavDrawer footer on mobile, AppHeader avatar dropdown on desktop) along
 // with Sign out — both are account-scoped chrome, not methodology pillars,
-// so they shouldn't compete with Speak / Review / Refine in the thumb zone.
+// so they shouldn't compete with Speak / Review / Vocabulary in the thumb zone.
 // See `components/AccountMenu.tsx`.
 //
 // Icons are Phosphor (regular + fill) — see `mockups/nav-icons.html` for
@@ -51,8 +53,7 @@ const PHOSPHOR_PATHS = {
     regular: 'M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72h72a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm88,48H40a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16Zm109.66,13.66a8,8,0,0,1-11.32,0L206,177.36A40,40,0,1,1,217.36,166l20.3,20.3A8,8,0,0,1,237.66,197.66ZM184,168a24,24,0,1,0-24-24A24,24,0,0,0,184,168Z',
     fill: 'M32,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H40A8,8,0,0,1,32,64Zm8,72h72a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm88,48H40a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16Zm109.66,2.34L217.36,166A40,40,0,1,0,206,177.36l20.3,20.3a8,8,0,0,0,11.32-11.32Z',
   },
-  // Study — book-open. Connotes long-form reinforcement; matches the
-  // methodology eyebrow on the home.
+  // Vocabulary — book-open. Connotes a reference of saved phrases to revisit.
   bookOpen: {
     regular: 'M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64Z',
     fill: 'M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z',
@@ -95,7 +96,7 @@ export const NAV_TABS: NavTab[] = [
   },
   {
     href: '/vocabulary',
-    labelKey: 'nav.refine',
+    labelKey: 'nav.vocabulary',
     exact: false,
     icon: phIcon('bookOpen', 'sm'),
     iconLg: phIcon('bookOpen', 'lg'),

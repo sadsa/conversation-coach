@@ -16,7 +16,7 @@ export function VocabularyClient({ initialItems }: Props) {
     <div className="space-y-8">
       <header className="space-y-2">
         <h1 className="text-page-title">
-          {t('write.title')}
+          {t('vocabulary.title')}
         </h1>
       </header>
       <VocabularyList

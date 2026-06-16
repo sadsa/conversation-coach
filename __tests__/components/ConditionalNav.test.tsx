@@ -61,8 +61,8 @@ describe('ConditionalNav', () => {
     expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
   })
 
-  it('renders the header on "/refine"', () => {
-    mockPathname.mockReturnValue('/refine')
+  it('renders the header on "/vocabulary"', () => {
+    mockPathname.mockReturnValue('/vocabulary')
     wrap()
     expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
   })

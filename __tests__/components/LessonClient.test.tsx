@@ -95,15 +95,15 @@ describe('LessonClient (Study mode)', () => {
     expect(btn.closest('button')).not.toBeDisabled()
   })
 
-  it('clicking "Got it" on card 1 sends advancement text to the agent', async () => {
+  it('clicking "Got it" on card 1 sends the next card\'s full content to the agent', async () => {
     const user = userEvent.setup()
     wrap()
     await activateLesson()
     await user.click(screen.getByText(/Got it/))
-    // es-AR target → Spanish advancement message
-    expect(mockSendText).toHaveBeenCalledWith(
-      expect.stringContaining('Carta 2')
-    )
+    // The agent receives card 2's actual phrase + position — never a bare index
+    // — so it cannot read ahead before the learner advances.
+    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('dale, vamos'))
+    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('2/2'))
   })
 
   it('clicking "Got it" on last card calls onExit', async () => {

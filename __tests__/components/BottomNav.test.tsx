@@ -26,12 +26,12 @@ describe('BottomNav', () => {
   })
 
   // Settings moved into the account menu; the bottom nav is now three
-  // pillars: Speak → Review → Refine.
-  it('renders the three pillar nav tabs (Speak, Review, Refine)', () => {
+  // tabs: Speak → Review → Vocabulary.
+  it('renders the three nav tabs (Speak, Review, Vocabulary)', () => {
     wrap()
     expect(screen.getByRole('link', { name: /speak/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /refine/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /vocabulary/i })).toBeInTheDocument()
   })
 
   it('does NOT render a Settings tab (moved to the account menu)', () => {
@@ -43,7 +43,7 @@ describe('BottomNav', () => {
     mockPathname.mockReturnValue('/')
     wrap()
     expect(screen.getByRole('link', { name: /speak/i })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: /refine/i })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: /vocabulary/i })).not.toHaveAttribute('aria-current')
   })
 
   it('does NOT mark Speak active on "/vocabulary" (exact match required)', () => {
@@ -58,16 +58,16 @@ describe('BottomNav', () => {
     expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Refine active on "/vocabulary"', () => {
+  it('marks Vocabulary active on "/vocabulary"', () => {
     mockPathname.mockReturnValue('/vocabulary')
     wrap()
-    expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /vocabulary/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Refine active on a sub-route like "/vocabulary/something"', () => {
+  it('marks Vocabulary active on a sub-route like "/vocabulary/something"', () => {
     mockPathname.mockReturnValue('/vocabulary/something')
     wrap()
-    expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /vocabulary/i })).toHaveAttribute('aria-current', 'page')
   })
 
   it('hides itself on md+ viewports via the md:hidden utility', () => {

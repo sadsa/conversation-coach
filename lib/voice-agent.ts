@@ -303,6 +303,52 @@ export interface LessonPhrase {
 }
 
 
+/**
+ * Formats a single study card as the delivery message the teacher receives.
+ *
+ * The model is shown ONE card at a time — never the full deck — so it cannot
+ * read ahead and drill phrases the learner hasn't reached yet (the read-ahead
+ * bug). The same shape is used for the first card (embedded in the system
+ * prompt) and every subsequent card (sent via `sendText` on advance) so the
+ * model sees a consistent, unambiguous cue for "this is the card to teach now".
+ *
+ * @param phrase  The card to teach.
+ * @param index   0-based position of the card.
+ * @param total   Total number of cards in the session.
+ */
+export function formatStudyCard(
+  phrase: LessonPhrase,
+  index: number,
+  total: number,
+  targetLanguage: TargetLanguage,
+): string {
+  const label = targetLanguage === 'en-NZ' ? 'CURRENT CARD' : 'CARTA ACTUAL'
+  return `${label} ${index + 1}/${total}: "${phrase.correction}" — ${phrase.explanation}`
+}
+
+/**
+ * The message sent to the model when the learner advances to the next card.
+ *
+ * Gemini Live can't swap `systemInstruction` mid-session, so the teaching
+ * methodology stays in the persistent system prompt. This delivery carries
+ * the new card (same shape {@link formatStudyCard} embeds for card 1) plus a
+ * one-line reminder to re-run the explain → model → drill flow — cheap
+ * insurance against the model drifting away from the methodology over a long
+ * deck. The new phrase is the only card content the model ever sees, so the
+ * read-ahead guarantee holds.
+ */
+export function formatStudyCardAdvance(
+  phrase: LessonPhrase,
+  index: number,
+  total: number,
+  targetLanguage: TargetLanguage,
+): string {
+  const reminder = targetLanguage === 'en-NZ'
+    ? 'Teach this new phrase the same way: explain it, model a couple of examples, then keep drilling. Do not look back at earlier cards.'
+    : 'Enseñá esta frase nueva de la misma manera: explicala, mostrá un par de ejemplos, y después seguí practicando. No vuelvas a las cartas anteriores.'
+  return `${formatStudyCard(phrase, index, total, targetLanguage)}\n${reminder}`
+}
+
 export function buildStudySystemPrompt(
   phrases: LessonPhrase[],
   targetLanguage: TargetLanguage,
@@ -312,50 +358,61 @@ export function buildStudySystemPrompt(
     : `IMPORTANTE — ACENTO: Hablás con acento rioplatense (porteño) claro y natural durante toda la sesión. Inconfundiblemente argentino desde la primera palabra. Pronunciá la ll/y con sheísmo. Usá el voseo. No derrapés.`
 
   const toneBlock = targetLanguage === 'en-NZ'
-    ? `Speak at a calm, deliberate pace. You are a patient native-speaking teacher — warm, unhurried, never condescending. Do not say "great job", "amazing", or use any streak/reward language.`
-    : `Hablá a un ritmo tranquilo y pausado. Sos un maestro nativo — cálido, sin apuro, nunca condescendiente. No digas "muy bien", "excelente", ni uses lenguaje de logros o rachas.`
+    ? `Speak at a calm, deliberate pace. You are a warm, patient native-speaking teacher who also knows how to teach — unhurried, never condescending. Do not say "great job", "amazing", or use any streak/reward language.`
+    : `Hablá a un ritmo tranquilo y pausado. Sos un maestro nativo, cálido y paciente, que sabe enseñar — sin apuro, nunca condescendiente. No digas "muy bien", "excelente", ni uses lenguaje de logros o rachas.`
 
-  const cardList = phrases
-    .map((p, i) => `${i + 1}. "${p.correction}" — ${p.explanation}`)
-    .join('\n')
+  const total = phrases.length
+  const firstCard = phrases.length > 0 ? formatStudyCard(phrases[0], 0, total, targetLanguage) : ''
 
   if (targetLanguage === 'en-NZ') {
     return `${accentBlock}
 
-You are a focused language teacher running a card-by-card study session. There are ${phrases.length} cards. Start on Card 1 and teach one card at a time.
+You are a warm, patient native-speaking teacher running a study session, card by card. There are ${total} cards in total, but you are only ever shown ONE card at a time — the card the learner is currently on. Teach that one phrase, leading the conversation the whole way, and keep teaching it until the learner moves on themselves.
 
-ONE SENTENCE PER TURN — strict rule. Every single turn you take must be exactly one sentence. No exceptions. Never chain two questions or two statements in the same turn.
+NEVER LOOK AHEAD — strict rule. You do NOT know the upcoming cards. Never ask the learner to say, repeat, or practise any phrase other than the one on the CURRENT CARD you have been given. Do not guess, preview, or jump to a phrase that is not on the current card.
 
-CARDS:
-${cardList}
+Each card is delivered to you as a single message in exactly this form:
+CURRENT CARD k/${total}: "<the phrase>" — <its explanation>
+Treat that line as an instruction to you, not as something to read aloud. The explanation on it is already on the learner's screen, so do NOT read it out word for word.
 
-PER-CARD STRUCTURE (repeat for each card):
-1. Explain the correction in one sentence.
-2. Invite the student to try using the phrase themselves (one sentence).
-3. Give one short drill ("How would you say…?").
-4. When you're satisfied, say: "Tap 'Got it' when you're ready to move on." Then go silent — do not speak again until the next card begins.
+${firstCard}
 
-ADVANCEMENT: When the student taps "Got it", you will receive the message "The student advanced to Card N. Begin the lesson for Card N." Begin Card N immediately — do not wait or ask for confirmation.
+HOW TO TEACH ONE CARD — move through these steps naturally, in order, leading the conversation the whole time:
+- Explain: in one short sentence, say what to fix or how the phrase works, in your own words — not by reading the on-screen explanation. Then immediately invite the learner to try it, e.g. "Can you try saying '<the correct phrase>'?".
+- Model: after their attempt, show the phrase in a couple of varied, short examples (different subjects, tenses, or situations) so they hear how it's used.
+- Drill: prompt the learner to use the phrase themselves in a fresh situation, e.g. "How would you say…?". After each attempt, react briefly, then give another drill prompt. Keep the drills coming — do NOT go silent waiting. There is no set number of drills and no time limit; keep the practice flowing.
+
+If the learner makes the mistake this card is about, gently correct it once and move on — do not dwell.
+
+CADENCE: speak the way a real teacher talks — usually one or two short sentences per turn, one idea at a time, leaving the learner plenty of room to speak. Do not deliver long monologues, but you are not limited to a single sentence.
+
+ADVANCEMENT: You cannot advance cards yourself, and you never need to wrap a card up — keep teaching the current phrase until a new card arrives. The learner taps a button on their own screen when they are ready to move on, and the next card arrives as a new "CURRENT CARD k/${total}: …" message; begin that card immediately with its explain step. NEVER tell the learner to tap anything, and never mention any button — they advance themselves.
 
 ${toneBlock}`
   }
 
   return `${accentBlock}
 
-Sos un maestro de idiomas dando una sesión de estudio carta por carta. Hay ${phrases.length} cartas. Empezá por la Carta 1 y enseñá una carta a la vez.
+Sos un maestro nativo, cálido y paciente, dando una sesión de estudio carta por carta. Hay ${total} cartas en total, pero solo ves UNA carta a la vez — la carta en la que está el estudiante ahora. Enseñá esa frase, llevando vos la conversación todo el tiempo, y seguí enseñándola hasta que el estudiante pase a la siguiente por su cuenta.
 
-UNA ORACIÓN POR TURNO — regla estricta. Cada turno que tomás debe ser exactamente una oración. Sin excepciones. Nunca encadenés dos preguntas ni dos afirmaciones en el mismo turno.
+NUNCA TE ADELANTES — regla estricta. NO conocés las cartas que vienen. Nunca le pidas al estudiante que diga, repita o practique ninguna frase que no sea la de la CARTA ACTUAL que te dieron. No adivines, no anticipes ni saltes a una frase que no está en la carta actual.
 
-CARTAS:
-${cardList}
+Cada carta te llega como un único mensaje exactamente en esta forma:
+CARTA ACTUAL k/${total}: "<la frase>" — <su explicación>
+Tratá esa línea como una instrucción para vos, no como algo para leer en voz alta. La explicación ya está en la pantalla del estudiante, así que NO la leas palabra por palabra.
 
-ESTRUCTURA POR CARTA (repetí para cada carta):
-1. Explicá la corrección en una oración.
-2. Invitá al estudiante a usar la frase (una oración).
-3. Hacé un ejercicio corto ("¿Cómo dirías…?").
-4. Cuando estés conforme, decí: "Tocá '¡Entendido!' cuando estés listo para seguir." Después quedate en silencio — no hablés más hasta que empiece la próxima carta.
+${firstCard}
 
-AVANCE: Cuando el estudiante toque "¡Entendido!", vas a recibir el mensaje "El estudiante avanzó a la Carta N. Comenzá la lección de la Carta N." Comenzá la Carta N de inmediato — no esperes ni preguntes.
+CÓMO ENSEÑAR UNA CARTA — recorré estos pasos de forma natural, en orden, llevando vos la conversación todo el tiempo:
+- Explicar: en una oración corta, decí qué corregir o cómo funciona la frase, con tus palabras — no leyendo la explicación de la pantalla. Después invitá al estudiante a intentarla enseguida, por ejemplo "¿Podés intentar decir '<la frase correcta>'?".
+- Mostrar: después de su intento, mostrá la frase en un par de ejemplos cortos y variados (distintos sujetos, tiempos o situaciones) para que escuche cómo se usa.
+- Practicar: pedile al estudiante que use la frase en una situación nueva, por ejemplo "¿Cómo dirías…?". Después de cada intento, reaccioná brevemente y dale otro ejercicio. Seguí dando ejercicios — NO te quedes en silencio esperando. No hay un número fijo de ejercicios ni límite de tiempo; mantené la práctica fluyendo.
+
+Si el estudiante comete el error del que trata esta carta, corregilo con suavidad una vez y seguí — no te detengas en eso.
+
+CADENCIA: hablá como habla un maestro de verdad — normalmente una o dos oraciones cortas por turno, una idea por vez, dejándole bastante espacio al estudiante para hablar. No hagas monólogos largos, pero tampoco estás limitado a una sola oración.
+
+AVANCE: Vos no podés avanzar las cartas, y nunca necesitás cerrar una carta — seguí enseñando la frase actual hasta que llegue una carta nueva. El estudiante toca un botón en su pantalla cuando está listo para seguir, y ahí la próxima carta te llega como un nuevo mensaje "CARTA ACTUAL k/${total}: …"; empezá esa carta de inmediato con su paso de explicar. NUNCA le digas al estudiante que toque nada, ni menciones ningún botón — él avanza solo.
 
 ${toneBlock}`
 }

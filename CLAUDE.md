@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to their Study queue. Multi-user with Supabase Auth (email magic link) and an email allowlist.
+A Next.js web app for analysing recorded Spanish (Argentinian/Rioplatense) conversations. Upload audio → AssemblyAI transcribes and diarizes → Claude annotates the user's speech turns → user saves corrections to their Vocabulary. Multi-user with Supabase Auth (email magic link) and an email allowlist.
 
-**Naming**: The user-facing surface for saved corrections is **Study** (nav label, methodology eyebrow). Component names (`WriteSheet`, `WriteList`, `WriteClient`) and the route (`/write`) are internal — kept stable, not renamed. The DB table and API path are `practice_items` / `/api/practice-items`. When you see `practice_items` in code, think "the data backing the Study surface". `written_down` is the DB column for the Studied state — not renamed.
+**Naming**: The user-facing surface for saved corrections is **Vocabulary** (nav label + page H1), a cross-session repository at `/vocabulary` (`VocabularyClient` → `VocabularyList`, grouping saved items by Session). `/refine` redirects to `/vocabulary`; the older `/write` route is gone. **Study** is a different concept — the voice study session (the act), launched from the session page, not a nav tab. Internal names are kept stable: component names `WriteSheet` / `WriteList` (the row/sheet primitives `VocabularyList` wraps), the DB table + API path `practice_items` / `/api/practice-items`, and the `written_down` column (the Studied done-state). When you see `practice_items` in code, think "the data backing the Vocabulary surface". i18n keeps the internal `write*` / `writeList*` / `writeSheet*` key namespaces; only the visible copy says "Vocabulary".
 
 ## Tech Stack
 
@@ -49,7 +49,7 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-
 
 - **Server-rendered pages, client islands**: RSC pages fetch data via `lib/loaders.ts` then hand to one client island. Home (`/`) is auth-only RSC, no DB load. New pages: put SQL in `lib/loaders.ts` so API route and RSC share one query.
 
-- **Practise-as-home + methodology vocabulary**: Methodology is **Practise → Review → Study**. `/` = Practise (mode picker), `/review` = Review inbox, `/write` = Study (URL kept for stability). `<MethodologyEyebrow>` renders numbered step rail on all three surfaces. No `/practice` route — voice session mounts in place on `/`.
+- **Practise-as-home + nav surfaces**: The learning loop is **Practise → Review → Study** (Study = the voice study session, launched from the session page — not a nav tab). The three nav tabs are `/` = Practise (mode picker), `/review` = Review inbox, `/vocabulary` = Vocabulary (the saved-corrections repository — a reference surface, not the loop's Study step). The `<MethodologyEyebrow>` step rail was removed (ADR 0011). No `/practice` route — voice session mounts in place on `/`.
 
 - **Auth header passthrough**: `middleware.ts` is the single trust boundary — calls `supabase.auth.getUser()` once, forwards identity via `x-cc-user-id` / `x-cc-user-email` / `x-cc-user-target-language`. `getAuthenticatedUser()` reads headers (zero network calls), wrapped in React `cache()`. Middleware strips incoming `x-cc-*` headers before setting its own.
 
@@ -89,9 +89,9 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-
 
 - **Persona system for call mode** (`lib/persona.ts`): JS pre-picks name/voice/gender/age axes via `Math.random()` — Claude (Haiku) writes opener + system addendum only. Voice gender is a HARD constraint; age is SOFT. `VOICE_CATALOG` is the curated voice list — extend it there.
 
-- **Study page = Study queue ↔ Studied archive** (`/write`): Defaults to `!written_down` (pending queue). Studied archive behind footer pill (`<ArchiveFooterLink>`), visible only when `writtenCount > 0`. Trailing tap on rows marks item Studied without opening sheet (`written_down = true`). Delete is optimistic with 5s undo — `DELETE` fires after timer expires.
+- **Vocabulary page** (`/vocabulary`): `VocabularyClient` → `VocabularyList` groups saved items by Session (`session_title` heading per group). Within each group `WriteList` renders the pending items (`!written_down`) followed by an inline "Studied" archive divider (`written_down`, dimmed). Mark-studied / move-back-to-Vocabulary / delete live in the per-row ⋮ menu (`RowActionsMenu`). Delete is optimistic with 5s undo — `DELETE` fires after the timer expires.
 
-- **Study row content priority** (`components/WriteList.tsx`): (1) `<FlashcardRow>` when both flashcard fields present; (2) `<CorrectionInContext>` for older items without flashcard fields; (3) `<StrikeOriginal>` fallback. Sheet body always uses `<HushStack>`.
+- **Vocabulary row content priority** (`components/WriteList.tsx`): (1) `<FlashcardRow>` when both flashcard fields present; (2) `<CorrectionInContext>` for older items without flashcard fields; (3) `<StrikeOriginal>` fallback. Sheet body always uses `<HushStack>`.
 
 - **`<FlashcardRow>`** (`components/FlashcardRow.tsx`): `flashcard_front` = italic native sentence (top); `flashcard_back` = Source Serif 4 target sentence (bottom), bracketed phrase tinted. Front = what user reads to orient; back = phrase being learned. Parsed via `lib/flashcard.ts` (`parseFlashcard`).
 
@@ -138,11 +138,11 @@ Re-analysis via `POST /api/sessions/:id/analyse` deletes all annotations and re-
 
 - **Pipeline writes to `annotations` only.** `practice_items` created by user clicking "Add to practice" — never auto-created.
 - **`POST /api/practice-items` does bare `insert(body)`** — new fields stored automatically; no route change needed.
-- **`GET /api/practice-items` and `/write` RSC both call `loadPracticeItems()`** in `lib/loaders.ts`. Add columns to the `select` string there, not in the API route.
+- **`GET /api/practice-items` and the `/vocabulary` RSC both call `loadPracticeItems()`** in `lib/loaders.ts`. Add columns to the `select` string there, not in the API route.
 - **`router.back()` unreliable in PWA/Safari** when `history.length === 1`. Use `<Link href="/">`.
 - **`react-swipeable` installed** — `import { useSwipeable }` directly.
 - **Navigation in two places**: `NavDrawer` + `BottomNav`, both from `NAV_TABS` in `nav-tabs.tsx`.
-- **`written_down` on `practice_items`**: Study queue = `!written_down`; Studied archive = `written_down`. View state is client-only.
+- **`written_down` on `practice_items`**: Vocabulary pending = `!written_down`; Studied archive = `written_down`. View state is client-only.
 - **`ts-fsrs` installed but unused**: FSRS columns reserved for future SRS — do not remove.
 
 ## Performance Patterns

@@ -1,6 +1,6 @@
 // __tests__/lib/voice-agent.test.ts
 import { describe, it, expect } from 'vitest'
-import { buildPracticeSystemPrompt, buildResumeSystemPrompt, buildStudySystemPrompt } from '@/lib/voice-agent'
+import { buildPracticeSystemPrompt, buildResumeSystemPrompt, buildStudySystemPrompt, formatStudyCard, formatStudyCardAdvance } from '@/lib/voice-agent'
 import type { TranscriptTurn } from '@/lib/types'
 import type { LessonPhrase } from '@/lib/voice-agent'
 
@@ -83,22 +83,43 @@ describe('buildStudySystemPrompt', () => {
     { correction: 'dale, vamos', explanation: 'Casual agreement / let\'s go', flashcard_front: null, flashcard_back: null },
   ]
 
-  it('includes all phrase corrections numbered in the prompt', () => {
+  it('shows only the current (first) card, never future cards — the read-ahead guard', () => {
+    // Root cause of the "coach drills phrases I'm not reviewing yet" bug: the
+    // prompt used to embed the entire deck, so the model read ahead. The fix
+    // delivers one card at a time. Card 1 must be present; later cards must NOT
+    // appear anywhere in the prompt.
     const prompt = buildStudySystemPrompt(phrases, 'es-AR')
     expect(prompt).toContain('me resulta difícil')
-    expect(prompt).toContain('dale, vamos')
-    expect(prompt).toMatch(/1\.\s*"?me resulta difícil/i)
-    expect(prompt).toMatch(/2\.\s*"?dale, vamos/i)
+    expect(prompt).not.toContain('dale, vamos')
   })
 
-  it('instructs the teacher to start on Card 1', () => {
+  it('embeds the first card using the CURRENT CARD delivery format', () => {
     const prompt = buildStudySystemPrompt(phrases, 'es-AR')
-    expect(prompt).toMatch(/carta 1|card 1/i)
+    expect(prompt).toContain(formatStudyCard(phrases[0], 0, phrases.length, 'es-AR'))
+    expect(prompt).toMatch(/CARTA ACTUAL 1\/2/)
   })
 
-  it('describes the advancement message format', () => {
+  it('reports the total card count without listing the cards', () => {
     const prompt = buildStudySystemPrompt(phrases, 'es-AR')
-    expect(prompt).toMatch(/avanzó|advance|siguiente/i)
+    expect(prompt).toMatch(/2 cartas|2 cards/i)
+  })
+
+  it('explicitly forbids looking ahead to phrases not yet delivered', () => {
+    // The structural guarantee (one card in the prompt) is reinforced by an
+    // explicit no-look-ahead instruction in both languages.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/NEVER LOOK AHEAD/i)
+    expect(en).toMatch(/do not know the upcoming cards/i)
+    expect(es).toMatch(/NUNCA TE ADELANTES/i)
+    expect(es).toMatch(/no conocés las cartas que vienen/i)
+  })
+
+  it('describes per-card advancement via a new CURRENT CARD message', () => {
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/the next card arrives/i)
+    expect(es).toMatch(/la próxima carta te llega/i)
   })
 
   it('keeps the Rioplatense accent guard for es-AR', () => {
@@ -116,10 +137,133 @@ describe('buildStudySystemPrompt', () => {
     expect(prompt).not.toMatch(/rioplatense|porteño/i)
   })
 
-  it('does not include set_phase tool instructions', () => {
+  it('does not include set_phase tool instructions or numbered Phase labels', () => {
+    // The phase machine (set_phase tool + the deleted phase-rail UI) is gone.
+    // Phases are internal prose; no tool wiring, and no "Phase N" headings.
     const prompt = buildStudySystemPrompt(phrases, 'es-AR')
     expect(prompt).not.toContain('set_phase')
     expect(prompt).not.toMatch(/Phase 1|Phase 2|Phase 3|Phase 4/i)
+  })
+
+  it('teaches a card through an explain → model → drill flow', () => {
+    // Each card is a self-contained mini-lesson. The three steps must be
+    // named so the coach actively leads rather than waiting in silence.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/Explain:/)
+    expect(en).toMatch(/Model:/)
+    expect(en).toMatch(/Drill:/)
+    expect(es).toMatch(/Explicar:/)
+    expect(es).toMatch(/Mostrar:/)
+    expect(es).toMatch(/Practicar:/)
+  })
+
+  it('has no open-ended free-conversation phase', () => {
+    // Free chat belongs to Talk freely, not Study. The old free_use phase is
+    // removed so a card never drifts into unscripted conversation.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).not.toMatch(/free.use|free conversation|any topic/i)
+    expect(es).not.toMatch(/free.use|conversación libre|cualquier tema/i)
+  })
+
+  it('keeps the coach drilling instead of going silent, with no time limit', () => {
+    // The original complaint: the coach went silent after one drill, leaving
+    // dead air. The coach must keep offering drills and never stop on a timer.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/do NOT go silent/i)
+    expect(en).toMatch(/no.*time limit/i)
+    expect(es).toMatch(/NO te quedes en silencio/i)
+    expect(es).toMatch(/límite de tiempo/i)
+  })
+
+  it('uses a natural cadence rather than a strict one-sentence-per-turn rule', () => {
+    // Bringing back the lesson prompt drops the rigid one-sentence cap that
+    // made the coach feel stilted; turns are short but not artificially capped.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).not.toMatch(/ONE SENTENCE PER TURN/i)
+    expect(en).toMatch(/not limited to a single sentence/i)
+    expect(es).not.toMatch(/UNA ORACIÓN POR TURNO/i)
+    expect(es).toMatch(/limitado a una sola oración/i)
+  })
+
+  it('invites the learner with the corrected phrase, in the coach\'s own words', () => {
+    // The invite embeds the phrase in a question; the coach explains in its
+    // own words and never reads the on-screen explanation verbatim.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/Can you try saying/i)
+    expect(en).toMatch(/in your own words/i)
+    expect(en).toMatch(/already on the learner's screen/i)
+    expect(es).toMatch(/¿Podés intentar decir/i)
+    expect(es).toMatch(/con tus palabras/i)
+    expect(es).toMatch(/ya está en la pantalla/i)
+  })
+
+  it('never voices a tap-Got-it cue and forbids mentioning the button', () => {
+    // The button is always visible; the learner advances themselves. The coach
+    // must never tell them to tap anything or mention any button.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/tell the learner to tap/i)
+    expect(en).toMatch(/mention any button/i)
+    expect(en).not.toMatch(/Tap 'Got it' when you're ready/i)
+    expect(es).toMatch(/Nunca le digas al estudiante que toque/i)
+    expect(es).toMatch(/ningún botón/i)
+    expect(es).not.toMatch(/Tocá '¡Entendido!' cuando estés listo/i)
+  })
+})
+
+describe('formatStudyCard', () => {
+  const phrase: LessonPhrase = {
+    correction: 'dale, vamos',
+    explanation: 'Casual agreement',
+    flashcard_front: null,
+    flashcard_back: null,
+  }
+
+  it('renders a 1-based position out of the total with the phrase and explanation', () => {
+    expect(formatStudyCard(phrase, 1, 3, 'en-NZ')).toBe('CURRENT CARD 2/3: "dale, vamos" — Casual agreement')
+  })
+
+  it('localizes the card label for es-AR', () => {
+    expect(formatStudyCard(phrase, 1, 3, 'es-AR')).toBe('CARTA ACTUAL 2/3: "dale, vamos" — Casual agreement')
+  })
+
+  it('produces the same shape the prompt embeds for card 1', () => {
+    // The prompt and the on-advance delivery must agree on the cue format so
+    // the model treats card 1 and card N identically.
+    const prompt = buildStudySystemPrompt([phrase], 'en-NZ')
+    expect(prompt).toContain(formatStudyCard(phrase, 0, 1, 'en-NZ'))
+  })
+})
+
+describe('formatStudyCardAdvance', () => {
+  const phrase: LessonPhrase = {
+    correction: 'dale, vamos',
+    explanation: 'Casual agreement',
+    flashcard_front: null,
+    flashcard_back: null,
+  }
+
+  it('carries the CURRENT CARD delivery line for the new phrase', () => {
+    const msg = formatStudyCardAdvance(phrase, 1, 3, 'en-NZ')
+    expect(msg).toContain(formatStudyCard(phrase, 1, 3, 'en-NZ'))
+  })
+
+  it('appends a reminder to re-run the explain → model → drill flow', () => {
+    const en = formatStudyCardAdvance(phrase, 1, 3, 'en-NZ')
+    const es = formatStudyCardAdvance(phrase, 1, 3, 'es-AR')
+    expect(en).toMatch(/explain it, model a couple of examples, then keep drilling/i)
+    expect(es).toMatch(/explicala, mostrá un par de ejemplos/i)
+  })
+
+  it('does not leak earlier or later cards — only the delivered phrase', () => {
+    const msg = formatStudyCardAdvance(phrase, 1, 3, 'en-NZ')
+    expect(msg).toContain('dale, vamos')
+    expect(msg).toContain('2/3')
   })
 })
 

@@ -5,6 +5,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import {
   connect,
   buildStudySystemPrompt,
+  formatStudyCardAdvance,
   FLASH_LIVE_MODEL,
   type LessonPhrase,
 } from '@/lib/voice-agent'
@@ -212,10 +213,11 @@ export function LessonClient({ phrases, onExit }: Props) {
     const nextIndex = currentCardIndex + 1
     if (nextIndex < phrases.length) {
       setCurrentCardIndex(nextIndex)
-      const msg = targetLanguage === 'es-AR'
-        ? `El estudiante avanzó a la Carta ${nextIndex + 1}. Comenzá la lección de la Carta ${nextIndex + 1}.`
-        : `The student advanced to Card ${nextIndex + 1}. Begin the lesson for Card ${nextIndex + 1}.`
-      agentRef.current?.sendText(msg)
+      // Deliver the next card's content plus a reminder to re-run the
+      // explain → model → drill flow — never a bare index. The model is only
+      // ever shown one card at a time so it can't read ahead and drill
+      // phrases the learner hasn't reached yet.
+      agentRef.current?.sendText(formatStudyCardAdvance(phrases[nextIndex], nextIndex, phrases.length, targetLanguage))
     } else {
       onExitRef.current()
     }
@@ -346,9 +348,9 @@ export function LessonClient({ phrases, onExit }: Props) {
         <p className="text-xs text-text-tertiary uppercase tracking-wide select-none">
           {t('lesson.cardOf', { n: currentCardIndex + 1, total: phrases.length })}
         </p>
-        <p className="mt-2 text-2xl font-serif text-accent-primary leading-snug">
+        <h2 className="mt-2 text-2xl font-serif text-accent-primary leading-snug">
           {card.correction}
-        </p>
+        </h2>
         <p className="mt-1 text-sm text-text-secondary leading-relaxed">
           {card.explanation}
         </p>
@@ -357,7 +359,7 @@ export function LessonClient({ phrases, onExit }: Props) {
           onClick={handleAdvanceCard}
           disabled={lessonState !== 'active'}
           aria-label={t('lesson.gotItAria')}
-          className="mt-3 px-4 py-2 text-sm font-medium rounded-xl bg-accent-primary text-white disabled:opacity-40 disabled:cursor-not-allowed"
+          className="mt-3 inline-flex min-h-11 items-center px-4 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent transition-colors hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {t('lesson.gotIt')} →
         </button>
@@ -366,7 +368,7 @@ export function LessonClient({ phrases, onExit }: Props) {
       {/* ── Transcript ──────────────────────────────────────────────────── */}
       <div
         ref={chatScrollRef}
-        className="flex-1 overflow-y-auto max-h-[35vh] min-h-0 px-4 pt-3 pb-3 flex flex-col gap-3"
+        className="flex-1 overflow-y-auto max-h-[35dvh] min-h-0 px-4 pt-3 pb-3 flex flex-col gap-3"
         role="log"
         aria-live="polite"
         aria-atomic="false"
@@ -398,7 +400,7 @@ export function LessonClient({ phrases, onExit }: Props) {
                 `}
               >
                 {turn.pending && !turn.text.trim() ? (
-                  <TypingDots />
+                  <TypingDots label={t('lesson.transcribing')} />
                 ) : (
                   turn.text
                 )}
@@ -427,14 +429,14 @@ export function LessonClient({ phrases, onExit }: Props) {
                 group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
                 group-disabled:opacity-40
                 ${muted
-                  ? 'bg-amber-500/15 text-amber-600'
+                  ? 'bg-warning-surface text-warning'
                   : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
               `}
             >
               <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
             </div>
             <span
-              className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-amber-600' : 'text-text-secondary'}`}
+              className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-warning' : 'text-text-secondary'}`}
             >
               {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
             </span>
@@ -458,7 +460,7 @@ export function LessonClient({ phrases, onExit }: Props) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
                     className={`text-xs font-medium select-none ${
-                      isEnding ? 'text-text-tertiary' : 'text-amber-600'
+                      isEnding ? 'text-text-tertiary' : 'text-warning'
                     }`}
                   >
                     {statusLabel}
@@ -479,16 +481,16 @@ export function LessonClient({ phrases, onExit }: Props) {
             <div
               className="
                 w-14 h-14 rounded-full flex items-center justify-center
-                bg-rose-500 text-white
-                group-hover:bg-rose-600 group-active:bg-rose-700
+                bg-danger-fill text-on-accent
+                group-hover:bg-danger-fill-hover group-active:bg-danger-fill-active
                 group-disabled:opacity-40
-                group-focus-visible:ring-2 group-focus-visible:ring-rose-500 group-focus-visible:ring-offset-2
+                group-focus-visible:ring-2 group-focus-visible:ring-danger-fill group-focus-visible:ring-offset-2
                 transition-colors duration-150
               "
             >
               <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
             </div>
-            <span className="text-xs font-medium text-rose-600 select-none">
+            <span className="text-xs font-medium text-danger select-none">
               {t('practice.end')}
             </span>
           </button>
@@ -500,9 +502,9 @@ export function LessonClient({ phrases, onExit }: Props) {
   )
 }
 
-function TypingDots() {
+function TypingDots({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1" aria-label="Transcribing">
+    <span className="inline-flex items-center gap-1" aria-label={label}>
       <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:0ms]" />
       <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:150ms]" />
       <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:300ms]" />

@@ -32,13 +32,13 @@ describe('t()', () => {
   })
 })
 
-describe('nav.* renamed for the three-pillar methodology', () => {
-  // Speak → Review → Refine → Settings. History of renames:
+describe('nav.* renamed for the three nav tabs', () => {
+  // Speak → Review → Vocabulary → Settings. History of renames:
   // `nav.recordings` → `nav.review`; `nav.write` → `nav.study` →
-  // `nav.refine`; `nav.practise` → `nav.speak`. Old keys deliberately
-  // removed so a stale reference surfaces as the literal key in dev.
-  it('nav.speak + nav.review + nav.refine + nav.settings are the four tabs', () => {
-    for (const key of ['nav.speak', 'nav.review', 'nav.refine', 'nav.settings']) {
+  // `nav.refine` → `nav.vocabulary`; `nav.practise` → `nav.speak`. Old keys
+  // deliberately removed so a stale reference surfaces as the literal key.
+  it('nav.speak + nav.review + nav.vocabulary + nav.settings are the four tabs', () => {
+    for (const key of ['nav.speak', 'nav.review', 'nav.vocabulary', 'nav.settings']) {
       expect(t(key, 'en')).not.toBe(key)
       expect(t(key, 'es')).not.toBe(key)
     }
@@ -49,14 +49,19 @@ describe('nav.* renamed for the three-pillar methodology', () => {
     expect(t('nav.recordings', 'es')).toBe('nav.recordings')
   })
 
-  it('nav.write is retired (use nav.refine for the corrections queue)', () => {
+  it('nav.write is retired (use nav.vocabulary for the saved-corrections surface)', () => {
     expect(t('nav.write', 'en')).toBe('nav.write')
     expect(t('nav.write', 'es')).toBe('nav.write')
   })
 
-  it('nav.study is retired (use nav.refine for the corrections queue)', () => {
+  it('nav.study is retired (use nav.vocabulary for the saved-corrections surface)', () => {
     expect(t('nav.study', 'en')).toBe('nav.study')
     expect(t('nav.study', 'es')).toBe('nav.study')
+  })
+
+  it('nav.refine is retired (use nav.vocabulary for the saved-corrections surface)', () => {
+    expect(t('nav.refine', 'en')).toBe('nav.refine')
+    expect(t('nav.refine', 'es')).toBe('nav.refine')
   })
 
   it('nav.practise is retired (use nav.speak for the home tab)', () => {
@@ -119,11 +124,11 @@ describe('home.* methodology eyebrow + three doors', () => {
 
 describe('annotation action i18n keys', () => {
   it('annotation.savePrimary exists in both langs', () => {
-    expect(t('annotation.savePrimary', 'en')).toBe('Save to my Study list')
-    expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi lista de Estudiar')
+    expect(t('annotation.savePrimary', 'en')).toBe('Save to my Vocabulary')
+    expect(t('annotation.savePrimary', 'es')).toBe('Guardar en mi Vocabulario')
   })
   it('annotation.savedPrimary names the destination so the button itself is the receipt', () => {
-    expect(t('annotation.savedPrimary', 'en')).toMatch(/saved to (my )?study list/i)
+    expect(t('annotation.savedPrimary', 'en')).toMatch(/saved to (my )?vocabulary/i)
     expect(t('annotation.savedPrimary', 'es')).toMatch(/guardada/i)
   })
   it('annotation.notUseful is the quiet secondary action label', () => {
@@ -161,10 +166,13 @@ describe('annotation action i18n keys', () => {
     expect(t('annotation.stateSaved', 'en')).toBe('annotation.stateSaved')
     expect(t('annotation.stateUnhelpful', 'en')).toBe('annotation.stateUnhelpful')
   })
-  it('writeList.tabWrite reads "Study" in en (matches the page name + nav label)', () => {
+  // Legacy keys: WriteList no longer renders tabs (only a "Studied" archive
+  // divider). Kept as-is — unrendered, so out of scope for the Vocabulary
+  // wording pass.
+  it('writeList.tabWrite still reads "Study" in en (dead key, unrendered)', () => {
     expect(t('writeList.tabWrite', 'en')).toBe('Study')
   })
-  it('writeList.tabWritten reads "Written" in en (Study \u2192 Written symmetry)', () => {
+  it('writeList.tabWritten still reads "Written" in en (dead key, unrendered)', () => {
     expect(t('writeList.tabWritten', 'en')).toBe('Written')
   })
   it('writeList.tabWritten exists in es', () => {
@@ -182,8 +190,8 @@ describe('annotation action i18n keys', () => {
     expect(t('writeSheet.moveBackBusy', 'es')).not.toBe('writeSheet.moveBackBusy')
   })
   it('writeSheet.moveBack now spells out the destination', () => {
-    expect(t('writeSheet.moveBack', 'en')).toMatch(/study list/i)
-    expect(t('writeSheet.moveBack', 'es')).toMatch(/estudiar/i)
+    expect(t('writeSheet.moveBack', 'en')).toMatch(/vocabulary/i)
+    expect(t('writeSheet.moveBack', 'es')).toMatch(/vocabulario/i)
   })
   it('writeSheet overflow + delete copy exists in both langs', () => {
     expect(t('writeSheet.moreActionsAria', 'en')).not.toBe('writeSheet.moreActionsAria')
@@ -211,9 +219,9 @@ describe('annotation action i18n keys', () => {
     expect(t('writeList.emptyWriteCaption', 'es')).not.toBe('writeList.emptyWriteCaption')
     expect(t('writeList.emptyWriteCta', 'es')).not.toBe('writeList.emptyWriteCta')
   })
-  it('nav.refine replaced nav.study for the corrections queue tab', () => {
-    expect(t('nav.refine', 'en')).toBe('Refine')
-    expect(t('nav.refine', 'es')).toBe('Refinar')
+  it('nav.vocabulary replaced nav.refine for the saved-corrections tab', () => {
+    expect(t('nav.vocabulary', 'en')).toBe('Vocabulary')
+    expect(t('nav.vocabulary', 'es')).toBe('Vocabulario')
   })
   it('practice.title and practiceList.* keys are retired (fall back to key)', () => {
     expect(t('practice.title', 'en')).toBe('practice.title')

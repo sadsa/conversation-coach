@@ -66,15 +66,18 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Navigation
     //
-    // Labels match the three pillars of the methodology — Speak → Review →
-    // Refine → Settings. `nav.recordings` (was "Conversations") was retired
-    // when the home dashboard moved to its own /review route; existing
-    // imports were swept over to `nav.review`. `nav.write` → `nav.study` →
-    // `nav.refine`; `nav.practise` → `nav.speak`. Old keys deliberately
-    // removed so a stale reference surfaces as the literal key in dev.
+    // Three nav tabs: Speak → Review → Vocabulary (+ Settings in the account
+    // menu). The third tab is the Vocabulary reference surface (the saved-
+    // corrections repository at /vocabulary) — NOT a methodology pillar. The
+    // learning loop is Practise → Review → Study (the voice session); Study
+    // is launched from the session page, not a nav tab. Rename history:
+    // `nav.recordings` (was "Conversations") → `nav.review`; `nav.write` →
+    // `nav.study` → `nav.refine` → `nav.vocabulary`; `nav.practise` →
+    // `nav.speak`. Old keys deliberately removed so a stale reference
+    // surfaces as the literal key in dev.
     'nav.speak': 'Speak',
     'nav.review': 'Review',
-    'nav.refine': 'Refine',
+    'nav.vocabulary': 'Vocabulary',
     'nav.settings': 'Settings',
     'nav.skipToContent': 'Skip to content',
     'nav.back': 'Back',
@@ -429,7 +432,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Delete',
     'session.deleteTitle': 'Delete conversation?',
-    'session.deleteWarning': 'will be permanently deleted, along with all its corrections and any you\'ve saved to your Study list.',
+    'session.deleteWarning': 'will be permanently deleted, along with all its corrections and any you\'ve saved to your Vocabulary.',
     'session.deleteButton': 'Delete',
     'session.cancelButton': 'Cancel',
     'session.noSessions': 'No conversations yet.',
@@ -539,8 +542,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Review completion screen
     'review.completion.title': 'Review done',
-    'review.completion.phrasesSaved': '{n} phrase saved in Study',
-    'review.completion.phrasesSaved_plural': '{n} phrases saved in Study',
+    'review.completion.phrasesSaved': '{n} phrase saved in Vocabulary',
+    'review.completion.phrasesSaved_plural': '{n} phrases saved in Vocabulary',
     'review.completion.nothingSaved': 'Nothing saved this time.',
     'review.completion.drillPhrase': 'Drill this phrase',
     'review.completion.backToReviews': 'Back to reviews',
@@ -592,11 +595,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // the URL keeps `/write` for stability per CLAUDE.md.
     'annotation.ignore': 'Ignore',
     'annotation.ignoreAria': 'Skip this correction and move to the next',
-    'annotation.savePrimary': 'Save to my Study list',
+    'annotation.savePrimary': 'Save to my Vocabulary',
     'annotation.savingPrimary': 'Saving…',
-    'annotation.savedPrimary': 'Saved to my Study list',
-    'annotation.savePrimaryAria': 'Save this correction to your Study list',
-    'annotation.savedPrimaryAria': 'Remove this correction from your Study list',
+    'annotation.savedPrimary': 'Saved to my Vocabulary',
+    'annotation.savePrimaryAria': 'Save this correction to your Vocabulary',
+    'annotation.savedPrimaryAria': 'Remove this correction from your Vocabulary',
     // Quiet secondary "this correction wasn't useful" affordance. Visible
     // labels are short (two words / one word) because the affordance is a
     // quiet ghost button sitting under a full-width primary — the
@@ -627,19 +630,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} corrections to study',
     'home.toWriteDownOne': '1 correction to study',
 
-    // Study page (the queue of saved corrections waiting to be studied)
+    // Vocabulary page (the cross-session repository of all saved corrections)
     //
-    // Surface name is "Study" — the methodology pillar the home redesign
-    // established and the bottom-nav matches. The route stays `/write`
-    // for URL stability per CLAUDE.md; only the visible label shifts.
-    // Action verbs use "study" / "studied" — method-agnostic, not tied
-    // to physical writing. DB column stays `written_down` (not renamed).
-    'write.title': 'Study',
-    // Subtitle stays visible above the queue (not only when empty) — a
-    // calm one-liner that invites the action without repeating the H1.
-    'write.subtitle': 'Pick up a saved correction whenever you\'re ready.',
-    'write.loading': 'Loading…',
-    'write.error': 'Error: {msg}',
+    // Surface name is "Vocabulary" (route `/vocabulary`) — a reference
+    // surface listing every saved correction grouped by Session, not a task
+    // queue. "Study" is reserved for the voice study session (the act).
+    // Internal namespaces (writeList*/writeSheet*, /api/practice-items,
+    // `written_down`) stay stable per CLAUDE.md; only the visible copy moves.
+    'vocabulary.title': 'Vocabulary',
+    // Subtitle (not currently rendered, kept for reuse) — a calm one-liner
+    // framing the page as somewhere to revisit saved phrases.
+    'vocabulary.subtitle': 'Every phrase you\'ve saved, in one place.',
+    'vocabulary.loading': 'Loading…',
+    'vocabulary.error': 'Error: {msg}',
 
     // Study list — inline studied section (bottom of same list, dimmed).
     'writeList.tabWrite': 'Study',
@@ -658,7 +661,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Row context menu (⋮)
     'writeList.menuAria': 'More actions',
     'writeList.menuMarkStudied': 'Mark as studied',
-    'writeList.menuMoveBack': 'Move back to Study list',
+    'writeList.menuMoveBack': 'Move back to Vocabulary',
     'writeList.menuDelete': 'Delete',
 
     // Study review sheet (docked)
@@ -669,9 +672,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.markWritten': 'Mark as studied',
     'writeSheet.markWrittenBusy': 'Marking…',
     'writeSheet.markWrittenAria': 'Mark this correction as studied',
-    'writeSheet.moveBack': 'Move back to Study list',
+    'writeSheet.moveBack': 'Move back to Vocabulary',
     'writeSheet.moveBackBusy': 'Moving back…',
-    'writeSheet.moveBackAria': 'Move this correction back to the Study list',
+    'writeSheet.moveBackAria': 'Move this correction back to your Vocabulary',
     'writeSheet.practise': 'Drill this phrase',
     // Overflow menu — Delete is undoable for 5 seconds via the toast, so the
     // copy is reassuring rather than threatening.
@@ -756,6 +759,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.cardOf': 'Card {n} of {total}',
     'lesson.gotIt': 'Got it',
     'lesson.gotItAria': 'Mark this phrase as understood and move to the next',
+    'lesson.transcribing': 'Transcribing',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -779,13 +783,16 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Navigation
     //
-    // Labels coinciden con los tres pilares: Hablar → Revisar → Refinar
-    // → Configuración. `nav.recordings` (antes "Conversaciones") se retiró
-    // cuando el dashboard se mudó a /review; `nav.write` → `nav.study` →
-    // `nav.refine`; `nav.practise` → `nav.speak`.
+    // Tres pestañas: Hablar → Revisar → Vocabulario (+ Configuración en el
+    // menú de cuenta). La tercera pestaña es la superficie de Vocabulario
+    // (el repositorio de correcciones guardadas en /vocabulary), no un pilar
+    // de la metodología. El bucle es Practicar → Revisar → Estudiar (la
+    // sesión de voz). Historial: `nav.recordings` → `nav.review`;
+    // `nav.write` → `nav.study` → `nav.refine` → `nav.vocabulary`;
+    // `nav.practise` → `nav.speak`.
     'nav.speak': 'Hablar',
     'nav.review': 'Revisar',
-    'nav.refine': 'Refinar',
+    'nav.vocabulary': 'Vocabulario',
     'nav.settings': 'Configuración',
     'nav.skipToContent': 'Saltar al contenido',
     'nav.back': 'Atrás',
@@ -1048,7 +1055,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Session list
     'session.delete': 'Eliminar',
     'session.deleteTitle': '¿Eliminar conversación?',
-    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus correcciones y las que guardaste en tu lista de Estudiar.',
+    'session.deleteWarning': 'se eliminará permanentemente, junto con todas sus correcciones y las que guardaste en tu Vocabulario.',
     'session.deleteButton': 'Eliminar',
     'session.cancelButton': 'Cancelar',
     'session.noSessions': 'Todavía no hay conversaciones.',
@@ -1155,8 +1162,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Review completion screen
     'review.completion.title': 'Revisión completa',
-    'review.completion.phrasesSaved': '{n} frase guardada en Study',
-    'review.completion.phrasesSaved_plural': '{n} frases guardadas en Study',
+    'review.completion.phrasesSaved': '{n} frase guardada en Vocabulario',
+    'review.completion.phrasesSaved_plural': '{n} frases guardadas en Vocabulario',
     'review.completion.nothingSaved': 'Nada guardado esta vez.',
     'review.completion.drillPhrase': 'Practicar esta frase',
     'review.completion.backToReviews': 'Volver a revisiones',
@@ -1195,11 +1202,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // se mantiene por estabilidad según CLAUDE.md.
     'annotation.ignore': 'Ignorar',
     'annotation.ignoreAria': 'Saltear esta corrección y pasar a la siguiente',
-    'annotation.savePrimary': 'Guardar en mi lista de Estudiar',
+    'annotation.savePrimary': 'Guardar en mi Vocabulario',
     'annotation.savingPrimary': 'Guardando…',
-    'annotation.savedPrimary': 'Guardada en mi lista de Estudiar',
-    'annotation.savePrimaryAria': 'Guardar esta corrección en tu lista de Estudiar',
-    'annotation.savedPrimaryAria': 'Quitar esta corrección de tu lista de Estudiar',
+    'annotation.savedPrimary': 'Guardada en mi Vocabulario',
+    'annotation.savePrimaryAria': 'Guardar esta corrección en tu Vocabulario',
+    'annotation.savedPrimaryAria': 'Quitar esta corrección de tu Vocabulario',
     // Quiet secondary "this correction wasn't useful" affordance. Visible
     // labels are short — la explicación va en el `aria-label`.
     'annotation.moreActionsAria': 'Más acciones',
@@ -1230,19 +1237,19 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'home.toWriteDown': '{n} correcciones para estudiar',
     'home.toWriteDownOne': '1 corrección para estudiar',
 
-    // Página Estudiar (la cola de correcciones guardadas).
+    // Página Vocabulario (el repositorio de todas las correcciones guardadas).
     //
-    // El nombre de la superficie es "Estudiar" — el pilar de la
-    // metodología que estableció el rediseño de la home y que la nav
-    // inferior refleja. La ruta sigue siendo `/write` por estabilidad
-    // del URL (ver CLAUDE.md); solo cambia la etiqueta visible.
-    // Los verbos usan "estudiar" / "estudiado" — agnósticos al método.
-    'write.title': 'Estudiar',
-    // El subtítulo se queda visible sobre la cola (no solo cuando está
-    // vacía) — una línea calma que invita a la acción sin repetir el H1.
-    'write.subtitle': 'Tomá una corrección guardada cuando quieras.',
-    'write.loading': 'Cargando…',
-    'write.error': 'Error: {msg}',
+    // El nombre de la superficie es "Vocabulario" (ruta `/vocabulary`) — una
+    // superficie de referencia que lista cada corrección guardada agrupada
+    // por sesión, no una cola de tareas. "Estudiar" queda reservado para la
+    // sesión de voz (el acto). Los namespaces internos (writeList*/writeSheet*,
+    // /api/practice-items, `written_down`) se mantienen estables según
+    // CLAUDE.md; solo cambia el texto visible.
+    'vocabulary.title': 'Vocabulario',
+    // Subtítulo (no se renderiza por ahora, se conserva para reuso).
+    'vocabulary.subtitle': 'Todas las frases que guardaste, en un solo lugar.',
+    'vocabulary.loading': 'Cargando…',
+    'vocabulary.error': 'Error: {msg}',
 
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
     // principal, Escritos vive como sección inline atenuada al final de la lista).
@@ -1262,7 +1269,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Menú contextual de fila (⋮)
     'writeList.menuAria': 'Más acciones',
     'writeList.menuMarkStudied': 'Marcar como estudiado',
-    'writeList.menuMoveBack': 'Volver a la lista de Estudiar',
+    'writeList.menuMoveBack': 'Volver al Vocabulario',
     'writeList.menuDelete': 'Eliminar',
 
     // Write review sheet (docked)
@@ -1272,9 +1279,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeSheet.markWritten': 'Marcar como estudiado',
     'writeSheet.markWrittenBusy': 'Marcando…',
     'writeSheet.markWrittenAria': 'Marcar esta corrección como estudiada',
-    'writeSheet.moveBack': 'Volver a la lista de Estudiar',
+    'writeSheet.moveBack': 'Volver al Vocabulario',
     'writeSheet.moveBackBusy': 'Volviendo…',
-    'writeSheet.moveBackAria': 'Devolver esta corrección a la lista de Estudiar',
+    'writeSheet.moveBackAria': 'Devolver esta corrección a tu Vocabulario',
     'writeSheet.practise': 'Practicar esta frase',
     // Menú de acciones secundarias — Eliminar se puede deshacer 5 segundos
     'writeSheet.moreActionsAria': 'Más acciones',
@@ -1356,6 +1363,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.cardOf': 'Carta {n} de {total}',
     'lesson.gotIt': '¡Entendido!',
     'lesson.gotItAria': 'Marcar esta frase como entendida y avanzar',
+    'lesson.transcribing': 'Transcribiendo',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

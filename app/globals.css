@@ -18,6 +18,17 @@
     --color-error-bg: oklch(94% 0.04 25);
     --color-error-text: oklch(48% 0.18 25);
     --color-error-container-bg: oklch(96% 0.025 25);
+    /* Voice-control states (Lesson/Practice). Warning = mic-muted; danger =
+       end/hangup. Both tones are derived for WCAG AA: warning-text clears
+       4.5:1 on the page bg (raw amber-600 only managed ~3:1), and danger-text
+       is the deep error red used for the "End" label. danger-fill keeps white
+       icons above 3:1 for the round control tiles. */
+    --color-warning-bg: oklch(95% 0.06 75);
+    --color-warning-text: oklch(47% 0.13 70);
+    --color-danger-fill: oklch(58% 0.21 22);
+    --color-danger-fill-hover: oklch(52% 0.22 22);
+    --color-danger-fill-active: oklch(46% 0.22 22);
+    --color-danger-text: oklch(48% 0.18 25);
     --color-correction-text: oklch(48% 0.14 150);
     --color-chip-bg: oklch(94% 0.035 285);
     --color-chip-border: oklch(62% 0.16 285);
