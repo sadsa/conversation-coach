@@ -115,6 +115,27 @@ describe('buildStudySystemPrompt', () => {
     expect(es).toMatch(/no conocés las cartas que vienen/i)
   })
 
+  it('defines the session-start signal and forbids reading the delivery line aloud at the open', () => {
+    // Regression: Study connects with `openingLine` set, which sends the
+    // `__START_CALL__` trigger as the first user turn. Without a "starting the
+    // session" instruction (the study prompt used to omit it, unlike the
+    // persona/practice prompts), the model received an undefined trigger and
+    // read the embedded `CURRENT CARD 1/N: …` delivery line verbatim — leaking
+    // the instruction into the first model bubble. The prompt must define the
+    // start signal AND explicitly forbid speaking the delivery line / card
+    // number at the open.
+    const en = buildStudySystemPrompt(phrases, 'en-NZ')
+    const es = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(en).toMatch(/STARTING THE SESSION/i)
+    expect(en).toMatch(/start signal/i)
+    expect(en).toMatch(/NEVER say the words "CURRENT CARD"/i)
+    expect(en).toMatch(/never announce a card number/i)
+    expect(es).toMatch(/EMPEZAR LA SESIÓN/i)
+    expect(es).toMatch(/señal de inicio/i)
+    expect(es).toMatch(/NUNCA digas las palabras "CARTA ACTUAL"/i)
+    expect(es).toMatch(/nunca anuncies el número de carta/i)
+  })
+
   it('describes per-card advancement via a new CURRENT CARD message', () => {
     const en = buildStudySystemPrompt(phrases, 'en-NZ')
     const es = buildStudySystemPrompt(phrases, 'es-AR')
