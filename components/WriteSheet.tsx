@@ -1,22 +1,10 @@
 // components/WriteSheet.tsx
 //
-// Docked review panel for items in the Write surface. After the design
-// alignment pass this sheet is the structural twin of `AnnotationSheet`:
-//
-//   • Header: position pill + prev/next/close buttons.
-//   • Body: shared `<NavHint>` chip on first open, then session source link,
-//     correction-in-context, explanation, and importance pill (expandable
-//     note when present).
-//   • Footer: full-width primary `<button>` styled via `buttonStyles()` for
-//     pixel-parity with AnnotationCard, plus a quiet "more actions" overflow
-//     menu carrying the destructive Delete (kept undoable for 5 seconds via
-//     the parent's toast).
-//
-// Auto-advance: a successful Mark / Move-back drives the parent to open the
-// next sibling in the current list (Gmail's archive-and-next pattern). Once
-// the user reaches the last item the sheet closes naturally. The parent owns
-// that flow; the sheet just calls `onToggleWritten` and trusts the resulting
-// `item` prop change.
+// Docked review panel for items in the Vocabulary surface. Sheet is now a
+// read-only navigation panel — it shows the correction and explanation, lets
+// the user navigate prev/next, and carries a Delete action in the overflow
+// menu. The "Mark as studied / Move back" toggle has been removed along with
+// the written_down column.
 
 'use client'
 import { useEffect, useRef, useState } from 'react'
@@ -33,41 +21,27 @@ interface Props {
   item: PracticeItem | null
   hasPrev: boolean
   hasNext: boolean
-  /** True when the parent view is showing the Written (archive) tab. */
-  isWritten: boolean
   onClose: () => void
   onPrev: () => void
   onNext: () => void
-  /** Toggles `written_down` on the item. Returns true on success. */
-  onToggleWritten: (item: PracticeItem) => Promise<boolean>
   /** Permanently deletes the item (undoable via the parent's toast). */
   onDelete: (item: PracticeItem) => Promise<boolean>
-  /** When provided, renders "Practise this phrase" as the primary footer button.
-   *  Omit on the Written (archive) view where practise is not the primary job. */
+  /** When provided, renders "Practise this phrase" as the primary footer button. */
   onPractise?: (item: PracticeItem) => void
 }
 
 interface OverflowMenuProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onToggleWritten: () => void
   onDelete: () => void
   busy: boolean
-  isWritten: boolean
-  primaryLabelKey: string
-  primaryBusyKey: string
   initialFocus?: boolean
   testId?: string
 }
 
-/**
- * Tiny popover anchored to the overflow trigger. Carries the toggle-written
- * action and the destructive Delete (kept undoable for 5 seconds via the
- * parent's toast).
- */
 function OverflowMenu({
-  isOpen, onOpenChange, onToggleWritten, onDelete,
-  busy, isWritten, primaryLabelKey, primaryBusyKey, initialFocus, testId,
+  isOpen, onOpenChange, onDelete,
+  busy, initialFocus, testId,
 }: OverflowMenuProps) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -125,29 +99,8 @@ function OverflowMenu({
             motion-safe:animate-[fadein_140ms_ease-out_both]
           "
         >
-          {/* Mark as written / Move back */}
           <button
             ref={firstItemRef}
-            type="button"
-            role="menuitem"
-            {...(testId ? { 'data-testid': 'sheet-toggle-written' } : {})}
-            onClick={() => { onOpenChange(false); onToggleWritten() }}
-            disabled={busy}
-            className="
-              w-full flex items-center gap-3 px-3 py-2 text-left
-              text-text-primary hover:bg-surface disabled:opacity-50
-              transition-colors rounded-md text-sm font-medium
-            "
-          >
-            <Icon name={isWritten ? 'rotate-ccw' : 'check'} className="w-4 h-4 shrink-0 text-text-tertiary" />
-            {busy ? t(primaryBusyKey) : t(primaryLabelKey)}
-          </button>
-
-          <div className="my-1 border-t border-border-subtle" />
-
-          {/* Delete — The "you can undo for 5 seconds" reassurance lives only
-              in the aria-label; the visible helper text was distilled out. */}
-          <button
             type="button"
             role="menuitem"
             onClick={() => { onOpenChange(false); onDelete() }}
@@ -174,74 +127,37 @@ export function WriteSheet({
   item,
   hasPrev,
   hasNext,
-  isWritten,
   onClose,
   onPrev,
   onNext,
-  onToggleWritten,
   onDelete,
   onPractise,
 }: Props) {
   const { t } = useTranslation()
-  const [busyAction, setBusyAction] = useState<'toggle' | 'delete' | null>(null)
+  const [busyAction, setBusyAction] = useState<'delete' | null>(null)
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [lastFailedAction, setLastFailedAction] = useState<'toggle' | 'delete' | null>(null)
   const isOpen = item !== null
 
-  // Reset transient per-item state whenever the user navigates to a new item
-  // or reopens the sheet. The overflow menu in particular must NEVER survive
-  // an item swap — it would dangle over an unrelated card.
   useEffect(() => {
     if (!isOpen) return
     setBusyAction(null)
     setOverflowOpen(false)
     setErrorMessage(null)
-    setLastFailedAction(null)
   }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
 
-  async function handleToggle() {
-    if (!item || busyAction) return
-    setErrorMessage(null)
-    setLastFailedAction(null)
-    setBusyAction('toggle')
-    const ok = await onToggleWritten(item)
-    // Parent re-renders us with either the next item (auto-advance) or
-    // null (sheet closes). Either way our local `item.id` change resets
-    // busyAction via the effect above.
-    if (!ok) {
-      setErrorMessage(t('writeList.markWrittenError'))
-      setLastFailedAction('toggle')
-    }
-    setBusyAction(null)
-  }
-
   async function handleDelete() {
     if (!item || busyAction) return
     setErrorMessage(null)
-    setLastFailedAction(null)
     setBusyAction('delete')
     const ok = await onDelete(item)
     if (!ok) {
       setErrorMessage(t('writeList.deleteError'))
-      setLastFailedAction('delete')
     }
     setBusyAction(null)
   }
-
-  function handleRetry() {
-    if (lastFailedAction === 'toggle') void handleToggle()
-    else if (lastFailedAction === 'delete') void handleDelete()
-  }
-
-  // Label keys consumed by <OverflowMenu> for its toggle-written row.
-  // The standalone primary "Mark as written" button was retired when
-  // Practise became the primary action — toggle + delete now live in the
-  // overflow menu.
-  const primaryLabelKey = isWritten ? 'writeSheet.moveBack' : 'writeSheet.markWritten'
-  const primaryBusyKey = isWritten ? 'writeSheet.moveBackBusy' : 'writeSheet.markWrittenBusy'
 
   return (
     <DockedSheet
@@ -259,14 +175,6 @@ export function WriteSheet({
     >
       <NavHint />
       <div className="space-y-6">
-        {/* Hush stack — replaces the older CorrectionInContext block. Trades
-            surrounding-sentence context for a calmer, sentence-first layout;
-            the session source link above is the user's path back to the
-            full context on /sessions/[id]. Eyebrow flips to "Sounds off"
-            for naturalness items (no rewrite) so it matches what the body
-            actually shows. On mobile, the eyebrow row hosts the ··· overflow
-            menu and × close button (the header is hidden on mobile), matching
-            the AnnotationCard pattern. */}
         <HushStack
           eyebrow={item.correction === null
             ? t('sheet.eyebrowSoundsOff')
@@ -278,12 +186,8 @@ export function WriteSheet({
               <OverflowMenu
                 isOpen={overflowOpen}
                 onOpenChange={setOverflowOpen}
-                onToggleWritten={handleToggle}
                 onDelete={handleDelete}
                 busy={busyAction !== null}
-                isWritten={isWritten}
-                primaryLabelKey={primaryLabelKey}
-                primaryBusyKey={primaryBusyKey}
               />
               <IconButton
                 icon="close"
@@ -314,18 +218,12 @@ export function WriteSheet({
             </button>
           )}
 
-          {/* Desktop-only overflow menu — on mobile it lives in the eyebrow
-              row alongside the close button (AnnotationCard pattern). */}
           <div className="hidden md:flex justify-end">
             <OverflowMenu
               isOpen={overflowOpen}
               onOpenChange={setOverflowOpen}
-              onToggleWritten={handleToggle}
               onDelete={handleDelete}
               busy={busyAction !== null}
-              isWritten={isWritten}
-              primaryLabelKey={primaryLabelKey}
-              primaryBusyKey={primaryBusyKey}
               initialFocus={!onPractise}
               testId="sheet-overflow"
             />
@@ -336,9 +234,6 @@ export function WriteSheet({
       <div role="status" aria-live="polite" className="mt-4 min-h-[1rem]">
         {errorMessage && (
           <div className="rounded-lg border border-status-error/30 bg-error-container px-3 py-2 space-y-1.5">
-            {/* `aria-describedby` links the retry button to the error message,
-                so screen readers announce the cause when the focused control
-                is the retry. Same pattern as AnnotationCard. */}
             <p id={`ws-err-${item.id}`} className="text-status-error text-sm leading-snug">{errorMessage}</p>
             {typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine && (
               <p className="text-text-tertiary text-xs leading-snug">{t('annotation.offlineNote')}</p>
@@ -346,7 +241,7 @@ export function WriteSheet({
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={handleRetry}
+                onClick={handleDelete}
                 disabled={busyAction !== null}
                 aria-describedby={`ws-err-${item.id}`}
                 className="text-status-error text-sm font-medium hover:underline disabled:opacity-50 px-1 py-0.5 rounded"

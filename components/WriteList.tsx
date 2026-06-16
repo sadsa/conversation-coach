@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { PracticeItem, TargetLanguage } from '@/lib/types'
 import { useTranslation } from '@/components/LanguageProvider'
 import { WriteSheet } from '@/components/WriteSheet'
@@ -19,21 +19,14 @@ const EMPTY_STATE_EXAMPLE: Record<TargetLanguage, { original: string; correction
 
 interface RowProps {
   item: PracticeItem
-  isWritten: boolean
   onOpen: () => void
-  onMarkWritten: () => void
   onDelete: () => void
 }
 
-function WriteRow({ item, isWritten, onOpen, onMarkWritten, onDelete }: RowProps) {
+function WriteRow({ item, onOpen, onDelete }: RowProps) {
   const { t } = useTranslation()
 
   const actions: RowAction[] = [
-    {
-      label: isWritten ? t('writeList.menuMoveBack') : t('writeList.menuMarkStudied'),
-      onSelect: onMarkWritten,
-      testId: `row-mark-written-${item.id}`,
-    },
     {
       label: t('writeList.menuDelete'),
       onSelect: onDelete,
@@ -50,15 +43,12 @@ function WriteRow({ item, isWritten, onOpen, onMarkWritten, onDelete }: RowProps
           onClick={onOpen}
           data-write-item-id={item.id}
           data-testid={`write-row-${item.id}`}
-          className={`w-full min-w-0 text-left pl-4 pr-12 py-3 ${
-            isWritten ? 'bg-surface/60 hover:bg-surface' : 'bg-surface hover:bg-surface-elevated'
-          } transition-colors`}
+          className="w-full min-w-0 text-left pl-4 pr-12 py-3 bg-surface hover:bg-surface-elevated transition-colors"
         >
           {item.flashcard_front && item.flashcard_back ? (
             <FlashcardRow
               flashcardFront={item.flashcard_front}
               flashcardBack={item.flashcard_back}
-              muted={isWritten}
               testId={`flashcard-row-${item.id}`}
             />
           ) : item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
@@ -68,14 +58,12 @@ function WriteRow({ item, isWritten, onOpen, onMarkWritten, onDelete }: RowProps
               endChar={item.end_char}
               original={item.original}
               correction={item.correction}
-              muted={isWritten}
               testId={`correction-in-context-${item.id}`}
             />
           ) : (
             <StrikeOriginal
               original={item.original}
               correction={item.correction}
-              muted={isWritten}
             />
           )}
         </button>
@@ -146,20 +134,10 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
     }
   }, [])
 
-  const activeItems = useMemo(
-    () => allItems.filter(i => !i.written_down),
-    [allItems]
-  )
-  const studiedItems = useMemo(
-    () => allItems.filter(i => i.written_down),
-    [allItems]
-  )
-
   const openItem = openId !== null ? allItems.find(i => i.id === openId) ?? null : null
-  const navItems = (openItem?.written_down ?? false) ? studiedItems : activeItems
-  const openIndex = openId !== null ? navItems.findIndex(i => i.id === openId) : -1
+  const openIndex = openId !== null ? allItems.findIndex(i => i.id === openId) : -1
   const hasPrev = openIndex > 0
-  const hasNext = openIndex >= 0 && openIndex < navItems.length - 1
+  const hasNext = openIndex >= 0 && openIndex < allItems.length - 1
 
   function showToast(message: string, onUndo?: () => void | Promise<void>) {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -167,43 +145,11 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
     toastTimerRef.current = setTimeout(() => setToast(null), UNDO_TIMEOUT_MS)
   }
 
-  async function patchWritten(id: string, written: boolean): Promise<boolean> {
-    const res = await fetch(`/api/practice-items/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ written_down: written }),
-    })
-    return res.ok
-  }
-
   function nextOpenIdAfter(itemId: string): string | null {
     if (openId === null) return null
-    const idx = navItems.findIndex(i => i.id === itemId)
-    if (idx < 0 || idx + 1 >= navItems.length) return null
-    return navItems[idx + 1].id
-  }
-
-  async function handleToggleWritten(item: PracticeItem): Promise<boolean> {
-    const previous = item.written_down
-    const next = !previous
-    const wasOpen = openId === item.id
-    const advanceToId = nextOpenIdAfter(item.id)
-
-    setAllItems(prev =>
-      prev.map(i => (i.id === item.id ? { ...i, written_down: next } : i))
-    )
-    setOpenId(wasOpen ? advanceToId : null)
-
-    const ok = await patchWritten(item.id, next)
-    if (!ok) {
-      setAllItems(prev =>
-        prev.map(i => (i.id === item.id ? { ...i, written_down: previous } : i))
-      )
-      showToast(t('writeList.markWrittenError'))
-      return false
-    }
-
-    return true
+    const idx = allItems.findIndex(i => i.id === itemId)
+    if (idx < 0 || idx + 1 >= allItems.length) return null
+    return allItems[idx + 1].id
   }
 
   async function handleDelete(item: PracticeItem): Promise<boolean> {
@@ -255,72 +201,32 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
 
   return (
     <div className="space-y-5">
-      {activeItems.length === 0 && allItems.length > 0 ? (
-        <div className="py-6 space-y-3 max-w-prose">
-          <p className="text-text-secondary text-sm leading-relaxed">
-            {t('writeList.allStudiedHeading')}
-          </p>
-          <p className="text-text-secondary text-sm leading-relaxed">
-            <Link href="/" className="text-accent-primary font-medium hover:underline">
-              {t('writeList.allStudiedCta')}
-            </Link>
-          </p>
-        </div>
-      ) : activeItems.length === 0 ? (
+      {allItems.length === 0 ? (
         <EmptyWrite />
       ) : (
         <ul className="space-y-2">
-          {activeItems.map(item => (
+          {allItems.map(item => (
             <WriteRow
               key={item.id}
               item={item}
-              isWritten={false}
               onOpen={() => setOpenId(item.id)}
-              onMarkWritten={() => handleToggleWritten(item)}
               onDelete={() => handleDelete(item)}
             />
           ))}
         </ul>
       )}
 
-      {studiedItems.length > 0 && (
-        <>
-          <div className="flex items-center gap-1.5 pt-1" data-testid="studied-divider">
-            <h2 className="text-eyebrow">
-              {t('writeList.archiveHeading')}
-            </h2>
-            <span className="text-xs text-text-tertiary tabular-nums" aria-label={`${studiedItems.length} items`}>
-              · {studiedItems.length}
-            </span>
-          </div>
-          <ul className="space-y-2 -mt-3" aria-label={t('writeList.archiveHeading')}>
-            {studiedItems.map(item => (
-              <WriteRow
-                key={item.id}
-                item={item}
-                isWritten={true}
-                onOpen={() => setOpenId(item.id)}
-                onMarkWritten={() => handleToggleWritten(item)}
-                onDelete={() => handleDelete(item)}
-              />
-            ))}
-          </ul>
-        </>
-      )}
-
       <WriteSheet
         item={openItem}
         hasPrev={hasPrev}
         hasNext={hasNext}
-        isWritten={openItem?.written_down ?? false}
         onClose={() => setOpenId(null)}
         onPrev={() => {
-          if (hasPrev) setOpenId(navItems[openIndex - 1].id)
+          if (hasPrev) setOpenId(allItems[openIndex - 1].id)
         }}
         onNext={() => {
-          if (hasNext) setOpenId(navItems[openIndex + 1].id)
+          if (hasNext) setOpenId(allItems[openIndex + 1].id)
         }}
-        onToggleWritten={handleToggleWritten}
         onDelete={handleDelete}
         onPractise={onPractise}
       />

@@ -395,8 +395,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'review.title': 'Your reviews',
     'review.emptyLine': 'No conversations to review yet.',
     'review.emptyCta': 'Start a conversation',
-    'home.remindersAria': 'Saved corrections',
-    'home.allCaughtUp': 'All caught up — nothing to study right now.',
     'home.recentSessionsTitle': 'Your conversations',
     'home.recentShowAll': 'Show all {n}',
     'home.recentShowFewer': 'Show fewer',
@@ -627,9 +625,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
 
     // Write it down sheet
     'writeItDown.title': 'Write it down first',
-    'home.toWriteDown': '{n} corrections to study',
-    'home.toWriteDownOne': '1 correction to study',
-
     // Vocabulary page (the cross-session repository of all saved corrections)
     //
     // Surface name is "Vocabulary" (route `/vocabulary`) — a reference
@@ -648,20 +643,14 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeList.tabWrite': 'Study',
     'writeList.tabWritten': 'Written',
     'writeList.markRowAria': 'Mark {original} as studied',
-    'writeList.archiveHeading': 'Studied',
     'writeList.emptyWriteCaption': 'Saved corrections look like this.',
     'writeList.emptyWriteCta': 'Practise to save your first correction →',
     'writeList.movedToTrash': 'Removed. You can grab it back.',
     'writeList.undo': 'Undo',
     'writeList.deleteError': 'Couldn\'t delete item — try again.',
-    'writeList.markWrittenError': 'Couldn\'t update — try again.',
     'writeList.importanceToggleAria': 'Toggle importance explanation',
-    'writeList.allStudiedHeading': 'All studied',
-    'writeList.allStudiedCta': 'Practise to save more corrections →',
     // Row context menu (⋮)
     'writeList.menuAria': 'More actions',
-    'writeList.menuMarkStudied': 'Mark as studied',
-    'writeList.menuMoveBack': 'Move back to Vocabulary',
     'writeList.menuDelete': 'Delete',
 
     // Study review sheet (docked)
@@ -669,12 +658,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Primary action — verb-first, with destination spelled out so the user
     // knows where the item is going. Busy variant keeps focus while the
     // network is in flight.
-    'writeSheet.markWritten': 'Mark as studied',
-    'writeSheet.markWrittenBusy': 'Marking…',
-    'writeSheet.markWrittenAria': 'Mark this correction as studied',
-    'writeSheet.moveBack': 'Move back to Vocabulary',
-    'writeSheet.moveBackBusy': 'Moving back…',
-    'writeSheet.moveBackAria': 'Move this correction back to your Vocabulary',
     'writeSheet.practise': 'Drill this phrase',
     // Overflow menu — Delete is undoable for 5 seconds via the toast, so the
     // copy is reassuring rather than threatening.
@@ -1018,8 +1001,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'review.title': 'Tus revisiones',
     'review.emptyLine': 'Todavía no hay conversaciones para revisar.',
     'review.emptyCta': 'Empezá una conversación',
-    'home.remindersAria': 'Correcciones guardadas',
-    'home.allCaughtUp': 'Todo al día — no tenés correcciones guardadas.',
     'home.recentSessionsTitle': 'Tus conversaciones',
     'home.recentShowAll': 'Mostrar las {n}',
     'home.recentShowFewer': 'Mostrar menos',
@@ -1234,9 +1215,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeItDown.subtitle': 'Reforzá antes de que se convierta en tarjeta',
     'writeItDown.promptsLabel': 'Escribilo de 3 maneras en papel',
     'writeItDown.prompt1': 'Una oración que realmente le dirías a alguien',
-    'home.toWriteDown': '{n} correcciones para estudiar',
-    'home.toWriteDownOne': '1 corrección para estudiar',
-
     // Página Vocabulario (el repositorio de todas las correcciones guardadas).
     //
     // El nombre de la superficie es "Vocabulario" (ruta `/vocabulary`) — una
@@ -1256,32 +1234,20 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'writeList.tabWrite': 'Estudiar',
     'writeList.tabWritten': 'Escritos',
     'writeList.markRowAria': 'Marcar {original} como estudiado',
-    'writeList.archiveHeading': 'Estudiados',
     'writeList.emptyWriteCaption': 'Las correcciones guardadas se ven así.',
     'writeList.emptyWriteCta': 'Practicá para guardar tu primera corrección →',
     'writeList.movedToTrash': 'Eliminada. Podés recuperarla.',
     'writeList.undo': 'Deshacer',
     'writeList.deleteError': 'No se pudo eliminar el ítem — intentá de nuevo.',
-    'writeList.markWrittenError': 'No se pudo actualizar — intentá de nuevo.',
     'writeList.importanceToggleAria': 'Alternar explicación de importancia',
-    'writeList.allStudiedHeading': 'Todo estudiado',
-    'writeList.allStudiedCta': 'Practicá para guardar más correcciones →',
     // Menú contextual de fila (⋮)
     'writeList.menuAria': 'Más acciones',
-    'writeList.menuMarkStudied': 'Marcar como estudiado',
-    'writeList.menuMoveBack': 'Volver al Vocabulario',
     'writeList.menuDelete': 'Eliminar',
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',
     // Acción principal — verbo primero, con destino explícito. La variante
     // "ocupada" mantiene el foco mientras la red responde.
-    'writeSheet.markWritten': 'Marcar como estudiado',
-    'writeSheet.markWrittenBusy': 'Marcando…',
-    'writeSheet.markWrittenAria': 'Marcar esta corrección como estudiada',
-    'writeSheet.moveBack': 'Volver al Vocabulario',
-    'writeSheet.moveBackBusy': 'Volviendo…',
-    'writeSheet.moveBackAria': 'Devolver esta corrección a tu Vocabulario',
     'writeSheet.practise': 'Practicar esta frase',
     // Menú de acciones secundarias — Eliminar se puede deshacer 5 segundos
     'writeSheet.moreActionsAria': 'Más acciones',

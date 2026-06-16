@@ -28,9 +28,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [addedAnnotations, setAddedAnnotations] = useState<Map<string, string>>(
     new Map(Object.entries(initialDetail.addedAnnotations))
   )
-  const [writtenAnnotations, setWrittenAnnotations] = useState<Set<string>>(
-    new Set(initialDetail.writtenAnnotations)
-  )
   const [unhelpfulAnnotations, setUnhelpfulAnnotations] = useState<Set<string>>(
     new Set(initialDetail.annotations.filter(a => a.is_unhelpful).map(a => a.id))
   )
@@ -74,15 +71,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
 
   function handleAnnotationRemoved(annotationId: string) {
     setAddedAnnotations(prev => { const next = new Map(prev); next.delete(annotationId); return next })
-    setWrittenAnnotations(prev => { const next = new Set(prev); next.delete(annotationId); return next })
-  }
-
-  function handleAnnotationWritten(annotationId: string) {
-    setWrittenAnnotations(prev => { const next = new Set(prev); next.add(annotationId); return next })
-  }
-
-  function handleAnnotationUnwritten(annotationId: string) {
-    setWrittenAnnotations(prev => { const next = new Set(prev); next.delete(annotationId); return next })
   }
 
   function handleAnnotationUnhelpfulChanged(annotationId: string, isUnhelpful: boolean) {
@@ -260,12 +248,9 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         userSpeakerLabels={session.user_speaker_labels ?? null}
         sessionId={sessionId}
         addedAnnotations={addedAnnotations}
-        writtenAnnotations={writtenAnnotations}
         unhelpfulAnnotations={unhelpfulAnnotations}
         onAnnotationAdded={handleAnnotationAdded}
         onAnnotationRemoved={handleAnnotationRemoved}
-        onAnnotationWritten={handleAnnotationWritten}
-        onAnnotationUnwritten={handleAnnotationUnwritten}
         onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
       />
 

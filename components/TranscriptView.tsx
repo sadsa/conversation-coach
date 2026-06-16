@@ -33,12 +33,9 @@ interface Props {
   userSpeakerLabels: ('A' | 'B')[] | null
   sessionId: string
   addedAnnotations: Map<string, string>
-  writtenAnnotations: Set<string>
   unhelpfulAnnotations: Set<string>
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
-  onAnnotationWritten: (annotationId: string) => void
-  onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged: (annotationId: string, isUnhelpful: boolean) => void
   /** Whether this session has already been marked reviewed. When true, the bottom bar is hidden. */
   isReviewed?: boolean
@@ -48,8 +45,8 @@ interface Props {
 
 export function TranscriptView({
   segments, annotations, userSpeakerLabels, sessionId,
-  addedAnnotations, writtenAnnotations, unhelpfulAnnotations,
-  onAnnotationAdded, onAnnotationRemoved, onAnnotationWritten, onAnnotationUnwritten,
+  addedAnnotations, unhelpfulAnnotations,
+  onAnnotationAdded, onAnnotationRemoved,
   onAnnotationUnhelpfulChanged,
   isReviewed = false,
   onMarkReviewed,
@@ -279,12 +276,10 @@ export function TranscriptView({
               offsetBase={para.offset}
               onAnnotationClick={handleClick}
               savedAnnotationIds={savedAnnotationIds}
-              writtenAnnotationIds={writtenAnnotations}
               unhelpfulAnnotationIds={unhelpfulAnnotations}
               activeAnnotationId={activeAnnotationId}
               openLabel={t('transcript.openCorrection')}
               stateLabels={{
-                written: t('transcript.markState.written'),
                 saved: t('transcript.markState.saved'),
                 unreviewed: t('transcript.markState.unreviewed'),
               }}
@@ -323,15 +318,6 @@ export function TranscriptView({
               Aa
             </span>
             {t('transcript.legend.violet')}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              aria-hidden="true"
-              className="annotation-written inline-flex items-center justify-center w-5 h-4 rounded-sm font-medium text-[10px] leading-none"
-            >
-              ✓
-            </span>
-            {t('transcript.legend.green')}
           </span>
         </div>
       )}
@@ -434,11 +420,8 @@ export function TranscriptView({
         onNext={handleNext}
         sessionId={sessionId}
         practiceItemId={activeAnnotation ? (addedAnnotations.get(activeAnnotation.id) ?? null) : null}
-        isWrittenDown={activeAnnotation ? writtenAnnotations.has(activeAnnotation.id) : false}
         onAnnotationAdded={handleAnnotationSaved}
         onAnnotationRemoved={onAnnotationRemoved}
-        onAnnotationWritten={onAnnotationWritten}
-        onAnnotationUnwritten={onAnnotationUnwritten}
         onAnnotationUnhelpfulChanged={onAnnotationUnhelpfulChanged}
       />
 

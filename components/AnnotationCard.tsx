@@ -138,15 +138,8 @@ interface Props {
   annotation: Annotation
   sessionId: string
   practiceItemId: string | null
-  /** Retained on the interface so transcript-side state plumbing (the green
-   *  written-down highlight in AnnotatedText) is unaffected. The card no
-   *  longer surfaces a UI for it — written-down lives on /write now. */
-  isWrittenDown: boolean
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
-  /** Kept for prop-shape compatibility with TranscriptView; unused here. */
-  onAnnotationWritten: (annotationId: string) => void
-  onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged?: (annotationId: string, isUnhelpful: boolean) => void
   /** Called after a successful save — used on mobile to dismiss the sheet. */
   onClose?: () => void
@@ -157,9 +150,7 @@ interface Props {
 export function AnnotationCard({
   annotation, sessionId,
   practiceItemId: initialPracticeItemId,
-  isWrittenDown: _isWrittenDown,
   onAnnotationAdded, onAnnotationRemoved,
-  onAnnotationWritten: _onWritten, onAnnotationUnwritten: _onUnwritten,
   onAnnotationUnhelpfulChanged,
   onClose,
   onIgnore,

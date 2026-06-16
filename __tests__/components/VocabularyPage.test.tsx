@@ -25,7 +25,6 @@ function makeItem(overrides: Partial<PracticeItem>): PracticeItem {
     original: 'Yo fui',
     correction: 'Fui',
     explanation: 'Drop pronoun',
-    written_down: false,
     reviewed: false,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',

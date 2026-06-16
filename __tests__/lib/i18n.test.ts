@@ -21,14 +21,10 @@ describe('t()', () => {
     expect(t('nonexistent.key', 'en')).toBe('nonexistent.key')
   })
   it('substitutes {n} replacement', () => {
-    expect(t('home.toWriteDown', 'en', { n: 5 })).toBe('5 corrections to study')
+    expect(t('home.inProgressCountMany', 'en', { n: 5 })).toBe('5 in progress')
   })
   it('substitutes {n} replacement in Spanish', () => {
-    expect(t('home.toWriteDown', 'es', { n: 5 })).toBe('5 correcciones para estudiar')
-  })
-  it('home.toWriteDownOne uses singular grammar in both langs', () => {
-    expect(t('home.toWriteDownOne', 'en')).toBe('1 correction to study')
-    expect(t('home.toWriteDownOne', 'es')).toBe('1 corrección para estudiar')
+    expect(t('home.inProgressCountMany', 'es', { n: 5 })).toBe('5 en proceso')
   })
 })
 
@@ -178,20 +174,9 @@ describe('annotation action i18n keys', () => {
   it('writeList.tabWritten exists in es', () => {
     expect(t('writeList.tabWritten', 'es')).not.toBe('writeList.tabWritten')
   })
-  it('writeSheet.markWritten exists in en', () => {
-    expect(t('writeSheet.markWritten', 'en')).not.toBe('writeSheet.markWritten')
-  })
-  it('writeSheet primary action busy + aria keys exist for both directions', () => {
-    expect(t('writeSheet.markWrittenBusy', 'en')).not.toBe('writeSheet.markWrittenBusy')
-    expect(t('writeSheet.markWrittenAria', 'en')).not.toBe('writeSheet.markWrittenAria')
-    expect(t('writeSheet.moveBackBusy', 'en')).not.toBe('writeSheet.moveBackBusy')
-    expect(t('writeSheet.moveBackAria', 'en')).not.toBe('writeSheet.moveBackAria')
-    expect(t('writeSheet.markWrittenBusy', 'es')).not.toBe('writeSheet.markWrittenBusy')
-    expect(t('writeSheet.moveBackBusy', 'es')).not.toBe('writeSheet.moveBackBusy')
-  })
-  it('writeSheet.moveBack now spells out the destination', () => {
-    expect(t('writeSheet.moveBack', 'en')).toMatch(/vocabulary/i)
-    expect(t('writeSheet.moveBack', 'es')).toMatch(/vocabulario/i)
+  it('writeSheet.markWritten is retired (falls back to key)', () => {
+    expect(t('writeSheet.markWritten', 'en')).toBe('writeSheet.markWritten')
+    expect(t('writeSheet.moveBack', 'en')).toBe('writeSheet.moveBack')
   })
   it('writeSheet overflow + delete copy exists in both langs', () => {
     expect(t('writeSheet.moreActionsAria', 'en')).not.toBe('writeSheet.moreActionsAria')

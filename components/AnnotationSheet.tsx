@@ -36,11 +36,8 @@ interface Props {
   // Forwarded to AnnotationCard
   sessionId: string
   practiceItemId: string | null
-  isWrittenDown: boolean
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
-  onAnnotationWritten: (annotationId: string) => void
-  onAnnotationUnwritten: (annotationId: string) => void
   onAnnotationUnhelpfulChanged?: (annotationId: string, isUnhelpful: boolean) => void
 }
 

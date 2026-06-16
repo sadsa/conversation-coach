@@ -38,7 +38,6 @@ function makeDetail(overrides: Partial<SessionDetail> = {}): SessionDetail {
     segments: [],
     annotations: [],
     addedAnnotations: {},
-    writtenAnnotations: [],
     ...overrides,
   }
 }

@@ -42,7 +42,6 @@ describe('GET /api/practice-items', () => {
           annotation_id: 'ann-1',
           type: 'grammar',
           original: 'Yo fui',
-          written_down: false,
           sessions: { user_id: 'user-123', title: 'Cafe with María' },
           annotations: {
             start_char: 5,
@@ -163,47 +162,6 @@ describe('PATCH /api/practice-items/:id', () => {
     expect(updateEq).toHaveBeenCalledWith('id', 'item-1')
   })
 
-  it('updates written_down flag', async () => {
-    vi.resetModules()
-    const updateMock = vi.fn().mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ error: null }),
-    })
-    const mockDb = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'practice_items') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: { session_id: 'session-1' }, error: null }),
-              }),
-            }),
-            update: updateMock,
-          }
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: { id: 'session-1' }, error: null }),
-              }),
-            }),
-          }),
-        }
-      }),
-    }
-    vi.mocked(createServerClient).mockReturnValue(mockDb as unknown as ReturnType<typeof createServerClient>)
-
-    const { PATCH } = await import('@/app/api/practice-items/[id]/route')
-    const req = new NextRequest('http://localhost', {
-      method: 'PATCH',
-      body: JSON.stringify({ written_down: true }),
-      headers: { 'content-type': 'application/json' },
-    })
-    const res = await PATCH(req, { params: { id: 'item-1' } })
-    expect(res.status).toBe(200)
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ written_down: true }))
-  })
-
   it('supports async route params (Next dynamic context)', async () => {
     vi.resetModules()
     const updateEq = vi.fn().mockResolvedValue({ error: null })
@@ -235,7 +193,7 @@ describe('PATCH /api/practice-items/:id', () => {
     const { PATCH } = await import('@/app/api/practice-items/[id]/route')
     const req = new NextRequest('http://localhost', {
       method: 'PATCH',
-      body: JSON.stringify({ written_down: true }),
+      body: JSON.stringify({ reviewed: true }),
       headers: { 'content-type': 'application/json' },
     })
     const res = await PATCH(req, { params: Promise.resolve({ id: 'item-1' }) } as any)

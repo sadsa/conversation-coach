@@ -146,7 +146,6 @@ export interface PracticeItem {
   explanation: string
   sub_category: SubCategory
   reviewed: boolean
-  written_down: boolean
   created_at: string
   updated_at: string
   flashcard_front: string | null
@@ -193,7 +192,6 @@ export interface SessionDetail {
   segments: TranscriptSegment[]
   annotations: Annotation[]
   addedAnnotations: Record<string, string>   // annotationId -> practiceItemId
-  writtenAnnotations: string[]               // annotation IDs where written_down = true
 }
 
 export interface StatusResponse {

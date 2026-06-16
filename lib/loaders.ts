@@ -11,7 +11,6 @@
 // Never accept a userId from request input.
 
 import { createServerClient } from '@/lib/supabase-server'
-import { computeDashboardSummary, type DashboardSummary } from '@/lib/dashboard-summary'
 import type {
   Annotation,
   PracticeItem,
@@ -33,22 +32,6 @@ export async function loadSessions(userId: string): Promise<SessionListItem[]> {
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
   return (data ?? []) as SessionListItem[]
-}
-
-/**
- * Dashboard summary card values. Currently just the write-down count,
- * but kept as its own loader so future surface counts can land here
- * without changing the call site.
- */
-export async function loadDashboardSummary(userId: string): Promise<DashboardSummary> {
-  const db = createServerClient()
-  const { data: userSessions } = await db
-    .from('sessions')
-    .select('id')
-    .eq('user_id', userId)
-  const sessionIds = (userSessions ?? []).map((s: { id: string }) => s.id)
-  if (sessionIds.length === 0) return { writeDownCount: 0 }
-  return computeDashboardSummary(db, sessionIds)
 }
 
 /**
@@ -89,7 +72,7 @@ export async function loadSessionDetail(
       .eq('session_id', sessionId),
     db
       .from('practice_items')
-      .select('id, annotation_id, written_down')
+      .select('id, annotation_id')
       .eq('session_id', sessionId),
   ])
 
@@ -98,15 +81,12 @@ export async function loadSessionDetail(
   const practiceItems = (practiceItemsRes.data ?? []) as Array<{
     id: string
     annotation_id: string | null
-    written_down: boolean
   }>
 
   const addedAnnotations: Record<string, string> = {}
-  const writtenAnnotations: string[] = []
   for (const item of practiceItems) {
     if (!item.annotation_id) continue
     addedAnnotations[item.annotation_id] = item.id
-    if (item.written_down) writtenAnnotations.push(item.annotation_id)
   }
 
   return {
@@ -114,7 +94,6 @@ export async function loadSessionDetail(
     segments,
     annotations,
     addedAnnotations,
-    writtenAnnotations,
   }
 }
 
@@ -146,7 +125,7 @@ export async function loadPracticeItems(
     .from('practice_items')
     .select(`
       id, session_id, annotation_id, type, sub_category, original,
-      correction, explanation, reviewed, written_down, created_at,
+      correction, explanation, reviewed, created_at,
       updated_at, flashcard_front, flashcard_back, flashcard_note,
       importance_score, importance_note,
       sessions:sessions!inner(user_id, title),

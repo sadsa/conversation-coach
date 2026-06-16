@@ -7,7 +7,6 @@ interface Props {
   annotations: Annotation[]
   onAnnotationClick: (annotation: Annotation) => void
   savedAnnotationIds?: Set<string>
-  writtenAnnotationIds?: Set<string>
   unhelpfulAnnotationIds?: Set<string>
   /** Annotation id currently anchored to the open AnnotationSheet, if any. */
   activeAnnotationId?: string | null
@@ -19,7 +18,7 @@ interface Props {
    * via `t('transcript.markState.*')` so screen-reader output matches the UI
    * language.
    */
-  stateLabels?: { written: string; saved: string; unreviewed: string }
+  stateLabels?: { saved: string; unreviewed: string }
   /**
    * Subtract this from each annotation's start_char/end_char before indexing
    * into `text`. Used when rendering a paragraph slice of a larger segment;
@@ -30,7 +29,6 @@ interface Props {
 }
 
 const DEFAULT_STATE_LABELS = {
-  written: 'written down',
   saved: 'saved',
   unreviewed: 'needs review',
 }
@@ -56,26 +54,16 @@ function buildSpans(text: string, annotations: Annotation[], offsetBase: number)
   return spans
 }
 
-function annotationClass(id: string, saved: Set<string>, written: Set<string>): string {
-  if (written.has(id)) return 'annotation-written'
+function annotationClass(id: string, saved: Set<string>): string {
   if (saved.has(id)) return 'annotation-saved'
   return 'annotation-unreviewed'
 }
 
 /**
  * State indicator that supplements the colour-only encoding for accessibility.
- * Sighted users still get the colour cue; colour-blind / screen-reader users
- * get the glyph + screen-reader text. Empty for unreviewed (already implied
- * by the absence of a glyph).
+ * Shows ★ for saved items; empty for unreviewed.
  */
-function StateGlyph({ id, saved, written }: { id: string; saved: Set<string>; written: Set<string> }) {
-  if (written.has(id)) {
-    return (
-      <span aria-hidden="true" className="ml-0.5 text-[0.7em] align-middle opacity-80 select-none">
-        ✓
-      </span>
-    )
-  }
+function StateGlyph({ id, saved }: { id: string; saved: Set<string> }) {
   if (saved.has(id)) {
     return (
       <span aria-hidden="true" className="ml-0.5 text-[0.7em] align-middle opacity-80 select-none">
@@ -91,7 +79,6 @@ export function AnnotatedText({
   annotations,
   onAnnotationClick,
   savedAnnotationIds = new Set(),
-  writtenAnnotationIds = new Set(),
   unhelpfulAnnotationIds = new Set(),
   activeAnnotationId = null,
   openLabel = 'Open correction',
@@ -107,22 +94,11 @@ export function AnnotatedText({
         if (span.annotation) {
           const ann = span.annotation
           const isUnhelpful = unhelpfulAnnotationIds.has(ann.id)
-          const stateClass = annotationClass(ann.id, savedAnnotationIds, writtenAnnotationIds)
+          const stateClass = annotationClass(ann.id, savedAnnotationIds)
           const isActive = ann.id === activeAnnotationId
-          const stateText = writtenAnnotationIds.has(ann.id)
-            ? stateLabels.written
-            : savedAnnotationIds.has(ann.id)
-              ? stateLabels.saved
-              : stateLabels.unreviewed
-          // Unhelpful marks are still tappable (so the user can undo via the
-          // sheet) but lose their state colour entirely — they read as plain
-          // body text with a faint dotted underline so they don't compete
-          // with active corrections during a scan. `bg-transparent` is load-
-          // bearing: <mark> ships with a user-agent default of solid yellow
-          // and we'd otherwise inherit it (worse: brighter than every other
-          // state). We also skip annotation-active here so the dismissed
-          // mark doesn't pulse with a ring while the sheet is still open
-          // for it.
+          const stateText = savedAnnotationIds.has(ann.id)
+            ? stateLabels.saved
+            : stateLabels.unreviewed
           const visualClass = isUnhelpful
             ? 'bg-transparent underline decoration-dotted decoration-1 underline-offset-2 text-text-tertiary cursor-pointer rounded-sm px-1 transition-shadow focus-visible:outline-none'
             : `underline decoration-2 underline-offset-2 cursor-pointer rounded-sm px-1 transition-shadow focus-visible:outline-none ${stateClass} ${isActive ? 'annotation-active' : ''}`
@@ -146,7 +122,7 @@ export function AnnotatedText({
             >
               {slice}
               {!isUnhelpful && (
-                <StateGlyph id={ann.id} saved={savedAnnotationIds} written={writtenAnnotationIds} />
+                <StateGlyph id={ann.id} saved={savedAnnotationIds} />
               )}
             </mark>
           )

@@ -24,12 +24,9 @@ const annotations: Annotation[] = [
 const defaultProps = {
   sessionId: 's1',
   addedAnnotations: new Map<string, string>(),
-  writtenAnnotations: new Set<string>(),
   unhelpfulAnnotations: new Set<string>(),
   onAnnotationAdded: vi.fn(),
   onAnnotationRemoved: vi.fn(),
-  onAnnotationWritten: vi.fn(),
-  onAnnotationUnwritten: vi.fn(),
   onAnnotationUnhelpfulChanged: vi.fn(),
 }
 
@@ -106,19 +103,6 @@ describe('TranscriptView', () => {
     expect(screen.getByText('Yo fui')).toHaveClass('annotation-saved')
   })
 
-  it('passes writtenAnnotationIds to AnnotatedText so written annotations get written style', () => {
-    const { container } = render(
-      <TranscriptView
-        segments={segments}
-        annotations={annotations}
-        userSpeakerLabels={['A']}
-        {...defaultProps}
-        writtenAnnotations={new Set(['ann-1'])}
-      />
-    )
-    const mark = container.querySelector('mark')
-    expect(mark).toHaveClass('annotation-written')
-  })
 })
 
 describe('TranscriptView paragraph rendering', () => {

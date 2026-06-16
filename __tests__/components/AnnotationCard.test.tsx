@@ -31,11 +31,8 @@ const annotation: Annotation = {
 const defaultProps = {
   sessionId: 's1',
   practiceItemId: null,
-  isWrittenDown: false,
   onAnnotationAdded: vi.fn(),
   onAnnotationRemoved: vi.fn(),
-  onAnnotationWritten: vi.fn(),
-  onAnnotationUnwritten: vi.fn(),
 }
 
 beforeEach(() => { vi.resetAllMocks() })

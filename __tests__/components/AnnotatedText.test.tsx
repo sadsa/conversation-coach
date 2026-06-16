@@ -49,7 +49,7 @@ describe('AnnotatedText', () => {
     expect(screen.getByText(' al mercado.')).toBeInTheDocument()
   })
 
-  it('applies unreviewed style when not in savedAnnotationIds or writtenAnnotationIds', () => {
+  it('applies unreviewed style when not in savedAnnotationIds', () => {
     render(<AnnotatedText text={text} annotations={[annotation]} onAnnotationClick={() => {}} />)
     const mark = screen.getByText('Yo fui')
     expect(mark).toHaveClass('annotation-unreviewed')
@@ -65,34 +65,6 @@ describe('AnnotatedText', () => {
       />
     )
     expect(screen.getByText('Yo fui')).toHaveClass('annotation-saved')
-  })
-
-  it('applies written style when annotation is in writtenAnnotationIds', () => {
-    render(
-      <AnnotatedText
-        text={text}
-        annotations={[annotation]}
-        onAnnotationClick={() => {}}
-        savedAnnotationIds={new Set(['ann-1'])}
-        writtenAnnotationIds={new Set(['ann-1'])}
-      />
-    )
-    expect(screen.getByText('Yo fui')).toHaveClass('annotation-written')
-  })
-
-  it('written style takes priority over saved style', () => {
-    render(
-      <AnnotatedText
-        text={text}
-        annotations={[annotation]}
-        onAnnotationClick={() => {}}
-        savedAnnotationIds={new Set(['ann-1'])}
-        writtenAnnotationIds={new Set(['ann-1'])}
-      />
-    )
-    const mark = screen.getByText('Yo fui')
-    expect(mark).toHaveClass('annotation-written')
-    expect(mark).not.toHaveClass('annotation-saved')
   })
 
   it('mutes the highlight when annotation is in unhelpfulAnnotationIds', () => {
