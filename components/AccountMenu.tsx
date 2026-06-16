@@ -7,16 +7,14 @@ import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useTranslation } from '@/components/LanguageProvider'
 
 /**
- * Account identity + account actions (Settings, Sign out), extracted out of
- * the nav tab list. Two presentations share one source of truth:
+ * Account identity + account actions (Settings, Sign out). Three presentations:
  *
- *  • `AccountMenuMobile`  — docks at the bottom of the NavDrawer; the row
- *    toggles a popover that lifts UPWARD (there's nothing below it).
- *  • `AccountMenuDesktop` — a rounded avatar button at the top-right of the
- *    AppHeader; opens a dropdown that drops DOWN-and-left.
- *
- * Settings and Sign out are account-scoped chrome, deliberately kept out of
- * NAV_TABS so they don't compete with the Speak / Review / Refine pillars.
+ *  • `AccountMenuMobileHeader` — three-dot button at the top-right of the
+ *    AppHeader on mobile; drops a small menu with Settings + Sign out.
+ *  • `AccountMenuDesktop`      — rounded avatar button at the top-right of the
+ *    AppHeader on desktop; opens a dropdown with identity header + actions.
+ *  • `AccountWidget`           — presentational identity row (avatar + name/email)
+ *    used at the top of the Settings page.
  */
 
 export interface AccountUser {
@@ -25,22 +23,16 @@ export interface AccountUser {
   avatarUrl: string | null
 }
 
-/** First letter of the name, else the email; uppercased. Single glyph keeps
- *  the monogram legible at avatar sizes and works for first-name-only data. */
 function accountInitial(user: AccountUser): string {
   const source = user.name?.trim() || user.email?.trim() || ''
   return source.charAt(0).toUpperCase() || '?'
 }
 
-/** The line shown as the account's primary label. Falls back to the email when
- *  there's no display name (magic-link users have no OAuth full name). */
 function primaryLabel(user: AccountUser): string {
   return user.name?.trim() || user.email?.trim() || ''
 }
 
 function SettingsIcon() {
-  // Phosphor faders-horizontal (regular). Quieter than a gear — reads as
-  // "preferences / dials" without the mechanical busyness of cog teeth.
   return (
     <svg viewBox="0 0 256 256" fill="currentColor" className="w-5 h-5 flex-shrink-0" aria-hidden="true">
       <path d="M176,80a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H184A8,8,0,0,1,176,80ZM40,88H144v16a8,8,0,0,0,16,0V56a8,8,0,0,0-16,0V72H40a8,8,0,0,0,0,16Zm176,80H120a8,8,0,0,0,0,16h96a8,8,0,0,0,0-16ZM88,144a8,8,0,0,0-8,8v16H40a8,8,0,0,0,0,16H80v16a8,8,0,0,0,16,0V152A8,8,0,0,0,88,144Z" />
@@ -60,13 +52,13 @@ function SignOutIcon() {
   )
 }
 
-function ChevronUpIcon({ flipped }: { flipped: boolean }) {
+function ThreeDotsIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      className={`w-4 h-4 flex-shrink-0 text-text-tertiary transition-transform duration-200 ${flipped ? 'rotate-180' : ''}`}
-      aria-hidden="true">
-      <polyline points="18 15 12 9 6 15" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+      className="w-5 h-5" aria-hidden="true">
+      <circle cx="12" cy="5" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="12" cy="19" r="1.5" />
     </svg>
   )
 }
@@ -78,13 +70,11 @@ function Avatar({ user, size }: { user: AccountUser; size: number }) {
   const showImage = user.avatarUrl && !broken
   return (
     <span
-      className="flex items-center justify-center rounded-full overflow-hidden bg-accent-chip text-on-accent-chip font-semibold select-none"
+      className="flex items-center justify-center rounded-full overflow-hidden bg-accent-chip text-on-accent-chip font-semibold select-none flex-shrink-0"
       style={{ width: size, height: size, fontSize: size * 0.42 }}
       aria-hidden="true"
     >
       {showImage ? (
-        // Plain <img> (not next/image): Google avatar hosts aren't in the
-        // image config, and referrerPolicy avoids lh3 403s.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={user.avatarUrl!}
@@ -102,7 +92,6 @@ function Avatar({ user, size }: { user: AccountUser; size: number }) {
   )
 }
 
-/** Closes the menu on a pointer press outside `ref` while `open`. */
 function useOutsideDismiss(
   ref: React.RefObject<HTMLElement>,
   open: boolean,
@@ -118,9 +107,6 @@ function useOutsideDismiss(
   }, [ref, open, onClose])
 }
 
-/** Shared sign-out: ends the Supabase session, runs an optional cleanup
- *  (e.g. close the drawer), then routes to /login. Reports an in-flight flag
- *  so the button can disable itself and avoid double-submits. */
 function useSignOut(afterSignOut?: () => void) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
@@ -137,7 +123,6 @@ function useSignOut(afterSignOut?: () => void) {
   return { signOut, pending }
 }
 
-/** The two action rows shared by both presentations. */
 function AccountActions({
   onSettings,
   onSignOut,
@@ -176,65 +161,62 @@ function AccountActions({
   )
 }
 
-// ── Mobile: NavDrawer footer ────────────────────────────────────────────────
+// ── Mobile: header three-dot button ─────────────────────────────────────────
 
-export function AccountMenuMobile({
-  user,
-  onNavigate,
-}: {
-  user: AccountUser
-  /** Called when the user navigates away (Settings) so the drawer can close. */
-  onNavigate: () => void
-}) {
+export function AccountMenuMobileHeader() {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
   useOutsideDismiss(containerRef, open, () => setOpen(false))
-  const { signOut, pending } = useSignOut(onNavigate)
+
+  useEffect(() => {
+    if (!open) return
+    function handle(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handle)
+    return () => document.removeEventListener('keydown', handle)
+  }, [open])
+
+  const close = useCallback(() => setOpen(false), [])
+  const { signOut, pending } = useSignOut(close)
 
   return (
-    <div
-      ref={containerRef}
-      className="relative p-3"
-      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
-    >
-      {open && (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label={t('nav.account')}
-          className="absolute bottom-full left-3 right-3 mb-2 rounded-xl bg-surface border border-border-subtle overflow-hidden shadow-[0_-12px_32px_-18px_rgba(0,0,0,0.28)] motion-safe:animate-[fadein_160ms_var(--ease-out-expo)_both]"
-        >
-          <AccountActions
-            settingsLabel={t('nav.settings')}
-            signOutLabel={t('nav.signOut')}
-            signOutPending={pending}
-            onSettings={onNavigate}
-            onSignOut={signOut}
-          />
-        </div>
-      )}
-
+    <div ref={containerRef} className="relative md:hidden">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-surface-elevated transition-colors"
+        aria-label={t('nav.accountOptions')}
+        className="p-2.5 -mr-2.5 text-text-secondary hover:text-text-primary transition-colors"
       >
-        <Avatar user={user} size={40} />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate text-sm font-semibold text-text-primary">
-            {primaryLabel(user)}
-          </span>
-          {user.name && user.email && (
-            <span className="block truncate text-xs text-text-tertiary">{user.email}</span>
-          )}
-        </span>
-        <ChevronUpIcon flipped={!open} />
+        <ThreeDotsIcon />
       </button>
+
+      {open && (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label={t('nav.account')}
+          className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-surface border border-border-subtle overflow-hidden shadow-[0_12px_32px_-16px_rgba(0,0,0,0.28)] motion-safe:animate-[fadein_160ms_var(--ease-out-expo)_both]"
+        >
+          <AccountActions
+            settingsLabel={t('nav.settings')}
+            signOutLabel={t('nav.signOut')}
+            signOutPending={pending}
+            onSettings={close}
+            onSignOut={signOut}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -249,7 +231,6 @@ export function AccountMenuDesktop({ user }: { user: AccountUser }) {
   const menuId = useId()
   useOutsideDismiss(containerRef, open, () => setOpen(false))
 
-  // Escape closes the menu and returns focus to the trigger.
   useEffect(() => {
     if (!open) return
     function handle(e: KeyboardEvent) {
@@ -308,6 +289,22 @@ export function AccountMenuDesktop({ user }: { user: AccountUser }) {
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Presentational: Settings page identity header ───────────────────────────
+
+export function AccountWidget({ user }: { user: AccountUser }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar user={user} size={48} />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-text-primary truncate">{primaryLabel(user)}</p>
+        {user.name && user.email && (
+          <p className="text-xs text-text-tertiary truncate">{user.email}</p>
+        )}
+      </div>
     </div>
   )
 }

@@ -87,6 +87,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Sign out',
     'nav.account': 'Account',
     'nav.accountMenu': 'Account menu',
+    'nav.accountOptions': 'Account options',
     'nav.unreadBadge': '{n} unread',
 
     // Practice
@@ -785,6 +786,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Cerrar sesión',
     'nav.account': 'Cuenta',
     'nav.accountMenu': 'Menú de cuenta',
+    'nav.accountOptions': 'Opciones de cuenta',
     'nav.unreadBadge': '{n} sin leer',
 
     // Practice

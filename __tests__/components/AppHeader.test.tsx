@@ -29,10 +29,10 @@ const localStorageMock = (() => {
 })()
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
-function wrap(isOpen: boolean, onOpen = vi.fn()) {
+function wrap() {
   return render(
     <LanguageProvider initialTargetLanguage="es-AR">
-      <AppHeader isOpen={isOpen} onOpen={onOpen} user={user} />
+      <AppHeader user={user} />
     </LanguageProvider>
   )
 }
@@ -44,26 +44,29 @@ describe('AppHeader', () => {
     mockPathname = '/'
   })
 
-  it('renders the open menu button', () => {
-    wrap(false)
-    expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
+  it('renders the account options button', () => {
+    wrap()
+    expect(screen.getByRole('button', { name: /account options/i })).toBeInTheDocument()
   })
 
-  it('calls onOpen when the hamburger is clicked', async () => {
-    const onOpen = vi.fn()
-    wrap(false, onOpen)
-    await userEvent.click(screen.getByRole('button', { name: /open menu/i }))
-    expect(onOpen).toHaveBeenCalledOnce()
+  it('opens the account menu on click, exposing Settings and Sign out', async () => {
+    wrap()
+    await userEvent.click(screen.getByRole('button', { name: /account options/i }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /settings/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /sign out/i })).toBeInTheDocument()
   })
 
-  it('sets aria-expanded="false" when isOpen is false', () => {
-    wrap(false)
-    expect(screen.getByRole('button', { name: /open menu/i })).toHaveAttribute('aria-expanded', 'false')
+  it('does NOT render a back link on "/"', () => {
+    mockPathname = '/'
+    wrap()
+    expect(screen.queryByRole('link', { name: /back/i })).not.toBeInTheDocument()
   })
 
-  it('sets aria-expanded="true" when isOpen is true', () => {
-    wrap(true)
-    expect(screen.getByRole('button', { name: /open menu/i })).toHaveAttribute('aria-expanded', 'true')
+  it('renders a back link on session sub-routes', () => {
+    mockPathname = '/sessions/abc'
+    wrap()
+    expect(screen.getByRole('link', { name: /back/i })).toBeInTheDocument()
   })
 })
 

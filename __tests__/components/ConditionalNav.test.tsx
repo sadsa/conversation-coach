@@ -55,33 +55,27 @@ describe('ConditionalNav', () => {
     }
   )
 
-  it('renders the header on "/"', () => {
+  it('renders the account options button on "/"', () => {
     mockPathname.mockReturnValue('/')
     wrap()
-    expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /account options/i })).toBeInTheDocument()
   })
 
-  it('renders the header on "/vocabulary"', () => {
+  it('renders the account options button on "/vocabulary"', () => {
     mockPathname.mockReturnValue('/vocabulary')
     wrap()
-    expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /account options/i })).toBeInTheDocument()
   })
 
-  it('renders the header on "/sessions/abc"', () => {
+  it('renders the account options button on "/sessions/abc"', () => {
     mockPathname.mockReturnValue('/sessions/abc')
     wrap()
-    expect(screen.getByRole('button', { name: /open menu/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /account options/i })).toBeInTheDocument()
   })
 
   it('renders the bottom nav on "/"', () => {
     mockPathname.mockReturnValue('/')
     wrap()
-    // Both AppHeader (desktop inline nav) and BottomNav (mobile thumb-zone)
-    // carry the "Quick navigation" aria-label; jsdom doesn't honour the
-    // responsive utility classes that hide one of them at a time on real
-    // viewports. Assert at least one nav with that name is in the DOM,
-    // which is the actual contract — getAllByRole tolerates the desktop
-    // duplicate during the test.
     expect(screen.getAllByRole('navigation', { name: /quick navigation/i }).length).toBeGreaterThan(0)
   })
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AccountMenuMobile, AccountMenuDesktop } from '@/components/AccountMenu'
+import { AccountMenuMobileHeader, AccountMenuDesktop, AccountWidget } from '@/components/AccountMenu'
 import { LanguageProvider } from '@/components/LanguageProvider'
 
 const mockPush = vi.fn()
@@ -22,42 +22,36 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('AccountMenuMobile', () => {
-  const user = { name: 'Joshua', email: 'joshua.b@entelect.co.nz', avatarUrl: null }
-
-  it('shows name and email on the trigger, menu collapsed by default', () => {
-    withProvider(<AccountMenuMobile user={user} onNavigate={vi.fn()} />)
-    const trigger = screen.getByRole('button', { name: /joshua/i })
+describe('AccountMenuMobileHeader', () => {
+  it('renders the three-dot trigger, menu collapsed by default', () => {
+    withProvider(<AccountMenuMobileHeader />)
+    const trigger = screen.getByRole('button', { name: /account options/i })
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('toggles the popover open, exposing Settings and Sign out', async () => {
-    withProvider(<AccountMenuMobile user={user} onNavigate={vi.fn()} />)
-    await userEvent.click(screen.getByRole('button', { name: /joshua/i }))
+  it('toggles the menu open, exposing Settings and Sign out', async () => {
+    withProvider(<AccountMenuMobileHeader />)
+    await userEvent.click(screen.getByRole('button', { name: /account options/i }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: /settings/i })).toHaveAttribute('href', '/settings')
     expect(screen.getByRole('menuitem', { name: /sign out/i })).toBeInTheDocument()
   })
 
-  it('signs out and routes to /login', async () => {
-    const onNavigate = vi.fn()
-    withProvider(<AccountMenuMobile user={user} onNavigate={onNavigate} />)
-    await userEvent.click(screen.getByRole('button', { name: /joshua/i }))
-    await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }))
-    expect(mockSignOut).toHaveBeenCalledOnce()
-    expect(onNavigate).toHaveBeenCalled()
-    expect(mockPush).toHaveBeenCalledWith('/login')
+  it('closes the menu on Escape', async () => {
+    withProvider(<AccountMenuMobileHeader />)
+    await userEvent.click(screen.getByRole('button', { name: /account options/i }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('falls back to email as the primary label when there is no name', () => {
-    withProvider(
-      <AccountMenuMobile
-        user={{ name: null, email: 'nameless@example.com', avatarUrl: null }}
-        onNavigate={vi.fn()}
-      />
-    )
-    expect(screen.getByRole('button', { name: /nameless@example\.com/i })).toBeInTheDocument()
+  it('signs out and routes to /login', async () => {
+    withProvider(<AccountMenuMobileHeader />)
+    await userEvent.click(screen.getByRole('button', { name: /account options/i }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }))
+    expect(mockSignOut).toHaveBeenCalledOnce()
+    expect(mockPush).toHaveBeenCalledWith('/login')
   })
 })
 
@@ -82,5 +76,22 @@ describe('AccountMenuDesktop', () => {
     const img = container.querySelector('img')
     expect(img).toHaveAttribute('src', 'https://lh3.googleusercontent.com/a/photo')
     expect(img).toHaveAttribute('referrerPolicy', 'no-referrer')
+  })
+})
+
+describe('AccountWidget', () => {
+  it('shows name and email when both are present', () => {
+    const { container } = withProvider(
+      <AccountWidget user={{ name: 'Joshua', email: 'joshua.b@entelect.co.nz', avatarUrl: null }} />
+    )
+    expect(container).toHaveTextContent('Joshua')
+    expect(container).toHaveTextContent('joshua.b@entelect.co.nz')
+  })
+
+  it('shows only email when name is absent', () => {
+    const { container } = withProvider(
+      <AccountWidget user={{ name: null, email: 'nameless@example.com', avatarUrl: null }} />
+    )
+    expect(container).toHaveTextContent('nameless@example.com')
   })
 })
