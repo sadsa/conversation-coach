@@ -15,8 +15,10 @@ The act of reading through a Session's Annotations and deciding which ones to sa
 _Avoid_: Transcript view, analysis
 
 **Study**:
-The user's personal queue of saved Corrections they intend to learn. Backed by `practice_items` in the DB. Route: `/write` (kept for stability).
-_Avoid_: Write, practice list
+The third phase of the learning loop — both the methodology step and the act. The act of Study is a voice session with the Coach covering all Vocabulary Items saved from a specific Session. Same UI controls as a Conversation; the Coach corrects repeated mistakes; the user may exit at any time with no mastery gate. Launched via a persistent CTA on the Session page. Backed by `practice_items` in the DB.
+
+Card advancement during Study is always learner-initiated: the Coach teaches one card, then cues the user to tap "Got it" when ready — the Coach does not advance the card automatically. The Coach speaks one sentence per turn throughout; it never chains questions or statements in a single turn.
+_Avoid_: Drill (absorbed into Study), Write, practice list
 
 **Loop**:
 The three-step cycle: Practise → Review → Study → (Practise again). A user completes a loop each time they practise a phrase from their Study queue.
@@ -41,12 +43,12 @@ _Avoid_: Unhelpful, dismissed, hidden
 **Correction**:
 The improved form of a phrase within an Annotation. May be null for naturalness observations where no single fix exists.
 
-**Practice Item**:
-A user-selected Annotation saved to their Study queue. Created by explicit user action — never auto-generated.
-_Avoid_: Flashcard, saved item, write item
+**Vocabulary Item**:
+A user-selected Annotation saved from a Review. The user-facing label is "vocabulary item." DB table: `practice_items` (stable, not renamed). Created by explicit user action — never auto-generated.
+_Avoid_: Flashcard, saved item, write item, practice item (DB/internal term only)
 
 **Studied** (state):
-A Practice Item that the user has marked as done — moved from the active Study queue to the Studied archive. The primary path is completing a Drill and answering "yes" to the comfort check — this auto-marks the item as Studied. Manual "Mark Studied" exists as a fallback (e.g. the user rehearsed offline). DB column: `written_down` (stable, not renamed). The archive view is the "Studied" list.
+A Vocabulary Item that the user has manually marked as done. DB column: `written_down` (stable, not renamed). Not surfaced in the UI for now — mastery is not tracked automatically.
 _Avoid_: Written, written down (too prescriptive — implies physical writing)
 
 **Conversation**:
@@ -62,13 +64,9 @@ A Conversation mode with no script or persona — the Coach opens and the user t
 _Avoid_: Free flow, Chat
 
 
-**Drill**:
-A structured voice session seeded by a specific Practice Item, launched from the Study queue. The user initiates it to practise a phrase in context — self-directed, not teacher-led. Produces a Session record. Part of the Study phase of the loop. Completing a Drill triggers a Comfort Check; answering "yes" auto-marks the Practice Item as Studied. The primary CTA to launch a Drill is on the WriteSheet.
-_Avoid_: Lesson (teacher-led connotation), practice session (conflicts with Practise the loop phase)
-
-**Comfort Check**:
-The prompt shown when a Drill ends: "Are you comfortable now with this phrase?" with Yes / No buttons. Answering Yes marks the Practice Item as Studied (and optionally submits the session recording in the background if the user has enabled Drill recordings in settings). Answering No resumes the Drill — the Coach is told the learner is not yet comfortable and continues drilling. The loop repeats until the user answers Yes.
-_Avoid_: Review (reserved for the Review phase of the learning loop), satisfaction check
+**Vocabulary**:
+The cross-session repository of all saved Vocabulary Items, grouped by Session. A secondary nav surface for reviewing what has been saved over time — not a task list. Route: `/vocabulary`.
+_Avoid_: Study queue, practice list, write
 
 **Coach**:
 The AI counterpart in Conversations and Drills. In chat mode it presents as "Coach"; in call mode it adopts a named persona, but the underlying entity is the same. Named in the app title ("Conversation Coach").
@@ -77,10 +75,10 @@ _Avoid_: AI, bot, agent, assistant
 ### The Handoff
 
 **Review→Study Handoff**:
-The transition from finishing Review to beginning Study. Bridged by the Study Prompt (see below) appearing after each save.
+The transition from finishing Review to beginning Study. Bridged by the Study CTA (see below) appearing after each save.
 
-**Study Prompt**:
-A persistent floating pill on the Session page that appears whenever the user has saved at least one Practice Item (including items from prior visits). Shows a count ("Study N saved →") and navigates to `/write`. On mobile, the pill appears in the transcript after the sheet dismisses — it never renders simultaneously with the open sheet. On desktop the pill renders below the right panel. See `components/StudyPrompt.tsx`.
+**Study CTA**:
+A persistent button on the Session page that appears whenever the user has saved at least one Vocabulary Item (including items from prior visits). Launches the Study voice session for this Session directly — does not navigate away. On mobile, appears in the transcript after the sheet dismisses. On desktop renders below the right panel. See `components/StudyPrompt.tsx` (internal name kept for stability).
 
 **Annotation Review Model (mobile vs desktop)**:
 On mobile, saving a Practice Item closes the `AnnotationSheet` entirely. The user returns to the transcript and taps the next annotation deliberately. On desktop, the right panel stays open with prev/next navigation so the user can step through corrections while the transcript remains visible on the left. See `docs/adr/0001-annotation-sheet-mobile-interaction-model.md`.
