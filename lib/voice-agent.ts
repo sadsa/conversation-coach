@@ -202,6 +202,8 @@ export interface VoiceAgent {
   /** Flush any buffered transcript text immediately (call before disconnect to capture final turn). */
   flush: () => void
   disconnect: () => void
+  /** Send a text message to Gemini as a user turn (uses clientContent, bypasses STT). */
+  sendText: (text: string) => void
 }
 
 const WS_ENDPOINT =
@@ -300,13 +302,9 @@ export interface LessonPhrase {
   flashcard_back: string | null
 }
 
-/** System prompt for lesson sessions. The teacher moves through four phases
- *  (explain → model → drill → free_use) advancing via `set_phase` tool calls.
- *  The phrase correction + explanation are injected verbatim so the teacher
- *  never paraphrases the analysis Claude already did.
- */
-export function buildLessonSystemPrompt(
-  phrase: LessonPhrase,
+
+export function buildStudySystemPrompt(
+  phrases: LessonPhrase[],
   targetLanguage: TargetLanguage,
 ): string {
   const accentBlock = targetLanguage === 'en-NZ'
@@ -314,37 +312,52 @@ export function buildLessonSystemPrompt(
     : `IMPORTANTE — ACENTO: Hablás con acento rioplatense (porteño) claro y natural durante toda la sesión. Inconfundiblemente argentino desde la primera palabra. Pronunciá la ll/y con sheísmo. Usá el voseo. No derrapés.`
 
   const toneBlock = targetLanguage === 'en-NZ'
-    ? `Speak at a calm, deliberate pace. You are a patient native-speaking friend who also knows how to teach — warm, unhurried, never condescending. Do not say "great job", "amazing", or use any streak/reward language.`
-    : `Hablá a un ritmo tranquilo y pausado. Sos un amigo nativo que sabe enseñar — cálido, sin apuro, nunca condescendiente. No digas "muy bien", "excelente", ni uses lenguaje de logros o rachas.`
+    ? `Speak at a calm, deliberate pace. You are a patient native-speaking teacher — warm, unhurried, never condescending. Do not say "great job", "amazing", or use any streak/reward language.`
+    : `Hablá a un ritmo tranquilo y pausado. Sos un maestro nativo — cálido, sin apuro, nunca condescendiente. No digas "muy bien", "excelente", ni uses lenguaje de logros o rachas.`
+
+  const cardList = phrases
+    .map((p, i) => `${i + 1}. "${p.correction}" — ${p.explanation}`)
+    .join('\n')
+
+  if (targetLanguage === 'en-NZ') {
+    return `${accentBlock}
+
+You are a focused language teacher running a card-by-card study session. There are ${phrases.length} cards. Start on Card 1 and teach one card at a time.
+
+ONE SENTENCE PER TURN — strict rule. Every single turn you take must be exactly one sentence. No exceptions. Never chain two questions or two statements in the same turn.
+
+CARDS:
+${cardList}
+
+PER-CARD STRUCTURE (repeat for each card):
+1. Explain the correction in one sentence.
+2. Invite the student to try using the phrase themselves (one sentence).
+3. Give one short drill ("How would you say…?").
+4. When you're satisfied, say: "Tap 'Got it' when you're ready to move on." Then go silent — do not speak again until the next card begins.
+
+ADVANCEMENT: When the student taps "Got it", you will receive the message "The student advanced to Card N. Begin the lesson for Card N." Begin Card N immediately — do not wait or ask for confirmation.
+
+${toneBlock}`
+  }
 
   return `${accentBlock}
 
-You are a patient language teacher giving a focused 10-minute lesson on a single phrase. You are not a conversation partner — you are a teacher. Your only job is to help the student understand and use this one phrase naturally.
+Sos un maestro de idiomas dando una sesión de estudio carta por carta. Hay ${phrases.length} cartas. Empezá por la Carta 1 y enseñá una carta a la vez.
 
-THE PHRASE:
-Correction: ${phrase.correction}
-Explanation: ${phrase.explanation}${phrase.flashcard_front ? `\nNative prompt: ${phrase.flashcard_front}` : ''}
+UNA ORACIÓN POR TURNO — regla estricta. Cada turno que tomás debe ser exactamente una oración. Sin excepciones. Nunca encadenés dos preguntas ni dos afirmaciones en el mismo turno.
 
-${toneBlock}
+CARTAS:
+${cardList}
 
-LESSON STRUCTURE — four phases in order:
+ESTRUCTURA POR CARTA (repetí para cada carta):
+1. Explicá la corrección en una oración.
+2. Invitá al estudiante a usar la frase (una oración).
+3. Hacé un ejercicio corto ("¿Cómo dirías…?").
+4. Cuando estés conforme, decí: "Tocá '¡Entendido!' cuando estés listo para seguir." Después quedate en silencio — no hablés más hasta que empiece la próxima carta.
 
-Phase 1 — explain (~2 minutes):
-Explain the correction in one sentence. Do NOT give your own example — instead, immediately invite the student to try using the phrase themselves. The prompt must be directly about the phrase (e.g. "¿Podés armar una oración con 'me resulta difícil'?") — do not ask a general conversation question unrelated to the phrase. When the student has produced a correct use, call set_phase with phase="model".
+AVANCE: Cuando el estudiante toque "¡Entendido!", vas a recibir el mensaje "El estudiante avanzó a la Carta N. Comenzá la lección de la Carta N." Comenzá la Carta N de inmediato — no esperes ni preguntes.
 
-Phase 2 — model (~2 minutes):
-Demonstrate the phrase in 3–4 varied contexts — different subjects, tenses, or scenarios. Keep examples short and memorable. Ask a brief comprehension check after each example. When you are satisfied the student recognises the pattern, call set_phase with phase="drill".
-
-Phase 3 — drill (~3 minutes):
-Ask the student to produce their own sentences using the phrase. Prompt them with scenarios ("Tell me something you did yesterday", "How would you say you went to the gym?"). If they make the same error being studied, gently correct it once and move on — do not dwell. When the student has produced at least 2–3 correct uses with confidence, call set_phase with phase="free_use".
-
-Phase 4 — free_use (~3 minutes):
-Have a natural conversation on any topic. Steer the conversation so the phrase comes up naturally — do not prompt it directly. When the student uses it naturally in context at least once, or when the 10 minutes are nearly up, call set_phase with phase="complete" to end the lesson.
-
-ADVANCEMENT RULE: Call set_phase only when you have heard evidence of understanding or production. Do not advance on a timer alone. If the student is struggling, slow down and stay in the current phase longer.
-
-—— STARTING THE LESSON ——
-YOU lead this session. Speak first. The moment the lesson-start signal arrives, say TWO short sentences only — name the phrase, then ask if the student is ready (e.g. "Hoy practicamos 'me resulta difícil'. ¿Estás listo/a?"). Nothing more. When they respond, begin Phase 1. Do NOT launch into the full explanation before the student has spoken. Do NOT translate or explain the lesson-start signal itself.`
+${toneBlock}`
 }
 
 /**
@@ -826,6 +839,15 @@ export async function connect(
     },
     disconnect() {
       dispose()
+    },
+    sendText(text: string) {
+      if (ws.readyState !== WebSocket.OPEN) return
+      ws.send(JSON.stringify({
+        clientContent: {
+          turns: [{ role: 'user', parts: [{ text }] }],
+          turnComplete: true,
+        },
+      }))
     },
   }
 }
