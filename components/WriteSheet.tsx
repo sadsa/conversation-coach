@@ -22,12 +22,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Icon } from '@/components/Icon'
-import Link from 'next/link'
 import { DockedSheet } from '@/components/DockedSheet'
 import { IconButton } from '@/components/IconButton'
 import { NavHint } from '@/components/NavHint'
 import { HushStack } from '@/components/HushStack'
-import { ImportancePill } from '@/components/ImportancePill'
 import { buttonStyles } from '@/components/Button'
 import type { PracticeItem } from '@/lib/types'
 
@@ -189,8 +187,6 @@ export function WriteSheet({
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lastFailedAction, setLastFailedAction] = useState<'toggle' | 'delete' | null>(null)
-  const [importanceExpanded, setImportanceExpanded] = useState(false)
-
   const isOpen = item !== null
 
   // Reset transient per-item state whenever the user navigates to a new item
@@ -202,7 +198,6 @@ export function WriteSheet({
     setOverflowOpen(false)
     setErrorMessage(null)
     setLastFailedAction(null)
-    setImportanceExpanded(false)
   }, [isOpen, item?.id])
 
   if (!isOpen || !item) return null
@@ -264,16 +259,6 @@ export function WriteSheet({
     >
       <NavHint />
       <div className="space-y-6">
-        {item.session_title && (
-          <Link
-            data-testid="sheet-source-link"
-            href={`/sessions/${item.session_id}`}
-            className="block text-xs text-text-tertiary underline underline-offset-2 hover:text-text-secondary transition-colors"
-          >
-            {item.session_title}
-          </Link>
-        )}
-
         {/* Hush stack — replaces the older CorrectionInContext block. Trades
             surrounding-sentence context for a calmer, sentence-first layout;
             the session source link above is the user's path back to the
@@ -313,20 +298,6 @@ export function WriteSheet({
         <p className="text-text-secondary leading-relaxed text-base">
           {item.explanation}
         </p>
-
-        <ImportancePill
-          score={item.importance_score}
-          note={item.importance_note ?? null}
-          expanded={importanceExpanded}
-          onToggle={() => setImportanceExpanded(v => !v)}
-          toggleAriaKey="writeList.importanceToggleAria"
-        />
-
-        {importanceExpanded && item.importance_note && (
-          <p className="text-text-secondary text-sm leading-relaxed">
-            {item.importance_note}
-          </p>
-        )}
 
         <div className="pt-7 space-y-3">
           {onPractise && (

@@ -189,7 +189,7 @@ export interface SessionDetail {
   session: Pick<Session,
     'id' | 'title' | 'status' | 'error_stage' | 'duration_seconds' |
     'detected_speaker_count' | 'user_speaker_labels' | 'created_at'
-  > & { reviewed_at: string | null }
+  > & { reviewed_at: string | null; last_viewed_at: string | null }
   segments: TranscriptSegment[]
   annotations: Annotation[]
   addedAnnotations: Record<string, string>   // annotationId -> practiceItemId

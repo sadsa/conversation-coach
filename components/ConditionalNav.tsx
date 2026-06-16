@@ -23,8 +23,8 @@ export function ConditionalNav({ unreviewedCount, user }: Props) {
   return (
     <>
       <AppHeader isOpen={isOpen} onOpen={() => setIsOpen(true)} user={user} />
-      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} unreviewedCount={unreviewedCount} user={user} />
-      <BottomNav unreviewedCount={unreviewedCount} />
+      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} unreadCount={unreviewedCount} user={user} />
+      <BottomNav unreadCount={unreviewedCount} />
     </>
   )
 }

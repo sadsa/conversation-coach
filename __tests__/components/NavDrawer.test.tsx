@@ -23,7 +23,7 @@ const user = { name: 'Joshua', email: 'joshua.b@entelect.co.nz', avatarUrl: null
 
 function renderDrawer(isOpen: boolean, onClose = vi.fn()) {
   return render(
-    <NavDrawer isOpen={isOpen} onClose={onClose} unreviewedCount={0} user={user} />
+    <NavDrawer isOpen={isOpen} onClose={onClose} unreadCount={0} user={user} />
   )
 }
 
@@ -63,14 +63,14 @@ describe('NavDrawer', () => {
   })
 
   it('marks the current route with aria-current="page"', () => {
-    mockPathname.mockReturnValue('/refine')
+    mockPathname.mockReturnValue('/vocabulary')
     renderDrawer(true, onClose)
     expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Speak active on "/refine" (exact match required)', () => {
-    mockPathname.mockReturnValue('/refine')
+  it('does NOT mark Speak active on "/vocabulary" (exact match required)', () => {
+    mockPathname.mockReturnValue('/vocabulary')
     renderDrawer(true, onClose)
     expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
@@ -119,7 +119,7 @@ describe('NavDrawer', () => {
   it('removes overflow-hidden from body when closed', () => {
     const onClose2 = vi.fn()
     const { rerender } = renderDrawer(true, onClose2)
-    rerender(<NavDrawer isOpen={false} onClose={onClose2} unreviewedCount={0} user={user} />)
+    rerender(<NavDrawer isOpen={false} onClose={onClose2} unreadCount={0} user={user} />)
     expect(document.body).not.toHaveClass('overflow-hidden')
   })
 

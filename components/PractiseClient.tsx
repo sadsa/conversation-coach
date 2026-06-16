@@ -122,34 +122,38 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
     [targetLanguage],
   )
 
-  // Dynamic starter topics — fetched fresh on each mount so returning users
-  // always see new suggestions. null = loading (show skeleton buttons);
+  // Dynamic starter topics — fetched fresh on each mount and whenever the
+  // target language changes. null = loading (show skeleton buttons);
   // Starter[] = loaded. On error (or a malformed payload) we fall back to the
   // static translation strings with sensible category icons.
   const [starters, setStarters] = useState<Starter[] | null>(null)
   useEffect(() => {
+    setStarters(null)
     const lang = inferUiLanguage(targetLanguage)
+    const decap = (s: string) => s.charAt(0).toLowerCase() + s.slice(1)
     const fallback: Starter[] = [
-      { topic: t('practice.chatStarter.0'), category: 'plans' },
-      { topic: t('practice.chatStarter.1'), category: 'food' },
-      { topic: t('practice.chatStarter.2'), category: 'city' },
+      { topic: decap(t('practice.chatStarter.0')), category: 'plans' },
+      { topic: decap(t('practice.chatStarter.1')), category: 'food' },
+      { topic: decap(t('practice.chatStarter.2')), category: 'city' },
     ]
-    fetch(`/api/practice-starters?lang=${lang}`)
+    const controller = new AbortController()
+    fetch(`/api/practice-starters?lang=${lang}`, { signal: controller.signal })
       .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
       .then(({ starters: s }: { starters?: unknown }) => {
         if (!Array.isArray(s) || s.length === 0) throw new Error('empty')
         const cleaned = s
           .map(item => ({
-            topic: String((item as Starter)?.topic ?? '').trim(),
+            topic: decap(String((item as Starter)?.topic ?? '').trim()),
             category: coerceCategory((item as Starter)?.category),
           }))
           .filter(x => x.topic.length > 0)
         if (cleaned.length === 0) throw new Error('empty')
         setStarters(cleaned)
       })
-      .catch(() => setStarters(fallback))
+      .catch(err => { if (err?.name !== 'AbortError') setStarters(fallback) })
+    return () => controller.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [targetLanguage])
 
   // ── Share-target pickup ──────────────────────────────────────────────
   // When a voice note arrives via the system share sheet, the service

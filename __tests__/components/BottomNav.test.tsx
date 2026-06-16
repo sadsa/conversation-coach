@@ -14,7 +14,7 @@ const mockPathname = usePathname as ReturnType<typeof vi.fn>
 function wrap() {
   return render(
     <LanguageProvider initialTargetLanguage="es-AR">
-      <BottomNav />
+      <BottomNav unreadCount={0} />
     </LanguageProvider>
   )
 }
@@ -46,8 +46,8 @@ describe('BottomNav', () => {
     expect(screen.getByRole('link', { name: /refine/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('does NOT mark Speak active on "/refine" (exact match required)', () => {
-    mockPathname.mockReturnValue('/refine')
+  it('does NOT mark Speak active on "/vocabulary" (exact match required)', () => {
+    mockPathname.mockReturnValue('/vocabulary')
     wrap()
     expect(screen.getByRole('link', { name: /speak/i })).not.toHaveAttribute('aria-current')
   })
@@ -58,14 +58,14 @@ describe('BottomNav', () => {
     expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Refine active on "/refine"', () => {
-    mockPathname.mockReturnValue('/refine')
+  it('marks Refine active on "/vocabulary"', () => {
+    mockPathname.mockReturnValue('/vocabulary')
     wrap()
     expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('marks Refine active on a sub-route like "/refine/something"', () => {
-    mockPathname.mockReturnValue('/refine/something')
+  it('marks Refine active on a sub-route like "/vocabulary/something"', () => {
+    mockPathname.mockReturnValue('/vocabulary/something')
     wrap()
     expect(screen.getByRole('link', { name: /refine/i })).toHaveAttribute('aria-current', 'page')
   })

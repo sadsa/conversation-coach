@@ -6,7 +6,7 @@ import { ScrollToTopOnNavigate } from '@/components/ScrollToTopOnNavigate'
 import { NavProgress } from '@/components/NavProgress'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { getAuthenticatedUser } from '@/lib/auth'
-import { loadUnreviewedCount } from '@/lib/loaders'
+import { loadUnreadCount } from '@/lib/loaders'
 import type { TargetLanguage } from '@/lib/types'
 import { TARGET_LANGUAGES } from '@/lib/types'
 import { inferUiLanguage } from '@/lib/i18n'
@@ -54,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialTargetLanguage: TargetLanguage =
     rawLang && rawLang in TARGET_LANGUAGES ? (rawLang as TargetLanguage) : 'es-AR'
   const uiLanguage = inferUiLanguage(initialTargetLanguage)
-  const unreviewedCount = user ? await loadUnreviewedCount(user.id).catch(() => 0) : 0
+  const unreviewedCount = user ? await loadUnreadCount(user.id).catch(() => 0) : 0
 
   // Inline pre-paint script — runs before React hydrates so the user's
   // stored font size is applied on the first frame (FontSizeProvider syncs

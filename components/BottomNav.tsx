@@ -6,10 +6,10 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { NAV_TABS, isTabActive } from '@/components/nav-tabs'
 
 interface Props {
-  unreviewedCount: number
+  unreadCount: number
 }
 
-export function BottomNav({ unreviewedCount }: Props) {
+export function BottomNav({ unreadCount }: Props) {
   const pathname = usePathname() ?? ''
   const { t } = useTranslation()
 
@@ -26,8 +26,8 @@ export function BottomNav({ unreviewedCount }: Props) {
         {NAV_TABS.map(tab => {
           const active = isTabActive(tab, pathname)
           const IconLg = tab.iconLg
-          const showBadge = tab.href === '/review' && unreviewedCount > 0
-          const badgeLabel = unreviewedCount > 99 ? '99+' : String(unreviewedCount)
+          const showBadge = tab.href === '/review' && unreadCount > 0
+          const badgeLabel = unreadCount > 99 ? '99+' : String(unreadCount)
           return (
             <Link
               key={tab.href}
@@ -41,7 +41,7 @@ export function BottomNav({ unreviewedCount }: Props) {
                 <IconLg active={active} />
                 {showBadge && (
                   <span
-                    aria-label={t('nav.unreviewedBadge', { n: unreviewedCount })}
+                    aria-label={t('nav.unreadBadge', { n: unreadCount })}
                     className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 min-w-[16px] h-4 flex items-center justify-center px-1 rounded-full bg-accent-primary text-on-accent text-[10px] font-semibold leading-none tabular-nums pointer-events-none"
                   >
                     {badgeLabel}

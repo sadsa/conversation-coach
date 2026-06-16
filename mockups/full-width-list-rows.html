@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Full-width list rows — mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&display=swap" rel="stylesheet" />
+<style>
+  /* ── Tokens lifted verbatim from app/globals.css ──────────────────── */
+  :root {
+    --color-bg: oklch(97.5% 0.008 75);
+    --color-surface: oklch(99.5% 0.003 75);
+    --color-surface-elevated: oklch(95% 0.01 75);
+    --color-border: oklch(82% 0.012 75);
+    --color-border-subtle: oklch(90% 0.008 75);
+    --color-text-primary: oklch(22% 0.02 265);
+    --color-text-secondary: oklch(42% 0.015 265);
+    --color-text-tertiary: oklch(55% 0.01 265);
+    --color-correction-text: oklch(48% 0.14 150);
+    --color-chip-bg: oklch(94% 0.035 285);
+    --color-accent-primary: oklch(55% 0.2 285);
+    --color-status-ready: oklch(52% 0.14 150);
+    --color-status-error: oklch(55% 0.2 25);
+    --color-status-processing: oklch(55% 0.2 285);
+    --widget-write-bg: oklch(94% 0.03 160);
+
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Source Serif 4", ui-serif, Georgia, serif;
+
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+    /* mockup-only spacing scale */
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { background: var(--color-bg); }
+
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-feature-settings: 'ss01', 'cv11';
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(24px, 5vw, 72px) clamp(16px, 4vw, 48px) 120px;
+  }
+
+  /* ── Intro ────────────────────────────────────────────────────────── */
+  .intro { max-width: 60ch; margin-bottom: var(--space-xl); }
+  .intro .kicker {
+    font-size: 0.6875rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--color-text-tertiary); margin: 0 0 12px;
+  }
+  .intro h1 {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.1;
+    letter-spacing: -0.02em; margin: 0 0 16px; color: var(--color-text-primary);
+  }
+  .intro p { margin: 0 0 12px; color: var(--color-text-secondary); }
+  .intro code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em; background: var(--color-surface-elevated);
+    padding: 1px 6px; border-radius: 5px; color: var(--color-text-primary);
+  }
+
+  /* ── Variant gallery layout ───────────────────────────────────────── */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: clamp(24px, 3vw, 44px);
+    align-items: start;
+  }
+
+  .variant { min-width: 0; }
+  .variant__head {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 6px;
+  }
+  .variant__num {
+    font-family: var(--font-display); font-size: 1rem; font-weight: 500;
+    color: var(--color-accent-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .variant__title {
+    font-family: var(--font-display); font-size: 1.35rem; font-weight: 500;
+    letter-spacing: -0.01em; margin: 0; color: var(--color-text-primary);
+  }
+  .variant__rec {
+    font-size: 0.625rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--color-correction-text);
+    border: 1px solid color-mix(in oklch, var(--color-correction-text) 35%, transparent);
+    padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  }
+  .variant__note {
+    color: var(--color-text-secondary); font-size: 0.875rem;
+    margin: 0 0 18px; max-width: 42ch; line-height: 1.55;
+  }
+
+  /* Phone frame — represents the real max-w-2xl column on a phone (~393px).
+     The list inside is allowed to bleed to the column edges. */
+  .phone {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 26px;
+    padding: 18px 0 22px;
+    box-shadow: 0 1px 2px oklch(22% 0.02 265 / 0.04), 0 10px 30px oklch(22% 0.02 265 / 0.05);
+    overflow: hidden;
+  }
+  .phone__pad { padding: 0 20px; }   /* mirrors the column's px-* gutter */
+  .section-title {
+    font-family: var(--font-display); font-weight: 500; font-size: 1.5rem;
+    letter-spacing: -0.015em; color: var(--color-text-primary);
+    margin: 0 0 4px;
+  }
+  .eyebrow {
+    font-size: 0.6875rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--color-text-tertiary);
+    margin: 18px 0 8px;
+  }
+
+  /* ── Shared row internals ─────────────────────────────────────────── */
+  .row-title { font-size: 1.0625rem; color: var(--color-text-secondary); margin: 0; text-wrap: balance; }
+  .row-meta {
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    font-size: 0.8125rem; color: var(--color-text-tertiary); margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .row-meta .ready { color: var(--color-status-ready); }
+  .row-meta .err { color: var(--color-status-error); }
+  .row-meta .proc { color: var(--color-status-processing); display: inline-flex; align-items: center; gap: 5px; }
+  .spin {
+    width: 11px; height: 11px; border-radius: 50%;
+    border: 2px solid color-mix(in oklch, var(--color-status-processing) 30%, transparent);
+    border-top-color: var(--color-status-processing);
+    animation: spin 0.8s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* flashcard row internals */
+  .fc-front { font-size: 0.875rem; font-style: italic; color: var(--color-text-tertiary); margin: 0; line-height: 1.4; }
+  .fc-front .phrase { font-style: normal; color: var(--color-text-secondary); }
+  .fc-back {
+    font-family: var(--font-display); font-size: 1.0625rem; font-weight: 500;
+    letter-spacing: -0.005em; color: var(--color-text-primary); margin: 2px 0 0; line-height: 1.35;
+  }
+  .fc-back .phrase {
+    color: var(--color-correction-text); font-weight: 600;
+    background: color-mix(in oklch, var(--widget-write-bg) 60%, transparent);
+    border-radius: 4px; padding: 0 6px; margin: 0 -2px;
+  }
+
+  /* trailing menu affordance — glyph drawn in CSS so each variant can pick
+     orientation. Base = vertical ⋮ centered (today's SessionList/WriteList). */
+  .kebab {
+    position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+    width: 34px; height: 30px; border-radius: 9px; border: none; cursor: pointer;
+    background: transparent; color: var(--color-text-tertiary); padding: 0;
+    display: grid; place-items: center;
+    transition: background-color .18s, color .18s;
+  }
+  .kebab::before { content: "\22EE"; font-size: 18px; line-height: 1; }   /* ⋮ */
+  .kebab:hover { background: var(--color-surface-elevated); color: var(--color-text-primary); }
+
+  /* Proposal variants: horizontal ⋯ pinned to the TOP-most line of the row
+     (title for sessions, native prompt for study) rather than vertically
+     centred — mirrors the reference card's "···" treatment. */
+  .v1-row .kebab, .v2-row .kebab, .v3-row .kebab {
+    top: 15px; right: 10px; transform: none;
+  }
+  .v1-row .kebab::before, .v2-row .kebab::before, .v3-row .kebab::before {
+    content: "\22EF"; font-size: 20px;                                    /* ⋯ */
+  }
+
+  .muted { opacity: 0.62; }
+
+  /* =================================================================== */
+  /* V0 — CURRENT: detached rounded bubbles                              */
+  /* =================================================================== */
+  .v0-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .v0-row { position: relative; }
+  .v0-row .card {
+    border: 1px solid var(--color-border-subtle); border-radius: 12px;
+    background: var(--color-surface); overflow: hidden;
+    transition: border-color .18s;
+  }
+  .v0-row:hover .card { border-color: var(--color-border); }
+  .v0-row .hit { display: block; padding: 16px 48px 16px 20px; }
+
+  /* =================================================================== */
+  /* V1 — HAIRLINE FULL-BLEED (recommended)                              */
+  /* rows break the column gutter, divided by 1px rules, edge-to-edge.   */
+  /* =================================================================== */
+  .v1-list { list-style: none; margin: 10px 0 0; padding: 0;
+    border-top: 1px solid var(--color-border-subtle);
+    border-bottom: 1px solid var(--color-border-subtle); }
+  .v1-row { position: relative; }
+  .v1-row + .v1-row { border-top: 1px solid var(--color-border-subtle); }
+  .v1-row .hit {
+    display: block; padding: 18px 48px 18px 20px;   /* full-bleed: gutter re-added inside */
+    transition: background-color .18s var(--ease-out-quart);
+  }
+  .v1-row:hover .hit { background: var(--color-surface-elevated); }
+
+  /* =================================================================== */
+  /* V2 — INSET DIVIDERS                                                 */
+  /* full-bleed hover, but the hairline starts at the text leading edge. */
+  /* =================================================================== */
+  .v2-list { list-style: none; margin: 10px 0 0; padding: 0; }
+  .v2-row { position: relative; }
+  .v2-row + .v2-row::before {
+    content: ""; position: absolute; top: 0; left: 20px; right: 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+  .v2-row .hit {
+    display: block; padding: 17px 48px 17px 20px;
+    border-radius: 10px;
+    transition: background-color .18s var(--ease-out-quart);
+  }
+  .v2-row:hover .hit { background: var(--color-surface-elevated); }
+
+  /* =================================================================== */
+  /* V3 — GROUPED CONTAINER (single card, internal dividers)            */
+  /* containment kept for archive sub-lists; rows still full width.     */
+  /* =================================================================== */
+  .v3-list {
+    list-style: none; margin: 10px 0 0; padding: 0;
+    border: 1px solid var(--color-border-subtle); border-radius: 14px;
+    background: var(--color-surface); overflow: hidden;
+  }
+  .v3-row { position: relative; }
+  .v3-row + .v3-row { border-top: 1px solid var(--color-border-subtle); }
+  .v3-row .hit {
+    display: block; padding: 17px 48px 17px 18px;
+    transition: background-color .18s var(--ease-out-quart);
+  }
+  .v3-row:hover .hit { background: var(--color-surface-elevated); }
+
+  /* full-bleed marker line illustration */
+  .edge-demo { position: relative; }
+  .edge-demo::before, .edge-demo::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 1px;
+    background: repeating-linear-gradient(var(--color-accent-primary) 0 4px, transparent 4px 9px);
+    opacity: 0.35;
+  }
+  .edge-demo::before { left: 0; }
+  .edge-demo::after { right: 0; }
+
+  .legend {
+    margin-top: 56px; padding-top: 28px;
+    border-top: 1px solid var(--color-border-subtle);
+    max-width: 70ch;
+  }
+  .legend h2 {
+    font-family: var(--font-display); font-weight: 500; font-size: 1.5rem;
+    letter-spacing: -0.015em; margin: 0 0 16px;
+  }
+  .legend dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; }
+  .legend dt { font-weight: 600; color: var(--color-text-primary); }
+  .legend dd { margin: 0; color: var(--color-text-secondary); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <section class="intro">
+    <p class="kicker">Conversation Coach · list pattern study</p>
+    <h1>From rounded bubbles to full-width rows</h1>
+    <p>
+      Today every list item is a detached <code>rounded-xl border</code> card floating on the
+      cream canvas with an <code>8px</code> gap between rows. It reads tidy but wastes horizontal
+      space and fragments the list into competing tiles.
+    </p>
+    <p>
+      These mockups keep the brand intact — warm canvas, large readable type, scannable states,
+      the row&nbsp;··· menu — but let rows <strong>run the full width of the column</strong>.
+      The column itself stays <code>max-w-2xl</code>; "full width" means each row bleeds to the
+      column's gutter edge (dashed violet guides) instead of sitting inside its own bordered box.
+      Shown on both list surfaces: <code>SessionList</code> (Review) and <code>WriteList</code> (Study).
+    </p>
+  </section>
+
+  <div class="gallery">
+
+    <!-- ═══════════════ V0 CURRENT ═══════════════ -->
+    <section class="variant">
+      <div class="variant__head">
+        <span class="variant__num">00</span>
+        <h2 class="variant__title">Current — rounded bubbles</h2>
+      </div>
+      <p class="variant__note">Reference. Each row is its own bordered card; gaps and side
+        inset shrink the usable line. Carried for comparison.</p>
+      <div class="phone">
+        <div class="phone__pad">
+          <h3 class="section-title">Review</h3>
+          <ul class="v0-list">
+            <li class="v0-row"><div class="card"><a class="hit">
+              <p class="row-title">Café con María — pedido y vuelto</p>
+              <div class="row-meta"><span class="ready">Ready</span><span>Today, 08:14</span></div>
+            </a></div><button class="kebab" aria-label="More"></button></li>
+            <li class="v0-row"><div class="card"><a class="hit">
+              <p class="row-title">Llamada con Carlos sobre el finde</p>
+              <div class="row-meta"><span class="proc"><span class="spin"></span>Analysing</span><span>Today, 07:52</span></div>
+            </a></div><button class="kebab" aria-label="More"></button></li>
+            <li class="v0-row"><div class="card"><a class="hit">
+              <p class="row-title">Nota de voz — planes de viaje</p>
+              <div class="row-meta"><span>Yesterday, 19:03</span></div>
+            </a></div><button class="kebab" aria-label="More"></button></li>
+          </ul>
+          <p class="eyebrow">Study</p>
+          <ul class="v0-list">
+            <li class="v0-row"><div class="card"><a class="hit">
+              <p class="fc-front">I <span class="phrase">went</span> to the market yesterday.</p>
+              <p class="fc-back"><span class="phrase">Fui</span> al mercado ayer.</p>
+            </a></div><button class="kebab" aria-label="More"></button></li>
+            <li class="v0-row"><div class="card"><a class="hit">
+              <p class="fc-front">Do you <span class="phrase">want</span> a coffee?</p>
+              <p class="fc-back">¿<span class="phrase">Querés</span> un café?</p>
+            </a></div><button class="kebab" aria-label="More"></button></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ V1 HAIRLINE FULL-BLEED ═══════════════ -->
+    <section class="variant">
+      <div class="variant__head">
+        <span class="variant__num">01</span>
+        <h2 class="variant__title">Hairline full-bleed</h2>
+        <span class="variant__rec">Recommended</span>
+      </div>
+      <p class="variant__note">Rows bleed to the column edge, separated by a single
+        <code>border-subtle</code> hairline. Hover fills the whole width. Maximum line,
+        one calm list — the Linear / iOS-settings read.</p>
+      <div class="phone edge-demo">
+        <div class="phone__pad">
+          <h3 class="section-title">Review</h3>
+        </div>
+        <ul class="v1-list">
+          <li class="v1-row"><a class="hit">
+            <p class="row-title">Café con María — pedido y vuelto</p>
+            <div class="row-meta"><span class="ready">Ready</span><span>Today, 08:14</span></div>
+          </a><button class="kebab" aria-label="More"></button></li>
+          <li class="v1-row"><a class="hit">
+            <p class="row-title">Llamada con Carlos sobre el finde</p>
+            <div class="row-meta"><span class="proc"><span class="spin"></span>Analysing</span><span>Today, 07:52</span></div>
+          </a><button class="kebab" aria-label="More"></button></li>
+          <li class="v1-row"><a class="hit">
+            <p class="row-title">Nota de voz — planes de viaje</p>
+            <div class="row-meta"><span>Yesterday, 19:03</span></div>
+          </a><button class="kebab" aria-label="More"></button></li>
+          <li class="v1-row muted"><a class="hit">
+            <p class="row-title">Mensaje a la familia</p>
+            <div class="row-meta"><span>3 Jun</span></div>
+          </a><button class="kebab" aria-label="More"></button></li>
+        </ul>
+        <div class="phone__pad"><p class="eyebrow">Study</p></div>
+        <ul class="v1-list">
+          <li class="v1-row"><a class="hit">
+            <p class="fc-front">I <span class="phrase">went</span> to the market yesterday.</p>
+            <p class="fc-back"><span class="phrase">Fui</span> al mercado ayer.</p>
+          </a><button class="kebab" aria-label="More"></button></li>
+          <li class="v1-row"><a class="hit">
+            <p class="fc-front">Do you <span class="phrase">want</span> a coffee?</p>
+            <p class="fc-back">¿<span class="phrase">Querés</span> un café?</p>
+          </a><button class="kebab" aria-label="More"></button></li>
+          <li class="v1-row"><a class="hit">
+            <p class="fc-front">I'm going <span class="phrase">to call</span> you later.</p>
+            <p class="fc-back">Te <span class="phrase">voy a llamar</span> más tarde.</p>
+          </a><button class="kebab" aria-label="More"></button></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ═══════════════ V2 INSET DIVIDERS ═══════════════ -->
+    <section class="variant">
+      <div class="variant__head">
+        <span class="variant__num">02</span>
+        <h2 class="variant__title">Inset dividers</h2>
+      </div>
+      <p class="variant__note">Same full-bleed hover, but the hairline starts at the text
+        leading edge — softer grouping, leaves room for a future leading element (avatar,
+        status dot, importance pill).</p>
+      <div class="phone edge-demo">
+        <div class="phone__pad">
+          <h3 class="section-title">Review</h3>
+          <ul class="v2-list">
+            <li class="v2-row"><a class="hit">
+              <p class="row-title">Café con María — pedido y vuelto</p>
+              <div class="row-meta"><span class="ready">Ready</span><span>Today, 08:14</span></div>
+            </a><button class="kebab" aria-label="More"></button></li>
+            <li class="v2-row"><a class="hit">
+              <p class="row-title">Llamada con Carlos sobre el finde</p>
+              <div class="row-meta"><span class="proc"><span class="spin"></span>Analysing</span><span>Today, 07:52</span></div>
+            </a><button class="kebab" aria-label="More"></button></li>
+            <li class="v2-row"><a class="hit">
+              <p class="row-title">Nota de voz — planes de viaje</p>
+              <div class="row-meta"><span>Yesterday, 19:03</span></div>
+            </a><button class="kebab" aria-label="More"></button></li>
+          </ul>
+          <p class="eyebrow">Study</p>
+          <ul class="v2-list">
+            <li class="v2-row"><a class="hit">
+              <p class="fc-front">I <span class="phrase">went</span> to the market yesterday.</p>
+              <p class="fc-back"><span class="phrase">Fui</span> al mercado ayer.</p>
+            </a><button class="kebab" aria-label="More"></button></li>
+            <li class="v2-row"><a class="hit">
+              <p class="fc-front">Do you <span class="phrase">want</span> a coffee?</p>
+              <p class="fc-back">¿<span class="phrase">Querés</span> un café?</p>
+            </a><button class="kebab" aria-label="More"></button></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ V3 GROUPED CONTAINER ═══════════════ -->
+    <section class="variant">
+      <div class="variant__head">
+        <span class="variant__num">03</span>
+        <h2 class="variant__title">Grouped container</h2>
+      </div>
+      <p class="variant__note">One bordered container, rows divided inside it. Full column
+        width with a touch of containment — useful for the secondary "Reviewed" / "Studied"
+        archive sub-lists if the primary list goes full-bleed.</p>
+      <div class="phone">
+        <div class="phone__pad">
+          <h3 class="section-title">Review</h3>
+          <ul class="v3-list">
+            <li class="v3-row"><a class="hit">
+              <p class="row-title">Café con María — pedido y vuelto</p>
+              <div class="row-meta"><span class="ready">Ready</span><span>Today, 08:14</span></div>
+            </a><button class="kebab" aria-label="More"></button></li>
+            <li class="v3-row"><a class="hit">
+              <p class="row-title">Llamada con Carlos sobre el finde</p>
+              <div class="row-meta"><span class="proc"><span class="spin"></span>Analysing</span><span>Today, 07:52</span></div>
+            </a><button class="kebab" aria-label="More"></button></li>
+            <li class="v3-row"><a class="hit">
+              <p class="row-title">Nota de voz — planes de viaje</p>
+              <div class="row-meta"><span>Yesterday, 19:03</span></div>
+            </a><button class="kebab" aria-label="More"></button></li>
+          </ul>
+          <p class="eyebrow">Study</p>
+          <ul class="v3-list">
+            <li class="v3-row"><a class="hit">
+              <p class="fc-front">I <span class="phrase">went</span> to the market yesterday.</p>
+              <p class="fc-back"><span class="phrase">Fui</span> al mercado ayer.</p>
+            </a><button class="kebab" aria-label="More"></button></li>
+            <li class="v3-row"><a class="hit">
+              <p class="fc-front">Do you <span class="phrase">want</span> a coffee?</p>
+              <p class="fc-back">¿<span class="phrase">Querés</span> un café?</p>
+            </a><button class="kebab" aria-label="More"></button></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="legend">
+    <h2>Implementation notes</h2>
+    <dl>
+      <dt>Full-bleed</dt>
+      <dd>Inside the <code>max-w-2xl px-6 md:px-10</code> column, a row becomes edge-to-edge with
+        <code>-mx-6 md:-mx-10</code> and re-adds the gutter as its own padding (<code>px-6 md:px-10</code>).
+        Hover fill and dividers then touch the column edge; text stays aligned.</dd>
+      <dt>States</dt>
+      <dd>Status colour (ready / analysing spinner / error) and the muted archive treatment all
+        survive — they live in the row body, not the card chrome.</dd>
+      <dt>··· menu</dt>
+      <dd>Proposals (01–03) swap the vertical&nbsp;⋮ for a horizontal&nbsp;⋯ pinned to the row's
+        top-most line instead of vertically centred — so tall flashcard rows keep the control
+        anchored to the title, matching the reference card. Still absolute against the
+        <code>&lt;li&gt;</code>, faint on mobile, hover-revealed on desktop; swap the icon name
+        <code>more-vertical</code>&nbsp;→&nbsp;<code>more-horizontal</code> in
+        <code>RowActionsMenu</code> and change its wrapper from <code>inset-y-0 items-center</code>
+        to a top offset.</dd>
+      <dt>Touch target</dt>
+      <dd>Row vertical padding bumped to ~18px so the full-width hit area clears 44px without the
+        card border to imply edges.</dd>
+      <dt>Scope</dt>
+      <dd>One change to the row wrapper in <code>SessionList.tsx</code> + <code>WriteList.tsx</code>;
+        list <code>space-y-2</code> drops to a shared bordered <code>&lt;ul&gt;</code>.</dd>
+    </dl>
+  </section>
+
+</main>
+</body>
+</html>

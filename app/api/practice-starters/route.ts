@@ -36,7 +36,7 @@ food, travel, work, home, people, media, city, plans, opinion, misc.
 Return ONLY a JSON array of 3 objects, each {"topic": string, "category": string}.
 Each topic: 3–8 words, no trailing punctuation. The category must be one of the listed values.
 Vary the topics — mix personal experiences, plans, opinions, and observations.
-Good example: [{"topic":"Your favourite local restaurant","category":"food"},{"topic":"A trip you want to take","category":"travel"},{"topic":"What you watch to relax","category":"media"}]`,
+Good example: [{"topic":"your favourite local restaurant","category":"food"},{"topic":"a trip you want to take","category":"travel"},{"topic":"what you watch to relax","category":"media"}]`,
 
   es: `Generá exactamente 3 temas de conversación cortos y cotidianos para alguien que aprende inglés.
 Los temas deben ser situaciones del día a día, fáciles de charlar durante unos minutos.
@@ -45,7 +45,7 @@ food, travel, work, home, people, media, city, plans, opinion, misc.
 Devolvé SOLO un array JSON de 3 objetos, cada uno {"topic": string, "category": string}.
 Cada tema: 3–8 palabras, sin puntuación al final. La categoría debe ser uno de los valores de la lista.
 Variá los temas — mezclá experiencias personales, planes, opiniones y observaciones.
-Ejemplo bueno: [{"topic":"Tu restaurant favorito del barrio","category":"food"},{"topic":"Un viaje que querés hacer","category":"travel"},{"topic":"Qué mirás para relajarte","category":"media"}]`,
+Ejemplo bueno: [{"topic":"tu restaurant favorito del barrio","category":"food"},{"topic":"un viaje que querés hacer","category":"travel"},{"topic":"qué mirás para relajarte","category":"media"}]`,
 }
 
 function coerceCategory(value: unknown): Category {

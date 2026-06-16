@@ -94,7 +94,7 @@ export const NAV_TABS: NavTab[] = [
     iconLg: phIcon('listMagnifyingGlass', 'lg'),
   },
   {
-    href: '/refine',
+    href: '/vocabulary',
     labelKey: 'nav.refine',
     exact: false,
     icon: phIcon('bookOpen', 'sm'),

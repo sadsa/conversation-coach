@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { ReviewCompletionScreen, type SavedPhrase } from '@/components/ReviewCompletionScreen'
 import { LessonClient } from '@/components/LessonClient'
+import { StudyPrompt } from '@/components/StudyPrompt'
 import { Modal } from '@/components/Modal'
 import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
@@ -42,9 +43,9 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [isReviewed, setIsReviewed] = useState(!!initialDetail.session.reviewed_at)
+  const [isRead, setIsRead] = useState(initialDetail.session.last_viewed_at !== null)
   const [showCompletion, setShowCompletion] = useState(false)
-  const [drillPhrase, setDrillPhrase] = useState<SavedPhrase | null>(null)
+  const [studyMode, setStudyMode] = useState(false)
 
   useEffect(() => {
     if (!toastMessage) return
@@ -93,25 +94,15 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     })
   }
 
-  async function handleMarkReviewed() {
-    setIsReviewed(true)
-    setShowCompletion(true)
-    // Fire-and-forget — the UI transitions immediately; the DB write is best-effort.
-    fetch(`/api/sessions/${sessionId}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ reviewed: true }),
-    }).catch(() => { /* non-critical — reviewed state is optimistic */ })
-  }
-
-  async function handleMarkUnreviewed() {
+  function handleToggleRead() {
     setMenuOpen(false)
-    setIsReviewed(false)
+    const next = !isRead
+    setIsRead(next)
     fetch(`/api/sessions/${sessionId}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ reviewed: false }),
-    }).catch(() => { /* non-critical — reviewed state is optimistic */ })
+      body: JSON.stringify({ read: next }),
+    }).catch(() => { /* non-critical — read state is optimistic */ })
   }
 
   async function handleDelete() {
@@ -166,26 +157,17 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     })
     .filter((x): x is SavedPhrase => x !== null)
 
-  // When drilling a phrase in-place, mount LessonClient instead
-  if (drillPhrase) {
+  // When Study session active, mount LessonClient in-place over the transcript
+  if (studyMode) {
     return (
       <LessonClient
-        phrase={{
-          correction: drillPhrase.annotation.correction ?? drillPhrase.annotation.original,
-          explanation: drillPhrase.annotation.explanation,
-          flashcard_front: drillPhrase.annotation.flashcard_front,
-          flashcard_back: drillPhrase.annotation.flashcard_back,
-          practice_item_id: drillPhrase.practiceItemId,
-        }}
-        onExit={() => setDrillPhrase(null)}
-        onStudied={(id) => {
-          setWrittenAnnotations(prev => {
-            const ann = annotations.find(a => addedAnnotations.get(a.id) === id)
-            if (!ann) return prev
-            const next = new Set(prev); next.add(ann.id); return next
-          })
-          setDrillPhrase(null)
-        }}
+        phrases={savedPhrases.map(p => ({
+          correction: p.annotation.correction ?? p.annotation.original,
+          explanation: p.annotation.explanation,
+          flashcard_front: p.annotation.flashcard_front,
+          flashcard_back: p.annotation.flashcard_back,
+        }))}
+        onExit={() => setStudyMode(false)}
       />
     )
   }
@@ -203,7 +185,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         </p>
         <ReviewCompletionScreen
           savedPhrases={savedPhrases}
-          onDrillPhrase={setDrillPhrase}
         />
       </div>
     )
@@ -238,11 +219,11 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={isReviewed ? handleMarkUnreviewed : () => { setMenuOpen(false); handleMarkReviewed() }}
+                  onClick={handleToggleRead}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-text-primary hover:bg-bg transition-colors"
                 >
                   <Icon name="rotate-ccw" className="w-4 h-4 text-text-tertiary" />
-                  {isReviewed ? t('session.markUnreviewed') : t('session.markReviewed')}
+                  {isRead ? t('session.markUnread') : t('session.markRead')}
                 </button>
                 <button
                   type="button"
@@ -286,8 +267,6 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         onAnnotationWritten={handleAnnotationWritten}
         onAnnotationUnwritten={handleAnnotationUnwritten}
         onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
-        isReviewed={isReviewed}
-        onMarkReviewed={handleMarkReviewed}
       />
 
       {/* Re-analyse confirmation. Two-step gate on a destructive action that
@@ -370,6 +349,11 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       </Modal>
 
       {toastMessage && <Toast message={toastMessage} />}
+
+      <StudyPrompt
+        count={addedAnnotations.size}
+        onLaunchStudy={() => setStudyMode(true)}
+      />
     </div>
   )
 }

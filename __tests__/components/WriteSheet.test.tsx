@@ -39,14 +39,10 @@ const noopProps = {
 }
 
 describe('WriteSheet — header structure', () => {
-  it('renders the session title as a small source link in the body, not an h2 in the header', () => {
+  it('does not render a session title source link', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
+    expect(screen.queryByTestId('sheet-source-link')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument()
-    const link = screen.getByTestId('sheet-source-link')
-    expect(link).toHaveTextContent(/cafe with maría/i)
-    expect(link).toHaveAttribute('href', `/sessions/${baseItem.session_id}`)
-    expect(link.textContent ?? '').not.toMatch(/^from /i)
-    expect(link.textContent ?? '').not.toMatch(/["\u201C\u201D]/)
   })
 
   it('does not render a decorative status dot anywhere in the sheet', () => {
@@ -57,8 +53,8 @@ describe('WriteSheet — header structure', () => {
     expect(dots.length).toBe(0)
   })
 
-  it('omits the source link when the item has no session title', () => {
-    render(<WriteSheet item={itemWithoutSession} {...noopProps} />)
+  it('does not render a source link even when session_title is present', () => {
+    render(<WriteSheet item={baseItem} {...noopProps} />)
     expect(screen.queryByTestId('sheet-source-link')).not.toBeInTheDocument()
   })
 
@@ -263,20 +259,10 @@ describe('WriteSheet — Hush stack body', () => {
 })
 
 describe('WriteSheet — source link', () => {
-  // The "From" prefix idea was retired — the bare session title link sits
-  // ABOVE the Hush stack with a stronger underline so it reads as
-  // interactive without needing a separate label.
-
-  it('does not render any "From" eyebrow text', () => {
+  it('does not render a session title link', () => {
     render(<WriteSheet item={baseItem} {...noopProps} />)
-    expect(screen.queryByText(/^from\s*$/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/^from\s+/i)).not.toBeInTheDocument()
-  })
-
-  it('renders the session title as a bare link (no chrome prefix)', () => {
-    render(<WriteSheet item={baseItem} {...noopProps} />)
-    const link = screen.getByTestId('sheet-source-link')
-    expect(link.textContent?.trim()).toBe(baseItem.session_title)
+    expect(screen.queryByTestId('sheet-source-link')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /cafe with maría/i })).not.toBeInTheDocument()
   })
 })
 
@@ -296,65 +282,16 @@ describe('WriteSheet — explanation', () => {
 
 
 describe('WriteSheet — ImportancePill', () => {
-  it('renders nothing when importance_score is null', () => {
-    render(<WriteSheet item={baseItem} {...noopProps} />)
-    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
-  })
-
-  it('renders nothing when importance_score is 1 (suppressed)', () => {
-    render(<WriteSheet item={{ ...baseItem, importance_score: 1 }} {...noopProps} />)
-    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
-  })
-
-  it('renders "Worth remembering" pill for score 2', () => {
-    render(<WriteSheet item={{ ...baseItem, importance_score: 2 }} {...noopProps} />)
-    expect(screen.getByText(/worth remembering/i)).toBeInTheDocument()
-  })
-
-  it('renders "High priority" pill for score 3', () => {
+  it('does not render an importance pill regardless of score', () => {
     render(<WriteSheet item={{ ...baseItem, importance_score: 3 }} {...noopProps} />)
-    expect(screen.getByText(/high priority/i)).toBeInTheDocument()
+    expect(screen.queryByText(/worth remembering/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/high priority/i)).not.toBeInTheDocument()
   })
 
-  it('renders a static span (not a button) when note is null', () => {
-    render(<WriteSheet item={{ ...baseItem, importance_score: 2, importance_note: null }} {...noopProps} />)
-    const pill = screen.getByText(/worth remembering/i).closest('span')
-    expect(pill).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /toggle importance/i })).not.toBeInTheDocument()
-  })
-
-  it('renders a toggle button when note is present, expands note on click', async () => {
+  it('does not render an importance toggle button', () => {
     const note = 'Dropping subject pronouns is standard in Rioplatense.'
-    render(
-      <WriteSheet
-        item={{ ...baseItem, importance_score: 2, importance_note: note }}
-        {...noopProps}
-      />,
-    )
-    const toggle = screen.getByRole('button', { name: /toggle importance/i })
-    expect(toggle).toBeInTheDocument()
-    expect(screen.queryByText(note)).not.toBeInTheDocument()
-
-    await act(async () => { await userEvent.click(toggle) })
-    expect(screen.getByText(note)).toBeInTheDocument()
-
-    await act(async () => { await userEvent.click(toggle) })
-    expect(screen.queryByText(note)).not.toBeInTheDocument()
-  })
-
-  it('resets note expansion when navigating to a new item', async () => {
-    const note = 'Important note.'
-    const itemWithNote = { ...baseItem, importance_score: 2, importance_note: note }
-    const { rerender } = render(<WriteSheet item={itemWithNote} {...noopProps} />)
-
-    const toggle = screen.getByRole('button', { name: /toggle importance/i })
-    await act(async () => { await userEvent.click(toggle) })
-    expect(screen.getByText(note)).toBeInTheDocument()
-
-    const item2 = { ...baseItem, id: 'item-2', importance_score: 2, importance_note: note }
-    rerender(<WriteSheet item={item2} {...noopProps} />)
+    render(<WriteSheet item={{ ...baseItem, importance_score: 2, importance_note: note }} {...noopProps} />)
+    expect(screen.queryByRole('button', { name: /toggle importance/i })).not.toBeInTheDocument()
     expect(screen.queryByText(note)).not.toBeInTheDocument()
   })
 })

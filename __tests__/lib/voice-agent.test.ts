@@ -1,7 +1,8 @@
 // __tests__/lib/voice-agent.test.ts
 import { describe, it, expect } from 'vitest'
-import { buildPracticeSystemPrompt, buildResumeSystemPrompt } from '@/lib/voice-agent'
+import { buildPracticeSystemPrompt, buildResumeSystemPrompt, buildStudySystemPrompt } from '@/lib/voice-agent'
 import type { TranscriptTurn } from '@/lib/types'
+import type { LessonPhrase } from '@/lib/voice-agent'
 
 describe('buildPracticeSystemPrompt', () => {
   it('instructs Gemini to use Rioplatense register for es-AR', () => {
@@ -73,6 +74,52 @@ describe('buildPracticeSystemPrompt', () => {
     expect(prompt).toMatch(/acento/i)
     expect(prompt).toMatch(/sheísmo|zheísmo|sonido sh/i)
     expect(prompt).toMatch(/nunca.*castellano|no.*neutro/i)
+  })
+})
+
+describe('buildStudySystemPrompt', () => {
+  const phrases: LessonPhrase[] = [
+    { correction: 'me resulta difícil', explanation: 'Use this instead of "es difícil para mí"', flashcard_front: null, flashcard_back: null },
+    { correction: 'dale, vamos', explanation: 'Casual agreement / let\'s go', flashcard_front: null, flashcard_back: null },
+  ]
+
+  it('includes all phrase corrections numbered in the prompt', () => {
+    const prompt = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(prompt).toContain('me resulta difícil')
+    expect(prompt).toContain('dale, vamos')
+    expect(prompt).toMatch(/1\.\s*"?me resulta difícil/i)
+    expect(prompt).toMatch(/2\.\s*"?dale, vamos/i)
+  })
+
+  it('instructs the teacher to start on Card 1', () => {
+    const prompt = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(prompt).toMatch(/carta 1|card 1/i)
+  })
+
+  it('describes the advancement message format', () => {
+    const prompt = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(prompt).toMatch(/avanzó|advance|siguiente/i)
+  })
+
+  it('keeps the Rioplatense accent guard for es-AR', () => {
+    const prompt = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(prompt).toMatch(/rioplatense|porteño/i)
+    expect(prompt).toMatch(/voseo/i)
+  })
+
+  it('keeps the NZ accent guard for en-NZ', () => {
+    const enPhrases: LessonPhrase[] = [
+      { correction: 'going to', explanation: 'Use instead of "gonna"', flashcard_front: null, flashcard_back: null },
+    ]
+    const prompt = buildStudySystemPrompt(enPhrases, 'en-NZ')
+    expect(prompt).toMatch(/New Zealand|Kiwi/i)
+    expect(prompt).not.toMatch(/rioplatense|porteño/i)
+  })
+
+  it('does not include set_phase tool instructions', () => {
+    const prompt = buildStudySystemPrompt(phrases, 'es-AR')
+    expect(prompt).not.toContain('set_phase')
+    expect(prompt).not.toMatch(/Phase 1|Phase 2|Phase 3|Phase 4/i)
   })
 })
 

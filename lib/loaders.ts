@@ -66,7 +66,7 @@ export async function loadSessionDetail(
 
   const { data: session, error: sessionError } = await db
     .from('sessions')
-    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at, reviewed_at')
+    .select('id, title, status, error_stage, duration_seconds, detected_speaker_count, user_speaker_labels, created_at, reviewed_at, last_viewed_at')
     .eq('id', sessionId)
     .eq('user_id', userId)
     .single()
@@ -238,18 +238,18 @@ export async function loadAllowedUsers(): Promise<AllowedUserRow[]> {
 }
 
 /**
- * Count of sessions the user has not yet explicitly reviewed (reviewed_at IS
- * NULL). Only counts ready sessions — in-progress and errored sessions never
+ * Count of sessions the user has not yet viewed (last_viewed_at IS NULL).
+ * Only counts ready sessions — in-progress and errored sessions never
  * appear in the Review inbox so they must not inflate the badge.
  */
-export async function loadUnreviewedCount(userId: string): Promise<number> {
+export async function loadUnreadCount(userId: string): Promise<number> {
   const db = createServerClient()
   const { count, error } = await db
     .from('sessions')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('status', 'ready')
-    .is('reviewed_at', null)
+    .is('last_viewed_at', null)
   if (error) return 0
   return count ?? 0
 }

@@ -156,11 +156,11 @@ export function ReviewClient({ initialSessions }: Props) {
     setSessions(prev => prev.filter(s => s.id !== id))
   }
 
-  const handleToggleReviewed = useCallback((id: string, makeReviewed: boolean) => {
+  const handleToggleRead = useCallback((id: string, makeRead: boolean) => {
     setSessions(prev =>
       prev.map(s =>
         s.id === id
-          ? { ...s, reviewed_at: makeReviewed ? new Date().toISOString() : null }
+          ? { ...s, last_viewed_at: makeRead ? new Date().toISOString() : null }
           : s,
       ),
     )
@@ -170,21 +170,12 @@ export function ReviewClient({ initialSessions }: Props) {
     () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
     [sessions],
   )
-  const unreviewedSessions = useMemo(
-    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status) && s.reviewed_at === null),
-    [sessions],
-  )
-  const reviewedSessions = useMemo(
-    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status) && s.reviewed_at !== null),
+  const terminalSessions = useMemo(
+    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status)),
     [sessions],
   )
 
   return (
-    // Page rhythm matches /, /write, /settings: layout owns the column
-    // width and BottomNav clearance, this wrapper owns the section gap.
-    // The old `max-w-2xl mx-auto` duplicated the layout cap; the old
-    // `pb-[6rem+safe]` is no longer needed — layout's pb now sizes off
-    // --bottom-nav-h directly.
     <div className="space-y-8">
       <header className="space-y-2">
         <h1 className="text-page-title">
@@ -192,43 +183,15 @@ export function ReviewClient({ initialSessions }: Props) {
         </h1>
       </header>
 
-      {/* In-progress strip — only renders when there's at least one
-          processing session. Drops to the recent list below as soon as
-          each session reaches a terminal status. Inter-section gap
-          comes from the wrapper's space-y-8. */}
       {inProgressSessions.length > 0 && (
         <DashboardInProgress sessions={inProgressSessions} />
       )}
 
-      {/* Unreviewed ready sessions — the primary work queue. All shown,
-          no truncation. Empty state only appears when there are zero
-          sessions at all (both tiers empty). */}
       <DashboardRecentSessions
-        sessions={unreviewedSessions}
+        sessions={terminalSessions}
         onDeleted={handleSessionDeleted}
-        onToggleReviewed={handleToggleReviewed}
+        onToggleRead={handleToggleRead}
       />
-
-      {/* Reviewed sessions — only rendered once at least one session has
-          been explicitly marked reviewed. Matches the refine archive
-          pattern: invisible until there's something to show. */}
-      {reviewedSessions.length > 0 && (
-        <section aria-label={t('review.reviewedTitle')} className="space-y-3">
-          <div className="flex items-center gap-1.5 pt-1">
-            <h2 className="text-eyebrow">
-              {t('review.reviewedTitle')}
-            </h2>
-            <span className="text-xs text-text-tertiary tabular-nums" aria-label={`${reviewedSessions.length} sessions`}>
-              · {reviewedSessions.length}
-            </span>
-          </div>
-          <SessionList
-            sessions={reviewedSessions}
-            onDeleted={handleSessionDeleted}
-            onToggleReviewed={handleToggleReviewed}
-          />
-        </section>
-      )}
     </div>
   )
 }

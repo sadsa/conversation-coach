@@ -22,10 +22,9 @@ export interface SavedPhrase {
 
 interface Props {
   savedPhrases: SavedPhrase[]
-  onDrillPhrase: (phrase: SavedPhrase) => void
 }
 
-export function ReviewCompletionScreen({ savedPhrases, onDrillPhrase }: Props) {
+export function ReviewCompletionScreen({ savedPhrases }: Props) {
   const { t } = useTranslation()
   const count = savedPhrases.length
 
@@ -61,8 +60,6 @@ export function ReviewCompletionScreen({ savedPhrases, onDrillPhrase }: Props) {
             <PhraseCard
               key={phrase.practiceItemId}
               phrase={phrase}
-              onDrill={() => onDrillPhrase(phrase)}
-              drillLabel={t('review.completion.drillPhrase')}
             />
           ))}
         </div>
@@ -90,29 +87,16 @@ export function ReviewCompletionScreen({ savedPhrases, onDrillPhrase }: Props) {
 
 interface PhraseCardProps {
   phrase: SavedPhrase
-  onDrill: () => void
-  drillLabel: string
 }
 
-function PhraseCard({ phrase, onDrill, drillLabel }: PhraseCardProps) {
+function PhraseCard({ phrase }: PhraseCardProps) {
   const { annotation } = phrase
   const displayText = annotation.correction ?? annotation.original
-
-  // Prefer the bilingual flashcard pair so the card reads exactly like a
-  // Refine-queue row (native prompt + green-highlighted target). Older items
-  // without flashcard fields fall back to the correction + explanation.
   const hasFlashcard =
     annotation.flashcard_front !== null && annotation.flashcard_back !== null
 
-  // The entire card is the drill target — drilling is the primary move on this
-  // screen, so the whole surface is tappable rather than a small text link.
   return (
-    <button
-      type="button"
-      onClick={onDrill}
-      aria-label={`${drillLabel}: ${displayText}`}
-      className="group block w-full text-left rounded-xl bg-surface ring-1 ring-border-subtle p-4 space-y-3 transition-[box-shadow,background-color,transform] hover:ring-accent-primary/40 active:bg-accent-chip motion-safe:active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
-    >
+    <div className="block w-full text-left rounded-xl bg-surface ring-1 ring-border-subtle p-4 space-y-3">
       {hasFlashcard ? (
         <FlashcardRow
           flashcardFront={annotation.flashcard_front!}
@@ -120,7 +104,6 @@ function PhraseCard({ phrase, onDrill, drillLabel }: PhraseCardProps) {
         />
       ) : (
         <>
-          {/* Correction text in display serif — same register as Study queue */}
           <p className="font-display text-lg md:text-xl leading-snug text-text-primary tracking-[-0.01em]">
             {displayText}
           </p>
@@ -131,16 +114,6 @@ function PhraseCard({ phrase, onDrill, drillLabel }: PhraseCardProps) {
           )}
         </>
       )}
-
-      {/* Drill affordance — the loud cue. The whole card triggers it; this row
-          names the action and nudges on hover. */}
-      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-primary">
-        {drillLabel}
-        <Icon
-          name="arrow-right"
-          className="w-3.5 h-3.5 transition-transform motion-safe:group-hover:translate-x-0.5"
-        />
-      </span>
-    </button>
+    </div>
   )
 }

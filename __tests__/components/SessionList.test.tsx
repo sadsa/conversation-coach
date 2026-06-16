@@ -99,42 +99,59 @@ describe('SessionList', () => {
 })
 
 
-describe('SessionList — row context menu toggles reviewed/unreviewed', () => {
+describe('SessionList — read/unread bold styling', () => {
+  it('renders unread session title in bold (font-semibold)', () => {
+    render(<SessionList sessions={[unreadReadySession]} />)
+    const titleEl = screen.getByText('Café with Dani')
+    expect(titleEl).toHaveClass('font-semibold')
+    expect(titleEl).toHaveClass('text-text-primary')
+  })
+
+  it('renders read session title in normal weight', () => {
+    render(<SessionList sessions={[readSession]} />)
+    const titleEl = screen.getByText('Chat with María')
+    expect(titleEl).toHaveClass('font-normal')
+    expect(titleEl).toHaveClass('text-text-secondary')
+    expect(titleEl).not.toHaveClass('font-semibold')
+  })
+})
+
+describe('SessionList — row context menu toggles read/unread', () => {
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true })
   })
 
-  it('PATCHes { reviewed: true } when toggling an unreviewed row', async () => {
+  it('PATCHes { read: true } when marking an unread row as read', async () => {
     const onToggle = vi.fn()
     render(
       <SessionList
         sessions={[unreadReadySession]}
-        onToggleReviewed={onToggle}
+        onToggleRead={onToggle}
       />,
     )
     await openSessionMenu('sess-3')
-    await userEvent.click(screen.getByTestId('toggle-reviewed-sess-3'))
+    await userEvent.click(screen.getByTestId('toggle-read-sess-3'))
     expect(onToggle).toHaveBeenCalledWith('sess-3', true)
     await vi.waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith('/api/sessions/sess-3', expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ reviewed: true }),
+        body: JSON.stringify({ read: true }),
       })),
     )
   })
 
-  it('PATCHes { reviewed: false } when toggling an already-reviewed row', async () => {
+  it('PATCHes { read: false } when marking a read row as unread', async () => {
     const onToggle = vi.fn()
     render(
-      <SessionList sessions={[readSession]} onToggleReviewed={onToggle} />,
+      <SessionList sessions={[readSession]} onToggleRead={onToggle} />,
     )
     await openSessionMenu('sess-1')
-    await userEvent.click(screen.getByTestId('toggle-reviewed-sess-1'))
+    await userEvent.click(screen.getByTestId('toggle-read-sess-1'))
     expect(onToggle).toHaveBeenCalledWith('sess-1', false)
     await vi.waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith('/api/sessions/sess-1', expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ reviewed: false }),
+        body: JSON.stringify({ read: false }),
       })),
     )
   })
@@ -143,10 +160,10 @@ describe('SessionList — row context menu toggles reviewed/unreviewed', () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false })
     const onToggle = vi.fn()
     render(
-      <SessionList sessions={[readSession]} onToggleReviewed={onToggle} />,
+      <SessionList sessions={[readSession]} onToggleRead={onToggle} />,
     )
     await openSessionMenu('sess-1')
-    await userEvent.click(screen.getByTestId('toggle-reviewed-sess-1'))
+    await userEvent.click(screen.getByTestId('toggle-read-sess-1'))
     await vi.waitFor(() => expect(onToggle).toHaveBeenCalledTimes(2))
     expect(onToggle).toHaveBeenNthCalledWith(1, 'sess-1', false)
     expect(onToggle).toHaveBeenNthCalledWith(2, 'sess-1', true)
@@ -156,7 +173,7 @@ describe('SessionList — row context menu toggles reviewed/unreviewed', () => {
   it('does NOT render a toggle option for non-ready (still processing) rows', async () => {
     render(<SessionList sessions={[transcribingSession]} />)
     await openSessionMenu('sess-2')
-    expect(screen.queryByTestId('toggle-reviewed-sess-2')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toggle-read-sess-2')).not.toBeInTheDocument()
   })
 })
 

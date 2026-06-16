@@ -17,18 +17,13 @@ import type { SessionListItem } from '@/lib/types'
 interface Props {
   sessions: SessionListItem[]
   onDeleted?: (id: string) => void
-  /**
-   * Optimistic read-toggle handoff. The page owns the canonical sessions
-   * array; we forward the row's request straight up without buffering. A
-   * second call with the inverse value is treated as a rollback.
-   */
-  onToggleReviewed?: (id: string, makeReviewed: boolean) => void
+  onToggleRead?: (id: string, makeRead: boolean) => void
 }
 
 export function DashboardRecentSessions({
   sessions,
   onDeleted,
-  onToggleReviewed,
+  onToggleRead,
 }: Props) {
   const { t } = useTranslation()
 
@@ -49,7 +44,7 @@ export function DashboardRecentSessions({
         <SessionList
           sessions={sessions}
           onDeleted={onDeleted}
-          onToggleReviewed={onToggleReviewed}
+          onToggleRead={onToggleRead}
         />
       )}
     </section>

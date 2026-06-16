@@ -11,11 +11,11 @@ import { AccountMenuMobile, type AccountUser } from '@/components/AccountMenu'
 interface NavDrawerProps {
   isOpen: boolean
   onClose: () => void
-  unreviewedCount: number
+  unreadCount: number
   user: AccountUser
 }
 
-export function NavDrawer({ isOpen, onClose, unreviewedCount, user }: NavDrawerProps) {
+export function NavDrawer({ isOpen, onClose, unreadCount, user }: NavDrawerProps) {
   const pathname = usePathname() ?? ''
   const { t } = useTranslation()
 
@@ -131,8 +131,8 @@ export function NavDrawer({ isOpen, onClose, unreviewedCount, user }: NavDrawerP
           {NAV_TABS.map(tab => {
             const active = isTabActive(tab, pathname)
             const Icon = tab.icon
-            const showBadge = tab.href === '/review' && unreviewedCount > 0
-            const badgeLabel = unreviewedCount > 99 ? '99+' : String(unreviewedCount)
+            const showBadge = tab.href === '/review' && unreadCount > 0
+            const badgeLabel = unreadCount > 99 ? '99+' : String(unreadCount)
             return (
               <Link
                 key={tab.href}
@@ -151,7 +151,7 @@ export function NavDrawer({ isOpen, onClose, unreviewedCount, user }: NavDrawerP
                 <span className="text-sm font-medium">{t(tab.labelKey)}</span>
                 {showBadge && (
                   <span
-                    aria-label={t('nav.unreviewedBadge', { n: unreviewedCount })}
+                    aria-label={t('nav.unreadBadge', { n: unreadCount })}
                     className="ml-auto min-w-[22px] h-5 flex items-center justify-center px-1.5 rounded-full bg-accent-primary text-on-accent text-xs font-semibold leading-none tabular-nums pointer-events-none"
                   >
                     {badgeLabel}

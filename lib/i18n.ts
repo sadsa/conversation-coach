@@ -84,7 +84,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Sign out',
     'nav.account': 'Account',
     'nav.accountMenu': 'Account menu',
-    'nav.unreviewedBadge': '{n} to review',
+    'nav.unreadBadge': '{n} unread',
 
     // Practice
     //
@@ -390,7 +390,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // return). /review names its surface directly so the user knows what
     // they're looking at without sharing the home's emotional weight.
     'review.title': 'Your reviews',
-    'review.reviewedTitle': 'Reviewed',
     'review.emptyLine': 'No conversations to review yet.',
     'review.emptyCta': 'Start a conversation',
     'home.remindersAria': 'Saved corrections',
@@ -441,6 +440,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.undo': 'Undo',
     'session.markReviewed': 'Mark as reviewed',
     'session.markUnreviewed': 'Mark as unreviewed',
+    'session.markRead': 'Mark as read',
+    'session.markUnread': 'Mark as unread',
     'session.toggleReviewedError': 'Couldn\'t update — try again.',
     // Row context menu (⋮)
     'session.menuAria': 'More actions',
@@ -752,6 +753,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // progress is an application concern, not a user concern.
     'lesson.warningToast': '2 minutes remaining',
     'lesson.studying': 'Studying',
+    'lesson.cardOf': 'Card {n} of {total}',
+    'lesson.gotIt': 'Got it',
+    'lesson.gotItAria': 'Mark this phrase as understood and move to the next',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -791,7 +795,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.signOut': 'Cerrar sesión',
     'nav.account': 'Cuenta',
     'nav.accountMenu': 'Menú de cuenta',
-    'nav.unreviewedBadge': '{n} para revisar',
+    'nav.unreadBadge': '{n} sin leer',
 
     // Practice
     //
@@ -1005,7 +1009,6 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // H1 de la página /review. El saludo cálido pertenece a la home; aquí
     // nombramos la superficie directamente.
     'review.title': 'Tus revisiones',
-    'review.reviewedTitle': 'Revisadas',
     'review.emptyLine': 'Todavía no hay conversaciones para revisar.',
     'review.emptyCta': 'Empezá una conversación',
     'home.remindersAria': 'Correcciones guardadas',
@@ -1056,6 +1059,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.undo': 'Deshacer',
     'session.markReviewed': 'Marcar como revisada',
     'session.markUnreviewed': 'Marcar como no revisada',
+    'session.markRead': 'Marcar como leída',
+    'session.markUnread': 'Marcar como no leída',
     'session.toggleReviewedError': 'No se pudo actualizar — intentá de nuevo.',
     // Menú contextual de fila (⋮)
     'session.menuAria': 'Más acciones',
@@ -1348,6 +1353,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // usuario.
     'lesson.warningToast': 'Quedan 2 minutos',
     'lesson.studying': 'Estudiando',
+    'lesson.cardOf': 'Carta {n} de {total}',
+    'lesson.gotIt': '¡Entendido!',
+    'lesson.gotItAria': 'Marcar esta frase como entendida y avanzar',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',
