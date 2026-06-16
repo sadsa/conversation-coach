@@ -44,7 +44,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [isRead, setIsRead] = useState(initialDetail.session.last_viewed_at !== null)
-  const [showCompletion, setShowCompletion] = useState(false)
+  const [showCompletion, _setShowCompletion] = useState(false)
   const [studyMode, setStudyMode] = useState(false)
 
   useEffect(() => {

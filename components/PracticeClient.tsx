@@ -897,7 +897,7 @@ export function PracticeClient({ targetLanguage, mode, onExit, starterTopic }: P
         openingLine: activePersona?.opener ?? CALL_OPENING_TRIGGER,
       },
     )
-  }, [targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete])
+  }, [targetLanguage, t, startTimer, disconnectAssemblyAI, handleAssemblyAITurn, handleModelTurnStart, handleTurnComplete, starterTopic])
 
   // Initial dispatch — runs exactly once. Cleanup of WebSocket / timers /
   // wake lock lives in the top-level mount effect, so this only kicks off

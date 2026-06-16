@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 import { useRef, useState } from 'react'
 import { useTranslation } from '@/components/LanguageProvider'
 import { Button } from '@/components/Button'
@@ -24,10 +25,12 @@ function Avatar({ name, avatar_url, email }: { name: string | null; avatar_url: 
     : email[0].toUpperCase()
   if (avatar_url) {
     return (
-      <img
+      <Image
         src={avatar_url}
         alt={name ?? email}
-        className="w-10 h-10 rounded-full object-cover bg-surface-raised flex-shrink-0"
+        width={40}
+        height={40}
+        className="rounded-full object-cover bg-surface-raised flex-shrink-0"
       />
     )
   }
