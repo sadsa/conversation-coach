@@ -131,9 +131,11 @@ describe('PractiseClient — topic buttons', () => {
   })
 
   it('topic buttons frame the topic as an action (prefix + bold topic phrase)', async () => {
+    // The topic is decapitalised so the prefix + phrase reads as one sentence
+    // ("Talk about your weekend plans").
     render(<PractiseClient />)
-    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Talk about Your weekend plans')
-    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('Talk about A recent meal')
+    expect(await screen.findByTestId('home-starter-0')).toHaveTextContent('Talk about your weekend plans')
+    expect(screen.getByTestId('home-starter-1')).toHaveTextContent('Talk about a recent meal')
   })
 
   it('clicking a topic button sets chat mode active with that topic', async () => {
@@ -143,7 +145,7 @@ describe('PractiseClient — topic buttons', () => {
     await waitFor(() => {
       expect(screen.getByTestId('practice-client')).toBeInTheDocument()
       expect(screen.getByTestId('practice-client')).toHaveAttribute(
-        'data-starter', 'Your weekend plans',
+        'data-starter', 'your weekend plans',
       )
     })
   })

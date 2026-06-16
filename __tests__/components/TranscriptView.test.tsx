@@ -83,15 +83,14 @@ describe('TranscriptView', () => {
     expect(screen.queryByText('Drop pronoun.')).not.toBeInTheDocument()
   })
 
-  it('renders speaker label as a stacked paragraph above segment text', () => {
+  it('does not render speaker labels — bubble alignment carries identity', () => {
     render(
       <TranscriptView segments={segments} annotations={[]} userSpeakerLabels={['A']} {...defaultProps} />
     )
-    const label = screen.getByText('You')
-    expect(label.tagName).toBe('P')
-    // The uppercase/tracking/weight treatment now lives in the shared
-    // `text-eyebrow` token (globals.css) rather than inline utilities.
-    expect(label).toHaveClass('text-eyebrow')
+    // The "You"/"Them" eyebrow labels were removed (commit 695cd81): bubble
+    // side-alignment + per-role fill already communicate speaker identity.
+    expect(screen.queryByText('You')).not.toBeInTheDocument()
+    expect(screen.queryByText('Them')).not.toBeInTheDocument()
   })
 
   it('applies saved class to a highlight when annotation is in addedAnnotations', () => {
