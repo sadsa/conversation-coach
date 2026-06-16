@@ -129,7 +129,8 @@ export async function loadPracticeItems(
       updated_at, flashcard_front, flashcard_back, flashcard_note,
       importance_score, importance_note,
       sessions:sessions!inner(user_id, title),
-      annotations:annotations(start_char, end_char,
+      annotations:annotations(start_char, end_char, flashcard_front,
+        flashcard_back, flashcard_note,
         transcript_segments:transcript_segments(text)
       )
     `)
@@ -143,6 +144,9 @@ export async function loadPracticeItems(
     annotations: {
       start_char: number
       end_char: number
+      flashcard_front: string | null
+      flashcard_back: string | null
+      flashcard_note: string | null
       transcript_segments: { text: string } | null
     } | null
   }
@@ -155,6 +159,11 @@ export async function loadPracticeItems(
       start_char: annotations?.start_char ?? null,
       end_char: annotations?.end_char ?? null,
       segment_text: annotations?.transcript_segments?.text ?? null,
+      // Fall back to the annotation's flashcard fields for items saved before
+      // the pipeline started writing them onto practice_items directly.
+      flashcard_front: rest.flashcard_front ?? annotations?.flashcard_front ?? null,
+      flashcard_back: rest.flashcard_back ?? annotations?.flashcard_back ?? null,
+      flashcard_note: rest.flashcard_note ?? annotations?.flashcard_note ?? null,
     }
   })
 }
