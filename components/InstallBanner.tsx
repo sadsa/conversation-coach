@@ -17,9 +17,13 @@ export function InstallBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (isInstalled) return
-    if (!isMobile()) return
-    if (localStorage.getItem(DISMISSED_KEY)) return
+    // isInstalled flips false→true after useIsInstalled's effect resolves
+    // standalone detection, so recompute every branch — never leave a stale
+    // `visible` set from the first (pre-detection) render.
+    if (isInstalled || !isMobile() || localStorage.getItem(DISMISSED_KEY)) {
+      setVisible(false)
+      return
+    }
     setVisible(true)
   }, [isInstalled])
 

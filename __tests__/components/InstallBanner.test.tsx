@@ -9,7 +9,8 @@
 //   - Clicking dismiss hides the banner and writes cc:install-dismissed
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { useEffect, useState } from 'react'
+import { render, screen, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InstallBanner } from '@/components/InstallBanner'
 
@@ -96,5 +97,30 @@ describe('InstallBanner', () => {
     await userEvent.click(dismissBtn)
     expect(screen.queryByRole('banner')).not.toBeInTheDocument()
     expect(localStorage.getItem('cc:install-dismissed')).toBe('1')
+  })
+
+  // Real useIsInstalled returns false on first render then flips to true after
+  // its effect runs (standalone detection happens in useEffect). Mimic that
+  // async transition: the banner must hide once installed is detected.
+  it('hides once install is detected on a later render', async () => {
+    let resolveInstalled: () => void = () => {}
+    const installedPromise = new Promise<void>((r) => {
+      resolveInstalled = r
+    })
+    function FlippingProbe() {
+      const [installed, setInstalled] = useState(false)
+      useEffect(() => {
+        installedPromise.then(() => setInstalled(true))
+      }, [])
+      mockUseIsInstalled.mockReturnValue(installed)
+      return <InstallBanner />
+    }
+    render(<FlippingProbe />)
+    expect(screen.getByRole('banner')).toBeInTheDocument()
+    await act(async () => {
+      resolveInstalled()
+      await installedPromise
+    })
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument()
   })
 })
