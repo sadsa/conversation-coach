@@ -678,6 +678,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.targetLanguage': "Language you're learning",
     'settings.account': 'Account',
     'settings.signOut': 'Sign out',
+    'settings.signOutConfirm': 'Sign out?',
+    'settings.signOutCancel': 'Cancel',
     'settings.signOutError': 'Sign out failed — please try again',
     'settings.app': 'App',
     'settings.version': 'Version',
@@ -744,6 +746,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.gotIt': 'Got it',
     'lesson.gotItAria': 'Mark this phrase as understood and move to the next',
     'lesson.transcribing': 'Transcribing',
+    'lesson.completeHeading': 'You studied all {n} phrases',
+    'lesson.practiseAgain': 'Practise again',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -1268,6 +1272,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'settings.targetLanguage': 'Idioma que estás aprendiendo',
     'settings.account': 'Cuenta',
     'settings.signOut': 'Cerrar sesión',
+    'settings.signOutConfirm': '¿Cerrar sesión?',
+    'settings.signOutCancel': 'Cancelar',
     'settings.signOutError': 'No se pudo cerrar sesión — intentá de nuevo',
     'settings.app': 'App',
     'settings.version': 'Versión',
@@ -1332,6 +1338,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.gotIt': '¡Entendido!',
     'lesson.gotItAria': 'Marcar esta frase como entendida y avanzar',
     'lesson.transcribing': 'Transcribiendo',
+    'lesson.completeHeading': 'Estudiaste las {n} frases',
+    'lesson.practiseAgain': 'Practicar de nuevo',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

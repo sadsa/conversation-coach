@@ -8,7 +8,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { Toast } from '@/components/Toast'
 import { Wordmark } from '@/components/Wordmark'
 import { IosInstallHint } from '@/components/IosInstallHint'
-import { AccountWidget, type AccountUser } from '@/components/AccountMenu'
+import { AccountWidget, SignOutIcon, type AccountUser } from '@/components/AccountMenu'
 
 const MIN = 14
 const MAX = 22
@@ -22,6 +22,7 @@ export function SettingsClient({ user }: { user: AccountUser }) {
   const [size, setSize] = useState<number>(16)
   const [signOutError, setSignOutError] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false)
   const [signOutRetry, setSignOutRetry] = useState(0)
   const router = useRouter()
   const { targetLanguage, setTargetLanguage, t } = useTranslation()
@@ -107,17 +108,37 @@ export function SettingsClient({ user }: { user: AccountUser }) {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-eyebrow text-text-secondary">{t('settings.account')}</h2>
+      <div className="border-t border-border-subtle pt-8 space-y-4">
         <AccountWidget user={user} />
-        <button
-          type="button"
-          onClick={signOut}
-          disabled={signingOut}
-          className="py-1 -my-1 text-sm text-text-secondary hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {signingOut ? '…' : t('settings.signOut')}
-        </button>
+        {confirmingSignOut ? (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={signOut}
+              disabled={signingOut}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-error-border text-on-error-surface hover:bg-error-surface text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <SignOutIcon />
+              {signingOut ? '…' : t('settings.signOutConfirm')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingSignOut(false)}
+              className="px-4 py-2.5 rounded-lg text-sm font-medium text-text-secondary hover:text-text-primary min-h-[44px] transition-colors"
+            >
+              {t('settings.signOutCancel')}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingSignOut(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-error-border text-on-error-surface hover:bg-error-surface text-sm font-medium min-h-[44px] transition-colors"
+          >
+            <SignOutIcon />
+            {t('settings.signOut')}
+          </button>
+        )}
       </div>
 
       <IosInstallHint />
