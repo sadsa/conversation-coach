@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, useAnimationControls, useMotionValue, useTransform, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, animate, useMotionValue, useTransform, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
@@ -17,7 +17,7 @@ import { LoadingScreen } from '@/components/LoadingScreen'
 import type { VoiceAgent } from '@/lib/voice-agent'
 import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 
-type LessonState = 'connecting' | 'active' | 'ending' | 'complete'
+type LessonState = 'connecting' | 'active' | 'ending' | 'complete' | 'error'
 
 const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
@@ -42,6 +42,7 @@ export function LessonClient({ phrases, onExit }: Props) {
   const [muted, setMuted] = useState(false)
   const [voiceStatus, setVoiceStatus] = useState<'listening' | 'speaking' | 'muted'>('listening')
   const [toast, setToast] = useState<string | null>(null)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
   const [controlsVisible, setControlsVisible] = useState(false)
   const [hintVisible, setHintVisible] = useState(false)
 
@@ -63,7 +64,7 @@ export function LessonClient({ phrases, onExit }: Props) {
   const firstListeningFiredRef = useRef(false)
 
   const x = useMotionValue(0)
-  const dragControls = useAnimationControls()
+  const cardOpacity = useMotionValue(1)
   const advanceOpacity = useTransform(x, [20, SWIPE_THRESHOLD], [0, 1])
   const goBackOpacity = useTransform(x, [-SWIPE_THRESHOLD, -20], [1, 0])
 
@@ -242,8 +243,8 @@ export function LessonClient({ phrases, onExit }: Props) {
             onError: (msg) => {
               if (!isMountedRef.current) return
               const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
-              setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
-              onExitRef.current()
+              setConnectionError(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
+              setLessonState('error')
             },
             onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
             onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
@@ -260,8 +261,8 @@ export function LessonClient({ phrases, onExit }: Props) {
       } catch (err) {
         if (!isMountedRef.current) return
         const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
-        setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
-        onExitRef.current()
+        setConnectionError(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
+        setLessonState('error')
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -269,6 +270,23 @@ export function LessonClient({ phrases, onExit }: Props) {
 
   if (lessonState === 'connecting') {
     return <LoadingScreen />
+  }
+
+  if (lessonState === 'error') {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
+        <Icon name="alert" className="w-10 h-10 text-status-error" />
+        <p className="text-base text-text-secondary">{connectionError ?? t('practice.errorConnect')}</p>
+        <button
+          type="button"
+          onClick={() => onExitRef.current()}
+          className="inline-flex min-h-11 items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl border border-border text-text-primary hover:bg-surface-elevated transition-colors"
+        >
+          <Icon name="arrow-left" className="w-4 h-4" />
+          {t('lesson.errorBack')}
+        </button>
+      </div>
+    )
   }
 
   if (lessonState === 'complete') {
@@ -404,22 +422,29 @@ export function LessonClient({ phrases, onExit }: Props) {
             <motion.div
               data-testid="lesson-card"
               drag="x"
-              style={{ x, touchAction: 'pan-y' }}
-              animate={dragControls}
+              style={{ x, opacity: cardOpacity, touchAction: 'pan-y' }}
               onDragStart={() => { isDraggingRef.current = true }}
               onDragEnd={(_, info) => {
                 if (info.offset.x > SWIPE_THRESHOLD) {
-                  dragControls.start({ x: 400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
+                  void Promise.all([
+                    animate(x, 400, { duration: 0.2 }),
+                    animate(cardOpacity, 0, { duration: 0.2 }),
+                  ]).then(() => {
                     handleAdvanceCard()
-                    dragControls.set({ x: 0, opacity: 1 })
+                    x.set(0)
+                    cardOpacity.set(1)
                   })
                 } else if (info.offset.x < -SWIPE_THRESHOLD) {
-                  dragControls.start({ x: -400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
+                  void Promise.all([
+                    animate(x, -400, { duration: 0.2 }),
+                    animate(cardOpacity, 0, { duration: 0.2 }),
+                  ]).then(() => {
                     handleGoBack()
-                    dragControls.set({ x: 0, opacity: 1 })
+                    x.set(0)
+                    cardOpacity.set(1)
                   })
                 } else {
-                  dragControls.start({ x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } })
+                  void animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 })
                 }
                 setTimeout(() => { isDraggingRef.current = false }, 0)
               }}

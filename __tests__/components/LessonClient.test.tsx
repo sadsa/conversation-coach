@@ -8,16 +8,18 @@ import userEvent from '@testing-library/user-event'
 import { act } from 'react'
 import { LanguageProvider } from '@/components/LanguageProvider'
 
-// Capture the onStateChange callback so tests can drive lesson state transitions.
+// Capture callbacks so tests can drive lesson state transitions.
 let capturedOnStateChange: ((s: string) => void) | null = null
+let capturedOnError: ((msg: string) => void) | null = null
 const mockSendText = vi.fn()
 
 vi.mock('@/lib/voice-agent', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/voice-agent')>()
   return {
     ...actual,
-    connect: vi.fn().mockImplementation(async (_lang: string, callbacks: { onStateChange?: (s: string) => void }) => {
+    connect: vi.fn().mockImplementation(async (_lang: string, callbacks: { onStateChange?: (s: string) => void; onError?: (msg: string) => void }) => {
       capturedOnStateChange = callbacks.onStateChange ?? null
+      capturedOnError = callbacks.onError ?? null
       return { disconnect: vi.fn(), setMuted: vi.fn(), flush: vi.fn(), sendText: mockSendText }
     }),
   }
@@ -57,6 +59,7 @@ describe('LessonClient (Study mode)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     capturedOnStateChange = null
+    capturedOnError = null
     mockSendText.mockClear()
   })
 
@@ -82,10 +85,10 @@ describe('LessonClient (Study mode)', () => {
     expect(screen.getByText('me resulta difícil')).toBeInTheDocument()
   })
 
-  it('renders first explanation in the card', async () => {
+  it('does not render explanation text in the card (distilled to correction only)', async () => {
     wrap()
     await activateLesson()
-    expect(screen.getByText('Use instead of "es difícil para mí"')).toBeInTheDocument()
+    expect(screen.queryByText('Use instead of "es difícil para mí"')).toBeNull()
   })
 
   it('shows pip progress row for ≤10 cards', async () => {
@@ -106,14 +109,14 @@ describe('LessonClient (Study mode)', () => {
     expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('2/2'))
   })
 
-  it('advancing shows card 2 correction and explanation', async () => {
+  it('advancing shows card 2 correction', async () => {
     const user = userEvent.setup()
     wrap()
     await activateLesson()
     await user.click(screen.getByTestId('advance-card'))
     await waitFor(() => screen.getByText('dale, vamos'))
     expect(screen.getByText('dale, vamos')).toBeInTheDocument()
-    expect(screen.getByText('Casual agreement')).toBeInTheDocument()
+    expect(screen.queryByText('Casual agreement')).toBeNull()
   })
 
   it('going back from card 2 returns to card 1', async () => {
@@ -162,6 +165,15 @@ describe('LessonClient (Study mode)', () => {
     await user.click(wrapper)
     const layer = screen.getByTestId('controls-layer')
     expect(layer).toHaveAttribute('aria-hidden', 'false')
+  })
+
+  it('connection error shows error UI and back button instead of silently exiting', async () => {
+    const onExit = vi.fn()
+    wrap(onExit)
+    await waitFor(() => expect(capturedOnError).not.toBeNull())
+    act(() => { capturedOnError?.('Connection error') })
+    await waitFor(() => screen.getByText(/back|volver/i))
+    expect(onExit).not.toHaveBeenCalled()
   })
 
   it('advancing past last card enters complete state', async () => {
