@@ -86,7 +86,7 @@ export function AppHeader({ user }: AppHeaderProps) {
 
           {/* Right side: three-dot on mobile, avatar on desktop */}
           <div className="flex items-center">
-            <AccountMenuMobileHeader />
+            <AccountMenuMobileHeader user={user} />
             <AccountMenuDesktop user={user} />
           </div>
         </div>

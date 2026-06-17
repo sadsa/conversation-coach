@@ -40,25 +40,10 @@ function SettingsIcon() {
   )
 }
 
-function SignOutIcon() {
+export function SignOutIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      className="w-5 h-5 flex-shrink-0" aria-hidden="true">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  )
-}
-
-function ThreeDotsIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-      className="w-5 h-5" aria-hidden="true">
-      <circle cx="12" cy="5" r="1.5" />
-      <circle cx="12" cy="12" r="1.5" />
-      <circle cx="12" cy="19" r="1.5" />
+    <svg viewBox="0 0 256 256" fill="currentColor" className="w-5 h-5 flex-shrink-0" aria-hidden="true">
+      <path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z" />
     </svg>
   )
 }
@@ -155,7 +140,7 @@ function AccountActions({
         className="w-full flex items-center gap-3 px-4 py-3 text-on-error-surface hover:bg-error-surface transition-colors text-left text-sm font-medium disabled:opacity-60 focus:outline-none focus-visible:bg-error-surface"
       >
         <SignOutIcon />
-        <span>{signOutLabel}</span>
+        <span>{signOutPending ? '…' : signOutLabel}</span>
       </button>
     </>
   )
@@ -163,7 +148,7 @@ function AccountActions({
 
 // ── Mobile: header three-dot button ─────────────────────────────────────────
 
-export function AccountMenuMobileHeader() {
+export function AccountMenuMobileHeader({ user }: { user: AccountUser }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -195,10 +180,10 @@ export function AccountMenuMobileHeader() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={t('nav.accountOptions')}
-        className="p-2.5 -mr-2.5 text-text-secondary hover:text-text-primary transition-colors"
+        aria-label={t('nav.accountMenu')}
+        className="p-1 -mr-1 rounded-full transition-shadow hover:ring-2 hover:ring-border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
       >
-        <ThreeDotsIcon />
+        <Avatar user={user} size={28} />
       </button>
 
       {open && (
@@ -208,6 +193,13 @@ export function AccountMenuMobileHeader() {
           aria-label={t('nav.account')}
           className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-surface border border-border-subtle overflow-hidden shadow-[0_12px_32px_-16px_rgba(0,0,0,0.28)] motion-safe:animate-[fadein_160ms_var(--ease-out-expo)_both]"
         >
+          <div className="flex items-center gap-3 px-4 py-3">
+            <Avatar user={user} size={32} />
+            <span className="flex-1 min-w-0">
+              <span className="block truncate text-sm font-semibold text-text-primary">{primaryLabel(user)}</span>
+            </span>
+          </div>
+          <div className="border-t border-border-subtle" />
           <AccountActions
             settingsLabel={t('nav.settings')}
             signOutLabel={t('nav.signOut')}
@@ -274,8 +266,8 @@ export function AccountMenuDesktop({ user }: { user: AccountUser }) {
               <span className="block truncate text-sm font-semibold text-text-primary">
                 {primaryLabel(user)}
               </span>
-              {user.name && user.email && (
-                <span className="block truncate text-xs text-text-tertiary">{user.email}</span>
+              {user.email && (
+                <span className="block truncate text-xs text-text-secondary">{user.email}</span>
               )}
             </span>
           </div>
@@ -301,8 +293,8 @@ export function AccountWidget({ user }: { user: AccountUser }) {
       <Avatar user={user} size={48} />
       <div className="min-w-0">
         <p className="text-sm font-semibold text-text-primary truncate">{primaryLabel(user)}</p>
-        {user.name && user.email && (
-          <p className="text-xs text-text-tertiary truncate">{user.email}</p>
+        {user.email && (
+          <p className="text-xs text-text-secondary truncate">{user.email}</p>
         )}
       </div>
     </div>
