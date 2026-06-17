@@ -746,6 +746,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.transcribing': 'Transcribing',
     'lesson.completeHeading': 'You studied all {n} phrases',
     'lesson.practiseAgain': 'Practise again',
+    'lesson.goBack': 'Go back to previous card',
+    'lesson.advance': 'Advance to next card',
+    'lesson.swipeHint': 'Swipe to advance',
+    'lesson.controlsHint': 'Tap to show controls',
+    'lesson.controlsHintDismiss': 'Got it',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -1336,6 +1341,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.transcribing': 'Transcribiendo',
     'lesson.completeHeading': 'Estudiaste las {n} frases',
     'lesson.practiseAgain': 'Practicar de nuevo',
+    'lesson.goBack': 'Volver a la carta anterior',
+    'lesson.advance': 'Avanzar a la siguiente carta',
+    'lesson.swipeHint': 'Deslizá para avanzar',
+    'lesson.controlsHint': 'Tocá para ver los controles',
+    'lesson.controlsHintDismiss': 'Entendido',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

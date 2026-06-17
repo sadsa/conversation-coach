@@ -1,6 +1,6 @@
 'use client'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useAnimationControls, useMotionValue, useTransform, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
@@ -10,12 +10,10 @@ import {
   FLASH_LIVE_MODEL,
   type LessonPhrase,
 } from '@/lib/voice-agent'
-import { connectAssemblyAIStream, type AssemblyAIStream } from '@/lib/assemblyai-stream'
 import { Icon } from '@/components/Icon'
 import { Toast } from '@/components/Toast'
 import { AudioReactiveDots } from '@/components/AudioReactiveDots'
 import { LoadingScreen } from '@/components/LoadingScreen'
-import type { TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
 import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 
@@ -23,6 +21,10 @@ type LessonState = 'connecting' | 'active' | 'ending' | 'complete'
 
 const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
+const CONTROLS_SHOW_MS = 2000
+const SWIPE_THRESHOLD = 80
+const CONTROLS_HINT_KEY = 'cc:study-controls-hint:v1'
+const SWIPE_HINT_KEY = 'cc:study-swipe-hint:v1'
 
 interface Props {
   /** All Vocabulary Items from this session to weave into the Study conversation. */
@@ -39,15 +41,12 @@ export function LessonClient({ phrases, onExit }: Props) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [muted, setMuted] = useState(false)
   const [voiceStatus, setVoiceStatus] = useState<'listening' | 'speaking' | 'muted'>('listening')
-  const [liveTurns, setLiveTurns] = useState<TranscriptTurn[]>([])
   const [toast, setToast] = useState<string | null>(null)
+  const [controlsVisible, setControlsVisible] = useState(false)
+  const [swipeHintVisible, setSwipeHintVisible] = useState(false)
+  const [controlsHintVisible, setControlsHintVisible] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
-  const assemblyStreamRef = useRef<AssemblyAIStream | null>(null)
-  const placeholderTurnIndexRef = useRef<number | null>(null)
-  const userBubbleEmittedThisTurnRef = useRef(false)
-  const userAudibleSinceLastTurnRef = useRef(false)
-  const turnsRef = useRef<TranscriptTurn[]>([])
   const endingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMountedRef = useRef(true)
   const onExitRef = useRef(onExit)
@@ -60,18 +59,23 @@ export function LessonClient({ phrases, onExit }: Props) {
   const rafRef = useRef<number | null>(null)
   const lastSpeakerRef = useRef<'user' | 'agent' | 'idle'>('idle')
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
-  const chatScrollRef = useRef<HTMLDivElement>(null)
+  const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isDraggingRef = useRef(false)
+  const firstListeningFiredRef = useRef(false)
+
+  const x = useMotionValue(0)
+  const dragControls = useAnimationControls()
+  const advanceOpacity = useTransform(x, [20, SWIPE_THRESHOLD], [0, 1])
+  const goBackOpacity = useTransform(x, [-SWIPE_THRESHOLD, -20], [1, 0])
 
   useEffect(() => {
     isMountedRef.current = true
     return () => {
       isMountedRef.current = false
       agentRef.current?.disconnect()
-      assemblyStreamRef.current?.disconnect()
-      assemblyStreamRef.current = null
-      placeholderTurnIndexRef.current = null
       if (endingTimeoutRef.current) clearTimeout(endingTimeoutRef.current)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+      if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current)
       wakeLockRef.current?.release()
       wakeLockRef.current = null
     }
@@ -106,6 +110,27 @@ export function LessonClient({ phrases, onExit }: Props) {
     return () => { document.removeEventListener('visibilitychange', onVisibilityChange) }
   }, [lessonState])
 
+  // Controls hint: one-shot on first active session
+  useEffect(() => {
+    if (lessonState !== 'active') return
+    if (typeof window === 'undefined') return
+    if (window.localStorage.getItem(CONTROLS_HINT_KEY) === '1') return
+    setControlsHintVisible(true)
+    const timer = setTimeout(() => dismissControlsHint(), 6000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessonState])
+
+  function dismissControlsHint() {
+    setControlsHintVisible(false)
+    if (typeof window !== 'undefined') window.localStorage.setItem(CONTROLS_HINT_KEY, '1')
+  }
+
+  function dismissSwipeHint() {
+    setSwipeHintVisible(false)
+    if (typeof window !== 'undefined') window.localStorage.setItem(SWIPE_HINT_KEY, '1')
+  }
+
   useEffect(() => {
     const sessionLive = lessonState === 'active' || lessonState === 'ending'
     if (!sessionLive) { userRmsRef.current = 0; agentRmsRef.current = 0; return }
@@ -133,95 +158,34 @@ export function LessonClient({ phrases, onExit }: Props) {
   }, [lessonState, muted])
 
   useEffect(() => {
-    const el = chatScrollRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }, [liveTurns])
-
-  useEffect(() => {
     if (lessonState === 'active' || lessonState === 'ending') {
       setVoiceStatus(muted ? 'muted' : 'listening')
       lastSpeakerRef.current = 'idle'
     }
   }, [muted, lessonState])
 
-  const handleAssemblyAITurn = useCallback((text: string, isFinal: boolean) => {
-    if (!isMountedRef.current) return
-    if (placeholderTurnIndexRef.current !== null) {
-      const idx = placeholderTurnIndexRef.current
-      const next = [...turnsRef.current]
-      next[idx] = { ...next[idx], text, pending: !isFinal }
-      turnsRef.current = next
-      setLiveTurns(next)
-      if (isFinal) placeholderTurnIndexRef.current = null
-    } else {
-      const turn: TranscriptTurn = { role: 'user', text, wallMs: Date.now(), pending: !isFinal }
-      turnsRef.current = [...turnsRef.current, turn]
-      setLiveTurns(turnsRef.current)
-      if (!isFinal) placeholderTurnIndexRef.current = turnsRef.current.length - 1
-    }
-    userBubbleEmittedThisTurnRef.current = true
-  }, [])
+  // Swipe hint: appear after first listening state, one-shot
+  useEffect(() => {
+    if (voiceStatus !== 'listening') return
+    if (firstListeningFiredRef.current) return
+    firstListeningFiredRef.current = true
+    if (typeof window !== 'undefined' && window.localStorage.getItem(SWIPE_HINT_KEY) === '1') return
+    setSwipeHintVisible(true)
+    const timer = setTimeout(() => dismissSwipeHint(), 3000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceStatus])
 
-  const handleModelTurnStart = useCallback(() => {
-    if (!isMountedRef.current) return
-    if (!userAudibleSinceLastTurnRef.current) return
-    if (userBubbleEmittedThisTurnRef.current) return
-    if (placeholderTurnIndexRef.current !== null) return
-    const turn: TranscriptTurn = { role: 'user', text: '', wallMs: Date.now(), pending: true }
-    turnsRef.current = [...turnsRef.current, turn]
-    placeholderTurnIndexRef.current = turnsRef.current.length - 1
-    userBubbleEmittedThisTurnRef.current = true
-    setLiveTurns(turnsRef.current)
-  }, [])
-
-  const handleTurnComplete = useCallback(() => {
-    if (!isMountedRef.current) return
-    if (placeholderTurnIndexRef.current !== null) {
-      const idx = placeholderTurnIndexRef.current
-      const old = turnsRef.current[idx]
-      const next = [...turnsRef.current]
-      if (!old.text.trim()) next.splice(idx, 1)
-      else next[idx] = { ...old, pending: false }
-      turnsRef.current = next
-      setLiveTurns(next)
-      placeholderTurnIndexRef.current = null
-    }
-    userBubbleEmittedThisTurnRef.current = false
-    userAudibleSinceLastTurnRef.current = false
-  }, [])
-
-  const disconnectAssemblyAI = useCallback(() => {
-    assemblyStreamRef.current?.disconnect()
-    assemblyStreamRef.current = null
-    placeholderTurnIndexRef.current = null
-    userBubbleEmittedThisTurnRef.current = false
-    userAudibleSinceLastTurnRef.current = false
-  }, [])
-
-  const disconnectResources = useCallback(() => {
-    if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
-    agentRef.current?.flush()
-    agentRef.current?.disconnect()
-    agentRef.current = null
-    disconnectAssemblyAI()
-  }, [disconnectAssemblyAI])
-
-  const endSession = useCallback(() => {
-    disconnectResources()
-    onExitRef.current()
-  }, [disconnectResources])
-
-  useEffect(() => { endSessionRef.current = endSession }, [endSession])
+  function showControlsBriefly() {
+    setControlsVisible(true)
+    if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current)
+    controlsHideTimerRef.current = setTimeout(() => setControlsVisible(false), CONTROLS_SHOW_MS)
+  }
 
   function handleAdvanceCard() {
     const nextIndex = currentCardIndex + 1
     if (nextIndex < phrases.length) {
       setCurrentCardIndex(nextIndex)
-      // Deliver the next card's content plus a reminder to re-run the
-      // explain → model → drill flow — never a bare index. The model is only
-      // ever shown one card at a time so it can't read ahead and drill
-      // phrases the learner hasn't reached yet.
       agentRef.current?.sendText(formatStudyCardAdvance(phrases[nextIndex], nextIndex, phrases.length, targetLanguage))
     } else {
       disconnectResources()
@@ -229,10 +193,31 @@ export function LessonClient({ phrases, onExit }: Props) {
     }
   }
 
+  function handleGoBack() {
+    if (currentCardIndex === 0) return
+    const prevIndex = currentCardIndex - 1
+    setCurrentCardIndex(prevIndex)
+    agentRef.current?.sendText(formatStudyCardAdvance(phrases[prevIndex], prevIndex, phrases.length, targetLanguage))
+  }
+
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
     setMuted(prev => { const next = !prev; agentRef.current?.setMuted(next); return next })
   }, [])
+
+  const disconnectResources = useCallback(() => {
+    if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
+    agentRef.current?.flush()
+    agentRef.current?.disconnect()
+    agentRef.current = null
+  }, [])
+
+  const endSession = useCallback(() => {
+    disconnectResources()
+    onExitRef.current()
+  }, [disconnectResources])
+
+  useEffect(() => { endSessionRef.current = endSession }, [endSession])
 
   const endSessionStableRef = useRef(endSession)
   const toggleMuteStableRef = useRef(toggleMute)
@@ -258,12 +243,6 @@ export function LessonClient({ phrases, onExit }: Props) {
     const systemPrompt = buildStudySystemPrompt(phrases, targetLanguage)
     void (async () => {
       try {
-        disconnectAssemblyAI()
-        const assemblyStream = await connectAssemblyAIStream(
-          { onTurn: handleAssemblyAITurn },
-          { language: targetLanguage },
-        )
-        assemblyStreamRef.current = assemblyStream
         const agent = await connect(
           targetLanguage,
           {
@@ -272,7 +251,6 @@ export function LessonClient({ phrases, onExit }: Props) {
               if (s === 'active') { setLessonState('active') }
               else if (s === 'ended') {
                 agentRef.current = null
-                disconnectAssemblyAI()
                 setLessonState(prev => {
                   if (prev === 'connecting') { onExitRef.current(); return prev }
                   if (prev === 'complete') return prev
@@ -285,26 +263,13 @@ export function LessonClient({ phrases, onExit }: Props) {
               if (!isMountedRef.current) return
               const isMic = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed')
               setToast(isMic ? t('practice.errorMic') : t('practice.errorConnect'))
-              disconnectAssemblyAI()
               onExitRef.current()
             },
-            onUserAudio: (rms) => {
-              userRmsRef.current = Math.max(userRmsRef.current, rms)
-              if (rms > RMS_FLOOR) userAudibleSinceLastTurnRef.current = true
-            },
+            onUserAudio: (rms) => { userRmsRef.current = Math.max(userRmsRef.current, rms) },
             onAgentAudio: (rms) => { agentRmsRef.current = Math.max(agentRmsRef.current, rms) },
-            onMicPcm: (samples) => assemblyStreamRef.current?.pushPcm(samples),
-            onModelTurnStart: handleModelTurnStart,
-            onTurnComplete: handleTurnComplete,
-            onTranscript: (role, text) => {
-              if (!isMountedRef.current || role !== 'model') return
-              const turn: TranscriptTurn = { role, text, wallMs: Date.now() }
-              turnsRef.current = [...turnsRef.current, turn]
-              setLiveTurns(turnsRef.current)
-            },
           },
           {
-            transcription: true,
+            transcription: false,
             inputTranscription: false,
             systemPrompt,
             model: FLASH_LIVE_MODEL,
@@ -316,17 +281,11 @@ export function LessonClient({ phrases, onExit }: Props) {
         if (!isMountedRef.current) return
         const isPermission = err instanceof DOMException && err.name === 'NotAllowedError'
         setToast(isPermission ? t('practice.errorMic') : t('practice.errorConnect'))
-        disconnectAssemblyAI()
         onExitRef.current()
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const firstOfRoleFlags = useMemo(() => {
-    const seen = new Set<TranscriptTurn['role']>()
-    return liveTurns.map(turn => { if (seen.has(turn.role)) return false; seen.add(turn.role); return true })
-  }, [liveTurns])
 
   if (lessonState === 'connecting') {
     return <LoadingScreen />
@@ -364,188 +323,214 @@ export function LessonClient({ phrases, onExit }: Props) {
   }
 
   const isEnding = lessonState === 'ending'
-  const statusLabel = isEnding
-    ? t('practice.endingState')
-    : voiceStatus === 'muted' ? t('practice.statusMuted')
-    : null
-
   const card = phrases[currentCardIndex]
+  const showPips = phrases.length <= 10
 
   return (
     <div
-      className="fixed flex flex-col bg-bg overflow-hidden z-10"
+      data-testid="lesson-wrapper"
+      className="fixed flex flex-col bg-background overflow-hidden z-10"
       style={{
         top: 'calc(var(--header-height) + env(safe-area-inset-top))',
         left: 0,
         right: 0,
         bottom: 'var(--bottom-nav-h)',
       }}
+      onClick={showControlsBriefly}
     >
-      {/* ── Card hero ───────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-4 pt-5 pb-4 border-b border-border-subtle">
-        <p className="text-xs text-text-tertiary uppercase tracking-wide select-none">
-          {t('lesson.cardOf', { n: currentCardIndex + 1, total: phrases.length })}
-        </p>
-        <h2 className="mt-2 text-2xl font-serif text-accent-primary leading-snug">
-          {card.correction}
-        </h2>
-        <p className="mt-1 text-sm text-text-secondary leading-relaxed">
-          {card.explanation}
-        </p>
+      {/* ── Controls overlay — hidden until tap-outside ──────────────────── */}
+      <div
+        data-testid="controls-layer"
+        aria-hidden={!controlsVisible}
+        className={`absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4 transition-opacity duration-200 ${controlsVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
         <button
           type="button"
-          onClick={handleAdvanceCard}
-          disabled={lessonState !== 'active'}
-          aria-label={t('lesson.gotItAria')}
-          className="mt-3 inline-flex min-h-11 items-center px-4 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent transition-colors hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={(e) => { e.stopPropagation(); endSession() }}
+          disabled={isEnding}
+          aria-label={t('practice.endAria')}
+          aria-keyshortcuts="Escape"
+          className="w-11 h-11 rounded-full flex items-center justify-center bg-danger-fill text-on-accent disabled:opacity-40"
         >
-          {t('lesson.gotIt')} →
+          <Icon name="phone-hangup" className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); toggleMute() }}
+          disabled={isEnding}
+          aria-label={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
+          aria-pressed={muted}
+          aria-keyshortcuts="Space"
+          className={`w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-40 ${muted ? 'bg-warning-surface text-warning' : 'bg-surface-elevated text-text-secondary'}`}
+        >
+          <Icon name={muted ? 'mic-off' : 'mic'} className="h-5 w-5" />
         </button>
       </div>
 
-      {/* ── Transcript ──────────────────────────────────────────────────── */}
-      <div
-        ref={chatScrollRef}
-        className="flex-1 overflow-y-auto max-h-[35dvh] min-h-0 px-4 pt-3 pb-3 flex flex-col gap-3"
-        role="log"
-        aria-live="polite"
-        aria-atomic="false"
-      >
-        <div className="flex-1" aria-hidden="true" />
+      {/* ── Card area ────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-5 min-h-0">
 
-        {liveTurns.map((turn, i) => {
-          const isFirstOfRole = firstOfRoleFlags[i]
-          return (
-            <motion.div
-              key={`${turn.wallMs}-${i}`}
-              initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-              className={`flex flex-col gap-1 ${turn.role === 'user' ? 'items-end' : 'items-start'}`}
-            >
-              {isFirstOfRole && (
-                <span className="text-xs text-text-tertiary select-none px-1">
-                  {turn.role === 'user' ? t('practice.youLabel') : t('practice.coachLabel')}
-                </span>
-              )}
-              <p
-                className={`
-                  px-4 py-2.5 text-sm leading-relaxed max-w-[78%]
-                  ${turn.role === 'user'
-                    ? 'rounded-2xl bg-accent-chip text-on-accent-chip'
-                    : 'rounded-2xl bg-surface-elevated text-text-primary ring-1 ring-border-subtle'}
-                  ${turn.pending ? 'opacity-80 italic' : ''}
-                `}
-              >
-                {turn.pending && !turn.text.trim() ? (
-                  <TypingDots label={t('lesson.transcribing')} />
-                ) : (
-                  turn.text
-                )}
-              </p>
-            </motion.div>
-          )
-        })}
-      </div>
+        {/* Progress row */}
+        <div data-testid="pip-progress" className="flex items-center justify-center gap-1.5">
+          {showPips ? (
+            phrases.map((_, i) => (
+              <span
+                key={i}
+                data-pip
+                className={`rounded-full transition-all duration-200 ${
+                  i === currentCardIndex
+                    ? 'w-2.5 h-2.5 bg-accent-primary'
+                    : 'w-1.5 h-1.5 bg-border-subtle'
+                }`}
+              />
+            ))
+          ) : (
+            <span className="text-xs text-text-tertiary uppercase tracking-wide select-none">
+              {t('lesson.cardOf', { n: currentCardIndex + 1, total: phrases.length })}
+            </span>
+          )}
+        </div>
 
-      {/* ── Controls ────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pt-3 pb-3 flex flex-col items-center gap-3">
-        <div className="flex items-end justify-center gap-12 sm:gap-16">
+        {/* Card + desktop arrows */}
+        <div className="relative w-full max-w-sm flex items-center gap-3">
           <button
             type="button"
-            onClick={toggleMute}
-            disabled={isEnding}
-            aria-label={muted ? t('practice.unmuteAria') : t('practice.muteAria')}
-            aria-pressed={muted}
-            aria-keyshortcuts="Space"
-            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
+            onClick={(e) => { e.stopPropagation(); handleGoBack() }}
+            disabled={currentCardIndex === 0 || isEnding}
+            aria-label={t('lesson.goBack')}
+            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-20 flex-shrink-0"
           >
-            <div
-              className={`
-                w-14 h-14 rounded-full flex items-center justify-center
-                transition-colors duration-150
-                group-focus-visible:ring-2 group-focus-visible:ring-accent-primary group-focus-visible:ring-offset-2
-                group-disabled:opacity-40
-                ${muted
-                  ? 'bg-warning-surface text-warning'
-                  : 'bg-surface-elevated text-text-secondary group-hover:bg-border-subtle group-hover:text-text-primary group-active:opacity-75'}
-              `}
-            >
-              <Icon name={muted ? 'mic-off' : 'mic'} className="h-[1.375rem] w-[1.375rem]" />
-            </div>
-            <span
-              className={`text-xs font-medium select-none transition-colors duration-150 ${muted ? 'text-warning' : 'text-text-secondary'}`}
-            >
-              {muted ? t('practice.unmuteLabel') : t('practice.muteLabel')}
-            </span>
+            <Icon name="chevron-left" className="w-5 h-5" />
           </button>
 
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="h-14 flex items-center justify-center">
-              <AudioReactiveDots
-                audioTickCallbacksRef={audioTickCallbacksRef}
-                compact
-                className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
-              />
-            </div>
-            <div className="h-4 flex items-center" aria-live="polite">
-              <AnimatePresence mode="wait">
-                {statusLabel && (
-                  <motion.span
-                    key={statusLabel}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className={`text-xs font-medium select-none ${
-                      isEnding ? 'text-text-tertiary' : 'text-warning'
-                    }`}
-                  >
-                    {statusLabel}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
+          <div className="relative flex-1">
+            {/* Advance overlay (right swipe → next card) */}
+            <motion.div
+              style={{ opacity: advanceOpacity }}
+              className="absolute inset-0 z-10 pointer-events-none rounded-2xl border-2 border-accent-primary bg-accent-primary/10 flex items-center justify-center"
+              aria-hidden="true"
+            >
+              <Icon name="chevron-right" className="w-8 h-8 text-accent-primary" />
+            </motion.div>
+            {/* Go-back overlay (left swipe → re-drill) */}
+            <motion.div
+              style={{ opacity: goBackOpacity }}
+              className="absolute inset-0 z-10 pointer-events-none rounded-2xl border-2 border-text-tertiary bg-text-tertiary/10 flex items-center justify-center"
+              aria-hidden="true"
+            >
+              <Icon name="chevron-left" className="w-8 h-8 text-text-tertiary" />
+            </motion.div>
+
+            <motion.div
+              data-testid="lesson-card"
+              drag="x"
+              style={{ x, touchAction: 'pan-y' }}
+              animate={dragControls}
+              onDragStart={() => { isDraggingRef.current = true }}
+              onDragEnd={(_, info) => {
+                if (info.offset.x > SWIPE_THRESHOLD) {
+                  dragControls.start({ x: 400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
+                    handleAdvanceCard()
+                    dragControls.set({ x: 0, opacity: 1 })
+                  })
+                } else if (info.offset.x < -SWIPE_THRESHOLD) {
+                  dragControls.start({ x: -400, opacity: 0, transition: { duration: 0.2 } }).then(() => {
+                    handleGoBack()
+                    dragControls.set({ x: 0, opacity: 1 })
+                  })
+                } else {
+                  dragControls.start({ x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } })
+                }
+                setTimeout(() => { isDraggingRef.current = false }, 0)
+              }}
+              onClick={(e) => { e.stopPropagation() }}
+              className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center gap-3 cursor-grab active:cursor-grabbing select-none"
+            >
+              <p className="text-2xl font-serif text-accent-primary leading-snug">
+                {card.correction}
+              </p>
+              <p className="text-sm text-text-secondary leading-relaxed">
+                {card.explanation}
+              </p>
+            </motion.div>
           </div>
 
           <button
             type="button"
-            onClick={endSession}
+            onClick={(e) => { e.stopPropagation(); handleAdvanceCard() }}
             disabled={isEnding}
-            aria-label={t('practice.endAria')}
-            aria-keyshortcuts="Escape"
-            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed focus-visible:outline-none"
+            aria-label={t('lesson.advance')}
+            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-20 flex-shrink-0"
           >
-            <div
-              className="
-                w-14 h-14 rounded-full flex items-center justify-center
-                bg-danger-fill text-on-accent
-                group-hover:bg-danger-fill-hover group-active:bg-danger-fill-active
-                group-disabled:opacity-40
-                group-focus-visible:ring-2 group-focus-visible:ring-danger-fill group-focus-visible:ring-offset-2
-                transition-colors duration-150
-              "
-            >
-              <Icon name="phone-hangup" className="h-[1.375rem] w-[1.375rem]" />
-            </div>
-            <span className="text-xs font-medium text-danger select-none">
-              {t('practice.end')}
-            </span>
+            <Icon name="chevron-right" className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Swipe hint — one-shot after first listening state */}
+        <AnimatePresence>
+          {swipeHintVisible && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface border border-border-subtle text-xs text-text-secondary"
+              aria-live="polite"
+            >
+              <span className="oa-touch" aria-hidden="true">↔</span>
+              <span>{t('lesson.swipeHint')}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Audio visualizer — fixed-height wrapper prevents flex reflow when compact toggles */}
+        <div className="h-6 flex items-center justify-center flex-shrink-0">
+          <AudioReactiveDots
+            audioTickCallbacksRef={audioTickCallbacksRef}
+            compact={voiceStatus === 'speaking'}
+            className={`transition-opacity duration-300 ${isEnding ? 'opacity-40' : ''}`}
+          />
         </div>
       </div>
 
+      {/* Controls hint chip — one-shot on first open */}
+      <AnimatePresence>
+        {controlsHintVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2 rounded-lg bg-surface border border-border-subtle text-xs text-text-secondary z-30 whitespace-nowrap"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span>{t('lesson.controlsHint')}</span>
+            <button
+              type="button"
+              onClick={dismissControlsHint}
+              className="text-text-tertiary hover:text-text-secondary font-medium px-1.5 py-0.5 rounded"
+            >
+              {t('lesson.controlsHintDismiss')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Test seams */}
+      <button
+        data-testid="advance-card"
+        className="sr-only"
+        onClick={(e) => { e.stopPropagation(); handleAdvanceCard() }}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+      <button
+        data-testid="go-back-card"
+        className="sr-only"
+        onClick={(e) => { e.stopPropagation(); handleGoBack() }}
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+
       {toast && <Toast message={toast} />}
     </div>
-  )
-}
-
-function TypingDots({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1" aria-label={label}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:0ms]" />
-      <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:150ms]" />
-      <span className="h-1.5 w-1.5 rounded-full bg-current animate-typing-dot [animation-delay:300ms]" />
-    </span>
   )
 }
