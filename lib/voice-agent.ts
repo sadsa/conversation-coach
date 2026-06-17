@@ -504,20 +504,34 @@ export async function connect(
   agentGain.connect(finalSink)
   const agentSink = agentGain
 
-  // Pre-warm the output path. Mobile audio HALs — Android in particular —
-  // have a large cold-start latency; the first real audio scheduled through a
-  // cold output device loses its onset ("hello" → "lo"). Pushing a short
-  // silent buffer through the sink now starts spinning the device up before
-  // the opener arrives. This is a helper, not the whole fix — the first-chunk
-  // lookahead in scheduleAgentPcm is the robust guard (the device can power
-  // back down during the WebSocket handshake gap).
+  // Output keep-alive. Android Chrome powers the audio output stream down
+  // during silence and clips the onset of the NEXT sound when it spins back
+  // up — which dropped the opener's first word ("¡Hola!" → "…la"). The
+  // diagnostics proved the audio is fully scheduled and contiguous, with a
+  // ~550ms silent gap between the start chime and the opener; the device
+  // idled across that gap and ate the speech onset. A one-shot pre-warm and a
+  // scheduling lead both failed because the output went idle again before the
+  // speech played. The fix is a continuous, inaudible (~-90 dBFS, no DC)
+  // signal routed straight to the sink for the whole session, so the output
+  // never idles and no onset is ever clipped — including after mid-session
+  // pauses, not just the opener. Routed to finalSink directly (not via
+  // agentGain) so stopAgentPlayback()'s interrupt duck never silences it.
+  let keepAliveSrc: AudioBufferSourceNode | null = null
   try {
-    const warm = safeCtx.createBuffer(1, Math.ceil(safeCtx.sampleRate * 0.08), safeCtx.sampleRate)
-    const warmSrc = safeCtx.createBufferSource()
-    warmSrc.buffer = warm
-    warmSrc.connect(agentSink)
-    warmSrc.start()
-  } catch { /* non-fatal — pre-warm is best-effort */ }
+    const len = Math.ceil(safeCtx.sampleRate * 0.5)
+    const buf = safeCtx.createBuffer(1, len, safeCtx.sampleRate)
+    const ch = buf.getChannelData(0)
+    // Alternating ±1 LSB = a Nyquist-frequency tone at the quietest possible
+    // level. Inaudible, DC-free, but a non-zero signal that keeps the output
+    // stream active.
+    for (let i = 0; i < len; i++) ch[i] = (i % 2 === 0 ? 1 : -1) / 32768
+    const src = safeCtx.createBufferSource()
+    src.buffer = buf
+    src.loop = true
+    src.connect(finalSink)
+    src.start()
+    keepAliveSrc = src
+  } catch { /* non-fatal — keep-alive is best-effort */ }
 
   const ctxLatency = safeCtx as AudioContext & { baseLatency?: number; outputLatency?: number }
   log.info('voice context ready', {
@@ -624,6 +638,10 @@ export async function connect(
     if (disposed) return
     disposed = true
     flushDbg('dispose')
+    if (keepAliveSrc) {
+      try { keepAliveSrc.stop() } catch { /* already stopped — fine */ }
+      keepAliveSrc = null
+    }
     if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
     stopAgentPlayback()
     if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
