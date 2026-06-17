@@ -31,7 +31,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Icon } from '@/components/Icon'
 import { InstallBanner } from '@/components/InstallBanner'
 import { useTranslation } from '@/components/LanguageProvider'
-import { nativeLanguageGreeting, inferUiLanguage } from '@/lib/i18n'
+import { inferUiLanguage } from '@/lib/i18n'
 import { PracticeClient, type PracticeMode } from '@/components/PracticeClient'
 
 // ── Conversation-starter categories ────────────────────────────────────
@@ -116,11 +116,6 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
     starterTopic?: string
   } | null>(null)
   const handleExitSession = useCallback(() => setActiveSession(null), [])
-
-  const greeting = useMemo(
-    () => nativeLanguageGreeting(targetLanguage, new Date()),
-    [targetLanguage],
-  )
 
   // Dynamic starter topics — fetched fresh on each mount and whenever the
   // target language changes. null = loading (show skeleton buttons);
@@ -225,14 +220,10 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
     // centre the column when there's free space and collapse to top-aligned
     // when content (large font / zoom) overflows. Mobile keeps top alignment.
     <div className="space-y-8 md:my-auto">
-      {/* Greeting kicker + topic question + peak-end welcome beat. The
-          target-language greeting is kept as a small kicker above the H1 —
-          it's the one immersion moment on this surface (and the anchor the
-          welcome beat floats above) — but the headline is now the question,
-          which frames the topic buttons below as the answer. The welcome
-          line floats above via absolute positioning so it doesn't shift the
-          rest of the page when it mounts/dismisses; we only reserve the
-          `pt-6` slot for it when ?welcome=true is in the URL on mount. */}
+      {/* Page H1 + peak-end welcome beat. The welcome line floats above via
+          absolute positioning so it doesn't shift the rest of the page when
+          it mounts/dismisses; we only reserve the `pt-6` slot for it when
+          ?welcome=true is in the URL on mount. */}
       <header className={`relative space-y-1.5${initialWelcome ? ' pt-6' : ''}`}>
         <AnimatePresence>
           {showWelcome && (
@@ -249,9 +240,6 @@ export function PractiseClient({ displayName: _displayName }: Props = {}) {
             </motion.p>
           )}
         </AnimatePresence>
-        <p className="text-sm font-medium text-text-tertiary">
-          {greeting}
-        </p>
         <h1 className="text-page-title">
           {t('home.practiseHeading')}
         </h1>
