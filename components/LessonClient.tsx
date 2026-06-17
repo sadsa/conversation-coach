@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, animate, useMotionValue, useTransform, useReducedMotion } from 'framer-motion'
+import { useSwipeable } from 'react-swipeable'
 import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
@@ -183,6 +184,56 @@ export function LessonClient({ phrases, onExit }: Props) {
     setCurrentCardIndex(prevIndex)
     agentRef.current?.sendText(formatStudyCardAdvance(phrases[prevIndex], prevIndex, phrases.length, targetLanguage))
   }
+
+  // Swipe navigation. react-swipeable (the repo's blessed swipe primitive — see
+  // DockedSheet) drives the gesture; the live `x`/`cardOpacity` motion values
+  // feed the directional overlays. `trackMouse` makes the gesture exercisable in
+  // jsdom, which is what lets the regression test assert on a real swipe.
+  function commitSwipe(direction: 'advance' | 'back') {
+    const toX = direction === 'advance' ? 400 : -400
+    void Promise.all([
+      animate(x, toX, { duration: 0.2 }),
+      animate(cardOpacity, 0, { duration: 0.2 }),
+    ]).then(() => {
+      if (direction === 'advance') handleAdvanceCard()
+      else handleGoBack()
+      x.set(0)
+      cardOpacity.set(1)
+    })
+  }
+
+  function springBack() {
+    void animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 })
+  }
+
+  const swipeHandlers = useSwipeable({
+    onSwiping: (e) => {
+      if (lessonState === 'ending') return
+      if (e.dir === 'Left' || e.dir === 'Right') {
+        isDraggingRef.current = true
+        x.set(e.dir === 'Right' ? e.absX : -e.absX)
+      }
+    },
+    onSwipedRight: (e) => {
+      if (lessonState === 'ending') return
+      if (e.absX > SWIPE_THRESHOLD) commitSwipe('advance')
+      else springBack()
+    },
+    onSwipedLeft: (e) => {
+      if (lessonState === 'ending') return
+      if (e.absX > SWIPE_THRESHOLD) commitSwipe('back')
+      else springBack()
+    },
+    onSwiped: (e) => {
+      // Vertical or sub-threshold gesture that started a horizontal drag —
+      // settle the card back to centre so it never sticks off-axis.
+      if (isDraggingRef.current && e.dir !== 'Left' && e.dir !== 'Right') springBack()
+      isDraggingRef.current = false
+    },
+    delta: 12,
+    trackMouse: true,
+    preventScrollOnSwipe: true,
+  })
 
   const toggleMute = useCallback(() => {
     if (!agentRef.current) return
@@ -420,34 +471,9 @@ export function LessonClient({ phrases, onExit }: Props) {
             </motion.div>
 
             <motion.div
+              {...swipeHandlers}
               data-testid="lesson-card"
-              drag="x"
               style={{ x, opacity: cardOpacity, touchAction: 'pan-y' }}
-              onDragStart={() => { isDraggingRef.current = true }}
-              onDragEnd={(_, info) => {
-                if (info.offset.x > SWIPE_THRESHOLD) {
-                  void Promise.all([
-                    animate(x, 400, { duration: 0.2 }),
-                    animate(cardOpacity, 0, { duration: 0.2 }),
-                  ]).then(() => {
-                    handleAdvanceCard()
-                    x.set(0)
-                    cardOpacity.set(1)
-                  })
-                } else if (info.offset.x < -SWIPE_THRESHOLD) {
-                  void Promise.all([
-                    animate(x, -400, { duration: 0.2 }),
-                    animate(cardOpacity, 0, { duration: 0.2 }),
-                  ]).then(() => {
-                    handleGoBack()
-                    x.set(0)
-                    cardOpacity.set(1)
-                  })
-                } else {
-                  void animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 })
-                }
-                setTimeout(() => { isDraggingRef.current = false }, 0)
-              }}
               onClick={(e) => { e.stopPropagation() }}
               className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center cursor-grab active:cursor-grabbing select-none"
             >

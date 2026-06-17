@@ -3,10 +3,21 @@
 // Tests the Study session component's public interface.
 // The heavy WebSocket/audio machinery is mocked at module level.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { act } from 'react'
 import { LanguageProvider } from '@/components/LanguageProvider'
+
+/**
+ * Drive react-swipeable with a mouse gesture (trackMouse is enabled on the
+ * card). dx > 0 swipes right (advance), dx < 0 swipes left (go back).
+ */
+function swipeCard(card: HTMLElement, dx: number) {
+  const startX = 200
+  fireEvent.mouseDown(card, { clientX: startX, clientY: 150 })
+  fireEvent.mouseMove(document, { clientX: startX + dx, clientY: 150 })
+  fireEvent.mouseUp(document, { clientX: startX + dx, clientY: 150 })
+}
 
 // Capture callbacks so tests can drive lesson state transitions.
 let capturedOnStateChange: ((s: string) => void) | null = null
@@ -147,6 +158,40 @@ describe('LessonClient (Study mode)', () => {
     wrap()
     await activateLesson()
     await user.click(screen.getByTestId('go-back-card'))
+    expect(mockSendText).not.toHaveBeenCalled()
+  })
+
+  it('swiping the card right advances to the next card', async () => {
+    wrap()
+    await activateLesson()
+    const card = screen.getByTestId('lesson-card')
+    swipeCard(card, 150)
+    await waitFor(() => screen.getByText('dale, vamos'))
+    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('dale, vamos'))
+    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('2/2'))
+  })
+
+  it('swiping the card left from card 2 returns to the previous card', async () => {
+    const user = userEvent.setup()
+    wrap()
+    await activateLesson()
+    await user.click(screen.getByTestId('advance-card'))
+    await waitFor(() => screen.getByText('dale, vamos'))
+    mockSendText.mockClear()
+    const card = screen.getByTestId('lesson-card')
+    swipeCard(card, -150)
+    await waitFor(() => screen.getByText('me resulta difícil'))
+    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('me resulta difícil'))
+    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('1/2'))
+  })
+
+  it('a sub-threshold swipe does not change cards', async () => {
+    wrap()
+    await activateLesson()
+    const card = screen.getByTestId('lesson-card')
+    swipeCard(card, 30)
+    // Still on card 1, no advance message sent.
+    expect(screen.getByText('me resulta difícil')).toBeInTheDocument()
     expect(mockSendText).not.toHaveBeenCalled()
   })
 
