@@ -1,6 +1,7 @@
 // lib/voice-agent.ts
 
 import type { TargetLanguage, TranscriptTurn } from '@/lib/types'
+import { log } from '@/lib/logger'
 
 export type VoiceAgentState = 'connecting' | 'active' | 'ended'
 
@@ -448,6 +449,16 @@ export async function connect(
     stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, sampleRate: 16000 },
     })
+    // connect() awaits the token fetch BEFORE this point, so we're past the
+    // synchronous user-gesture stack by the time the context is created.
+    // Android Chrome's autoplay policy can birth the context `suspended` —
+    // a suspended context freezes `currentTime`, which degenerates the
+    // playback scheduling math and clips the first agent audio. resume() is
+    // idempotent (no-op if already running). Failure is non-fatal: the
+    // context usually resumes on its own once audio is routed.
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume().catch(() => { /* non-fatal — see comment */ })
+    }
   } catch (err) {
     stream?.getTracks().forEach(t => t.stop())
     await audioCtx?.close()
@@ -492,6 +503,32 @@ export async function connect(
   const agentGain = safeCtx.createGain()
   agentGain.connect(finalSink)
   const agentSink = agentGain
+
+  // Pre-warm the output path. Mobile audio HALs — Android in particular —
+  // have a large cold-start latency; the first real audio scheduled through a
+  // cold output device loses its onset ("hello" → "lo"). Pushing a short
+  // silent buffer through the sink now starts spinning the device up before
+  // the opener arrives. This is a helper, not the whole fix — the first-chunk
+  // lookahead in scheduleAgentPcm is the robust guard (the device can power
+  // back down during the WebSocket handshake gap).
+  try {
+    const warm = safeCtx.createBuffer(1, Math.ceil(safeCtx.sampleRate * 0.08), safeCtx.sampleRate)
+    const warmSrc = safeCtx.createBufferSource()
+    warmSrc.buffer = warm
+    warmSrc.connect(agentSink)
+    warmSrc.start()
+  } catch { /* non-fatal — pre-warm is best-effort */ }
+
+  const ctxLatency = safeCtx as AudioContext & { baseLatency?: number; outputLatency?: number }
+  log.info('voice context ready', {
+    state: safeCtx.state,
+    sampleRate: safeCtx.sampleRate,
+    baseLatency: ctxLatency.baseLatency ?? null,
+    outputLatency: ctxLatency.outputLatency ?? null,
+    iOS: isIOS(),
+  })
+  const connectAtMs = Date.now()
+  let firstAgentChunkScheduled = false
 
   // 3. Open WebSocket — API key in query param.
   const wsUrl = new URL(WS_ENDPOINT)
@@ -580,7 +617,28 @@ export async function connect(
     src.connect(agentSink)
     src.onended = () => { activeAgentSources.delete(src) }
     const now = safeCtx.currentTime
-    playbackTime = Math.max(playbackTime, now)
+    if (!firstAgentChunkScheduled) {
+      // First audio of the session. On a cold mobile output device, starting
+      // at exactly `now` (zero headroom) lets the HAL warmup swallow the
+      // leading samples — the reported "first word is clipped" bug. Give the
+      // first chunk a lookahead that covers the device's output latency plus
+      // a floor, so playback begins after the path is hot. Every later chunk
+      // stays contiguous via `playbackTime`, so this only delays the very
+      // first onset by ~120ms+ — imperceptible, and the agent's first word is
+      // now intact.
+      firstAgentChunkScheduled = true
+      const outputLatency = (safeCtx as AudioContext & { outputLatency?: number }).outputLatency ?? 0
+      const lead = Math.max(0.12, outputLatency + 0.05)
+      playbackTime = now + lead
+      log.info('voice first agent chunk', {
+        lead,
+        outputLatency,
+        state: safeCtx.state,
+        msSinceConnect: Date.now() - connectAtMs,
+      })
+    } else {
+      playbackTime = Math.max(playbackTime, now)
+    }
     const startAt = playbackTime
     activeAgentSources.add(src)
     src.start(startAt)
