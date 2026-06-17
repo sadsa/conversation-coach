@@ -744,6 +744,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.gotIt': 'Got it',
     'lesson.gotItAria': 'Mark this phrase as understood and move to the next',
     'lesson.transcribing': 'Transcribing',
+    'lesson.completeHeading': 'You studied all {n} phrases',
+    'lesson.practiseAgain': 'Practise again',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -1332,6 +1334,8 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.gotIt': '¡Entendido!',
     'lesson.gotItAria': 'Marcar esta frase como entendida y avanzar',
     'lesson.transcribing': 'Transcribiendo',
+    'lesson.completeHeading': 'Estudiaste las {n} frases',
+    'lesson.practiseAgain': 'Practicar de nuevo',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

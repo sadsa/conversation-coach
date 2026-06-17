@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import Link from 'next/link'
 import { useTranslation } from '@/components/LanguageProvider'
 import {
   connect,
@@ -18,7 +19,7 @@ import type { TranscriptTurn } from '@/lib/types'
 import type { VoiceAgent } from '@/lib/voice-agent'
 import type { VoiceTickCallback } from '@/components/AudioReactiveDots'
 
-type LessonState = 'connecting' | 'active' | 'ending'
+type LessonState = 'connecting' | 'active' | 'ending' | 'complete'
 
 const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
@@ -198,14 +199,18 @@ export function LessonClient({ phrases, onExit }: Props) {
     userAudibleSinceLastTurnRef.current = false
   }, [])
 
-  const endSession = useCallback(() => {
+  const disconnectResources = useCallback(() => {
     if (endingTimeoutRef.current) { clearTimeout(endingTimeoutRef.current); endingTimeoutRef.current = null }
     agentRef.current?.flush()
     agentRef.current?.disconnect()
     agentRef.current = null
     disconnectAssemblyAI()
-    onExitRef.current()
   }, [disconnectAssemblyAI])
+
+  const endSession = useCallback(() => {
+    disconnectResources()
+    onExitRef.current()
+  }, [disconnectResources])
 
   useEffect(() => { endSessionRef.current = endSession }, [endSession])
 
@@ -219,7 +224,8 @@ export function LessonClient({ phrases, onExit }: Props) {
       // phrases the learner hasn't reached yet.
       agentRef.current?.sendText(formatStudyCardAdvance(phrases[nextIndex], nextIndex, phrases.length, targetLanguage))
     } else {
-      onExitRef.current()
+      disconnectResources()
+      setLessonState('complete')
     }
   }
 
@@ -269,6 +275,7 @@ export function LessonClient({ phrases, onExit }: Props) {
                 disconnectAssemblyAI()
                 setLessonState(prev => {
                   if (prev === 'connecting') { onExitRef.current(); return prev }
+                  if (prev === 'complete') return prev
                   if (prev === 'active') setTimeout(() => endSessionRef.current(), 0)
                   return prev
                 })
@@ -323,6 +330,37 @@ export function LessonClient({ phrases, onExit }: Props) {
 
   if (lessonState === 'connecting') {
     return <LoadingScreen />
+  }
+
+  if (lessonState === 'complete') {
+    return (
+      <motion.div
+        className="fixed flex flex-col items-center justify-center gap-6 bg-background z-10 px-8 text-center"
+        style={{
+          top: 'calc(var(--header-height) + env(safe-area-inset-top))',
+          left: 0,
+          right: 0,
+          bottom: 'var(--bottom-nav-h)',
+        }}
+        initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+      >
+        <div className="w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center">
+          <Icon name="check" className="w-8 h-8 text-on-accent" />
+        </div>
+        <h2 className="text-2xl font-serif text-text-primary">
+          {t('lesson.completeHeading', { n: phrases.length })}
+        </h2>
+        <Link
+          href="/"
+          onClick={() => onExitRef.current()}
+          className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
+        >
+          {t('lesson.practiseAgain')}
+        </Link>
+      </motion.div>
+    )
   }
 
   const isEnding = lessonState === 'ending'
