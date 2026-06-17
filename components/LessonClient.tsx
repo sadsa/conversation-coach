@@ -424,13 +424,10 @@ export function LessonClient({ phrases, onExit }: Props) {
                 setTimeout(() => { isDraggingRef.current = false }, 0)
               }}
               onClick={(e) => { e.stopPropagation() }}
-              className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center gap-3 cursor-grab active:cursor-grabbing select-none"
+              className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center cursor-grab active:cursor-grabbing select-none"
             >
-              <p className="text-2xl font-serif text-accent-primary leading-snug">
+              <p className="text-2xl font-serif text-accent-primary leading-snug text-center text-balance">
                 {card.correction}
-              </p>
-              <p className="text-sm text-text-secondary leading-relaxed">
-                {card.explanation}
               </p>
             </motion.div>
           </div>
