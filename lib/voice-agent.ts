@@ -530,6 +530,40 @@ export async function connect(
   const connectAtMs = Date.now()
   let firstAgentChunkScheduled = false
 
+  // --- Temporary voice diagnostics (first-word-clip investigation) ---
+  // Records a timestamped event timeline and POSTs it to /api/voice-debug on
+  // the first turnComplete (and again on dispose as a safety net), so the
+  // sequence is visible in Vercel without remote-debugging the Android
+  // browser. Times are ms relative to setupComplete. Remove with the route.
+  const dbgEvents: Array<Record<string, unknown>> = []
+  let dbgFlushed = false
+  let setupCompleteAt = 0
+  function dbg(event: string, extra?: Record<string, unknown>) {
+    if (dbgEvents.length >= 300) return
+    const base = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    dbgEvents.push({ event, tMs: setupCompleteAt ? Math.round(base - setupCompleteAt) : 0, ...extra })
+  }
+  function flushDbg(reason: string) {
+    if (dbgFlushed) return
+    dbgFlushed = true
+    try {
+      fetch('/api/voice-debug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          reason,
+          model: options.model ?? DEFAULT_MODEL,
+          openingLine: Boolean(options.openingLine),
+          contextState: safeCtx.state,
+          outputLatency: ctxLatency.outputLatency ?? null,
+          iOS: isIOS(),
+          events: dbgEvents,
+        }),
+      }).catch(() => { /* best-effort */ })
+    } catch { /* best-effort */ }
+  }
+
   // 3. Open WebSocket — API key in query param.
   const wsUrl = new URL(WS_ENDPOINT)
   wsUrl.searchParams.set('key', token)
@@ -589,6 +623,7 @@ export async function connect(
   function dispose() {
     if (disposed) return
     disposed = true
+    flushDbg('dispose')
     if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
     stopAgentPlayback()
     if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
@@ -636,8 +671,18 @@ export async function connect(
         state: safeCtx.state,
         msSinceConnect: Date.now() - connectAtMs,
       })
+      dbg('firstAgentChunk', {
+        durMs: Math.round((pcm16.length / 24000) * 1000),
+        lead: Math.round(lead * 1000),
+        leadAppliedMs: Math.round((playbackTime - now) * 1000),
+        state: safeCtx.state,
+      })
     } else {
       playbackTime = Math.max(playbackTime, now)
+      dbg('agentChunk', {
+        durMs: Math.round((pcm16.length / 24000) * 1000),
+        startGapMs: Math.round((playbackTime - now) * 1000),
+      })
     }
     const startAt = playbackTime
     activeAgentSources.add(src)
@@ -775,6 +820,7 @@ export async function connect(
       } catch {
         // Not JSON — raw PCM16 audio chunk.
         const pcm16 = new Int16Array(event.data)
+        dbg('audioRawBinary', { samples: pcm16.length })
         scheduleAgentPcm(pcm16)
         return
       }
@@ -784,6 +830,8 @@ export async function connect(
 
     if ('setupComplete' in msg) {
       ready = true
+      setupCompleteAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
+      dbg('setupComplete', { msSinceConnect: Date.now() - connectAtMs })
       if (setupTimeout) { clearTimeout(setupTimeout); setupTimeout = null }
       // Audible "ready to listen" cue. Played BEFORE the state change so the
       // tone reaches the speakers at roughly the same instant the UI flips
@@ -791,6 +839,7 @@ export async function connect(
       // suspended on background tab) never blocks the session going live.
       try {
         playStartTone(safeCtx, agentSink)
+        dbg('chime')
       } catch {
         /* non-fatal — the session is up, the chime is a nice-to-have */
       }
@@ -805,6 +854,7 @@ export async function connect(
             turnComplete: true,
           },
         }))
+        dbg('openerTriggerSent')
       }
       callbacks.onStateChange('active')
       return
@@ -816,6 +866,7 @@ export async function connect(
     } }).serverContent
 
     if (serverContent?.interrupted) {
+      dbg('interrupted')
       // Server confirms the previous turn was cut short. Drop any chunks
       // we'd already scheduled locally so the agent's tail can't bleed into
       // the new response. Also suppress mic sends for 150ms — on slow
@@ -862,6 +913,7 @@ export async function connect(
     // Output transcription — model's speech (inside serverContent.outputTranscription)
     const outputTranscription = (msg as { serverContent?: { outputTranscription?: { text?: string } } }).serverContent?.outputTranscription
     if (options.transcription && outputTranscription?.text) {
+      if (!modelTranscriptBuffer) dbg('firstOutputText', { text: outputTranscription.text.slice(0, 24) })
       // First output token signals user turn ended — emit user bubble now if
       // model audio didn't already trigger it (e.g. transcription-only mode).
       if (!userFlushedForTurn && userTranscriptBuffer.trim()) {
@@ -894,6 +946,11 @@ export async function connect(
       // user-turn shape.
       modelTurnStartFiredForTurn = false
       callbacks.onTurnComplete?.()
+      dbg('turnComplete')
+      // Flush the timeline at the end of the FIRST agent turn — that's the
+      // opener, where the clip is reported. Captures setup → chime → chunks →
+      // (any interrupt) → turn end in one Vercel-visible record.
+      flushDbg('firstTurnComplete')
     }
 
     const error = (msg as { error?: { message?: string } }).error
