@@ -84,6 +84,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.openMenu': 'Open menu',
     'nav.closeMenu': 'Close menu',
     'nav.quickNavAria': 'Quick navigation',
+    'nav.share': 'Share',
+    'nav.shareCopied': '✓ Link copied',
+    'nav.shareText': 'Try Conversation Coach — practise Spanish with AI',
     'nav.signOut': 'Sign out',
     'nav.account': 'Account',
     'nav.accountMenu': 'Account menu',
@@ -751,6 +754,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.goBack': 'Go back to previous card',
     'lesson.advance': 'Advance to next card',
     'lesson.hint': 'Swipe between cards · tap to show controls',
+    'lesson.errorBack': 'Back',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -790,6 +794,9 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'nav.openMenu': 'Abrir menú',
     'nav.closeMenu': 'Cerrar menú',
     'nav.quickNavAria': 'Navegación rápida',
+    'nav.share': 'Compartir',
+    'nav.shareCopied': '✓ Enlace copiado',
+    'nav.shareText': 'Prueba Conversation Coach — practica español con IA',
     'nav.signOut': 'Cerrar sesión',
     'nav.account': 'Cuenta',
     'nav.accountMenu': 'Menú de cuenta',
@@ -1346,6 +1353,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.goBack': 'Volver a la carta anterior',
     'lesson.advance': 'Avanzar a la siguiente carta',
     'lesson.hint': 'Deslizá entre cartas · tocá para ver los controles',
+    'lesson.errorBack': 'Volver',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

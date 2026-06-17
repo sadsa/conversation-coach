@@ -32,6 +32,14 @@ function primaryLabel(user: AccountUser): string {
   return user.name?.trim() || user.email?.trim() || ''
 }
 
+function ShareNetworkIcon() {
+  return (
+    <svg viewBox="0 0 256 256" fill="currentColor" className="w-5 h-5 flex-shrink-0" aria-hidden="true">
+      <path d="M176,160a39.89,39.89,0,0,0-28.62,12.09l-46.1-29.63a39.8,39.8,0,0,0,0-28.92l46.1-29.63a40,40,0,1,0-8.66-13.45l-46.1,29.63a40,40,0,1,0,0,55.82l46.1,29.63A40,40,0,1,0,176,160Zm0-128a24,24,0,1,1-24,24A24,24,0,0,1,176,32ZM64,152a24,24,0,1,1,24-24A24,24,0,0,1,64,152Zm112,72a24,24,0,1,1,24-24A24,24,0,0,1,176,224Z" />
+    </svg>
+  )
+}
+
 function SettingsIcon() {
   return (
     <svg viewBox="0 0 256 256" fill="currentColor" className="w-5 h-5 flex-shrink-0" aria-hidden="true">
@@ -108,21 +116,56 @@ function useSignOut(afterSignOut?: () => void) {
   return { signOut, pending }
 }
 
+function useShare(shareLabel: string, shareText: string) {
+  const [copied, setCopied] = useState(false)
+  const share = useCallback(async () => {
+    const url = `${window.location.origin}/login`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareLabel, text: shareText, url })
+      } catch {
+        // user dismissed share sheet — not an error
+      }
+    } else {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }, [shareLabel, shareText])
+  return { share, copied }
+}
+
 function AccountActions({
   onSettings,
   onSignOut,
   signOutPending,
   settingsLabel,
   signOutLabel,
+  shareLabel,
+  shareCopiedLabel,
+  shareText,
 }: {
   onSettings: () => void
   onSignOut: () => void
   signOutPending: boolean
   settingsLabel: string
   signOutLabel: string
+  shareLabel: string
+  shareCopiedLabel: string
+  shareText: string
 }) {
+  const { share, copied } = useShare(shareLabel, shareText)
   return (
     <>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={share}
+        className="w-full flex items-center gap-3 px-4 py-3 text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors text-left text-sm font-medium focus:outline-none focus-visible:bg-surface-elevated"
+      >
+        <ShareNetworkIcon />
+        <span>{copied ? shareCopiedLabel : shareLabel}</span>
+      </button>
       <Link
         href="/settings"
         role="menuitem"
@@ -203,6 +246,9 @@ export function AccountMenuMobileHeader({ user }: { user: AccountUser }) {
           <AccountActions
             settingsLabel={t('nav.settings')}
             signOutLabel={t('nav.signOut')}
+            shareLabel={t('nav.share')}
+            shareCopiedLabel={t('nav.shareCopied')}
+            shareText={t('nav.shareText')}
             signOutPending={pending}
             onSettings={close}
             onSignOut={signOut}
@@ -275,6 +321,9 @@ export function AccountMenuDesktop({ user }: { user: AccountUser }) {
           <AccountActions
             settingsLabel={t('nav.settings')}
             signOutLabel={t('nav.signOut')}
+            shareLabel={t('nav.share')}
+            shareCopiedLabel={t('nav.shareCopied')}
+            shareText={t('nav.shareText')}
             signOutPending={pending}
             onSettings={close}
             onSignOut={signOut}
