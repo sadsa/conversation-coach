@@ -23,8 +23,8 @@ const RMS_DECAY = 0.85
 const RMS_FLOOR = 0.004
 const CONTROLS_SHOW_MS = 2000
 const SWIPE_THRESHOLD = 80
-const CONTROLS_HINT_KEY = 'cc:study-controls-hint:v1'
-const SWIPE_HINT_KEY = 'cc:study-swipe-hint:v1'
+const HINT_KEY = 'cc:study-hint:v1'
+const HINT_SHOW_MS = 5000
 
 interface Props {
   /** All Vocabulary Items from this session to weave into the Study conversation. */
@@ -43,8 +43,7 @@ export function LessonClient({ phrases, onExit }: Props) {
   const [voiceStatus, setVoiceStatus] = useState<'listening' | 'speaking' | 'muted'>('listening')
   const [toast, setToast] = useState<string | null>(null)
   const [controlsVisible, setControlsVisible] = useState(false)
-  const [swipeHintVisible, setSwipeHintVisible] = useState(false)
-  const [controlsHintVisible, setControlsHintVisible] = useState(false)
+  const [hintVisible, setHintVisible] = useState(false)
 
   const agentRef = useRef<VoiceAgent | null>(null)
   const endingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -110,25 +109,9 @@ export function LessonClient({ phrases, onExit }: Props) {
     return () => { document.removeEventListener('visibilitychange', onVisibilityChange) }
   }, [lessonState])
 
-  // Controls hint: one-shot on first active session
-  useEffect(() => {
-    if (lessonState !== 'active') return
-    if (typeof window === 'undefined') return
-    if (window.localStorage.getItem(CONTROLS_HINT_KEY) === '1') return
-    setControlsHintVisible(true)
-    const timer = setTimeout(() => dismissControlsHint(), 6000)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessonState])
-
-  function dismissControlsHint() {
-    setControlsHintVisible(false)
-    if (typeof window !== 'undefined') window.localStorage.setItem(CONTROLS_HINT_KEY, '1')
-  }
-
-  function dismissSwipeHint() {
-    setSwipeHintVisible(false)
-    if (typeof window !== 'undefined') window.localStorage.setItem(SWIPE_HINT_KEY, '1')
+  function dismissHint() {
+    setHintVisible(false)
+    if (typeof window !== 'undefined') window.localStorage.setItem(HINT_KEY, '1')
   }
 
   useEffect(() => {
@@ -164,14 +147,14 @@ export function LessonClient({ phrases, onExit }: Props) {
     }
   }, [muted, lessonState])
 
-  // Swipe hint: appear after first listening state, one-shot
+  // Onboarding hint: one-shot, after the user's first turn (first listening state)
   useEffect(() => {
     if (voiceStatus !== 'listening') return
     if (firstListeningFiredRef.current) return
     firstListeningFiredRef.current = true
-    if (typeof window !== 'undefined' && window.localStorage.getItem(SWIPE_HINT_KEY) === '1') return
-    setSwipeHintVisible(true)
-    const timer = setTimeout(() => dismissSwipeHint(), 3000)
+    if (typeof window !== 'undefined' && window.localStorage.getItem(HINT_KEY) === '1') return
+    setHintVisible(true)
+    const timer = setTimeout(() => dismissHint(), HINT_SHOW_MS)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceStatus])
@@ -217,20 +200,17 @@ export function LessonClient({ phrases, onExit }: Props) {
     onExitRef.current()
   }, [disconnectResources])
 
+  const toggleMuteRef = useRef(toggleMute)
   useEffect(() => { endSessionRef.current = endSession }, [endSession])
-
-  const endSessionStableRef = useRef(endSession)
-  const toggleMuteStableRef = useRef(toggleMute)
-  useEffect(() => { endSessionStableRef.current = endSession }, [endSession])
-  useEffect(() => { toggleMuteStableRef.current = toggleMute }, [toggleMute])
+  useEffect(() => { toggleMuteRef.current = toggleMute }, [toggleMute])
 
   useEffect(() => {
     if (lessonState !== 'active') return
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
-      if (e.key === 'Escape') { e.preventDefault(); endSessionStableRef.current() }
-      else if (e.code === 'Space' && !e.repeat) { e.preventDefault(); toggleMuteStableRef.current() }
+      if (e.key === 'Escape') { e.preventDefault(); endSessionRef.current() }
+      else if (e.code === 'Space' && !e.repeat) { e.preventDefault(); toggleMuteRef.current() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -466,9 +446,9 @@ export function LessonClient({ phrases, onExit }: Props) {
           </button>
         </div>
 
-        {/* Swipe hint — one-shot after first listening state */}
+        {/* Onboarding hint — one-shot after the user's first turn */}
         <AnimatePresence>
-          {swipeHintVisible && (
+          {hintVisible && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -477,7 +457,7 @@ export function LessonClient({ phrases, onExit }: Props) {
               aria-live="polite"
             >
               <span className="oa-touch" aria-hidden="true">↔</span>
-              <span>{t('lesson.swipeHint')}</span>
+              <span>{t('lesson.hint')}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -491,28 +471,6 @@ export function LessonClient({ phrases, onExit }: Props) {
           />
         </div>
       </div>
-
-      {/* Controls hint chip — one-shot on first open */}
-      <AnimatePresence>
-        {controlsHintVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2 rounded-lg bg-surface border border-border-subtle text-xs text-text-secondary z-30 whitespace-nowrap"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span>{t('lesson.controlsHint')}</span>
-            <button
-              type="button"
-              onClick={dismissControlsHint}
-              className="text-text-tertiary hover:text-text-secondary font-medium px-1.5 py-0.5 rounded"
-            >
-              {t('lesson.controlsHintDismiss')}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Test seams */}
       <button
