@@ -58,6 +58,7 @@ export function LessonClient({ phrases, onExit }: Props) {
   const isDraggingRef = useRef(false)
 
   const x = useMotionValue(0)
+  const cardScale = useMotionValue(1)
   const cardOpacity = useMotionValue(1)
   const advanceOpacity = useTransform(x, [20, SWIPE_THRESHOLD], [0, 1])
   const goBackOpacity = useTransform(x, [-SWIPE_THRESHOLD, -20], [1, 0])
@@ -157,6 +158,11 @@ export function LessonClient({ phrases, onExit }: Props) {
   // Shared advance path: a button tap animates the card off-screen exactly
   // like a swipe release, then runs the matching handler. Swipe-release and
   // the Back/Next pills both call this so the two affordances feel identical.
+  //
+  // The outgoing card flies off in the gesture direction; once the content has
+  // swapped, the incoming card is placed just off the trailing edge and settles
+  // into place (slide + fade + a small scale lift). Without this the next card
+  // snapped in dead — the entrance is where the deck reads as a deck.
   function animateThenAdvance(dir: 'next' | 'back') {
     if (dir === 'back' && currentCardIndex === 0) {
       void animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 })
@@ -165,14 +171,27 @@ export function LessonClient({ phrases, onExit }: Props) {
     const run = () => {
       if (dir === 'next') handleAdvanceCard()
       else handleGoBack()
-      x.set(0)
-      cardOpacity.set(1)
     }
-    if (reducedMotion) { run(); return }
+    if (reducedMotion) {
+      run()
+      x.set(0); cardOpacity.set(1); cardScale.set(1)
+      return
+    }
+    const ENTER = [0.25, 1, 0.5, 1] as const
     void Promise.all([
-      animate(x, dir === 'next' ? 400 : -400, { duration: 0.2 }),
+      animate(x, dir === 'next' ? 400 : -400, { duration: 0.2, ease: [0.4, 0, 1, 1] }),
       animate(cardOpacity, 0, { duration: 0.2 }),
-    ]).then(run)
+    ]).then(() => {
+      run()
+      // Incoming card starts just off the trailing edge, slightly small and
+      // transparent, then eases home.
+      x.set(dir === 'next' ? -44 : 44)
+      cardScale.set(0.97)
+      cardOpacity.set(0)
+      void animate(x, 0, { duration: 0.34, ease: ENTER })
+      void animate(cardScale, 1, { duration: 0.34, ease: ENTER })
+      void animate(cardOpacity, 1, { duration: 0.28, ease: ENTER })
+    })
   }
 
   const toggleMute = useCallback(() => {
@@ -364,6 +383,12 @@ export function LessonClient({ phrases, onExit }: Props) {
   // phrase in [[brackets]] — we lift that phrase one tone so the eye lands on
   // the meaning. Null/absent → no gloss, card falls back to the phrase alone.
   const gloss = card.flashcard_front ? parseFlashcard(card.flashcard_front) : null
+  // Target sentence with the learned phrase in [[brackets]]. When present we
+  // render the full sentence (recall context) and tint only the bracketed
+  // phrase Practise Green — the brand's learning-moment colour — so the eye
+  // lands on the exact thing being studied. Absent/legacy → fall back to the
+  // bare correction in the violet UI accent.
+  const back = card.flashcard_back ? parseFlashcard(card.flashcard_back) : null
   const showPips = phrases.length <= 10
   const onFirstCard = currentCardIndex === 0
   const statusLabel = isEnding
@@ -392,12 +417,21 @@ export function LessonClient({ phrases, onExit }: Props) {
               <span
                 key={i}
                 data-pip
-                className={`rounded-full transition-all duration-200 ${
-                  i === currentCardIndex
-                    ? 'w-2.5 h-2.5 bg-accent-primary'
-                    : 'w-1.5 h-1.5 bg-border-subtle'
-                }`}
-              />
+                className="relative flex h-2.5 w-2.5 items-center justify-center"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-border-subtle" />
+                {i === currentCardIndex && (
+                  <motion.span
+                    layoutId="active-pip"
+                    className="absolute inset-0 rounded-full bg-accent-primary"
+                    transition={
+                      reducedMotion
+                        ? { duration: 0 }
+                        : { type: 'spring', stiffness: 480, damping: 34 }
+                    }
+                  />
+                )}
+              </span>
             ))
           ) : (
             <span className="text-xs text-text-tertiary uppercase tracking-wide select-none">
@@ -428,7 +462,7 @@ export function LessonClient({ phrases, onExit }: Props) {
           <motion.div
             data-testid="lesson-card"
             drag="x"
-            style={{ x, opacity: cardOpacity, touchAction: 'pan-y' }}
+            style={{ x, scale: cardScale, opacity: cardOpacity, touchAction: 'pan-y' }}
             onDragStart={() => { isDraggingRef.current = true }}
             onDragEnd={(_, info) => {
               if (info.offset.x > SWIPE_THRESHOLD) animateThenAdvance('next')
@@ -436,11 +470,21 @@ export function LessonClient({ phrases, onExit }: Props) {
               else void animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 })
               setTimeout(() => { isDraggingRef.current = false }, 0)
             }}
-            className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center gap-3 cursor-grab active:cursor-grabbing select-none"
+            className="w-full bg-surface border border-border rounded-2xl px-6 py-8 min-h-[208px] flex flex-col justify-center gap-3 cursor-grab active:cursor-grabbing select-none"
           >
-            <p className="text-2xl font-serif text-accent-primary leading-snug text-center text-balance">
-              {card.correction}
-            </p>
+            {back && back.phrase !== '' ? (
+              <p className="text-2xl font-serif text-text-primary leading-snug text-center text-balance">
+                {back.before}
+                <span className="text-correction font-semibold bg-widget-write-bg/60 rounded px-1.5 -mx-0.5 box-decoration-clone">
+                  {back.phrase}
+                </span>
+                {back.after}
+              </p>
+            ) : (
+              <p className="text-2xl font-serif text-accent-primary leading-snug text-center text-balance">
+                {card.correction}
+              </p>
+            )}
             {gloss && (
               <p
                 data-testid="lesson-card-gloss"
