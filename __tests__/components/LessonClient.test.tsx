@@ -40,6 +40,17 @@ vi.mock('@/lib/assemblyai-stream', () => ({
   connectAssemblyAIStream: vi.fn().mockResolvedValue({ disconnect: vi.fn(), pushPcm: vi.fn() }),
 }))
 
+// Reproduce the mobile failure mode: framer's animate() returns an animation
+// whose `finished`/thenable NEVER resolves. The card advance must not depend on
+// it — gating commit on this promise was the original swipe bug.
+vi.mock('framer-motion', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('framer-motion')>()
+  return {
+    ...actual,
+    animate: () => ({ stop: () => {}, then: () => {}, finished: new Promise<void>(() => {}) }),
+  }
+})
+
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
 import { LessonClient } from '@/components/LessonClient'

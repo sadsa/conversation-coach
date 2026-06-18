@@ -190,16 +190,18 @@ export function LessonClient({ phrases, onExit }: Props) {
   // feed the directional overlays. `trackMouse` makes the gesture exercisable in
   // jsdom, which is what lets the regression test assert on a real swipe.
   function commitSwipe(direction: 'advance' | 'back') {
-    const toX = direction === 'advance' ? 400 : -400
-    void Promise.all([
-      animate(x, toX, { duration: 0.2 }),
-      animate(cardOpacity, 0, { duration: 0.2 }),
-    ]).then(() => {
-      if (direction === 'advance') handleAdvanceCard()
-      else handleGoBack()
-      x.set(0)
-      cardOpacity.set(1)
-    })
+    if (direction === 'back' && currentCardIndex === 0) { springBack(); return }
+    // Advance synchronously. Do NOT gate the card change on framer's animation
+    // `finished` promise — on some mobile browsers it never resolves, which left
+    // the swipe visually complete but stuck on the same card (the original bug).
+    if (direction === 'advance') handleAdvanceCard()
+    else handleGoBack()
+    // Reset the drag transform for the incoming card and fade it in. Both motion
+    // values still render via rAF regardless of whether the promise resolves, so
+    // this is safe, non-gating polish.
+    x.set(0)
+    cardOpacity.set(0.4)
+    void animate(cardOpacity, 1, { duration: 0.18 })
   }
 
   function springBack() {
