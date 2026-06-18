@@ -43,6 +43,27 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
   const [showCompletion, _setShowCompletion] = useState(false)
   const [studyMode, setStudyMode] = useState(false)
 
+  // Auto-mark this session as read on first visit. Idempotent on the server
+  // (only stamps last_viewed_at when NULL), so repeat visits are no-ops and
+  // the "Mark as unread" action stays the only way to flip it back. The ref
+  // guards against the effect double-firing under React 18 StrictMode.
+  const autoReadFiredRef = useRef(false)
+  useEffect(() => {
+    if (autoReadFiredRef.current) return
+    autoReadFiredRef.current = true
+    fetch(`/api/sessions/${sessionId}/view`, { method: 'POST' })
+      .then(res => (res.ok ? res.json() : null))
+      .then((data: { alreadyViewed?: boolean } | null) => {
+        // /review is a server component served from Next's Router Cache, so a
+        // bare DB write leaves the cached inbox stale until a hard refresh.
+        // When we actually flipped unread→read, bust the cache so back-nav
+        // refetches and the row shows as read. Skip on repeat visits
+        // (alreadyViewed) to avoid a needless server round-trip.
+        if (data?.alreadyViewed === false) router.refresh()
+      })
+      .catch(() => { /* non-critical */ })
+  }, [sessionId, router])
+
   useEffect(() => {
     if (!toastMessage) return
     const timer = setTimeout(() => setToastMessage(null), 3000)
