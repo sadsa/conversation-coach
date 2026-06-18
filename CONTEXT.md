@@ -78,7 +78,7 @@ _Avoid_: AI, bot, agent, assistant
 The transition from finishing Review to beginning Study. Bridged by the Study CTA (see below) appearing after each save.
 
 **Study CTA**:
-A persistent button on the Session page that appears whenever the user has saved at least one Vocabulary Item (including items from prior visits). Launches the Study voice session for this Session directly — does not navigate away. On mobile, appears in the transcript after the sheet dismisses. On desktop renders below the right panel. See `components/StudyPrompt.tsx` (internal name kept for stability).
+A persistent control on the Session page that appears whenever the user has saved at least one Vocabulary Item (including items from prior visits). Launches the Study voice session for this Session directly — does not navigate away. See `components/StudyPrompt.tsx` (internal name kept for stability).
 
 **Annotation Review Model (mobile vs desktop)**:
 On mobile, saving a Practice Item closes the `AnnotationSheet` entirely. The user returns to the transcript and taps the next annotation deliberately. On desktop, the right panel stays open with prev/next navigation so the user can step through corrections while the transcript remains visible on the left. See `docs/adr/0001-annotation-sheet-mobile-interaction-model.md`.
