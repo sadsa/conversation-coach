@@ -11,6 +11,7 @@ import {
   type LessonPhrase,
 } from '@/lib/voice-agent'
 import { Icon } from '@/components/Icon'
+import { parseFlashcard } from '@/lib/flashcard'
 import { Toast } from '@/components/Toast'
 import { AudioReactiveDots } from '@/components/AudioReactiveDots'
 import { LoadingScreen } from '@/components/LoadingScreen'
@@ -280,38 +281,89 @@ export function LessonClient({ phrases, onExit }: Props) {
   }
 
   if (lessonState === 'complete') {
+    // Calm "Listening Room" close — a quiet settle, not a celebration. The
+    // checkmark draws itself, one soft ring expands once, and the copy lands
+    // in a gentle stagger. Reduced-motion snaps to the finished frame.
+    const reveal = (delay: number) =>
+      reducedMotion
+        ? { initial: false as const }
+        : {
+            initial: { opacity: 0, y: 8 },
+            animate: { opacity: 1, y: 0 },
+            transition: { delay, duration: 0.4, ease: [0.25, 1, 0.5, 1] as const },
+          }
     return (
       <motion.div
-        className="fixed flex flex-col items-center justify-center gap-6 bg-background z-10 px-8 text-center"
+        className="fixed flex flex-col items-center justify-center gap-5 bg-background z-10 px-8 text-center"
         style={{
           top: 'calc(var(--header-height) + env(safe-area-inset-top))',
           left: 0,
           right: 0,
           bottom: 'var(--bottom-nav-h)',
         }}
-        initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={reducedMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
       >
-        <div className="w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center">
-          <Icon name="check" className="w-8 h-8 text-on-accent" />
-        </div>
-        <h2 className="text-2xl font-serif text-text-primary">
-          {t('lesson.completeHeading', { n: phrases.length })}
-        </h2>
-        <Link
-          href="/"
-          onClick={() => onExitRef.current()}
-          className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
+        <motion.div
+          className="relative w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center"
+          initial={reducedMotion ? false : { scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.45, ease: [0.34, 1.2, 0.64, 1] }}
         >
-          {t('lesson.practiseAgain')}
-        </Link>
+          {!reducedMotion && (
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full border-2 border-accent-primary"
+              initial={{ opacity: 0.5, scale: 1 }}
+              animate={{ opacity: 0, scale: 1.9 }}
+              transition={{ delay: 0.35, duration: 1, ease: 'easeOut' }}
+            />
+          )}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.25}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-8 h-8 text-on-accent"
+            aria-hidden="true"
+          >
+            <motion.polyline
+              points="20 6 9 17 4 12"
+              initial={reducedMotion ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ delay: 0.25, duration: 0.45, ease: [0.25, 1, 0.5, 1] }}
+            />
+          </svg>
+        </motion.div>
+        <motion.h2 className="text-2xl font-serif text-text-primary" {...reveal(0.45)}>
+          {t('lesson.completeHeading', { n: phrases.length })}
+        </motion.h2>
+        <motion.p className="text-base text-text-secondary -mt-2" {...reveal(0.55)}>
+          {t('lesson.completeSub')}
+        </motion.p>
+        <motion.div {...reveal(0.65)}>
+          <Link
+            href="/"
+            onClick={() => onExitRef.current()}
+            className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
+          >
+            {t('lesson.practiseAgain')}
+          </Link>
+        </motion.div>
       </motion.div>
     )
   }
 
   const isEnding = lessonState === 'ending'
   const card = phrases[currentCardIndex]
+  // English (native-language) gloss shown under the Spanish phrase as a quiet
+  // recall anchor. `flashcard_front` is the native sentence with the equivalent
+  // phrase in [[brackets]] — we lift that phrase one tone so the eye lands on
+  // the meaning. Null/absent → no gloss, card falls back to the phrase alone.
+  const gloss = card.flashcard_front ? parseFlashcard(card.flashcard_front) : null
   const showPips = phrases.length <= 10
   const onFirstCard = currentCardIndex === 0
   const statusLabel = isEnding
@@ -384,11 +436,23 @@ export function LessonClient({ phrases, onExit }: Props) {
               else void animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 })
               setTimeout(() => { isDraggingRef.current = false }, 0)
             }}
-            className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center cursor-grab active:cursor-grabbing select-none"
+            className="w-full bg-surface border border-border-subtle rounded-2xl p-6 min-h-[200px] flex flex-col justify-center gap-3 cursor-grab active:cursor-grabbing select-none"
           >
             <p className="text-2xl font-serif text-accent-primary leading-snug text-center text-balance">
               {card.correction}
             </p>
+            {gloss && (
+              <p
+                data-testid="lesson-card-gloss"
+                className="text-lg italic text-text-tertiary leading-snug text-center text-balance"
+              >
+                {gloss.before}
+                {gloss.phrase !== '' && (
+                  <span className="not-italic text-text-secondary">{gloss.phrase}</span>
+                )}
+                {gloss.after}
+              </p>
+            )}
           </motion.div>
         </div>
 
