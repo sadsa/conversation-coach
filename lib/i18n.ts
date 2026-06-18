@@ -745,14 +745,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.warningToast': '2 minutes remaining',
     'lesson.studying': 'Studying',
     'lesson.cardOf': 'Card {n} of {total}',
-    'lesson.gotIt': 'Got it',
-    'lesson.gotItAria': 'Mark this phrase as understood and move to the next',
     'lesson.transcribing': 'Transcribing',
     'lesson.completeHeading': 'You studied all {n} phrases',
     'lesson.practiseAgain': 'Practise again',
     'lesson.goBack': 'Go back to previous card',
     'lesson.advance': 'Advance to next card',
-    'lesson.hint': 'Swipe between cards · tap to show controls',
+    'lesson.goBackLabel': 'Back',
+    'lesson.advanceLabel': 'Next',
     'lesson.errorBack': 'Back',
 
     // Sub-categories
@@ -1343,14 +1342,13 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.warningToast': 'Quedan 2 minutos',
     'lesson.studying': 'Estudiando',
     'lesson.cardOf': 'Carta {n} de {total}',
-    'lesson.gotIt': '¡Entendido!',
-    'lesson.gotItAria': 'Marcar esta frase como entendida y avanzar',
     'lesson.transcribing': 'Transcribiendo',
     'lesson.completeHeading': 'Estudiaste las {n} frases',
     'lesson.practiseAgain': 'Practicar de nuevo',
     'lesson.goBack': 'Volver a la carta anterior',
     'lesson.advance': 'Avanzar a la siguiente carta',
-    'lesson.hint': 'Deslizá entre cartas · tocá para ver los controles',
+    'lesson.goBackLabel': 'Atrás',
+    'lesson.advanceLabel': 'Siguiente',
     'lesson.errorBack': 'Volver',
 
     // Sub-categories

@@ -105,7 +105,7 @@ describe('LessonClient (Study mode)', () => {
     wrap()
     await activateLesson()
     await user.click(screen.getByTestId('advance-card'))
-    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('dale, vamos'))
+    await waitFor(() => expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('dale, vamos')))
     expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('2/2'))
   })
 
@@ -138,7 +138,7 @@ describe('LessonClient (Study mode)', () => {
     await waitFor(() => screen.getByText('dale, vamos'))
     mockSendText.mockClear()
     await user.click(screen.getByTestId('go-back-card'))
-    expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('me resulta difícil'))
+    await waitFor(() => expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('me resulta difícil')))
     expect(mockSendText).toHaveBeenCalledWith(expect.stringContaining('1/2'))
   })
 
@@ -150,21 +150,17 @@ describe('LessonClient (Study mode)', () => {
     expect(mockSendText).not.toHaveBeenCalled()
   })
 
-  it('controls layer is hidden by default', async () => {
+  it('call controls (mute + end) are always visible', async () => {
     wrap()
     await activateLesson()
-    const layer = screen.getByTestId('controls-layer')
-    expect(layer).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByText('Mute')).toBeInTheDocument()
+    expect(screen.getByText('Hang up')).toBeInTheDocument()
   })
 
-  it('tapping outside the card reveals controls', async () => {
-    const user = userEvent.setup()
+  it('Back is disabled on the first card', async () => {
     wrap()
     await activateLesson()
-    const wrapper = screen.getByTestId('lesson-wrapper')
-    await user.click(wrapper)
-    const layer = screen.getByTestId('controls-layer')
-    expect(layer).toHaveAttribute('aria-hidden', 'false')
+    expect(screen.getByTestId('go-back-card')).toBeDisabled()
   })
 
   it('connection error shows error UI and back button instead of silently exiting', async () => {

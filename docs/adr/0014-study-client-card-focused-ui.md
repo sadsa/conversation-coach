@@ -1,5 +1,7 @@
 # Study client: card-focused UI with hidden controls
 
+**Status:** Superseded by [0015](./0015-study-always-visible-nav-and-shared-call-controls.md) — the swipe-only interaction and hidden controls were reversed after testing. The card-focused, transcript-free, target-language-only card content described below still holds.
+
 The study session (`LessonClient`) was redesigned to put the flashcard at the centre of the screen and remove the persistent transcript and call-controls footer. The coach speaks in the target language throughout; showing a scrolling transcript competed with the card and turned the screen into a chat UI. Showing native-language text on the card would break immersion in a session that is entirely conducted in the target language.
 
 **Interaction model:** swipe right to advance, swipe left to re-drill the previous card. Both directions send a `formatStudyCardAdvance()` signal to keep the coach in sync. On desktop, left/right arrows flank the card. Controls (mute + exit) are hidden by default and revealed by tapping anywhere outside the card — maximising screen real estate for the card and audio visualizer.
