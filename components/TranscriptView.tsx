@@ -38,10 +38,6 @@ interface Props {
   onAnnotationAdded: (annotationId: string, practiceItemId: string) => void
   onAnnotationRemoved: (annotationId: string) => void
   onAnnotationUnhelpfulChanged: (annotationId: string, isUnhelpful: boolean) => void
-  /** Whether this session has already been marked reviewed. When true, the bottom bar is hidden. */
-  isReviewed?: boolean
-  /** Called when the user taps "Mark as reviewed". Only shown when all corrections are in view. */
-  onMarkReviewed?: () => void
   /**
    * Launches the in-place Study session. When provided, the "Study N saved"
    * pill renders here (alongside the other bottom cues) so it shares their
@@ -56,8 +52,6 @@ export function TranscriptView({
   addedAnnotations, unhelpfulAnnotations,
   onAnnotationAdded, onAnnotationRemoved,
   onAnnotationUnhelpfulChanged,
-  isReviewed = false,
-  onMarkReviewed,
   onLaunchStudy,
 }: Props) {
   const { t } = useTranslation()
@@ -146,11 +140,9 @@ export function TranscriptView({
     }
   }, [lastAnnotationId])
 
-  // Show "Next correction" pill when there are annotations below the fold.
-  // Show "Mark as reviewed" when all are visible. Both hide when sheet is open
-  // or the session is already reviewed.
-  const showNextPill = pillReady && hasAnnotationBelowFold && !activeAnnotationId && !isReviewed
-  const showMarkReviewed = pillReady && !hasAnnotationBelowFold && !activeAnnotationId && !isReviewed && !!onMarkReviewed
+  // Show "Next correction" cue only while a correction remains below the fold.
+  // Hidden when a sheet is open.
+  const showNextPill = pillReady && hasAnnotationBelowFold && !activeAnnotationId
 
   // Whether the Study pill is occupying the bottom toast slot. It mirrors
   // StudyPrompt's own visibility gate (count > 0, no sheet open). The
@@ -160,7 +152,7 @@ export function TranscriptView({
   // paint over the z-40 cue — raise the cue above it instead.
   const studyPillShown = !!onLaunchStudy && !activeAnnotationId && addedAnnotations.size > 0
   const cueBottom = studyPillShown
-    ? 'calc(var(--toast-bottom) + 3.5rem)'
+    ? 'calc(var(--toast-bottom) + 4.5rem)'
     : 'calc(5rem + env(safe-area-inset-bottom))'
 
   const activeIndex = activeAnnotationId
@@ -350,13 +342,13 @@ export function TranscriptView({
         // pill or the Study pill, both anchored ~5rem from the bottom and
         // ~3rem tall), reserve enough that the final turn scrolls clear of
         // it — the <main> padding only covers the nav, not these cues. When
-        // the cue is stacked above the Study pill it sits ~3.5rem higher, so
+        // the cue is stacked above the Study pill it sits ~4.5rem higher, so
         // reserve extra for that combined height.
         style={
           activeAnnotationId
             ? { paddingBottom: '60vh' }
-            : showNextPill || showMarkReviewed
-              ? { paddingBottom: studyPillShown ? '7.5rem' : '4rem' }
+            : showNextPill
+              ? { paddingBottom: studyPillShown ? '9rem' : '4rem' }
               : undefined
         }
       >
@@ -451,41 +443,37 @@ export function TranscriptView({
         {showNextPill && (
           <motion.div
             key="corrections-pill"
-            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8, scale: prefersReducedMotion ? 1 : 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4, scale: prefersReducedMotion ? 1 : 0.97 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.25, 1, 0.5, 1] }}
             className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none"
             style={{ bottom: cueBottom }}
           >
-            <button
+            <motion.button
               type="button"
               onClick={handleScrollToNextBelow}
-              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent-primary text-white shadow-lg text-sm font-medium"
+              whileTap={prefersReducedMotion ? {} : { scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface border border-border text-text-secondary shadow-md text-sm font-medium hover:bg-surface-elevated transition-colors"
             >
-              <Icon name="caret-down" className="w-4 h-4" />
+              {/* Idle bob: a slow, patient nudge downward that says "there's
+                  more below" — repeats just often enough to catch a glance. */}
+              <motion.span
+                className="inline-flex items-center"
+                animate={prefersReducedMotion ? {} : { y: [0, 3, 0] }}
+                transition={{
+                  duration: 0.45,
+                  ease: 'easeInOut',
+                  repeat: Infinity,
+                  repeatDelay: 4,
+                  delay: 1.5,
+                }}
+              >
+                <Icon name="caret-down" className="w-4 h-4" />
+              </motion.span>
               {t('transcript.nextCorrection')}
-            </button>
-          </motion.div>
-        )}
-        {showMarkReviewed && (
-          <motion.div
-            key="mark-reviewed"
-            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.25, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed left-0 right-0 flex justify-center z-40 pointer-events-none"
-            style={{ bottom: cueBottom }}
-          >
-            <button
-              type="button"
-              onClick={onMarkReviewed}
-              className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-full bg-bg border border-border text-text-primary shadow-md text-sm font-medium hover:bg-surface-elevated transition-colors"
-            >
-              <Icon name="check" className="w-4 h-4 text-accent-primary" />
-              {t('transcript.markAsReviewed')}
-            </button>
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>

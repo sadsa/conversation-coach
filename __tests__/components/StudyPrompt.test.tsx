@@ -26,6 +26,20 @@ describe('StudyPrompt', () => {
     expect(screen.queryByRole('link')).toBeNull()
   })
 
+  it('splits the count status from the Study action (distinct bar structure)', () => {
+    wrap({ count: 3, onLaunchStudy: vi.fn() })
+    // Status text (left) sits outside the button; the button reads "Study".
+    expect(screen.getByText('3 phrases saved')).toBeInTheDocument()
+    const btn = screen.getByRole('button')
+    expect(btn.textContent).toContain('Study')
+    expect(btn.textContent).not.toContain('3 phrases saved')
+  })
+
+  it('uses the singular status string when count is 1', () => {
+    wrap({ count: 1, onLaunchStudy: vi.fn() })
+    expect(screen.getByText('1 phrase saved')).toBeInTheDocument()
+  })
+
   it('calls onLaunchStudy when clicked', async () => {
     const onLaunchStudy = vi.fn()
     wrap({ count: 2, onLaunchStudy })
