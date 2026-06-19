@@ -29,6 +29,7 @@ export async function loadSessions(userId: string): Promise<SessionListItem[]> {
     .from('sessions')
     .select('id, title, status, duration_seconds, created_at, processing_completed_at, last_viewed_at')
     .eq('user_id', userId)
+    .neq('status', 'error')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
   return (data ?? []) as SessionListItem[]
