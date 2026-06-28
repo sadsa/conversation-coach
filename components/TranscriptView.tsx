@@ -39,12 +39,14 @@ interface Props {
   onAnnotationRemoved: (annotationId: string) => void
   onAnnotationUnhelpfulChanged: (annotationId: string, isUnhelpful: boolean) => void
   /**
-   * Launches the in-place Study session. When provided, the "Study N saved"
-   * pill renders here (alongside the other bottom cues) so it shares their
+   * Launches the in-place Study session. When provided, the StudyPrompt bar
+   * renders here (alongside the other bottom cues) so it shares their
    * sheet-open gate — otherwise it would float at z-50 over the open sheet's
    * action buttons.
    */
   onLaunchStudy?: () => void
+  /** Called when the user explicitly finishes reviewing this session. */
+  onFinishReview?: () => void
 }
 
 export function TranscriptView({
@@ -53,6 +55,7 @@ export function TranscriptView({
   onAnnotationAdded, onAnnotationRemoved,
   onAnnotationUnhelpfulChanged,
   onLaunchStudy,
+  onFinishReview,
 }: Props) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotion()
@@ -150,7 +153,7 @@ export function TranscriptView({
   // pill is up they'd stack on the exact same anchor (on mobile
   // `--toast-bottom` === `5rem + safe-area`) and the z-50 Study pill would
   // paint over the z-40 cue — raise the cue above it instead.
-  const studyPillShown = !!onLaunchStudy && !activeAnnotationId && addedAnnotations.size > 0
+  const studyPillShown = !!onLaunchStudy && !!onFinishReview && !activeAnnotationId
   const cueBottom = studyPillShown
     ? 'calc(var(--toast-bottom) + 4.5rem)'
     : 'calc(5rem + env(safe-area-inset-bottom))'
@@ -478,13 +481,18 @@ export function TranscriptView({
         )}
       </AnimatePresence>
 
-      {/* Study pill lives here (not in the parent) so it shares the bottom
-          cues' sheet-open gate. While a sheet is open we pass count={0} so it
-          unmounts rather than floating at z-50 over the sheet's actions. */}
-      {onLaunchStudy && (
+      {/* StudyPrompt bar lives here (not in the parent) so it shares the
+          bottom cues' sheet-open gate — hidden while any annotation sheet is
+          open so it never floats over the sheet's action buttons. */}
+      {onLaunchStudy && onFinishReview && !activeAnnotationId && (
         <StudyPrompt
-          count={activeAnnotationId ? 0 : addedAnnotations.size}
+          count={addedAnnotations.size}
           onLaunchStudy={onLaunchStudy}
+          onSavePhrase={() => {
+            const first = document.querySelector<HTMLElement>('[data-annotation-id]')
+            first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }}
+          onFinishReview={onFinishReview}
         />
       )}
     </div>

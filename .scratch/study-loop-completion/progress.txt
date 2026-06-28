@@ -83,3 +83,30 @@ Implemented Wild Capture: "+" button on Vocabulary page → sheet → row create
 
 **Next iteration notes:**
 - 01-review-completion is the last remaining issue.
+
+## 01-review-completion (2026-06-28)
+
+Implemented the Review Completion CTA and updated the Review inbox filter.
+
+**Key decisions:**
+- `StudyPrompt` is now always visible (was hidden when count=0). Context-aware primary CTA: count=0 → "Save a phrase" (calls `onSavePhrase` which scrolls to first annotation); count>0 → "Study". "Finish review" is a persistent secondary button on the right.
+- `onSavePhrase` and `onFinishReview` added as required props alongside `onLaunchStudy`. `TranscriptView` passes all three; passes scroll-to-first-annotation for `onSavePhrase`.
+- `studyPillShown` in `TranscriptView` updated from `addedAnnotations.size > 0` gate to always-true whenever `onLaunchStudy && onFinishReview` — matches the new always-visible rule so the "next correction" pill is correctly repositioned above the bar.
+- `handleFinishReview` in `TranscriptClient`: fires `PATCH /api/sessions/:id` with `{ reviewed: true }` (fire-and-forget), then `router.push('/review')`.
+- `ReviewClient.terminalSessions` already filtered by `reviewed_at === null`; `loadSessions` SELECT now includes `reviewed_at`; `loadUnreadCount` shifted from `last_viewed_at IS NULL` to `reviewed_at IS NULL`.
+- i18n: `transcript.savePhrase` and `transcript.finishReview` keys added in EN + ES.
+
+**Files changed:**
+- `components/StudyPrompt.tsx` — rewritten: always-visible bar, context-aware primary, "Finish review" secondary, new `onSavePhrase` + `onFinishReview` props
+- `components/TranscriptView.tsx` — `onFinishReview` prop, `studyPillShown` gate, pass `onSavePhrase`/`onFinishReview` to StudyPrompt
+- `components/TranscriptClient.tsx` — `handleFinishReview` implementation, pass to TranscriptView
+- `components/ReviewClient.tsx` — `terminalSessions` filter adds `reviewed_at === null`
+- `lib/loaders.ts` — `loadSessions` SELECT adds `reviewed_at`; `loadUnreadCount` shifts to `reviewed_at IS NULL`
+- `lib/i18n.ts` — `transcript.savePhrase` + `transcript.finishReview` in EN + ES
+- `__tests__/api/sessions.test.ts` — tests for `reviewed: true` setting `reviewed_at`, `reviewed: false` clearing it; fix GET chain to match `neq` in `loadSessions`
+- `__tests__/components/StudyPrompt.test.tsx` — new tests for always-visible bar, context-aware CTAs, callbacks
+- `__tests__/components/ReviewClient.test.tsx` — `reviewed_at: null` on mockSession
+- `__tests__/components/DashboardRecentSessions.test.tsx` — `reviewed_at: null` on makeSession
+
+**Next iteration notes:**
+- All five issues in the study-loop-completion PRD are now done.

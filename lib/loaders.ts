@@ -27,7 +27,7 @@ export async function loadSessions(userId: string): Promise<SessionListItem[]> {
   const db = createServerClient()
   const { data, error } = await db
     .from('sessions')
-    .select('id, title, status, duration_seconds, created_at, processing_completed_at, last_viewed_at')
+    .select('id, title, status, duration_seconds, created_at, processing_completed_at, last_viewed_at, reviewed_at')
     .eq('user_id', userId)
     .neq('status', 'error')
     .order('created_at', { ascending: false })
@@ -298,7 +298,7 @@ export async function loadUnreadCount(userId: string): Promise<number> {
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('status', 'ready')
-    .is('last_viewed_at', null)
+    .is('reviewed_at', null)
   if (error) return 0
   return count ?? 0
 }

@@ -129,6 +129,15 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     setDeleting(false)
   }
 
+  async function handleFinishReview() {
+    await fetch(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reviewed: true }),
+    }).catch(() => { /* non-critical — navigate regardless */ })
+    router.push('/review')
+  }
+
   async function handleReanalyse() {
     setReanalyseError(null)
     setReanalysing(true)
@@ -274,6 +283,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         onAnnotationRemoved={handleAnnotationRemoved}
         onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
         onLaunchStudy={() => setStudyMode(true)}
+        onFinishReview={handleFinishReview}
       />
 
       {/* Re-analyse confirmation. Two-step gate on a destructive action that

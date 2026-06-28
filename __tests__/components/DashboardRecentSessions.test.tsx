@@ -49,6 +49,7 @@ function makeSession(
     created_at: createdAt,
     processing_completed_at: null,
     last_viewed_at: lastViewedAt,
+    reviewed_at: null,
   }
 }
 

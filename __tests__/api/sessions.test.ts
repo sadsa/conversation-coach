@@ -36,14 +36,16 @@ beforeEach(() => {
 
 describe('GET /api/sessions', () => {
   it('returns session list ordered by created_at desc', async () => {
+    const orderMock = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'abc', title: 'Test', status: 'ready', duration_seconds: 3600, created_at: '2026-03-15' },
+      ],
+      error: null,
+    })
+    // loadSessions chain: .select().eq('user_id').neq('status', 'error').order()
     mockSelect.mockReturnValue({
       eq: vi.fn().mockReturnValue({
-        order: vi.fn().mockResolvedValue({
-          data: [
-            { id: 'abc', title: 'Test', status: 'ready', duration_seconds: 3600, created_at: '2026-03-15' },
-          ],
-          error: null,
-        }),
+        neq: vi.fn().mockReturnValue({ order: orderMock }),
       }),
     })
     const res = await GET()
@@ -277,6 +279,47 @@ describe('PATCH /api/sessions/:id', () => {
     expect(typeof arg.last_viewed_at).toBe('string')
     // Sanity: the value parses as a date.
     expect(Number.isNaN(Date.parse(arg.last_viewed_at))).toBe(false)
+  })
+
+  it('sets reviewed_at to a timestamp when reviewed=true', async () => {
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+    vi.mocked(createServerClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+    } as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ reviewed: true }),
+      headers: { 'content-type': 'application/json' },
+    })
+    await PATCH(req, { params: { id: 's1' } })
+    const arg = updateMock.mock.calls[0][0]
+    expect(typeof arg.reviewed_at).toBe('string')
+    expect(Number.isNaN(Date.parse(arg.reviewed_at))).toBe(false)
+  })
+
+  it('clears reviewed_at when reviewed=false', async () => {
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+    vi.mocked(createServerClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+    } as unknown as ReturnType<typeof createServerClient>)
+
+    const req = new NextRequest('http://localhost', {
+      method: 'PATCH',
+      body: JSON.stringify({ reviewed: false }),
+      headers: { 'content-type': 'application/json' },
+    })
+    const res = await PATCH(req, { params: { id: 's1' } })
+    expect(res.status).toBe(200)
+    expect(updateMock).toHaveBeenCalledWith({ reviewed_at: null })
   })
 
   it('returns 400 when no recognised field is supplied', async () => {
