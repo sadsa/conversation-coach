@@ -183,4 +183,56 @@ describe('LessonClient (Study mode)', () => {
     await waitFor(() => screen.getByText(/studied all/i))
     expect(screen.getByText(/studied all/i)).toBeInTheDocument()
   })
+
+  it('fires PATCH reviewed:true for displayed cards on end-call exit', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const phrasesWithIds: LessonPhrase[] = [
+      { id: 'item-1', correction: 'me resulta difícil', explanation: 'Use instead of "es difícil para mí"', flashcard_front: null, flashcard_back: null },
+      { id: 'item-2', correction: 'dale, vamos', explanation: 'Casual agreement', flashcard_front: null, flashcard_back: null },
+    ]
+    const onExit = vi.fn()
+    render(
+      <LanguageProvider initialTargetLanguage="es-AR">
+        <LessonClient phrases={phrasesWithIds} onExit={onExit} />
+      </LanguageProvider>
+    )
+    await activateLesson()
+    // Only card 0 has been shown; do not advance to card 1.
+    await user.click(screen.getByText('Hang up'))
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/practice-items/item-1',
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ reviewed: true }) })
+    )
+    expect(mockFetch).not.toHaveBeenCalledWith('/api/practice-items/item-2', expect.anything())
+
+    vi.unstubAllGlobals()
+  })
+
+  it('fires PATCH for all cards shown when multiple cards were displayed', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const phrasesWithIds: LessonPhrase[] = [
+      { id: 'item-1', correction: 'me resulta difícil', explanation: 'Use instead of "es difícil para mí"', flashcard_front: null, flashcard_back: null },
+      { id: 'item-2', correction: 'dale, vamos', explanation: 'Casual agreement', flashcard_front: null, flashcard_back: null },
+    ]
+    render(
+      <LanguageProvider initialTargetLanguage="es-AR">
+        <LessonClient phrases={phrasesWithIds} onExit={vi.fn()} />
+      </LanguageProvider>
+    )
+    await activateLesson()
+    // Advance to card 1
+    await user.click(screen.getByTestId('advance-card'))
+    await waitFor(() => screen.getByText('dale, vamos'))
+    await user.click(screen.getByText('Hang up'))
+    expect(mockFetch).toHaveBeenCalledWith('/api/practice-items/item-1', expect.objectContaining({ method: 'PATCH' }))
+    expect(mockFetch).toHaveBeenCalledWith('/api/practice-items/item-2', expect.objectContaining({ method: 'PATCH' }))
+
+    vi.unstubAllGlobals()
+  })
 })

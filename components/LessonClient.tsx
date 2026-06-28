@@ -48,6 +48,12 @@ export function LessonClient({ phrases, onExit }: Props) {
   const onExitRef = useRef(onExit)
   useEffect(() => { onExitRef.current = onExit }, [onExit])
   const endSessionRef = useRef<() => void>(() => {})
+  const phrasesRef = useRef(phrases)
+  useEffect(() => { phrasesRef.current = phrases }, [phrases])
+  const displayedCardIndicesRef = useRef<Set<number>>(new Set())
+  // Always points at the current render's write-back logic — reads only from
+  // refs so it's safe to call from stale callbacks.
+  const doWriteBackRef = useRef<() => void>(() => {})
 
   const userRmsRef = useRef(0)
   const agentRmsRef = useRef(0)
@@ -137,6 +143,24 @@ export function LessonClient({ phrases, onExit }: Props) {
     }
   }, [muted, lessonState])
 
+  // Mark each card as displayed as soon as it becomes current.
+  useEffect(() => {
+    displayedCardIndicesRef.current.add(currentCardIndex)
+  }, [currentCardIndex])
+
+  // Fire PATCH reviewed:true for every card shown this session (fire-and-forget).
+  doWriteBackRef.current = () => {
+    displayedCardIndicesRef.current.forEach(idx => {
+      const id = phrasesRef.current[idx]?.id
+      if (!id) return
+      fetch(`/api/practice-items/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reviewed: true }),
+      }).catch(() => {})
+    })
+  }
+
   function handleAdvanceCard() {
     const nextIndex = currentCardIndex + 1
     if (nextIndex < phrases.length) {
@@ -208,6 +232,7 @@ export function LessonClient({ phrases, onExit }: Props) {
 
   const endSession = useCallback(() => {
     disconnectResources()
+    doWriteBackRef.current()
     onExitRef.current()
   }, [disconnectResources])
 
@@ -366,7 +391,7 @@ export function LessonClient({ phrases, onExit }: Props) {
         <motion.div {...reveal(0.65)}>
           <Link
             href="/"
-            onClick={() => onExitRef.current()}
+            onClick={() => { doWriteBackRef.current(); onExitRef.current() }}
             className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
           >
             {t('lesson.practiseAgain')}

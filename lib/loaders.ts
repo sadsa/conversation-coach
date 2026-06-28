@@ -152,7 +152,7 @@ export async function loadPracticeItems(
     } | null
   }
 
-  return ((data ?? []) as unknown as Joined[]).map(row => {
+  const items = ((data ?? []) as unknown as Joined[]).map(row => {
     const { sessions, annotations, ...rest } = row
     return {
       ...rest,
@@ -167,6 +167,23 @@ export async function loadPracticeItems(
       flashcard_note: rest.flashcard_note ?? annotations?.flashcard_note ?? null,
     }
   })
+
+  // Sort within each session group: unstudied (reviewed=false) first, studied last.
+  // Session group order is preserved from the SQL sort (first seen = first group).
+  const sessionOrder = new Map<string, number>()
+  for (const item of items) {
+    if (!sessionOrder.has(item.session_id)) {
+      sessionOrder.set(item.session_id, sessionOrder.size)
+    }
+  }
+  items.sort((a, b) => {
+    const ga = sessionOrder.get(a.session_id) ?? 0
+    const gb = sessionOrder.get(b.session_id) ?? 0
+    if (ga !== gb) return ga - gb
+    if (a.reviewed !== b.reviewed) return a.reviewed ? 1 : -1
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+  return items
 }
 
 /**

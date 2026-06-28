@@ -170,12 +170,13 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
     return (
       <LessonClient
         phrases={savedPhrases.map(p => ({
+          id: p.practiceItemId,
           correction: p.annotation.correction ?? p.annotation.original,
           explanation: p.annotation.explanation,
           flashcard_front: p.annotation.flashcard_front,
           flashcard_back: p.annotation.flashcard_back,
         }))}
-        onExit={() => setStudyMode(false)}
+        onExit={() => router.push('/review')}
       />
     )
   }

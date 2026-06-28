@@ -43,12 +43,13 @@ function WriteRow({ item, onOpen, onDelete }: RowProps) {
           onClick={onOpen}
           data-write-item-id={item.id}
           data-testid={`write-row-${item.id}`}
-          className="w-full min-w-0 text-left pl-4 pr-12 py-3 bg-surface hover:bg-surface-elevated transition-colors"
+          className={`w-full min-w-0 text-left pl-4 pr-12 py-3 bg-surface hover:bg-surface-elevated transition-colors${!item.reviewed ? ' font-semibold' : ''}`}
         >
           {item.flashcard_front && item.flashcard_back ? (
             <FlashcardRow
               flashcardFront={item.flashcard_front}
               flashcardBack={item.flashcard_back}
+              muted={item.reviewed}
               testId={`flashcard-row-${item.id}`}
             />
           ) : item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (

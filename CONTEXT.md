@@ -48,8 +48,8 @@ A user-selected Annotation saved from a Review. The user-facing label is "vocabu
 _Avoid_: Flashcard, saved item, write item, practice item (DB/internal term only)
 
 **Studied** (state):
-A Vocabulary Item that the user has manually marked as done. DB column: `written_down` (stable, not renamed). Not surfaced in the UI for now — mastery is not tracked automatically.
-_Avoid_: Written, written down (too prescriptive — implies physical writing)
+A Vocabulary Item that has been covered in at least one Study session. Set automatically when the phrase appears during a Study voice session — not by manual user action. Drives the bold/normal weight distinction in Vocabulary (unstudied = bold, studied = normal). Also the trigger that initialises SRS scheduling for the item. DB column: `reviewed` on `practice_items`.
+_Avoid_: Written, written down (column dropped), manually marked
 
 **Conversation**:
 A Session created by having an open-ended voice exchange with the Coach (Scenario or Talk freely mode). Always bidirectional. DB value: `session_type = 'voice_practice'`. Part of the Practise phase.
@@ -67,6 +67,18 @@ _Avoid_: Free flow, Chat
 **Vocabulary**:
 The cross-session repository of all saved Vocabulary Items, grouped by Session. A secondary nav surface for reviewing what has been saved over time — not a task list. Route: `/vocabulary`.
 _Avoid_: Study queue, practice list, write
+
+**Wild Capture**:
+A Vocabulary Item added manually by the user — not derived from a Session Annotation. Captures a phrase heard outside the app (podcast, real conversation, etc.). The user provides the phrase and the context it was used in; the Coach enriches it into flashcard form in the background. Appears in Vocabulary under a dedicated "From real life" group.
+_Avoid_: Manual entry, custom phrase
+
+**Review Completion**:
+The explicit act of marking a Session as fully reviewed. Triggered by the "Finish review" CTA on the Session page. Sets `sessions.reviewed_at`. A Session is considered unreviewed until this action is taken — distinct from `last_viewed_at` (which only records whether the user opened the page). The Review inbox filters on `reviewed_at IS NULL`.
+_Avoid_: Mark as read, dismiss
+
+**SRS Schedule**:
+The spaced-repetition schedule attached to a Vocabulary Item once it has been Studied. Powered by FSRS (`due`, `stability`, `reps`, and related columns on `practice_items`). The `due` date determines when a phrase surfaces as "due for review" in Vocabulary. Phase 1: passive — Vocabulary shows a "due today" badge. Phase 2 (future): an active review queue.
+_Avoid_: Anki-style review, flashcard deck
 
 **Coach**:
 The AI counterpart in Conversations and Drills. In chat mode it presents as "Coach"; in call mode it adopts a named persona, but the underlying entity is the same. Named in the app title ("Conversation Coach").

@@ -297,6 +297,9 @@ export function buildResumeSystemPrompt(
 /** Phrase context passed into the lesson — the correction, its explanation,
  *  and the optional [[bracketed]] flashcard text. */
 export interface LessonPhrase {
+  /** practice_items.id — used for study write-back on exit. Optional so
+   *  callers without a DB-backed item (e.g. tests) can omit it. */
+  id?: string
   correction: string
   explanation: string
   flashcard_front: string | null

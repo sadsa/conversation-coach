@@ -120,6 +120,44 @@ describe('GET /api/practice-items', () => {
     await GET(req)
     expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false })
   })
+
+  it('places unstudied items before studied items within the same session group', async () => {
+    // DB returns studied item first (newer created_at), unstudied second.
+    // The loader must re-sort so unstudied appears first.
+    const { db } = makePracticeItemsDb({
+      data: [
+        {
+          id: 'item-studied',
+          session_id: 'session-1',
+          annotation_id: null,
+          reviewed: true,
+          created_at: '2026-01-02T00:00:00Z',
+          sessions: { user_id: 'user-123', title: 'Session 1' },
+          annotations: null,
+        },
+        {
+          id: 'item-unstudied',
+          session_id: 'session-1',
+          annotation_id: null,
+          reviewed: false,
+          created_at: '2026-01-01T00:00:00Z',
+          sessions: { user_id: 'user-123', title: 'Session 1' },
+          annotations: null,
+        },
+      ],
+      error: null,
+    })
+    vi.mocked(createServerClient).mockReturnValue(db)
+
+    const { GET } = await import('@/app/api/practice-items/route')
+    const req = new NextRequest('http://localhost/api/practice-items')
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body).toHaveLength(2)
+    expect(body[0].id).toBe('item-unstudied')
+    expect(body[1].id).toBe('item-studied')
+  })
 })
 
 describe('PATCH /api/practice-items/:id', () => {
