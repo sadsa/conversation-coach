@@ -19,11 +19,12 @@ const EMPTY_STATE_EXAMPLE: Record<TargetLanguage, { original: string; correction
 
 interface RowProps {
   item: PracticeItem
+  enriching?: boolean
   onOpen: () => void
   onDelete: () => void
 }
 
-function WriteRow({ item, onOpen, onDelete }: RowProps) {
+function WriteRow({ item, enriching, onOpen, onDelete }: RowProps) {
   const { t } = useTranslation()
 
   const actions: RowAction[] = [
@@ -45,7 +46,16 @@ function WriteRow({ item, onOpen, onDelete }: RowProps) {
           data-testid={`write-row-${item.id}`}
           className={`w-full min-w-0 text-left pl-4 pr-12 py-3 bg-surface hover:bg-surface-elevated transition-colors${!item.reviewed ? ' font-semibold' : ''}`}
         >
-          {item.flashcard_front && item.flashcard_back ? (
+          {enriching ? (
+            <div className="space-y-1">
+              {item.original && (
+                <span className="block text-sm">{item.original}</span>
+              )}
+              <span className="text-xs text-text-tertiary italic animate-pulse">
+                {t('vocabulary.enriching')}
+              </span>
+            </div>
+          ) : item.flashcard_front && item.flashcard_back ? (
             <FlashcardRow
               flashcardFront={item.flashcard_front}
               flashcardBack={item.flashcard_back}
@@ -87,6 +97,7 @@ interface ToastState {
 
 interface Props {
   items: PracticeItem[]
+  enrichingIds?: Set<string>
   onDeleted?: (ids: string[]) => void
   onPractise?: (item: PracticeItem) => void
 }
@@ -118,7 +129,7 @@ function EmptyWrite() {
   )
 }
 
-export function WriteList({ items, onDeleted, onPractise }: Props) {
+export function WriteList({ items, enrichingIds, onDeleted, onPractise }: Props) {
   const { t } = useTranslation()
   const [allItems, setAllItems] = useState<PracticeItem[]>(items)
   const [openId, setOpenId] = useState<string | null>(null)
@@ -210,6 +221,7 @@ export function WriteList({ items, onDeleted, onPractise }: Props) {
             <WriteRow
               key={item.id}
               item={item}
+              enriching={enrichingIds?.has(item.id)}
               onOpen={() => setOpenId(item.id)}
               onDelete={() => handleDelete(item)}
             />

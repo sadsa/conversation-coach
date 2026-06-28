@@ -21,14 +21,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { data: row } = await db
     .from('practice_items')
-    .select('session_id, reviewed, fsrs_state, due, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review')
+    .select('session_id, user_id, reviewed, fsrs_state, due, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review')
     .eq('id', itemId)
     .single()
 
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const currentItem = row as {
-    session_id: string
+    session_id: string | null
+    user_id: string | null
     reviewed: boolean
     fsrs_state: number | null
     due: string | null
@@ -41,7 +42,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     last_review: string | null
   }
 
-  const owned = await verifyOwnedSession(db, currentItem.session_id, user.id)
+  // Manual items are scoped by user_id directly; annotation items via session.
+  const owned = currentItem.session_id
+    ? await verifyOwnedSession(db, currentItem.session_id, user.id)
+    : currentItem.user_id === user.id
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json() as { reviewed?: boolean }
@@ -103,12 +107,15 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const db = createServerClient()
   const { data: delRow } = await db
     .from('practice_items')
-    .select('session_id')
+    .select('session_id, user_id')
     .eq('id', itemId)
     .single()
 
   if (!delRow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  const owned = await verifyOwnedSession(db, (delRow as { session_id: string }).session_id, user.id)
+  const dr = delRow as { session_id: string | null; user_id: string | null }
+  const owned = dr.session_id
+    ? await verifyOwnedSession(db, dr.session_id, user.id)
+    : dr.user_id === user.id
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { error } = await db

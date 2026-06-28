@@ -643,6 +643,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'vocabulary.loading': 'Loading…',
     'vocabulary.error': 'Error: {msg}',
     'vocabulary.dueCount': '{n} due for review',
+    'vocabulary.fromRealLife': 'From real life',
+    'vocabulary.addPhrase': 'Add a phrase',
+    'vocabulary.captureSheet': 'Capture a phrase',
+    'vocabulary.phraseLabel': 'Phrase',
+    'vocabulary.phrasePlaceholder': 'A phrase you heard…',
+    'vocabulary.contextLabel': 'How was it used?',
+    'vocabulary.contextPlaceholder': 'In what situation did you hear it?',
+    'vocabulary.captureSubmit': 'Add to Vocabulary',
+    'vocabulary.enriching': 'Enriching…',
 
     // Study list — inline studied section (bottom of same list, dimmed).
     'writeList.tabWrite': 'Study',
@@ -1246,6 +1255,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'vocabulary.loading': 'Cargando…',
     'vocabulary.error': 'Error: {msg}',
     'vocabulary.dueCount': '{n} para repasar',
+    'vocabulary.fromRealLife': 'De la vida real',
+    'vocabulary.addPhrase': 'Agregar una frase',
+    'vocabulary.captureSheet': 'Capturar una frase',
+    'vocabulary.phraseLabel': 'Frase',
+    'vocabulary.phrasePlaceholder': 'Una frase que escuchaste…',
+    'vocabulary.contextLabel': '¿En qué contexto?',
+    'vocabulary.contextPlaceholder': '¿En qué situación la escuchaste?',
+    'vocabulary.captureSubmit': 'Agregar al vocabulario',
+    'vocabulary.enriching': 'Procesando…',
 
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
     // principal, Escritos vive como sección inline atenuada al final de la lista).

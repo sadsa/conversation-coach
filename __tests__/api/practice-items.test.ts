@@ -14,14 +14,17 @@ beforeEach(() => {
   vi.mocked(getAuthenticatedUser).mockResolvedValue({ id: 'user-123', email: 'test@example.com' } as any)
 })
 
-// Single-query practice-items loader: one PostgREST request joins the
-// parent session (for ownership scoping + title) and the parent annotation
-// (for char offsets + segment text). The mock shape mirrors that — chain
-// is `.from('practice_items').select(...).eq('sessions.user_id', ...).order(...)`
-// and the returned rows carry nested `sessions` and `annotations` objects.
+// The loader runs two parallel queries: one for annotation-derived items
+// (joined via session, scoped by sessions.user_id) and one for manual Wild
+// Capture items (scoped by user_id directly). The mock supports both chains:
+//   annotation: .from().select().eq('sessions.user_id', ...).order(...)
+//   manual:     .from().select().eq('user_id', ...).eq('source', ...).order(...)
 function makePracticeItemsDb(orderResult: { data: unknown; error: unknown }) {
   const orderMock = vi.fn().mockResolvedValue(orderResult)
-  const eqMock = vi.fn().mockReturnValue({ order: orderMock })
+  const manualOrderMock = vi.fn().mockResolvedValue({ data: [], error: null })
+  // eq chain supports both single (.eq(...).order(...)) and double (.eq(...).eq(...).order(...))
+  const innerEqMock = vi.fn().mockReturnValue({ order: manualOrderMock })
+  const eqMock = vi.fn().mockReturnValue({ order: orderMock, eq: innerEqMock })
   const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
   const fromMock = vi.fn().mockReturnValue({ select: selectMock })
   return {

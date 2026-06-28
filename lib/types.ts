@@ -138,7 +138,7 @@ export interface Annotation {
 
 export interface PracticeItem {
   id: string
-  session_id: string
+  session_id: string | null
   annotation_id: string | null
   type: AnnotationType
   original: string
@@ -147,6 +147,7 @@ export interface PracticeItem {
   sub_category: SubCategory
   reviewed: boolean
   due?: string | null
+  source?: 'annotation' | 'manual'
   created_at: string
   updated_at: string
   flashcard_front: string | null
@@ -160,7 +161,7 @@ export interface PracticeItem {
   end_char: number | null
   // Enriched by API from the parent session row. Surfaces in the WriteSheet
   // header as a "From <session>" eyebrow link back to the source transcript.
-  // Null only if the session was deleted underneath the practice item (rare).
+  // Null for manual Wild Capture items and if the session was deleted.
   session_title: string | null
 }
 

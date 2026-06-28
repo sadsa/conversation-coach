@@ -49,3 +49,37 @@ Wired up FSRS scheduling via `ts-fsrs` on the PATCH handler and surfaced overdue
 
 **Next iteration notes:**
 - 01-review-completion and 04-wild-capture remain. Both are unblocked.
+
+## 04-wild-capture (2026-06-28)
+
+Implemented Wild Capture: "+" button on Vocabulary page → sheet → row created immediately → background Claude enrichment → flashcard fields populated.
+
+**Key decisions:**
+- Schema: `source TEXT NOT NULL DEFAULT 'annotation'` added, `session_id` made nullable, `user_id UUID` added to `practice_items` for direct ownership of manual items. CHECK constraint enforces: annotation items must have session_id, manual items must have user_id.
+- Two-query loader: `loadPracticeItems` now fires two parallel queries — annotation items (via `!inner` session join) and manual items (via `user_id` direct). Combined and sorted; manual items always appear last.
+- PATCH/DELETE ownership: added null-safe check — if `session_id` is null, verify via `user_id === user.id` directly. Both handlers fetch `user_id` in the initial select.
+- Enrichment endpoint `POST /api/practice-items/[id]/enrich` — standalone endpoint called client-side after capture sheet closes. Calls `enrichWildCapture` (claude-haiku-4-5, structured JSON), updates flashcard fields, returns them.
+- Client flow: POST creates row (returns id + phrase) → sheet closes → item added optimistically to state with shimmer → enrich called fire-and-forget → on resolve, item state updated with flashcard fields.
+- `WildCaptureSheet`: DockedSheet form with textarea for phrase (data-initial-focus) and context. Footer submit button with spinner while submitting.
+- `VocabularyList`: separates items by `source === 'manual' || session_id === null` into a "From real life" section rendered after all session groups.
+- `WriteRow`: `enriching` prop shows phrase + "Enriching…" italic pulse instead of flashcard content. Falls back to StrikeOriginal once enrichment completes.
+- Existing `makePracticeItemsDb` mock updated: `eqMock` now returns object with both `.order` and `.eq` to support the two-query parallel structure.
+
+**Files changed:**
+- `supabase/migrations/20260629000000_wild_capture.sql` — NEW: source col, nullable session_id, user_id, ownership constraint
+- `lib/types.ts` — `source?: 'annotation' | 'manual'` on PracticeItem; `session_id` typed `string | null`
+- `lib/wild-capture.ts` — NEW: `enrichWildCapture()` using claude-haiku-4-5
+- `lib/loaders.ts` — two-query pattern, manual items appended last, group sort handles null session_id
+- `lib/i18n.ts` — vocabulary.fromRealLife, addPhrase, captureSheet, phraseLabel, phrasePlaceholder, contextLabel, contextPlaceholder, captureSubmit, enriching (EN + ES)
+- `app/api/practice-items/route.ts` — source:'manual' branch: no session check, sets user_id, maps phrase→original
+- `app/api/practice-items/[id]/route.ts` — null-safe ownership check via session_id OR user_id
+- `app/api/practice-items/[id]/enrich/route.ts` — NEW: enrichment endpoint
+- `components/WildCaptureSheet.tsx` — NEW: DockedSheet form
+- `components/VocabularyClient.tsx` — "+" button, WildCaptureSheet, enriching state management
+- `components/VocabularyList.tsx` — "From real life" group for manual items
+- `components/WriteList.tsx` — enrichingIds prop, WriteRow shimmer during enrichment
+- `__tests__/api/practice-items.test.ts` — updated makePracticeItemsDb to support two-query mock chain
+- `__tests__/api/practice-items-wild-capture.test.ts` — NEW: 6 tests (POST manual, 400 missing phrase, enrich success, enrich 404 wrong user, enrich 404 non-manual)
+
+**Next iteration notes:**
+- 01-review-completion is the last remaining issue.

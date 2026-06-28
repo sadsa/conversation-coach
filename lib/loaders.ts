@@ -127,23 +127,38 @@ export async function loadPracticeItems(
   // parent annotation's char offsets + transcript segment text in a
   // single query. The join keys are inferred from the FK constraints
   // declared on these tables in the migrations.
-  const { data, error } = await db
-    .from('practice_items')
-    .select(`
-      id, session_id, annotation_id, type, sub_category, original,
-      correction, explanation, reviewed, due, created_at,
-      updated_at, flashcard_front, flashcard_back, flashcard_note,
-      importance_score, importance_note,
-      sessions:sessions!inner(user_id, title),
-      annotations:annotations(start_char, end_char, flashcard_front,
-        flashcard_back, flashcard_note,
-        transcript_segments:transcript_segments(text)
-      )
-    `)
-    .eq('sessions.user_id', userId)
-    .order(orderCol, orderOpts)
+  // The !inner join excludes manual items (session_id IS NULL) — those
+  // are loaded separately below and combined into the result.
+  const [annotationRes, manualRes] = await Promise.all([
+    db
+      .from('practice_items')
+      .select(`
+        id, session_id, annotation_id, type, sub_category, original,
+        correction, explanation, reviewed, due, source, created_at,
+        updated_at, flashcard_front, flashcard_back, flashcard_note,
+        importance_score, importance_note,
+        sessions:sessions!inner(user_id, title),
+        annotations:annotations(start_char, end_char, flashcard_front,
+          flashcard_back, flashcard_note,
+          transcript_segments:transcript_segments(text)
+        )
+      `)
+      .eq('sessions.user_id', userId)
+      .order(orderCol, orderOpts),
+    db
+      .from('practice_items')
+      .select(`
+        id, annotation_id, type, sub_category, original,
+        correction, explanation, reviewed, due, source, created_at,
+        updated_at, flashcard_front, flashcard_back, flashcard_note,
+        importance_score, importance_note
+      `)
+      .eq('user_id', userId)
+      .eq('source', 'manual')
+      .order(orderCol, orderOpts),
+  ])
 
-  if (error) throw new Error(error.message)
+  if (annotationRes.error) throw new Error(annotationRes.error.message)
 
   type Joined = PracticeItem & {
     sessions: { user_id: string; title: string | null } | null
@@ -157,10 +172,11 @@ export async function loadPracticeItems(
     } | null
   }
 
-  const items = ((data ?? []) as unknown as Joined[]).map(row => {
+  const annotationItems = ((annotationRes.data ?? []) as unknown as Joined[]).map(row => {
     const { sessions, annotations, ...rest } = row
     return {
       ...rest,
+      source: (rest.source ?? 'annotation') as 'annotation' | 'manual',
       session_title: sessions?.title ?? null,
       start_char: annotations?.start_char ?? null,
       end_char: annotations?.end_char ?? null,
@@ -173,17 +189,33 @@ export async function loadPracticeItems(
     }
   })
 
+  const manualItems = ((manualRes.data ?? []) as unknown as PracticeItem[]).map(row => ({
+    ...row,
+    source: 'manual' as const,
+    session_id: null,
+    session_title: null,
+    start_char: null,
+    end_char: null,
+    segment_text: null,
+  }))
+
+  const items = [...annotationItems, ...manualItems]
+
   // Sort within each session group: unstudied (reviewed=false) first, studied last.
   // Session group order is preserved from the SQL sort (first seen = first group).
-  const sessionOrder = new Map<string, number>()
-  for (const item of items) {
+  // Manual items (session_id = null) are appended after all session groups.
+  const sessionOrder = new Map<string | null, number>()
+  for (const item of annotationItems) {
     if (!sessionOrder.has(item.session_id)) {
       sessionOrder.set(item.session_id, sessionOrder.size)
     }
   }
+  // Manual items always sort last as a group.
+  const manualGroupOrder = sessionOrder.size
+
   items.sort((a, b) => {
-    const ga = sessionOrder.get(a.session_id) ?? 0
-    const gb = sessionOrder.get(b.session_id) ?? 0
+    const ga = a.session_id === null ? manualGroupOrder : (sessionOrder.get(a.session_id) ?? 0)
+    const gb = b.session_id === null ? manualGroupOrder : (sessionOrder.get(b.session_id) ?? 0)
     if (ga !== gb) return ga - gb
     if (a.reviewed !== b.reviewed) return a.reviewed ? 1 : -1
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
