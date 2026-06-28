@@ -1,0 +1,51 @@
+## 02-studied-state (2026-06-28)
+
+Implemented study write-back, Vocabulary sort order, and post-study redirect.
+
+**Key decisions:**
+- `LessonPhrase.id` made optional so callers without a DB-backed item (tests) don't need to provide it.
+- `displayedCardIndicesRef` (Set<number>) tracks which cards were shown; populated via `useEffect` on `currentCardIndex` (index 0 captured on mount).
+- `doWriteBackRef` pattern: function ref updated each render, reads only from stable refs — avoids stale-closure issues in `useCallback` without bloating deps.
+- Write-back fires from both `endSession` (hang-up, keyboard Escape, connection drop) and the complete-state "Practise Again" link.
+- `loadPracticeItems` sort: application-code sort after mapping — preserves session group order from SQL sort (first-seen = group 0), then within each group: `reviewed=false` before `reviewed=true`, then `created_at DESC`.
+- `WriteRow`: `font-semibold` on button for unstudied; `muted={item.reviewed}` passed to `FlashcardRow` for color distinction.
+- `TranscriptClient`: passes `id: p.practiceItemId` to phrases; `onExit` now calls `router.push('/review')` instead of `setStudyMode(false)`.
+
+**Files changed:**
+- `lib/voice-agent.ts` — add `id?: string` to `LessonPhrase`
+- `components/LessonClient.tsx` — displayedCardIndicesRef, doWriteBackRef, endSession write-back, complete-state link
+- `components/TranscriptClient.tsx` — pass id, redirect onExit
+- `lib/loaders.ts` — in-memory sort within session groups
+- `components/WriteList.tsx` — bold/muted styling per reviewed state
+- `__tests__/api/practice-items.test.ts` — sort order test
+- `__tests__/components/LessonClient.test.tsx` — write-back tests (jsdom crashes pre-existing in this env)
+
+**Next iteration notes:**
+- 03-srs-scheduling is now unblocked — depends on the `reviewed: true` write-back introduced here.
+- 01-review-completion and 04-wild-capture have no deps and can be picked up in any order.
+- jsdom tests (LessonClient.test.tsx) are written but crash with "Illegal instruction" in this ARM64 Linux container — pre-existing env issue, not caused by these changes.
+
+## 03-srs-scheduling (2026-06-28)
+
+Wired up FSRS scheduling via `ts-fsrs` on the PATCH handler and surfaced overdue chip on Vocabulary page.
+
+**Key decisions:**
+- `ts-fsrs` imported via dynamic `await import('ts-fsrs')` inside the PATCH handler (not at module top-level). Static import caused vitest's `vi.mock` hoisting to resolve and crash the ARM64 process before any tests ran; dynamic import defers the load to handler execution time where the ARM64 SIGILL only hits at process exit (expected).
+- Pre-fetch pattern: PATCH now fetches the full item row first (session_id + all FSRS fields) in one query, then calls `verifyOwnedSession` on the session_id. Replaces the old `verifyOwnedViaSession` helper which did a separate select inside.
+- `isRestudy` flag: `currentItem.reviewed && currentItem.stability != null` distinguishes first study (uses `createEmptyCard()`) from subsequent study (reconstructs Card from DB fields). `learning_steps: 0` is a safe default — not stored in DB, deprecated in ts-fsrs v6.
+- `dueCount` computed in-memory in `loadPracticeItems` after mapping: `reviewed && due != null && new Date(due) <= now`. `due` typed as `due?: string | null` (optional) so existing test fixtures that omit it don't break.
+- Vocabulary due chip uses `bg-violet-50 / text-violet-700` (dark: `bg-violet-900/20 / text-violet-300`) to match the violet accent theme; read-only `<p>` element (not a button).
+- FSRS tests in separate file (`__tests__/api/practice-items-srs.test.ts`) to avoid module-cache interactions with `vi.resetModules()` calls in the original test file.
+
+**Files changed:**
+- `app/api/practice-items/[id]/route.ts` — pre-fetch + dynamic ts-fsrs import + FSRS write on reviewed: true
+- `app/api/practice-items/route.ts` — destructure `{ items }` from new PracticeItemsResult return
+- `app/vocabulary/page.tsx` — destructure `{ items, dueCount }`, pass dueCount to client
+- `components/VocabularyClient.tsx` — dueCount prop + conditional chip
+- `lib/loaders.ts` — PracticeItemsResult interface, `due` in select, dueCount computation
+- `lib/types.ts` — `due?: string | null` on PracticeItem
+- `lib/i18n.ts` — `vocabulary.dueCount` key in EN + ES
+- `__tests__/api/practice-items-srs.test.ts` — NEW: FSRS + dueCount tests (5 tests)
+
+**Next iteration notes:**
+- 01-review-completion and 04-wild-capture remain. Both are unblocked.

@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 import { getAuthenticatedUser } from '@/lib/auth'
-import { verifyOwnedViaSession } from '@/lib/ownership'
+import { verifyOwnedSession } from '@/lib/ownership'
+
 type RouteParams = { id: string } | Promise<{ id: string }>
 type Params = { params: RouteParams }
 
@@ -17,7 +18,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const itemId = await getItemId(params)
   const db = createServerClient()
-  const owned = await verifyOwnedViaSession(db, 'practice_items', itemId, user.id)
+
+  const { data: row } = await db
+    .from('practice_items')
+    .select('session_id, reviewed, fsrs_state, due, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review')
+    .eq('id', itemId)
+    .single()
+
+  if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const currentItem = row as {
+    session_id: string
+    reviewed: boolean
+    fsrs_state: number | null
+    due: string | null
+    stability: number | null
+    difficulty: number | null
+    elapsed_days: number | null
+    scheduled_days: number | null
+    reps: number | null
+    lapses: number | null
+    last_review: string | null
+  }
+
+  const owned = await verifyOwnedSession(db, currentItem.session_id, user.id)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json() as { reviewed?: boolean }
@@ -26,6 +50,40 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   if (Object.keys(update).length === 0)
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+
+  if (body.reviewed === true) {
+    const { fsrs, createEmptyCard, Rating } = await import('ts-fsrs')
+    const now = new Date()
+
+    const isRestudy = currentItem.reviewed && currentItem.stability != null
+    const card = isRestudy
+      ? {
+          due: new Date(currentItem.due!),
+          stability: currentItem.stability!,
+          difficulty: currentItem.difficulty ?? 0,
+          elapsed_days: currentItem.elapsed_days ?? 0,
+          scheduled_days: currentItem.scheduled_days ?? 0,
+          learning_steps: 0,
+          reps: currentItem.reps ?? 0,
+          lapses: currentItem.lapses ?? 0,
+          state: (currentItem.fsrs_state ?? 0) as number,
+          last_review: currentItem.last_review ? new Date(currentItem.last_review) : undefined,
+        }
+      : createEmptyCard()
+
+    const f = fsrs()
+    const { card: newCard } = f.next(card, now, Rating.Good)
+
+    update.due = newCard.due.toISOString()
+    update.stability = newCard.stability
+    update.difficulty = newCard.difficulty
+    update.elapsed_days = newCard.elapsed_days
+    update.scheduled_days = newCard.scheduled_days
+    update.reps = newCard.reps
+    update.lapses = newCard.lapses
+    update.fsrs_state = newCard.state
+    update.last_review = now.toISOString()
+  }
 
   const { error } = await db
     .from('practice_items')
@@ -43,7 +101,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const itemId = await getItemId(params)
   const db = createServerClient()
-  const owned = await verifyOwnedViaSession(db, 'practice_items', itemId, user.id)
+  const { data: delRow } = await db
+    .from('practice_items')
+    .select('session_id')
+    .eq('id', itemId)
+    .single()
+
+  if (!delRow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const owned = await verifyOwnedSession(db, (delRow as { session_id: string }).session_id, user.id)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { error } = await db

@@ -6,9 +6,10 @@ import type { PracticeItem } from '@/lib/types'
 
 interface Props {
   initialItems: PracticeItem[]
+  dueCount: number
 }
 
-export function VocabularyClient({ initialItems }: Props) {
+export function VocabularyClient({ initialItems, dueCount }: Props) {
   const { t } = useTranslation()
   const [items, setItems] = useState<PracticeItem[]>(initialItems)
 
@@ -18,6 +19,11 @@ export function VocabularyClient({ initialItems }: Props) {
         <h1 className="text-page-title">
           {t('vocabulary.title')}
         </h1>
+        {dueCount > 0 && (
+          <p className="inline-block rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 dark:bg-violet-900/20 dark:text-violet-300">
+            {t('vocabulary.dueCount', { n: dueCount })}
+          </p>
+        )}
       </header>
       <VocabularyList
         items={items}

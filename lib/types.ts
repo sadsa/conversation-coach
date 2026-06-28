@@ -146,6 +146,7 @@ export interface PracticeItem {
   explanation: string
   sub_category: SubCategory
   reviewed: boolean
+  due?: string | null
   created_at: string
   updated_at: string
   flashcard_front: string | null

@@ -107,10 +107,15 @@ export async function loadSessionDetail(
  * declared foreign-key relationships in the schema. The caller's wall-
  * clock latency goes from "sum of four serial RTTs" to "one RTT".
  */
+export interface PracticeItemsResult {
+  items: PracticeItem[]
+  dueCount: number
+}
+
 export async function loadPracticeItems(
   userId: string,
   options: { sort?: 'created' | 'importance' } = {}
-): Promise<PracticeItem[]> {
+): Promise<PracticeItemsResult> {
   const db = createServerClient()
 
   const orderCol = options.sort === 'importance' ? 'importance_score' : 'created_at'
@@ -126,7 +131,7 @@ export async function loadPracticeItems(
     .from('practice_items')
     .select(`
       id, session_id, annotation_id, type, sub_category, original,
-      correction, explanation, reviewed, created_at,
+      correction, explanation, reviewed, due, created_at,
       updated_at, flashcard_front, flashcard_back, flashcard_note,
       importance_score, importance_note,
       sessions:sessions!inner(user_id, title),
@@ -183,7 +188,13 @@ export async function loadPracticeItems(
     if (a.reviewed !== b.reviewed) return a.reviewed ? 1 : -1
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
-  return items
+
+  const now = new Date()
+  const dueCount = items.filter(
+    i => i.reviewed && i.due != null && new Date(i.due) <= now
+  ).length
+
+  return { items, dueCount }
 }
 
 /**

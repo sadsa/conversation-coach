@@ -642,6 +642,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'vocabulary.subtitle': 'Every phrase you\'ve saved, in one place.',
     'vocabulary.loading': 'Loading…',
     'vocabulary.error': 'Error: {msg}',
+    'vocabulary.dueCount': '{n} due for review',
 
     // Study list — inline studied section (bottom of same list, dimmed).
     'writeList.tabWrite': 'Study',
@@ -1244,6 +1245,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'vocabulary.subtitle': 'Todas las frases que guardaste, en un solo lugar.',
     'vocabulary.loading': 'Cargando…',
     'vocabulary.error': 'Error: {msg}',
+    'vocabulary.dueCount': '{n} para repasar',
 
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
     // principal, Escritos vive como sección inline atenuada al final de la lista).

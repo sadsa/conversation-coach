@@ -7,7 +7,7 @@ export default async function VocabularyPage() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
-  const initialItems = await loadPracticeItems(user.id)
+  const { items: initialItems, dueCount } = await loadPracticeItems(user.id)
 
-  return <VocabularyClient initialItems={initialItems} />
+  return <VocabularyClient initialItems={initialItems} dueCount={dueCount} />
 }

@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
   const sort = url.searchParams.get('sort') === 'importance' ? 'importance' : 'created'
 
   try {
-    return NextResponse.json(await loadPracticeItems(user.id, { sort }))
+    const { items } = await loadPracticeItems(user.id, { sort })
+    return NextResponse.json(items)
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
   }
