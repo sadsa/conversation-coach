@@ -1,10 +1,13 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { Icon } from '@/components/Icon'
 
 export interface RowAction {
   label: string
-  onSelect: () => void
+  /** Client-side navigation href. When provided, renders as a link instead of a button. */
+  href?: string
+  onSelect?: () => void
   /** Renders the item in the error colour (e.g. Delete). */
   destructive?: boolean
   testId?: string
@@ -66,20 +69,37 @@ export function RowActionsMenu({ actions, triggerLabel, triggerTestId }: Props) 
           role="menu"
           className="absolute right-2 top-full mt-1 z-30 bg-surface border border-border-subtle rounded-lg shadow-md py-1 min-w-[160px]"
         >
-          {actions.map((action, i) => (
-            <button
-              key={i}
-              type="button"
-              role="menuitem"
-              onClick={() => { action.onSelect(); setOpen(false) }}
-              data-testid={action.testId}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-surface-elevated transition-colors ${
-                action.destructive ? 'text-status-error' : 'text-text-primary'
-              }`}
-            >
-              {action.label}
-            </button>
-          ))}
+          {actions.map((action, i) => {
+            const itemClass = `w-full text-left px-4 py-2 text-sm hover:bg-surface-elevated transition-colors ${
+              action.destructive ? 'text-status-error' : 'text-text-primary'
+            }`
+            if (action.href) {
+              return (
+                <Link
+                  key={i}
+                  href={action.href}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  data-testid={action.testId}
+                  className={`block ${itemClass}`}
+                >
+                  {action.label}
+                </Link>
+              )
+            }
+            return (
+              <button
+                key={i}
+                type="button"
+                role="menuitem"
+                onClick={() => { action.onSelect?.(); setOpen(false) }}
+                data-testid={action.testId}
+                className={itemClass}
+              >
+                {action.label}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

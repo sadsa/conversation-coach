@@ -137,11 +137,19 @@ describe('WriteList — row context menu', () => {
     expect(screen.queryByTestId(`row-delete-${grammarItem.id}`)).not.toBeInTheDocument()
   })
 
-  it('opens the menu and shows only Delete (no mark-studied)', async () => {
+  it('opens the menu and shows Study and Delete (no mark-studied)', async () => {
     render(<WriteList items={[grammarItem]} />)
     await openRowMenu(grammarItem.id)
+    expect(screen.getByTestId(`row-study-${grammarItem.id}`)).toBeInTheDocument()
     expect(screen.getByTestId(`row-delete-${grammarItem.id}`)).toBeInTheDocument()
     expect(screen.queryByTestId(`row-mark-written-${grammarItem.id}`)).not.toBeInTheDocument()
+  })
+
+  it('Study action links to /study?item_ids=<id>', async () => {
+    render(<WriteList items={[grammarItem]} />)
+    await openRowMenu(grammarItem.id)
+    const studyLink = screen.getByTestId(`row-study-${grammarItem.id}`)
+    expect(studyLink).toHaveAttribute('href', `/study?item_ids=${grammarItem.id}`)
   })
 
   it('does not render bulk-select checkboxes', () => {

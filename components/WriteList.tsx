@@ -29,6 +29,11 @@ function WriteRow({ item, enriching, onOpen, onDelete }: RowProps) {
 
   const actions: RowAction[] = [
     {
+      label: t('writeList.menuStudy'),
+      href: `/study?item_ids=${item.id}`,
+      testId: `row-study-${item.id}`,
+    },
+    {
       label: t('writeList.menuDelete'),
       onSelect: onDelete,
       destructive: true,

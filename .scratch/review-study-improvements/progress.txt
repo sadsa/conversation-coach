@@ -232,3 +232,32 @@ Date: 2026-06-29
 
 - Issues 05 and 09 remain. Issue 09 (single-item study) is the next architectural task.
 - In a future iteration, `DueWidget` can be imported directly into the home page (`app/page.tsx`) as the acceptance criteria note.
+
+## Issue 09 — Vocabulary row: single-item study action
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Extended `RowAction` interface with optional `href?: string` field. When `href` is present, the menu item renders as a `<Link>` element (testable via `href` attribute) instead of a `<button>`. Existing `onSelect`-only callers (`SessionList.tsx`) are unaffected — `onSelect` changed from required to optional, TypeScript confirms no breakage.
+- Added "Study" action as the first item in `WriteRow`'s action list (before Delete) — consistent positioning as a non-destructive primary action above the destructive one.
+- Added `writeList.menuStudy` i18n key (`'Study'` / `'Estudiar'`) via Python to avoid the 32KB Edit tool truncation.
+- `testId` for the Study link: `row-study-${item.id}` — mirrors the `row-delete-${item.id}` pattern for consistency.
+
+### Files changed
+
+- `components/RowActionsMenu.tsx` — added `href?: string` and `onSelect?: () => void` (optional) to `RowAction`; render branch for link-type actions using `<Link>`
+- `components/WriteList.tsx` — added Study action to `WriteRow` actions array with `href: \`/study?item_ids=${item.id}\``
+- `lib/i18n.ts` — added `writeList.menuStudy` (en + es)
+- `__tests__/components/WriteList.test.tsx` — updated menu test to assert Study action present; added test asserting href is `/study?item_ids=<id>`
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` — no errors in new/changed source files
+- Confirmed `SessionList.tsx` backward-compatible (uses `onSelect` only, no `href`)
+- Component tests cannot run in ARM64 jsdom environment (pre-existing)
+
+### Next-iteration notes
+
+- Issue 05 (StudyPrompt empty state) is the last remaining issue.

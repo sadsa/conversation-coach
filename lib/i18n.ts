@@ -687,6 +687,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Row context menu (⋮)
     'writeList.menuAria': 'More actions',
     'writeList.menuDelete': 'Delete',
+    'writeList.menuStudy': 'Study',
 
     // Study review sheet (docked)
     'writeSheet.aria': 'Review saved correction',
@@ -1325,6 +1326,7 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     // Menú contextual de fila (⋮)
     'writeList.menuAria': 'Más acciones',
     'writeList.menuDelete': 'Eliminar',
+    'writeList.menuStudy': 'Estudiar',
 
     // Write review sheet (docked)
     'writeSheet.aria': 'Revisar corrección guardada',
