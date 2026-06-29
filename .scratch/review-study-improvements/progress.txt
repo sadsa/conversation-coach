@@ -261,3 +261,36 @@ Date: 2026-06-29
 ### Next-iteration notes
 
 - Issue 05 (StudyPrompt empty state) is the last remaining issue.
+
+## Issue 05 — StudyPrompt: remove "Save a phrase" and update empty state
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Removed `onSavePhrase` prop from `StudyPrompt` entirely — no more scroll-to-first-annotation behavior. The prop is gone from the interface and all callers.
+- Added `reviewState?: SessionReviewState | null` prop to `StudyPrompt`. When `count = 0`:
+  - `nothing_kept` → shows "Nothing saved — you can remove this session"
+  - Anything else (partial, null, undefined) → shows "Keep going — save anything worth practising" as the safe default
+- Status text is now always shown (no longer conditionally renders only when `count > 0`). The motion key is `${count}-${reviewState}` so the animation fires on state changes too.
+- `TranscriptView` threaded `reviewState?: SessionReviewState | null` through to `StudyPrompt` (removed `onSavePhrase` from the render call).
+- `TranscriptClient` computes `reviewState` via `useMemo` + `deriveSessionReviewState` from `lib/session-review-state.ts`, reacting to `detail.annotations`, `addedAnnotations`, `unhelpfulAnnotations`.
+- i18n keys added via Python: `transcript.emptyPartial` and `transcript.emptyNothingKept` (en + es).
+
+### Files changed
+
+- `components/StudyPrompt.tsx` — removed `onSavePhrase` prop, added `reviewState` prop, always renders status text, Study button only shows when `count > 0`
+- `components/TranscriptView.tsx` — removed `onSavePhrase` prop/usage, added `reviewState` prop, passes to `StudyPrompt`
+- `components/TranscriptClient.tsx` — added `useMemo` + `deriveSessionReviewState` import; computes `reviewState`; passes to `TranscriptView`
+- `lib/i18n.ts` — added `transcript.emptyPartial` and `transcript.emptyNothingKept` (en + es)
+- `__tests__/components/StudyPrompt.test.tsx` — rewrote tests: removed `onSavePhrase` from defaultProps, asserted "Save a phrase" absent, added partial/nothing_kept copy tests
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` — no errors in new/changed source files (pre-existing errors in test fixtures unaffected)
+- Component tests cannot run in ARM64 jsdom environment (pre-existing)
+
+### Next-iteration notes
+
+- All 9 issues are now done. No further work required for this feature set.

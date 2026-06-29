@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TranscriptView } from '@/components/TranscriptView'
 import { ReviewCompletionScreen, type SavedPhrase } from '@/components/ReviewCompletionScreen'
@@ -9,6 +9,7 @@ import { Toast } from '@/components/Toast'
 import { Icon } from '@/components/Icon'
 import { IconButton } from '@/components/IconButton'
 import { useTranslation } from '@/components/LanguageProvider'
+import { deriveSessionReviewState } from '@/lib/session-review-state'
 import type { SessionDetail } from '@/lib/types'
 
 interface Props {
@@ -84,6 +85,16 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
       document.removeEventListener('keydown', onKey)
     }
   }, [menuOpen])
+
+  const reviewState = useMemo(
+    () => deriveSessionReviewState(
+      detail.annotations.map(a => ({
+        is_unhelpful: unhelpfulAnnotations.has(a.id),
+        isSaved: addedAnnotations.has(a.id),
+      }))
+    ),
+    [detail.annotations, addedAnnotations, unhelpfulAnnotations],
+  )
 
   function handleAnnotationAdded(annotationId: string, practiceItemId: string) {
     setAddedAnnotations(prev => { const next = new Map(prev); next.set(annotationId, practiceItemId); return next })
@@ -284,6 +295,7 @@ export function TranscriptClient({ sessionId, initialDetail }: Props) {
         onAnnotationUnhelpfulChanged={handleAnnotationUnhelpfulChanged}
         onLaunchStudy={() => setStudyMode(true)}
         onFinishReview={handleFinishReview}
+        reviewState={reviewState}
       />
 
       {/* Re-analyse confirmation. Two-step gate on a destructive action that

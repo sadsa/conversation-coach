@@ -8,7 +8,7 @@ import { StudyPrompt } from '@/components/StudyPrompt'
 import { Icon } from '@/components/Icon'
 import { useTranslation } from '@/components/LanguageProvider'
 import { log } from '@/lib/logger'
-import type { TranscriptSegment, Annotation } from '@/lib/types'
+import type { TranscriptSegment, Annotation, SessionReviewState } from '@/lib/types'
 
 /** Pure helper: split a segment's text on paragraph_breaks offsets into
  *  blocks each carrying their starting offset for annotation rebasing.
@@ -47,6 +47,8 @@ interface Props {
   onLaunchStudy?: () => void
   /** Called when the user explicitly finishes reviewing this session. */
   onFinishReview?: () => void
+  /** Drives empty-state copy in StudyPrompt when no phrases have been saved. */
+  reviewState?: SessionReviewState | null
 }
 
 export function TranscriptView({
@@ -56,6 +58,7 @@ export function TranscriptView({
   onAnnotationUnhelpfulChanged,
   onLaunchStudy,
   onFinishReview,
+  reviewState,
 }: Props) {
   const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotion()
@@ -487,11 +490,8 @@ export function TranscriptView({
       {onLaunchStudy && onFinishReview && !activeAnnotationId && (
         <StudyPrompt
           count={addedAnnotations.size}
+          reviewState={reviewState}
           onLaunchStudy={onLaunchStudy}
-          onSavePhrase={() => {
-            const first = document.querySelector<HTMLElement>('[data-annotation-id]')
-            first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          }}
           onFinishReview={onFinishReview}
         />
       )}

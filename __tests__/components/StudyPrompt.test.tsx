@@ -17,7 +17,6 @@ function defaultProps(overrides: Partial<React.ComponentProps<typeof StudyPrompt
   return {
     count: 0,
     onLaunchStudy: vi.fn(),
-    onSavePhrase: vi.fn(),
     onFinishReview: vi.fn(),
     ...overrides,
   }
@@ -27,22 +26,45 @@ describe('StudyPrompt', () => {
   it('renders the bar even when count is 0', () => {
     const { container } = wrap(defaultProps({ count: 0 }))
     expect(container.firstChild).not.toBeNull()
-    expect(screen.getByText('Save a phrase')).toBeInTheDocument()
   })
 
-  it('shows "Save a phrase" as primary and "Finish review" as secondary when count is 0', () => {
+  it('never renders "Save a phrase" in any state', () => {
     wrap(defaultProps({ count: 0 }))
-    const buttons = screen.getAllByRole('button')
-    const labels = buttons.map(b => b.textContent)
-    expect(labels.some(l => l?.includes('Save a phrase'))).toBe(true)
-    expect(labels.some(l => l?.includes('Finish review'))).toBe(true)
-    expect(labels.every(l => !l?.includes('Study'))).toBe(true)
+    expect(screen.queryByText('Save a phrase')).not.toBeInTheDocument()
   })
 
-  it('shows "Study" as primary when count >= 1', () => {
+  it('never renders "Save a phrase" even when count > 0', () => {
+    wrap(defaultProps({ count: 3 }))
+    expect(screen.queryByText('Save a phrase')).not.toBeInTheDocument()
+  })
+
+  it('shows partial empty-state copy when count is 0 and reviewState is partial', () => {
+    wrap(defaultProps({ count: 0, reviewState: 'partial' }))
+    expect(screen.getByText(/keep going/i)).toBeInTheDocument()
+    expect(screen.queryByText(/nothing saved/i)).not.toBeInTheDocument()
+  })
+
+  it('shows nothing_kept empty-state copy when count is 0 and reviewState is nothing_kept', () => {
+    wrap(defaultProps({ count: 0, reviewState: 'nothing_kept' }))
+    expect(screen.getByText(/nothing saved/i)).toBeInTheDocument()
+    expect(screen.queryByText(/keep going/i)).not.toBeInTheDocument()
+  })
+
+  it('falls back to partial copy when count is 0 and reviewState is not provided', () => {
+    wrap(defaultProps({ count: 0 }))
+    expect(screen.getByText(/keep going/i)).toBeInTheDocument()
+  })
+
+  it('shows "Study" as primary action when count >= 1', () => {
     wrap(defaultProps({ count: 1 }))
     const buttons = screen.getAllByRole('button')
     expect(buttons.some(b => b.textContent?.includes('Study'))).toBe(true)
+  })
+
+  it('does not show the Study button when count is 0', () => {
+    wrap(defaultProps({ count: 0, reviewState: 'partial' }))
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.every(b => !b.textContent?.includes('Study'))).toBe(true)
   })
 
   it('shows phrase count text when at least one phrase saved', () => {
@@ -61,14 +83,6 @@ describe('StudyPrompt', () => {
     const studyBtn = screen.getAllByRole('button').find(b => b.textContent?.includes('Study'))
     await userEvent.click(studyBtn!)
     expect(onLaunchStudy).toHaveBeenCalledOnce()
-  })
-
-  it('calls onSavePhrase when "Save a phrase" clicked', async () => {
-    const onSavePhrase = vi.fn()
-    wrap(defaultProps({ count: 0, onSavePhrase }))
-    const btn = screen.getAllByRole('button').find(b => b.textContent?.includes('Save a phrase'))
-    await userEvent.click(btn!)
-    expect(onSavePhrase).toHaveBeenCalledOnce()
   })
 
   it('calls onFinishReview when "Finish review" clicked', async () => {
