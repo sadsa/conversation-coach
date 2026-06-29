@@ -203,3 +203,32 @@ Date: 2026-06-29
 ### Next-iteration notes
 
 - Issues 05, 08, 09 remain. Issue 08 (due widget) is likely next — architectural work, depends on loadVocabularyItems exposing dueCount to VocabularyClient.
+
+## Issue 08 — Vocabulary page: due-count widget
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Created standalone `DueWidget` component (`components/DueWidget.tsx`) — renders a compact banner with due count text and a "Study now" link to `/study`. Returns `null` when `dueCount === 0` so it takes no DOM space.
+- Replaced the previous inline `<p>` badge in `VocabularyClient.tsx` with `<DueWidget>`. Widget is placed below the `FilterBar` and above `VocabularyList` (per issue spec: "above the Vocabulary list, below the filter bar").
+- Added `vocabulary.studyNow` i18n key (`'Study now'` / `'Estudiar ahora'`) via Python to avoid the 32KB Edit tool truncation.
+- The existing `dueCount` from `loadPracticeItems` and the server component was already correctly wired through — no changes needed to `lib/loaders.ts` or `app/vocabulary/page.tsx`.
+
+### Files changed
+
+- `components/DueWidget.tsx` (new) — standalone reusable due-count banner
+- `components/VocabularyClient.tsx` — imports `DueWidget`, removes inline badge, places widget below FilterBar
+- `lib/i18n.ts` — added `vocabulary.studyNow` (en + es)
+- `__tests__/components/DueWidget.test.tsx` (new) — 5 tests: renders when due > 0, nothing when 0, count shown, href is /study, label text
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` — no errors in new/changed source files
+- Component tests cannot run in ARM64 jsdom environment (pre-existing)
+
+### Next-iteration notes
+
+- Issues 05 and 09 remain. Issue 09 (single-item study) is the next architectural task.
+- In a future iteration, `DueWidget` can be imported directly into the home page (`app/page.tsx`) as the acceptance criteria note.

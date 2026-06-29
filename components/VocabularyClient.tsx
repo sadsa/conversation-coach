@@ -6,6 +6,7 @@ import { IconButton } from '@/components/IconButton'
 import { FilterBar } from '@/components/FilterBar'
 import { useTranslation } from '@/components/LanguageProvider'
 import { filterVocabularyItems, type VocabularyFilterState, type VocabularyStatusFilter } from '@/lib/vocabulary-filter'
+import { DueWidget } from '@/components/DueWidget'
 import type { PracticeItem } from '@/lib/types'
 
 interface Props {
@@ -100,11 +101,6 @@ export function VocabularyClient({ initialItems, dueCount }: Props) {
             onClick={() => setCaptureOpen(true)}
           />
         </div>
-        {dueCount > 0 && (
-          <p className="inline-block rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 dark:bg-violet-900/20 dark:text-violet-300">
-            {t('vocabulary.dueCount', { n: dueCount })}
-          </p>
-        )}
       </header>
       <FilterBar
         searchQuery={filterState.searchQuery}
@@ -122,6 +118,7 @@ export function VocabularyClient({ initialItems, dueCount }: Props) {
         }))}
         filterButtonLabel={t('vocabulary.filter.button')}
       />
+      <DueWidget dueCount={dueCount} />
       <VocabularyList
         items={filteredItems}
         enrichingIds={enrichingIds}
