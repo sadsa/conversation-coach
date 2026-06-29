@@ -176,7 +176,7 @@ export function ReviewClient({ initialSessions }: Props) {
     [sessions],
   )
   const terminalSessions = useMemo(
-    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status) && s.reviewed_at === null),
+    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status)),
     [sessions],
   )
   const filteredTerminalSessions = useMemo(

@@ -44,7 +44,7 @@ export function RowActionsMenu({ actions, triggerLabel, triggerTestId }: Props) 
   }, [open])
 
   return (
-    <div ref={ref} className="absolute inset-y-0 right-0 flex items-center pr-2">
+    <div ref={ref} className="absolute top-0 right-0 flex items-start pr-2 pt-2">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -53,11 +53,11 @@ export function RowActionsMenu({ actions, triggerLabel, triggerTestId }: Props) 
         aria-expanded={open}
         data-testid={triggerTestId}
         className={`
-          flex items-center justify-center h-9 w-9 rounded-lg
+          flex items-center justify-center h-11 w-11 rounded-lg
           text-text-tertiary hover:text-text-primary hover:bg-surface-elevated
           transition-[color,background-color,opacity]
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
-          md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100
+          md:opacity-40 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100
           ${open ? 'text-text-primary bg-surface-elevated md:opacity-100' : ''}
         `}
       >

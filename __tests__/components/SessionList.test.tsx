@@ -9,15 +9,12 @@ vi.mock('next/link', () => ({
   default: ({
     href,
     children,
-    className,
-    onClick,
+    ...rest
   }: {
     href: string
     children: React.ReactNode
-    className?: string
-    onClick?: React.MouseEventHandler
-  }) => (
-    <a href={href} className={className} onClick={onClick}>{children}</a>
+  } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a href={href} {...rest}>{children}</a>
   ),
 }))
 
@@ -310,11 +307,12 @@ describe('SessionList — counts display', () => {
 })
 
 describe('SessionList — action buttons', () => {
-  it('shows a "Review" link for partial state pointing to the session detail', () => {
+  it('shows no standalone Review link for partial state (the whole card already navigates to /sessions/:id)', () => {
     const session = makeReviewSession({ id: 'sx', review_state: 'partial' })
     render(<SessionList sessions={[session]} />)
-    const link = screen.getByTestId('action-review-sx')
-    expect(link).toHaveAttribute('href', '/sessions/sx')
+    expect(screen.queryByTestId('action-review-sx')).not.toBeInTheDocument()
+    // The card itself is the link to the detail view.
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/sessions/sx')
   })
 
   it('shows a "Study" link for ready_to_study state pointing to /study?session_id', () => {

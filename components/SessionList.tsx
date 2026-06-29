@@ -85,7 +85,13 @@ function SessionItem({
   const isUnread = session.last_viewed_at === null
   const hasBadgeRow = session.review_state !== null
 
-  const [dateLabel, setDateLabel] = useState<string>('')
+  // Seed synchronously so the row never paints a blank metadata line, then
+  // re-sync on the client. The label depends on `now` (relative day) and the
+  // user's locale/timezone, so server and client can legitimately differ —
+  // `suppressHydrationWarning` on the rendered span absorbs that.
+  const [dateLabel, setDateLabel] = useState<string>(() =>
+    formatRowDateTime(new Date(session.created_at), uiLanguage)
+  )
   const [showDeletePrompt, setShowDeletePrompt] = useState(
     session.review_state === 'nothing_kept'
   )
@@ -111,6 +117,13 @@ function SessionItem({
 
   return (
     <li className="relative group">
+      {isUnread && !isProcessing && (
+        <span
+          aria-hidden
+          className="absolute left-1.5 top-6 z-10 h-2 w-2 rounded-full bg-accent-primary"
+          data-testid={`unread-dot-${session.id}`}
+        />
+      )}
       <div className={`rounded-xl border border-border-subtle hover:border-border transition-colors overflow-hidden ${
         isProcessing ? 'bg-accent-chip' : 'bg-surface'
       }`}>
@@ -141,7 +154,7 @@ function SessionItem({
                 {statusLabel(session.status, t)}
               </span>
             )}
-            <span>{dateLabel || ' '}</span>
+            <span suppressHydrationWarning>{dateLabel}</span>
           </div>
         </Link>
 
@@ -162,16 +175,10 @@ function SessionItem({
               </span>
             )}
 
-            {session.review_state === 'partial' && (
-              <Link
-                href={`/sessions/${session.id}`}
-                className="text-xs font-semibold text-accent-primary hover:text-accent-primary-hover"
-                data-testid={`action-review-${session.id}`}
-              >
-                {t('session.action.review')} →
-              </Link>
-            )}
-
+            {/* No standalone "Review →" for partial: the whole card already
+                navigates to /sessions/[id], so a second link to the same
+                destination was redundant. "Study →" stays because it points
+                somewhere the card does not (/study). */}
             {session.review_state === 'ready_to_study' && (
               <Link
                 href={`/study?session_id=${session.id}`}
