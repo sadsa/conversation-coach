@@ -73,16 +73,17 @@ describe('WriteList — rows', () => {
     expect(within(row).getByText('venís')).toBeInTheDocument()
   })
 
-  it('prefers the FlashcardRow rendering when flashcard_front/back are present', () => {
+  it('prefers VocabularyRow rendering when flashcard_back is present, showing only the Spanish sentence', () => {
     render(<WriteList items={[flashcardItem]} />)
-    expect(screen.getByTestId(`flashcard-row-${flashcardItem.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`vocabulary-row-${flashcardItem.id}`)).toBeInTheDocument()
     expect(
       screen.queryByTestId(`correction-in-context-${flashcardItem.id}`),
     ).not.toBeInTheDocument()
-    expect(screen.getByTestId(`flashcard-row-${flashcardItem.id}-front`))
-      .toHaveTextContent('I went to the market yesterday.')
-    expect(screen.getByTestId(`flashcard-row-${flashcardItem.id}-back`))
+    // Only the Spanish (back) sentence is shown
+    expect(screen.getByTestId(`vocabulary-row-${flashcardItem.id}-back`))
       .toHaveTextContent('Fui al mercado ayer.')
+    // English (front) sentence is NOT shown in the list
+    expect(screen.queryByText('I went to the market yesterday.')).not.toBeInTheDocument()
   })
 })
 

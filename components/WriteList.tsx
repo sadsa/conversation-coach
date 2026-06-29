@@ -6,7 +6,7 @@ import { useTranslation } from '@/components/LanguageProvider'
 import { WriteSheet } from '@/components/WriteSheet'
 import { StrikeOriginal } from '@/components/StrikeOriginal'
 import { CorrectionInContext } from '@/components/CorrectionInContext'
-import { FlashcardRow } from '@/components/FlashcardRow'
+import { VocabularyRow } from '@/components/VocabularyRow'
 import { RowActionsMenu, type RowAction } from '@/components/RowActionsMenu'
 import { Toast } from '@/components/Toast'
 
@@ -55,12 +55,11 @@ function WriteRow({ item, enriching, onOpen, onDelete }: RowProps) {
                 {t('vocabulary.enriching')}
               </span>
             </div>
-          ) : item.flashcard_front && item.flashcard_back ? (
-            <FlashcardRow
-              flashcardFront={item.flashcard_front}
+          ) : item.flashcard_back ? (
+            <VocabularyRow
               flashcardBack={item.flashcard_back}
               muted={item.reviewed}
-              testId={`flashcard-row-${item.id}`}
+              testId={`vocabulary-row-${item.id}`}
             />
           ) : item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
             <CorrectionInContext

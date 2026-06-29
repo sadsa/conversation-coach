@@ -174,3 +174,32 @@ Date: 2026-06-29
 - Issues 05, 06, 08, 09 remain unblocked — pick highest priority next.
 - Issue 08 (due widget) and 09 (single-item study) both depend on the `/study` route (04, done).
 - Issue 05 (StudyPrompt) and 06 (VocabularyRow rename) have no dependencies.
+
+## Issue 06 — Vocabulary row: remove English sentence and rename component
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Created `VocabularyRow` as a new component (`components/VocabularyRow.tsx`) that renders only `flashcard_back` — no `flashcard_front` (English sentence). `FlashcardRow` is kept intact for `ReviewCompletionScreen.tsx` which still needs both sides.
+- Render guard in `WriteList` changed from `item.flashcard_front && item.flashcard_back` to `item.flashcard_back` — an item with only a back (Spanish) sentence can now render correctly; in practice both fields are always set together by Claude.
+- `testId` prefix changed from `flashcard-row-` to `vocabulary-row-` to match the renamed component.
+- Styling is identical to the back-row of `FlashcardRow`: Source Serif 4, correction-green bracketed span, muted variant for reviewed items.
+
+### Files changed
+
+- `components/VocabularyRow.tsx` (new) — list-row component showing only `flashcard_back`
+- `components/WriteList.tsx` — import changed from `FlashcardRow` to `VocabularyRow`; render condition loosened to `item.flashcard_back`; testId updated
+- `__tests__/components/VocabularyRow.test.tsx` (new) — 6 tests: back renders, front element absent, display font, styled span, no-brackets fallback
+- `__tests__/components/WriteList.test.tsx` — updated FlashcardRow test: checks `vocabulary-row-*` testId, asserts back content shown, asserts front text not in DOM
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` — no errors in new/changed source files
+- `npm run build` — pre-existing SIGSEGV on ARM64 container (confirmed pre-existing with clean main)
+- Component tests cannot run in ARM64 jsdom environment (pre-existing)
+
+### Next-iteration notes
+
+- Issues 05, 08, 09 remain. Issue 08 (due widget) is likely next — architectural work, depends on loadVocabularyItems exposing dueCount to VocabularyClient.
