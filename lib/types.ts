@@ -167,6 +167,9 @@ export interface PracticeItem {
 
 
 // API response shapes
+
+export type SessionReviewState = 'partial' | 'nothing_kept' | 'ready_to_study'
+
 export interface SessionListItem {
   id: string
   title: string
@@ -184,6 +187,15 @@ export interface SessionListItem {
    * Set only by the deliberate "Mark as reviewed" user action.
    */
   reviewed_at: string | null
+  /**
+   * Derived from annotation state. null when the session has no annotations.
+   * Only meaningful for sessions with status='ready'.
+   */
+  review_state: SessionReviewState | null
+  /** Number of Vocabulary Items saved from this session. */
+  saved_count: number
+  /** Number of Vocabulary Items from this session where due ≤ now. */
+  due_count: number
 }
 
 export interface SessionDetail {

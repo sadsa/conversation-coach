@@ -51,6 +51,9 @@ const mockSession: SessionListItem = {
   processing_completed_at: '2026-04-01T00:01:00Z',
   last_viewed_at: '2026-04-01T00:05:00Z',
   reviewed_at: null,
+  review_state: null,
+  saved_count: 0,
+  due_count: 0,
 }
 
 beforeEach(() => {

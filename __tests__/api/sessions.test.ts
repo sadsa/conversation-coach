@@ -36,18 +36,34 @@ beforeEach(() => {
 
 describe('GET /api/sessions', () => {
   it('returns session list ordered by created_at desc', async () => {
-    const orderMock = vi.fn().mockResolvedValue({
-      data: [
-        { id: 'abc', title: 'Test', status: 'ready', duration_seconds: 3600, created_at: '2026-03-15' },
-      ],
-      error: null,
-    })
-    // loadSessions chain: .select().eq('user_id').neq('status', 'error').order()
-    mockSelect.mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        neq: vi.fn().mockReturnValue({ order: orderMock }),
+    // loadSessions now makes 3 queries for ready sessions:
+    // 1. sessions table (eq/neq/order chain)
+    // 2. annotations table (in chain) — returns empty for simplicity
+    // 3. practice_items table (in chain) — returns empty for simplicity
+    const inMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    vi.mocked(createServerClient).mockReturnValue({
+      from: vi.fn((table: string) => {
+        if (table === 'sessions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                neq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: [
+                      { id: 'abc', title: 'Test', status: 'ready', duration_seconds: 3600, created_at: '2026-03-15', last_viewed_at: null, reviewed_at: null },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+            insert: mockInsert,
+          }
+        }
+        return { select: vi.fn().mockReturnValue({ in: inMock }) }
       }),
-    })
+    } as unknown as ReturnType<typeof createServerClient>)
+
     const res = await GET()
     const body = await res.json()
     expect(res.status).toBe(200)

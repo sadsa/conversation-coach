@@ -18,10 +18,15 @@ import type {
   SessionListItem,
   TranscriptSegment,
 } from '@/lib/types'
+import { deriveSessionReviewState } from '@/lib/session-review-state'
 
 /**
  * All recent sessions for a user, newest first. Used by the home dashboard
  * (in-progress callout + recent conversations list) and `/api/sessions`.
+ *
+ * Each item includes derived `review_state`, `saved_count`, and `due_count`
+ * computed from annotation and practice_item aggregates — two additional
+ * bulk queries (not N+1) over the ready-session IDs.
  */
 export async function loadSessions(userId: string): Promise<SessionListItem[]> {
   const db = createServerClient()
@@ -32,7 +37,76 @@ export async function loadSessions(userId: string): Promise<SessionListItem[]> {
     .neq('status', 'error')
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
-  return (data ?? []) as SessionListItem[]
+
+  const sessions = (data ?? []) as Omit<SessionListItem, 'review_state' | 'saved_count' | 'due_count'>[]
+
+  // Only ready sessions can have meaningful review state — in-flight sessions
+  // haven't been annotated yet.
+  const readyIds = sessions.filter(s => s.status === 'ready').map(s => s.id)
+
+  if (readyIds.length === 0) {
+    return sessions.map(s => ({ ...s, review_state: null, saved_count: 0, due_count: 0 }))
+  }
+
+  // Two bulk reads — one per dependent table. No N+1.
+  const [annotationsRes, practiceItemsRes] = await Promise.all([
+    db
+      .from('annotations')
+      .select('session_id, id, is_unhelpful')
+      .in('session_id', readyIds),
+    db
+      .from('practice_items')
+      .select('session_id, annotation_id, due')
+      .in('session_id', readyIds),
+  ])
+
+  // Build lookup: annotationId → true (annotation has been saved to Vocabulary)
+  const savedAnnotationIds = new Set<string>()
+  for (const item of practiceItemsRes.data ?? []) {
+    if (item.annotation_id) savedAnnotationIds.add(item.annotation_id)
+  }
+
+  // Group annotations by session
+  const annotationsBySession = new Map<string, Array<{ id: string; is_unhelpful: boolean }>>()
+  for (const ann of annotationsRes.data ?? []) {
+    const list = annotationsBySession.get(ann.session_id) ?? []
+    list.push({ id: ann.id, is_unhelpful: ann.is_unhelpful })
+    annotationsBySession.set(ann.session_id, list)
+  }
+
+  // Group practice_items by session for saved_count and due_count
+  const practiceItemsBySession = new Map<string, Array<{ due: string | null }>>()
+  for (const item of practiceItemsRes.data ?? []) {
+    if (!item.session_id) continue
+    const list = practiceItemsBySession.get(item.session_id) ?? []
+    list.push({ due: item.due ?? null })
+    practiceItemsBySession.set(item.session_id, list)
+  }
+
+  const now = new Date()
+
+  return sessions.map(s => {
+    if (s.status !== 'ready') {
+      return { ...s, review_state: null, saved_count: 0, due_count: 0 }
+    }
+
+    const annotations = annotationsBySession.get(s.id) ?? []
+    const practiceItems = practiceItemsBySession.get(s.id) ?? []
+
+    const review_state = deriveSessionReviewState(
+      annotations.map(ann => ({
+        is_unhelpful: ann.is_unhelpful,
+        isSaved: savedAnnotationIds.has(ann.id),
+      })),
+    )
+
+    const saved_count = practiceItems.length
+    const due_count = practiceItems.filter(
+      i => i.due != null && new Date(i.due) <= now,
+    ).length
+
+    return { ...s, review_state, saved_count, due_count }
+  })
 }
 
 /**

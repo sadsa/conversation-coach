@@ -50,6 +50,9 @@ function makeSession(
     processing_completed_at: null,
     last_viewed_at: lastViewedAt,
     reviewed_at: null,
+    review_state: null,
+    saved_count: 0,
+    due_count: 0,
   }
 }
 

@@ -27,6 +27,7 @@ const readSession: SessionListItem = {
   processing_completed_at: '2026-03-15T10:01:23Z',
   last_viewed_at: '2026-03-15T10:05:00Z',
   reviewed_at: '2026-03-15T10:10:00Z',
+  review_state: null, saved_count: 0, due_count: 0,
 }
 const unreadReadySession: SessionListItem = {
   id: 'sess-3', title: 'Café with Dani', status: 'ready',
@@ -34,6 +35,7 @@ const unreadReadySession: SessionListItem = {
   processing_completed_at: '2026-03-16T10:01:00Z',
   last_viewed_at: null,
   reviewed_at: null,
+  review_state: null, saved_count: 0, due_count: 0,
 }
 const transcribingSession: SessionListItem = {
   id: 'sess-2', title: 'Untitled', status: 'transcribing',
@@ -41,6 +43,7 @@ const transcribingSession: SessionListItem = {
   processing_completed_at: null,
   last_viewed_at: null,
   reviewed_at: null,
+  review_state: null, saved_count: 0, due_count: 0,
 }
 // Backwards-compat alias for existing test cases that referenced this name
 // when read state didn't exist. The earlier tests don't depend on read state.
