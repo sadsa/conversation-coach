@@ -138,3 +138,39 @@ Date: 2026-06-29
 
 - Issue 03 (Review inbox filter bar) can now reuse `FilterBar` — pass `review_state`-based options and a `filterSessions` pure function.
 - The `FilterBar` dropdown hides options that are already active; when all 3 status options are active, the trigger button hides entirely — correct UX.
+
+## Issue 03 — Review inbox: filter bar
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Reused shared `FilterBar` component built in Issue 07 — no new component needed.
+- Pure `filterSessions(sessions, filter)` in `lib/session-filter.ts` — same pattern as `filterVocabularyItems`. Status filters ORed; text search ANDed on top; searches session `title`.
+- `SessionStatusFilter = 'partial' | 'ready_to_study'` — `'nothing_kept'` is intentionally excluded (those sessions are typically prompted for deletion, not studied).
+- Sessions with `review_state: null` are excluded when any status filter is active (consistent with PRD: null means no annotations yet, which doesn't fit "In progress" or "Ready to study").
+- Filter state lives in `ReviewClient` as `SessionFilterState`; `filteredTerminalSessions` computed via `useMemo` before passing to `DashboardRecentSessions`.
+- i18n keys added via Python (file exceeds 32KB Edit tool limit): `review.filter.searchPlaceholder`, `review.filter.button`, `review.filter.inProgress`, `review.filter.readyToStudy` (en + es).
+- CONTEXT.md updated: added Session Review State domain term; updated Study definition for two launch modes; updated Dismiss terminology.
+
+### Files changed
+
+- `lib/session-filter.ts` (new) — pure filter transform
+- `__tests__/lib/session-filter.test.ts` (new) — 12 unit tests
+- `components/ReviewClient.tsx` — filter state, FilterBar wiring, filteredTerminalSessions
+- `lib/i18n.ts` — added filter keys (en + es)
+- `__tests__/components/ReviewClient.test.tsx` — added filter bar test suite (6 tests)
+- `CONTEXT.md` — domain term updates (Session Review State, Dismiss, Study modes)
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` (source files) — no new errors in changed files
+- `npm test -- __tests__/lib/session-filter.test.ts` — 12/12 pass
+- Component tests and `npm run build` crash pre-existing on ARM64 container
+
+### Next-iteration notes
+
+- Issues 05, 06, 08, 09 remain unblocked — pick highest priority next.
+- Issue 08 (due widget) and 09 (single-item study) both depend on the `/study` route (04, done).
+- Issue 05 (StudyPrompt) and 06 (VocabularyRow rename) have no dependencies.

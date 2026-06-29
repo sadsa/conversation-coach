@@ -35,7 +35,9 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardInProgress } from '@/components/DashboardInProgress'
 import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
+import { FilterBar } from '@/components/FilterBar'
 import { useTranslation } from '@/components/LanguageProvider'
+import { filterSessions, type SessionFilterState, type SessionStatusFilter } from '@/lib/session-filter'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
@@ -59,6 +61,10 @@ export function ReviewClient({ initialSessions }: Props) {
   // future versions never need it.
   useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions)
+  const [filterState, setFilterState] = useState<SessionFilterState>({
+    statusFilters: [],
+    searchQuery: '',
+  })
 
   // One pending timeout per polled session, plus per-session attempt count
   // for exponential backoff. Refs so the polling loop can read its own
@@ -173,6 +179,15 @@ export function ReviewClient({ initialSessions }: Props) {
     () => sessions.filter(s => TERMINAL_STATUSES.has(s.status) && s.reviewed_at === null),
     [sessions],
   )
+  const filteredTerminalSessions = useMemo(
+    () => filterSessions(terminalSessions, filterState),
+    [terminalSessions, filterState],
+  )
+
+  const filterOptions = [
+    { value: 'partial', label: t('review.filter.inProgress') },
+    { value: 'ready_to_study', label: t('review.filter.readyToStudy') },
+  ]
 
   return (
     <div className="space-y-8">
@@ -186,8 +201,25 @@ export function ReviewClient({ initialSessions }: Props) {
         <DashboardInProgress sessions={inProgressSessions} />
       )}
 
+      <FilterBar
+        searchQuery={filterState.searchQuery}
+        searchPlaceholder={t('review.filter.searchPlaceholder')}
+        filterOptions={filterOptions}
+        activeFilters={filterState.statusFilters}
+        onSearchChange={q => setFilterState(prev => ({ ...prev, searchQuery: q }))}
+        onFilterAdd={v => setFilterState(prev => ({
+          ...prev,
+          statusFilters: [...prev.statusFilters, v as SessionStatusFilter],
+        }))}
+        onFilterRemove={v => setFilterState(prev => ({
+          ...prev,
+          statusFilters: prev.statusFilters.filter(f => f !== v),
+        }))}
+        filterButtonLabel={t('review.filter.button')}
+      />
+
       <DashboardRecentSessions
-        sessions={terminalSessions}
+        sessions={filteredTerminalSessions}
         onDeleted={handleSessionDeleted}
         onToggleRead={handleToggleRead}
       />

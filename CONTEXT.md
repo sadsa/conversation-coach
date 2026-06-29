@@ -15,7 +15,11 @@ The act of reading through a Session's Annotations and deciding which ones to sa
 _Avoid_: Transcript view, analysis
 
 **Study**:
-The third phase of the learning loop — both the methodology step and the act. The act of Study is a voice session with the Coach covering all Vocabulary Items saved from a specific Session. Same UI controls as a Conversation; the Coach corrects repeated mistakes; the user may exit at any time with no mastery gate. Launched via a persistent CTA on the Session page. Backed by `practice_items` in the DB.
+The third phase of the learning loop — both the methodology step and the act. The act of Study is a voice session with the Coach covering Vocabulary Items. Same UI controls as a Conversation; the Coach corrects repeated mistakes; the user may exit at any time with no mastery gate. Backed by `practice_items` in the DB.
+
+Two launch modes:
+- **Session-scoped Study**: covers all Vocabulary Items from a specific Session regardless of SRS due date. Launched from the Session page CTA or the Review inbox badge. After completion, prompts "Want to study more?" to surface globally due items.
+- **SRS Study**: covers all Vocabulary Items due for review across all Sessions (`due ≤ now`). Launched from the due-count widget on Vocabulary. No post-session prompt.
 
 Card advancement during Study is always learner-initiated and reversible: the user moves forward or back between cards at will (always-visible controls), and may also swipe. The Coach never advances the card automatically and never mentions the controls; it stays synced to whichever card is on screen, including after the user moves back. Each card is a self-contained mini-lesson on a single phrase, with no time limit, taught in three internal phases: explain (state the correction in one sentence, then invite a first attempt), model (a couple of varied examples of the phrase in use), and drill (prompts that use the phrase in fresh situations). The Coach leads actively and never goes silent waiting — after each drill attempt it reacts briefly and offers another drill, so there is no dead air; the learner moves on whenever they choose. Turns are short and natural (one idea, roughly one to two sentences) rather than rigidly capped at one sentence. The Coach only ever sees the current card's phrase — it never looks ahead — and never voices the card's explanation, which is already on screen. There is no open-ended free conversation phase; unscripted chat belongs to Talk freely.
 _Avoid_: Drill (absorbed into Study), Write, practice list
@@ -36,9 +40,9 @@ _Avoid_: Upload (the action, not the artifact), Conversation (too specific — m
 A single correction or observation on a segment of the user's speech, produced by Claude. Has an original phrase and optionally a corrected form. The internal `type` field (`grammar` | `naturalness`) is a pipeline detail — do not surface it in the UI; users do not need to distinguish the two.
 _Avoid_: Correction (overloaded — also used for the corrected text itself)
 
-**Not useful** (flag):
-A user signal that an Annotation is irrelevant to them — hides it from the transcript. Mutually exclusive with saving the Annotation as a Practice Item. DB column: `is_unhelpful` (stable, not renamed).
-_Avoid_: Unhelpful, dismissed, hidden
+**Dismiss** (annotation action):
+The act of marking an Annotation as not worth keeping during Review. The user has consciously read it and decided to pass. Reversible. In the Review flow this is the counterpart to saving — together they determine the Session Review State. DB column: `is_unhelpful` (stable, not renamed). The UI label is "Ignore"; the mental model is "dismiss."
+_Avoid_: Unhelpful, not useful, hidden
 
 **Correction**:
 The improved form of a phrase within an Annotation. May be null for naturalness observations where no single fix exists.
@@ -72,8 +76,17 @@ _Avoid_: Study queue, practice list, write
 A Vocabulary Item added manually by the user — not derived from a Session Annotation. Captures a phrase heard outside the app (podcast, real conversation, etc.). The user provides the phrase and the context it was used in; the Coach enriches it into flashcard form in the background. Appears in Vocabulary under a dedicated "From real life" group.
 _Avoid_: Manual entry, custom phrase
 
+**Session Review State**:
+The derived state of a Session based on what the user has done with its Annotations. Three values:
+- **Partial** — at least one Annotation has not been acted on (neither saved nor dismissed).
+- **Nothing kept** — all Annotations have been dismissed; no Vocabulary Items saved. Triggers a prompt to delete the Session.
+- **Ready to study** — all Annotations acted on; at least one saved as a Vocabulary Item.
+
+Derived from annotation data — not an explicit flag. Replaces the binary `reviewed_at` model as the primary signal in the Review inbox.
+_Avoid_: Reviewed, completed, marked as done
+
 **Review Completion**:
-The explicit act of marking a Session as fully reviewed. Triggered by the "Finish review" CTA on the Session page. Sets `sessions.reviewed_at`. A Session is considered unreviewed until this action is taken — distinct from `last_viewed_at` (which only records whether the user opened the page). The Review inbox filters on `reviewed_at IS NULL`.
+The explicit act of marking a Session as fully reviewed. Triggered by the "Finish review" CTA on the Session page. Sets `sessions.reviewed_at`. Superseded in practice by Session Review State as the richer signal — `reviewed_at` is retained for backwards compatibility.
 _Avoid_: Mark as read, dismiss
 
 **SRS Schedule**:

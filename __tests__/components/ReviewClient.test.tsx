@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ReviewClient } from '@/components/ReviewClient'
 import type { SessionListItem } from '@/lib/types'
 
@@ -34,6 +35,12 @@ vi.mock('@/components/LanguageProvider', () => ({
     t: (key: string) => {
       const dict: Record<string, string> = {
         'review.title': 'Your conversations',
+        'review.emptyLine': 'No conversations to review yet.',
+        'review.emptyCta': 'Start a conversation',
+        'review.filter.searchPlaceholder': 'Search sessions…',
+        'review.filter.button': 'Filter',
+        'review.filter.inProgress': 'In progress',
+        'review.filter.readyToStudy': 'Ready to study',
         'home.recentSessionsTitle': 'Your conversations',
         'home.noRecordingsYet': 'No conversations yet.',
       }
@@ -102,5 +109,76 @@ describe('ReviewClient — surface scope', () => {
     render(<ReviewClient initialSessions={[]} />)
     expect(screen.queryByTestId('dashboard-onboarding')).not.toBeInTheDocument()
     expect(screen.queryByText(/revisit the tutorial/i)).not.toBeInTheDocument()
+  })
+})
+
+const partialSession: SessionListItem = {
+  id: 'p1',
+  title: 'Grammar talk',
+  status: 'ready',
+  duration_seconds: 60,
+  created_at: '2026-04-01T00:00:00Z',
+  processing_completed_at: '2026-04-01T00:01:00Z',
+  last_viewed_at: null,
+  reviewed_at: null,
+  review_state: 'partial',
+  saved_count: 0,
+  due_count: 0,
+}
+
+const readySession: SessionListItem = {
+  id: 'r1',
+  title: 'Ready session',
+  status: 'ready',
+  duration_seconds: 90,
+  created_at: '2026-04-02T00:00:00Z',
+  processing_completed_at: '2026-04-02T00:01:00Z',
+  last_viewed_at: null,
+  reviewed_at: null,
+  review_state: 'ready_to_study',
+  saved_count: 2,
+  due_count: 1,
+}
+
+describe('ReviewClient — filter bar', () => {
+  it('renders the filter bar', () => {
+    render(<ReviewClient initialSessions={[mockSession]} />)
+    expect(screen.getByTestId('filter-bar')).toBeDefined()
+  })
+
+  it('shows both filter options in the dropdown', async () => {
+    render(<ReviewClient initialSessions={[mockSession]} />)
+    await userEvent.click(screen.getByTestId('filter-dropdown-trigger'))
+    expect(screen.getByTestId('filter-option-partial')).toBeDefined()
+    expect(screen.getByTestId('filter-option-ready_to_study')).toBeDefined()
+  })
+
+  it('selecting a filter adds a pill', async () => {
+    render(<ReviewClient initialSessions={[partialSession, readySession]} />)
+    await userEvent.click(screen.getByTestId('filter-dropdown-trigger'))
+    await userEvent.click(screen.getByTestId('filter-option-partial'))
+    expect(screen.getByTestId('filter-pill-partial')).toBeDefined()
+  })
+
+  it('dismissing a pill removes it', async () => {
+    render(<ReviewClient initialSessions={[partialSession]} />)
+    await userEvent.click(screen.getByTestId('filter-dropdown-trigger'))
+    await userEvent.click(screen.getByTestId('filter-option-partial'))
+    await userEvent.click(screen.getByTestId('filter-pill-remove-partial'))
+    expect(screen.queryByTestId('filter-pill-partial')).toBeNull()
+  })
+
+  it('applying a non-matching filter shows the empty state', async () => {
+    render(<ReviewClient initialSessions={[readySession]} />)
+    await userEvent.click(screen.getByTestId('filter-dropdown-trigger'))
+    await userEvent.click(screen.getByTestId('filter-option-partial'))
+    expect(screen.getByText('No conversations to review yet.')).toBeDefined()
+  })
+
+  it('applying a matching filter keeps the session list visible', async () => {
+    render(<ReviewClient initialSessions={[partialSession, readySession]} />)
+    await userEvent.click(screen.getByTestId('filter-dropdown-trigger'))
+    await userEvent.click(screen.getByTestId('filter-option-partial'))
+    expect(screen.getByTestId('session-list')).toBeDefined()
   })
 })
