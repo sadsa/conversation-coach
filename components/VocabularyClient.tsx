@@ -1,9 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { VocabularyList } from '@/components/VocabularyList'
 import { WildCaptureSheet } from '@/components/WildCaptureSheet'
 import { IconButton } from '@/components/IconButton'
+import { FilterBar } from '@/components/FilterBar'
 import { useTranslation } from '@/components/LanguageProvider'
+import { filterVocabularyItems, type VocabularyFilterState, type VocabularyStatusFilter } from '@/lib/vocabulary-filter'
 import type { PracticeItem } from '@/lib/types'
 
 interface Props {
@@ -16,10 +18,23 @@ export function VocabularyClient({ initialItems, dueCount }: Props) {
   const [items, setItems] = useState<PracticeItem[]>(initialItems)
   const [captureOpen, setCaptureOpen] = useState(false)
   const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set())
+  const [filterState, setFilterState] = useState<VocabularyFilterState>({
+    statusFilters: [],
+    searchQuery: '',
+  })
+
+  const filteredItems = useMemo(
+    () => filterVocabularyItems(items, filterState),
+    [items, filterState],
+  )
+
+  const filterOptions = [
+    { value: 'unstudied', label: t('vocabulary.filter.unstudied') },
+    { value: 'due', label: t('vocabulary.filter.due') },
+    { value: 'studied', label: t('vocabulary.filter.studied') },
+  ]
 
   function handleCapture(id: string, phrase: string) {
-    // Optimistically add the new manual item to the list with empty flashcard fields.
-    // The enrichment call fires immediately after; when it resolves the item updates.
     const newItem: PracticeItem = {
       id,
       session_id: null,
@@ -46,7 +61,6 @@ export function VocabularyClient({ initialItems, dueCount }: Props) {
     setItems(prev => [newItem, ...prev])
     setEnrichingIds(prev => { const next = new Set(prev); next.add(id); return next })
 
-    // Fire enrichment without awaiting — update item when it resolves.
     fetch(`/api/practice-items/${id}/enrich`, { method: 'POST' })
       .then(r => r.json())
       .then((enriched: { flashcard_front?: string | null; flashcard_back?: string | null; flashcard_note?: string | null }) => {
@@ -92,8 +106,24 @@ export function VocabularyClient({ initialItems, dueCount }: Props) {
           </p>
         )}
       </header>
+      <FilterBar
+        searchQuery={filterState.searchQuery}
+        searchPlaceholder={t('vocabulary.filter.searchPlaceholder')}
+        filterOptions={filterOptions}
+        activeFilters={filterState.statusFilters}
+        onSearchChange={q => setFilterState(prev => ({ ...prev, searchQuery: q }))}
+        onFilterAdd={v => setFilterState(prev => ({
+          ...prev,
+          statusFilters: [...prev.statusFilters, v as VocabularyStatusFilter],
+        }))}
+        onFilterRemove={v => setFilterState(prev => ({
+          ...prev,
+          statusFilters: prev.statusFilters.filter(f => f !== v),
+        }))}
+        filterButtonLabel={t('vocabulary.filter.button')}
+      />
       <VocabularyList
-        items={items}
+        items={filteredItems}
         enrichingIds={enrichingIds}
         onDeleted={ids => setItems(prev => prev.filter(i => !ids.includes(i.id)))}
       />

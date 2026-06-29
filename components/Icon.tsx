@@ -258,4 +258,9 @@ const ICONS = {
     <path d="M9 18h6" />
     <path d="M10 22h4" />
   </>,
+  search: <>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </>,
+  funnel: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />,
 }

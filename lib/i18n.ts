@@ -663,6 +663,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'vocabulary.contextPlaceholder': 'In what situation did you hear it?',
     'vocabulary.captureSubmit': 'Add to Vocabulary',
     'vocabulary.enriching': 'Enriching…',
+    'vocabulary.filter.searchPlaceholder': 'Search phrases…',
+    'vocabulary.filter.button': 'Filter',
+    'vocabulary.filter.unstudied': 'Unstudied',
+    'vocabulary.filter.due': 'Due',
+    'vocabulary.filter.studied': 'Studied',
 
     // Study list — inline studied section (bottom of same list, dimmed).
     'writeList.tabWrite': 'Study',
@@ -1290,6 +1295,11 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'vocabulary.contextPlaceholder': '¿En qué situación la escuchaste?',
     'vocabulary.captureSubmit': 'Agregar al vocabulario',
     'vocabulary.enriching': 'Procesando…',
+    'vocabulary.filter.searchPlaceholder': 'Buscar frases…',
+    'vocabulary.filter.button': 'Filtrar',
+    'vocabulary.filter.unstudied': 'No estudiado',
+    'vocabulary.filter.due': 'Para repasar',
+    'vocabulary.filter.studied': 'Estudiado',
 
     // Lista de Estudiar — alternancia de vistas (Estudiar es la superficie
     // principal, Escritos vive como sección inline atenuada al final de la lista).

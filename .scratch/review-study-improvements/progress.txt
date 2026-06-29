@@ -101,3 +101,40 @@ Date: 2026-06-29
 
 - Issue 03 (Review inbox filter bar) is the next architectural task with deps met — uses `review_state` to filter sessions client-side.
 - Issues 05, 06, 07, 08, 09 are also unblocked.
+
+## Issue 07 — Vocabulary page: filter bar
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Created shared `FilterBar` component (`components/FilterBar.tsx`) — generic pill-based filter UI reusable by Issue 03 (Review inbox).
+- FilterBar API: `filterOptions[]`, `activeFilters[]`, `onFilterAdd`, `onFilterRemove`, `searchQuery`, `onSearchChange`. Labels are caller-supplied so the component needs no i18n knowledge.
+- Filter state lives in `VocabularyClient` as `VocabularyFilterState { statusFilters, searchQuery }`. Derived `filteredItems` computed in `useMemo` before passing to `VocabularyList`.
+- Pure `filterVocabularyItems(items, filter)` function in `lib/vocabulary-filter.ts` — testable in isolation. Status filters are ORed; text search ANDed on top.
+- Text search matches `flashcard_back` OR `correction` (case-insensitive); falls back to `correction` when `flashcard_back` is null.
+- Added `search` and `funnel` icons to `Icon.tsx` (stroke-based, consistent with existing icon style).
+- Added i18n keys via Python (file is 74KB, above the Edit tool 32KB limit): `vocabulary.filter.searchPlaceholder`, `vocabulary.filter.button`, `vocabulary.filter.unstudied`, `vocabulary.filter.due`, `vocabulary.filter.studied` (en + es).
+- No existing sort UI in `VocabularyClient` to preserve — the loader accepts a `sort` param but it was never surfaced in the UI.
+
+### Files changed
+
+- `lib/vocabulary-filter.ts` (new) — pure filter transform
+- `components/FilterBar.tsx` (new) — shared filter bar component
+- `components/VocabularyClient.tsx` — filter state, FilterBar wiring, filteredItems
+- `components/Icon.tsx` — added `search` and `funnel` icons
+- `lib/i18n.ts` — added filter keys (en + es)
+- `__tests__/lib/vocabulary-filter.test.ts` (new) — 13 unit tests
+- `__tests__/components/FilterBar.test.tsx` (new) — component tests (can't run in ARM64 jsdom)
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` (source files) — no new errors in new files
+- `npm test -- __tests__/lib/vocabulary-filter.test.ts` — 13/13 pass
+- Component tests and `npm run build` crash pre-existing on ARM64 container
+
+### Next-iteration notes
+
+- Issue 03 (Review inbox filter bar) can now reuse `FilterBar` — pass `review_state`-based options and a `filterSessions` pure function.
+- The `FilterBar` dropdown hides options that are already active; when all 3 status options are active, the trigger button hides entirely — correct UX.
