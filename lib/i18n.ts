@@ -767,6 +767,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.goBackLabel': 'Back',
     'lesson.advanceLabel': 'Next',
     'lesson.errorBack': 'Back',
+    'lesson.wantMoreHeading': 'Want to study more?',
+    'lesson.wantMoreSub': "You've drilled all phrases from this session.",
+    'lesson.wantMoreCta': 'Go to Vocabulary',
+    'lesson.backToVocabulary': 'Back to Vocabulary',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Verb conjugation',
@@ -1378,6 +1382,10 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'lesson.goBackLabel': 'Atrás',
     'lesson.advanceLabel': 'Siguiente',
     'lesson.errorBack': 'Volver',
+    'lesson.wantMoreHeading': '¿Querés seguir estudiando?',
+    'lesson.wantMoreSub': 'Repasaste todas las frases de esta sesión.',
+    'lesson.wantMoreCta': 'Ir a Vocabulario',
+    'lesson.backToVocabulary': 'Volver al Vocabulario',
 
     // Sub-categories
     'subCat.verb-conjugation': 'Conjugación verbal',

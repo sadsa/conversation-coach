@@ -18,6 +18,7 @@ import type {
   SessionListItem,
   TranscriptSegment,
 } from '@/lib/types'
+import type { LessonPhrase } from '@/lib/voice-agent'
 import { deriveSessionReviewState } from '@/lib/session-review-state'
 
 /**
@@ -375,4 +376,86 @@ export async function loadUnreadCount(userId: string): Promise<number> {
     .is('reviewed_at', null)
   if (error) return 0
   return count ?? 0
+}
+
+// ---------------------------------------------------------------------------
+// Study item loader — powers the /study route's three loading modes.
+// ---------------------------------------------------------------------------
+
+export type StudyMode =
+  | { mode: 'session'; sessionId: string }
+  | { mode: 'srs' }
+  | { mode: 'items'; itemIds: string[] }
+
+interface StudyItemRow {
+  id: string
+  correction: string
+  explanation: string
+  flashcard_front: string | null
+  flashcard_back: string | null
+}
+
+function toPhrase(row: StudyItemRow): LessonPhrase {
+  return {
+    id: row.id,
+    correction: row.correction,
+    explanation: row.explanation,
+    flashcard_front: row.flashcard_front,
+    flashcard_back: row.flashcard_back,
+  }
+}
+
+/**
+ * Loads Vocabulary Items for a Study session in one of three modes:
+ *
+ * - `session`: all items for a specific session, ignoring SRS due dates
+ * - `srs`: all items where `due <= now` across the user's sessions
+ * - `items`: specific items by ID, enforcing ownership
+ */
+export async function loadStudyItems(
+  userId: string,
+  opts: StudyMode,
+): Promise<LessonPhrase[]> {
+  const db = createServerClient()
+
+  if (opts.mode === 'session') {
+    const { data, error } = await db
+      .from('practice_items')
+      .select(`id, correction, explanation, flashcard_front, flashcard_back,
+        sessions:sessions!inner(user_id)`)
+      .eq('session_id', opts.sessionId)
+      .eq('sessions.user_id', userId)
+    if (error) throw new Error(error.message)
+    return ((data ?? []) as unknown as StudyItemRow[]).map(toPhrase)
+  }
+
+  if (opts.mode === 'srs') {
+    const now = new Date().toISOString()
+    const { data, error } = await db
+      .from('practice_items')
+      .select(`id, correction, explanation, flashcard_front, flashcard_back,
+        sessions:sessions!inner(user_id)`)
+      .eq('sessions.user_id', userId)
+      .lte('due', now)
+    if (error) throw new Error(error.message)
+    return ((data ?? []) as unknown as StudyItemRow[]).map(toPhrase)
+  }
+
+  // items mode — specific IDs, ownership enforced in JS to handle both
+  // annotation-backed items (user via session) and manual items (user_id direct)
+  if (opts.itemIds.length === 0) return []
+  const { data, error } = await db
+    .from('practice_items')
+    .select(`id, correction, explanation, flashcard_front, flashcard_back,
+      user_id, sessions:sessions(user_id)`)
+    .in('id', opts.itemIds)
+  if (error) throw new Error(error.message)
+  type OwnedRow = StudyItemRow & {
+    user_id?: string | null
+    sessions?: { user_id: string } | null
+  }
+  const owned = ((data ?? []) as unknown as OwnedRow[]).filter(
+    r => r.sessions?.user_id === userId || r.user_id === userId,
+  )
+  return owned.map(toPhrase)
 }

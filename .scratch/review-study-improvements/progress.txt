@@ -1,0 +1,72 @@
+## Issue 01 — Session review state: data layer
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Extracted pure `deriveSessionReviewState(annotations: AnnotationReviewSummary[]) → SessionReviewState | null` into `lib/session-review-state.ts` for isolated unit testing.
+- `AnnotationReviewSummary` carries `{ is_unhelpful: boolean; isSaved: boolean }` — "saved" means the annotation has a corresponding `practice_item` entry.
+- Saved annotations take priority over dismissed ones: an annotation that is both `isSaved=true` and `is_unhelpful=true` counts toward the saved total, not as dismissed.
+- `loadSessions` now fires 2 additional bulk queries after the sessions query (annotations + practice_items for all ready session IDs) — not N+1. Non-ready sessions get `review_state: null, saved_count: 0, due_count: 0`.
+- `due_count` counts practice_items where `due IS NOT NULL AND due <= now` (no `reviewed` filter, consistent with PRD spec).
+- Added `SessionReviewState` type alias and three new required fields (`review_state`, `saved_count`, `due_count`) to `SessionListItem` in `lib/types.ts`.
+- Updated all test fixtures that construct `SessionListItem` directly to include the new required fields.
+- `GET /api/sessions` test mock updated to table-name-aware mock supporting the new bulk queries.
+
+### Files changed
+
+- `lib/session-review-state.ts` (new) — pure derivation function
+- `lib/types.ts` — `SessionReviewState` type + extended `SessionListItem`
+- `lib/loaders.ts` — `loadSessions` extended with annotation/practice_item aggregation
+- `__tests__/lib/session-review-state.test.ts` (new) — 10 unit tests covering all branches
+- `__tests__/components/SessionList.test.tsx` — fixture updated
+- `__tests__/components/ReviewClient.test.tsx` — fixture updated
+- `__tests__/components/DashboardRecentSessions.test.tsx` — fixture updated
+- `__tests__/api/sessions.test.ts` — GET /api/sessions mock updated
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` — no errors in source files
+- `npm test -- __tests__/lib/session-review-state.test.ts` — 10/10 pass
+- `npm run build` and component tests were already crashing on ARM64 before this issue (pre-existing jsdom/SWC native binary incompatibility in this container)
+
+### Next-iteration notes
+
+- Issue 02 (badge + counts) and Issue 03 (review inbox filter bar) are now unblocked — both depend on the `review_state` field now present on `SessionListItem`.
+- Issue 02 will need to render badge states in `SessionList` rows using the new fields; the `Nothing kept` state needs an inline delete prompt.
+
+## Issue 04 — `/study` route with dual loading modes
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Added `loadStudyItems(userId, opts: StudyMode)` to `lib/loaders.ts` handling three modes: session (bypasses SRS), srs (due<=now only), items (specific IDs with user_id enforcement).
+- `LessonClient` extended with optional `onCompletionAction?: () => void` and `completionLabel?: string` props. When `onCompletionAction` is provided, the completion screen shows a button calling it (+ write-back) instead of the hardcoded `<Link href="/">`. Existing session-page behaviour unchanged.
+- `StudyClient` wraps `LessonClient` in a `phase: 'lesson' | 'prompt'` state machine. Session mode: onExit transitions to the "Want to study more?" prompt screen. SRS/items modes: onExit navigates to `/vocabulary` via `router.push`.
+- Auth guard is handled by existing middleware — no changes to `middleware.ts`.
+- FSRS write-back reuses the existing `PATCH /api/practice-items/:id` fire-and-forget path inside `LessonClient.doWriteBackRef`.
+- Used Python for i18n.ts edits to avoid the 32KB truncation bug in the Edit tool when files exceed that limit.
+
+### Files changed
+
+- `lib/loaders.ts` — added `StudyMode` type + `loadStudyItems` function
+- `components/LessonClient.tsx` — added `onCompletionAction` and `completionLabel` props
+- `lib/i18n.ts` — added `lesson.wantMoreHeading`, `lesson.wantMoreSub`, `lesson.wantMoreCta`, `lesson.backToVocabulary` (en + es)
+- `app/study/page.tsx` (new) — server component; auth-guards, parses search params, calls `loadStudyItems`, redirects on empty
+- `app/study/StudyClient.tsx` (new) — client component; phase state machine + "Want to study more?" prompt screen
+- `__tests__/lib/loaders-study.test.ts` (new) — 11 unit tests covering all three modes (session, SRS, items)
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` (source files only) — no new errors
+- `npm test -- __tests__/lib/loaders-study.test.ts` — 11/11 pass
+- `npm run build` — pre-existing SIGSEGV crash on ARM64 container (unrelated, confirmed in memory)
+
+### Next-iteration notes
+
+- Issues 08 (due widget) and 09 (single-item study) are now unblocked — both depend on the `/study` route.
+- Issue 02 "Study" button on inbox badge should navigate to `/study?session_id=<id>` — this route now exists.
+- Single-item mode accepts comma-separated IDs (`item_ids=a,b,c`) — issue 09 needs to wire the per-row menu action.

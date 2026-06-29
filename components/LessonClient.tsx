@@ -29,9 +29,17 @@ interface Props {
   phrases: LessonPhrase[]
   /** Called when the session ends (user exits or connection dropped). */
   onExit: () => void
+  /**
+   * When provided, the completion screen renders a button calling this handler
+   * instead of a `<Link href="/">`. Use from /study to intercept navigation.
+   * Write-back fires before this is called, same as the default Link flow.
+   */
+  onCompletionAction?: () => void
+  /** Label for the completion-screen action button. Defaults to 'Practise again'. */
+  completionLabel?: string
 }
 
-export function LessonClient({ phrases, onExit }: Props) {
+export function LessonClient({ phrases, onExit, onCompletionAction, completionLabel }: Props) {
   const { t, targetLanguage } = useTranslation()
   const reducedMotion = useReducedMotion()
 
@@ -389,13 +397,23 @@ export function LessonClient({ phrases, onExit }: Props) {
           {t('lesson.completeSub')}
         </motion.p>
         <motion.div {...reveal(0.65)}>
-          <Link
-            href="/"
-            onClick={() => { doWriteBackRef.current(); onExitRef.current() }}
-            className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
-          >
-            {t('lesson.practiseAgain')}
-          </Link>
+          {onCompletionAction ? (
+            <button
+              type="button"
+              onClick={() => { doWriteBackRef.current(); onCompletionAction() }}
+              className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
+            >
+              {completionLabel ?? t('lesson.practiseAgain')}
+            </button>
+          ) : (
+            <Link
+              href="/"
+              onClick={() => { doWriteBackRef.current(); onExitRef.current() }}
+              className="inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-medium rounded-xl bg-accent-primary text-on-accent hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 transition-colors"
+            >
+              {t('lesson.practiseAgain')}
+            </Link>
+          )}
         </motion.div>
       </motion.div>
     )
