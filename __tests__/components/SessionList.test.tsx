@@ -240,3 +240,142 @@ describe('SessionList — delete via row menu (optimistic + Undo)', () => {
     await vi.waitFor(() => expect(screen.getByTestId('session-menu-sess-1')).toBeInTheDocument())
   })
 })
+
+// ---------------------------------------------------------------------------
+// Issue 02: session state badge, counts, and action buttons
+// ---------------------------------------------------------------------------
+
+function makeReviewSession(
+  overrides: Partial<SessionListItem> & { id: string; review_state: SessionListItem['review_state'] }
+): SessionListItem {
+  return {
+    title: 'Test session',
+    status: 'ready',
+    duration_seconds: 300,
+    created_at: '2026-03-15T10:00:00Z',
+    processing_completed_at: '2026-03-15T10:01:00Z',
+    last_viewed_at: '2026-03-15T10:05:00Z',
+    reviewed_at: null,
+    saved_count: 0,
+    due_count: 0,
+    ...overrides,
+  }
+}
+
+describe('SessionList — review state badge', () => {
+  it('shows no badge when review_state is null', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: null })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.queryByTestId('review-badge-sx')).not.toBeInTheDocument()
+  })
+
+  it('shows "In progress" badge for partial state', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'partial' })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.getByTestId('review-badge-sx')).toHaveTextContent('In progress')
+  })
+
+  it('shows "Ready to study" badge for ready_to_study state', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'ready_to_study', saved_count: 3 })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.getByTestId('review-badge-sx')).toHaveTextContent('Ready to study')
+  })
+
+  it('shows "Nothing kept" badge for nothing_kept state', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'nothing_kept' })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.getByTestId('review-badge-sx')).toHaveTextContent('Nothing kept')
+  })
+})
+
+describe('SessionList — counts display', () => {
+  it('shows counts when saved_count > 0', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'ready_to_study', saved_count: 3, due_count: 1 })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.getByTestId('counts-sx')).toHaveTextContent('3 saved')
+    expect(screen.getByTestId('counts-sx')).toHaveTextContent('1 due')
+  })
+
+  it('hides counts when both saved_count and due_count are 0', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'partial', saved_count: 0, due_count: 0 })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.queryByTestId('counts-sx')).not.toBeInTheDocument()
+  })
+
+  it('hides counts entirely when review_state is null', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: null, saved_count: 2, due_count: 1 })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.queryByTestId('counts-sx')).not.toBeInTheDocument()
+  })
+})
+
+describe('SessionList — action buttons', () => {
+  it('shows a "Review" link for partial state pointing to the session detail', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'partial' })
+    render(<SessionList sessions={[session]} />)
+    const link = screen.getByTestId('action-review-sx')
+    expect(link).toHaveAttribute('href', '/sessions/sx')
+  })
+
+  it('shows a "Study" link for ready_to_study state pointing to /study?session_id', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'ready_to_study', saved_count: 2 })
+    render(<SessionList sessions={[session]} />)
+    const link = screen.getByTestId('action-study-sx')
+    expect(link).toHaveAttribute('href', '/study?session_id=sx')
+  })
+
+  it('shows no Review or Study action button for nothing_kept state', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'nothing_kept' })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.queryByTestId('action-review-sx')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('action-study-sx')).not.toBeInTheDocument()
+  })
+})
+
+describe('SessionList — nothing_kept delete prompt', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows the delete prompt by default for nothing_kept sessions', () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'nothing_kept' })
+    render(<SessionList sessions={[session]} />)
+    expect(screen.getByTestId('delete-prompt-sx')).toBeInTheDocument()
+  })
+
+  it('hides the delete prompt when Cancel is clicked', async () => {
+    const session = makeReviewSession({ id: 'sx', review_state: 'nothing_kept' })
+    render(<SessionList sessions={[session]} />)
+    await userEvent.click(screen.getByTestId('remove-cancel-sx'))
+    expect(screen.queryByTestId('delete-prompt-sx')).not.toBeInTheDocument()
+    // Session card remains
+    expect(screen.getByTestId('review-badge-sx')).toBeInTheDocument()
+  })
+
+  it('triggers the optimistic delete flow when Remove is confirmed', async () => {
+    const onDeleted = vi.fn()
+    const session = makeReviewSession({ id: 'sx', review_state: 'nothing_kept' })
+    render(<SessionList sessions={[session]} onDeleted={onDeleted} />)
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    await user.click(screen.getByTestId('remove-confirm-sx'))
+    // Row optimistically removed, undo toast appears
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.queryByTestId('review-badge-sx')).not.toBeInTheDocument()
+    // After undo window, DELETE fires
+    await vi.advanceTimersByTimeAsync(5100)
+    expect(global.fetch).toHaveBeenCalledWith('/api/sessions/sx', { method: 'DELETE' })
+    await vi.waitFor(() => expect(onDeleted).toHaveBeenCalledWith('sx'))
+  })
+
+  it('does not show the delete prompt for partial or ready_to_study states', () => {
+    const partial = makeReviewSession({ id: 'sp', review_state: 'partial' })
+    const ready = makeReviewSession({ id: 'sr', review_state: 'ready_to_study', saved_count: 1 })
+    render(<SessionList sessions={[partial, ready]} />)
+    expect(screen.queryByTestId('delete-prompt-sp')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('delete-prompt-sr')).not.toBeInTheDocument()
+  })
+})

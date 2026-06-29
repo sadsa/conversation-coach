@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Toast } from '@/components/Toast'
 import { RowActionsMenu, type RowAction } from '@/components/RowActionsMenu'
 import { useTranslation } from '@/components/LanguageProvider'
-import type { SessionListItem } from '@/lib/types'
+import type { SessionListItem, SessionReviewState } from '@/lib/types'
 import type { UiLanguage } from '@/lib/i18n'
 
 function statusLabel(status: string, t: (key: string) => string): string {
@@ -22,6 +22,12 @@ function statusLabel(status: string, t: (key: string) => string): string {
 const STATUS_COLOUR: Record<string, string> = {
   ready: 'text-status-ready',
   error: 'text-status-error',
+}
+
+const BADGE_CLASSES: Record<SessionReviewState, string> = {
+  partial: 'bg-accent-chip text-on-accent-chip border border-accent-chip-border',
+  ready_to_study: 'bg-study-badge-bg text-on-study-badge',
+  nothing_kept: 'bg-surface-elevated text-text-tertiary border border-border-subtle',
 }
 
 const TERMINAL_STATUSES = new Set(['ready', 'error'])
@@ -77,8 +83,12 @@ function SessionItem({
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
   const isUnread = session.last_viewed_at === null
+  const hasBadgeRow = session.review_state !== null
 
   const [dateLabel, setDateLabel] = useState<string>('')
+  const [showDeletePrompt, setShowDeletePrompt] = useState(
+    session.review_state === 'nothing_kept'
+  )
   useEffect(() => {
     setDateLabel(formatRowDateTime(new Date(session.created_at), uiLanguage))
   }, [session.created_at, uiLanguage])
@@ -106,7 +116,7 @@ function SessionItem({
       }`}>
         <Link
           href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
-          className={`block py-4 pl-5 pr-12 min-w-0 transition-colors ${
+          className={`block pt-4 ${hasBadgeRow ? 'pb-2' : 'pb-4'} pl-5 pr-12 min-w-0 transition-colors ${
             isProcessing ? '' : 'hover:bg-surface-elevated'
           }`}
         >
@@ -131,9 +141,70 @@ function SessionItem({
                 {statusLabel(session.status, t)}
               </span>
             )}
-            <span>{dateLabel || ' '}</span>
+            <span>{dateLabel || ' '}</span>
           </div>
         </Link>
+
+        {hasBadgeRow && (
+          <div className="px-5 pb-4 pt-1 flex items-center flex-wrap gap-x-3 gap-y-1.5">
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-medium ${BADGE_CLASSES[session.review_state!]}`}
+              data-testid={`review-badge-${session.id}`}
+            >
+              {session.review_state === 'partial' && t('session.badge.partial')}
+              {session.review_state === 'ready_to_study' && t('session.badge.readyToStudy')}
+              {session.review_state === 'nothing_kept' && t('session.badge.nothingKept')}
+            </span>
+
+            {(session.saved_count > 0 || session.due_count > 0) && (
+              <span className="text-xs text-text-tertiary tabular-nums" data-testid={`counts-${session.id}`}>
+                {t('session.counts', { saved: String(session.saved_count), due: String(session.due_count) })}
+              </span>
+            )}
+
+            {session.review_state === 'partial' && (
+              <Link
+                href={`/sessions/${session.id}`}
+                className="text-xs font-semibold text-accent-primary hover:text-accent-primary-hover"
+                data-testid={`action-review-${session.id}`}
+              >
+                {t('session.action.review')} →
+              </Link>
+            )}
+
+            {session.review_state === 'ready_to_study' && (
+              <Link
+                href={`/study?session_id=${session.id}`}
+                className="text-xs font-semibold text-accent-primary hover:text-accent-primary-hover"
+                data-testid={`action-study-${session.id}`}
+              >
+                {t('session.action.study')} →
+              </Link>
+            )}
+
+            {session.review_state === 'nothing_kept' && showDeletePrompt && (
+              <span className="flex items-center gap-2" data-testid={`delete-prompt-${session.id}`}>
+                <span className="text-xs text-text-secondary">{t('session.removePrompt')}</span>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
+                  onClick={() => setShowDeletePrompt(false)}
+                  data-testid={`remove-cancel-${session.id}`}
+                >
+                  {t('session.removeCancel')}
+                </button>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-danger hover:opacity-80 transition-opacity"
+                  onClick={() => onDelete(session.id)}
+                  data-testid={`remove-confirm-${session.id}`}
+                >
+                  {t('session.removeConfirm')}
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <RowActionsMenu

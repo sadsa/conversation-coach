@@ -449,6 +449,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.toggleReviewedError': 'Couldn\'t update — try again.',
     // Row context menu (⋮)
     'session.menuAria': 'More actions',
+    'session.badge.partial': 'In progress',
+    'session.badge.readyToStudy': 'Ready to study',
+    'session.badge.nothingKept': 'Nothing kept',
+    'session.action.review': 'Review',
+    'session.action.study': 'Study',
+    'session.counts': '{saved} saved · {due} due',
+    'session.removePrompt': 'Remove this session?',
+    'session.removeConfirm': 'Remove',
+    'session.removeCancel': 'Keep',
     // Pipeline status
     'pipeline.uploading': 'Uploading',
     'pipeline.transcribing': 'Transcribing',
@@ -1083,6 +1092,15 @@ const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     'session.toggleReviewedError': 'No se pudo actualizar — intentá de nuevo.',
     // Menú contextual de fila (⋮)
     'session.menuAria': 'Más acciones',
+    'session.badge.partial': 'En progreso',
+    'session.badge.readyToStudy': 'Listo para estudiar',
+    'session.badge.nothingKept': 'Nada guardado',
+    'session.action.review': 'Revisar',
+    'session.action.study': 'Estudiar',
+    'session.counts': '{saved} guardadas · {due} para hoy',
+    'session.removePrompt': '¿Eliminar esta sesión?',
+    'session.removeConfirm': 'Eliminar',
+    'session.removeCancel': 'Conservar',
     // Pipeline status
     'pipeline.uploading': 'Subiendo',
     'pipeline.transcribing': 'Transcribiendo',

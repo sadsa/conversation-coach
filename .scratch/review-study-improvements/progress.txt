@@ -70,3 +70,34 @@ Date: 2026-06-29
 - Issues 08 (due widget) and 09 (single-item study) are now unblocked — both depend on the `/study` route.
 - Issue 02 "Study" button on inbox badge should navigate to `/study?session_id=<id>` — this route now exists.
 - Single-item mode accepts comma-separated IDs (`item_ids=a,b,c`) — issue 09 needs to wire the per-row menu action.
+
+## Issue 02 — Session item: state badge and counts
+
+Date: 2026-06-29
+
+### Key decisions
+
+- Badge row (`hasBadgeRow = review_state !== null`) is rendered as a separate `<div>` sibling to the `<Link>` inside the card, avoiding nested interactive elements while keeping the card's visual coherence.
+- `showDeletePrompt` local state initialises to `true` when `review_state === 'nothing_kept'`; Cancel hides it (component-local, resets on remount). The badge remains visible after dismissal.
+- The Remove button in the nothing_kept prompt calls the same `onDelete` flow as the ⋮ menu — same 5s optimistic delete + Undo toast.
+- Badge colours use existing design tokens: `bg-accent-chip/text-on-accent-chip` (partial), `bg-study-badge-bg/text-on-study-badge` (ready_to_study), `bg-surface-elevated/text-text-tertiary` (nothing_kept).
+- Counts (`{n} saved · {n} due`) are hidden when both are 0 to avoid "0 saved · 0 due" noise (e.g. for partial sessions with no saves yet, or nothing_kept sessions).
+- Used Python for i18n.ts edits to avoid the 32KB truncation bug.
+
+### Files changed
+
+- `lib/i18n.ts` — added `session.badge.partial`, `session.badge.readyToStudy`, `session.badge.nothingKept`, `session.action.review`, `session.action.study`, `session.counts`, `session.removePrompt`, `session.removeConfirm`, `session.removeCancel` (en + es)
+- `components/SessionList.tsx` — added `BADGE_CLASSES` map, `hasBadgeRow`/`showDeletePrompt` state, badge+counts+action+delete-prompt UI
+- `__tests__/components/SessionList.test.tsx` — added badge, counts, action button, and delete prompt test suites
+
+### Verification
+
+- `npm run lint` — clean
+- `npx tsc --noEmit` (source files) — no new errors
+- `npm test -- __tests__/lib/session-review-state.test.ts` — 10/10 pass
+- Component tests crash on ARM64 container (pre-existing jsdom issue)
+
+### Next-iteration notes
+
+- Issue 03 (Review inbox filter bar) is the next architectural task with deps met — uses `review_state` to filter sessions client-side.
+- Issues 05, 06, 07, 08, 09 are also unblocked.
