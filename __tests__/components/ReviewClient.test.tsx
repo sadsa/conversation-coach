@@ -26,7 +26,7 @@ vi.mock('@/components/LanguageProvider', () => ({
   useTranslation: () => ({
     targetLanguage: 'es-AR',
     uiLanguage: 'en',
-    t: (key: string) => {
+    t: (key: string, replacements?: Record<string, string | number>) => {
       const dict: Record<string, string> = {
         'review.title': 'Your conversations',
         'review.emptyLine': 'No conversations to review yet.',
@@ -36,10 +36,15 @@ vi.mock('@/components/LanguageProvider', () => ({
         'review.tab.open': 'Needs review',
         'review.tab.reviewed': 'Reviewed',
         'review.tab.reviewedEmpty': 'Nothing reviewed yet.',
+        'review.search.noneHere': 'No matches here.',
+        'review.search.seeOther': 'See {count} in {tab}',
+        'review.search.noMatches': 'Nothing matches “{query}”.',
         'home.recentSessionsTitle': 'Your conversations',
         'home.noRecordingsYet': 'No conversations yet.',
       }
-      return dict[key] ?? key
+      const template = dict[key] ?? key
+      if (!replacements) return template
+      return template.replace(/\{(\w+)\}/g, (_, k) => String(replacements[k] ?? ''))
     },
   }),
 }))
@@ -132,13 +137,53 @@ describe('ReviewClient — tabs', () => {
 })
 
 describe('ReviewClient — search bar', () => {
-  it('renders the search bar on Needs review tab', () => {
-    render(<ReviewClient initialSessions={[makeSession({ id: 's1' })]} />)
+  it('renders the search bar regardless of active tab', async () => {
+    const reviewed = makeSession({ id: 's1', reviewed_at: '2026-04-01T10:00:00Z' })
+    render(<ReviewClient initialSessions={[reviewed]} />)
+    expect(screen.getByTestId('filter-bar')).toBeDefined()
+    await userEvent.click(screen.getByTestId('tab-reviewed'))
     expect(screen.getByTestId('filter-bar')).toBeDefined()
   })
 
   it('does not show filter chips (no filter options)', () => {
     render(<ReviewClient initialSessions={[makeSession({ id: 's1' })]} />)
     expect(screen.queryByTestId('filter-dropdown-trigger')).not.toBeInTheDocument()
+  })
+})
+
+describe('ReviewClient — dual-pool search', () => {
+  it('shows a count badge on both tabs', () => {
+    const open = makeSession({ id: 's1', title: 'Hola', reviewed_at: null })
+    const reviewed = makeSession({ id: 's2', title: 'Chau', reviewed_at: '2026-04-01T10:00:00Z' })
+    render(<ReviewClient initialSessions={[open, reviewed]} />)
+    expect(screen.getByTestId('tab-open-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('tab-reviewed-count')).toHaveTextContent('1')
+  })
+
+  it('updates both badge counts as the query narrows each pool', async () => {
+    const open = makeSession({ id: 's1', title: 'Hola mundo', reviewed_at: null })
+    const reviewed = makeSession({ id: 's2', title: 'Chau amigo', reviewed_at: '2026-04-01T10:00:00Z' })
+    render(<ReviewClient initialSessions={[open, reviewed]} />)
+    await userEvent.type(screen.getByTestId('filter-search-input'), 'chau')
+    expect(screen.getByTestId('tab-open-count')).toHaveTextContent('0')
+    expect(screen.getByTestId('tab-reviewed-count')).toHaveTextContent('1')
+  })
+
+  it('offers to switch tabs when the match lives in the other pool', async () => {
+    const open = makeSession({ id: 's1', title: 'Hola mundo', reviewed_at: null })
+    const reviewed = makeSession({ id: 's2', title: 'Chau amigo', reviewed_at: '2026-04-01T10:00:00Z' })
+    render(<ReviewClient initialSessions={[open, reviewed]} />)
+    await userEvent.type(screen.getByTestId('filter-search-input'), 'chau')
+    const recovery = screen.getByTestId('search-see-other')
+    expect(recovery).toHaveTextContent('See 1 in Reviewed')
+    await userEvent.click(recovery)
+    expect(screen.getByTestId('session-list')).toBeDefined()
+  })
+
+  it('shows a no-matches line when nothing matches in either pool', async () => {
+    const open = makeSession({ id: 's1', title: 'Hola mundo', reviewed_at: null })
+    render(<ReviewClient initialSessions={[open]} />)
+    await userEvent.type(screen.getByTestId('filter-search-input'), 'zzz')
+    expect(screen.getByTestId('search-no-matches')).toBeDefined()
   })
 })

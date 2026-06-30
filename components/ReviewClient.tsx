@@ -2,10 +2,16 @@
 //
 // Client island for /review — the inbox of recorded conversations.
 //
-// Two tabs: "Needs review" (reviewed_at === null) and "Reviewed"
-// (reviewed_at !== null). A session stays open until the user explicitly
-// closes it from the row menu or from inside the transcript view —
-// the same model as GitHub PR open/closed.
+// Layout: a single search field on top, then two tabs — "Needs review"
+// (reviewed_at === null) and "Reviewed" (reviewed_at !== null) — docked
+// flush onto the session list. A session stays open until the user
+// explicitly closes it from the row menu or from inside the transcript
+// view — the same model as GitHub PR open/closed.
+//
+// Search spans BOTH pools: each tab filters its own pool and carries a
+// live match-count badge, so a hit hiding in the inactive tab stays
+// visible. When the active tab has no matches but the other does, a
+// recovery line offers to switch.
 
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
@@ -144,13 +150,100 @@ export function ReviewClient({ initialSessions }: Props) {
     [sessions],
   )
 
-  const filteredOpenSessions = useMemo(() => {
-    if (!searchQuery.trim()) return openSessions
-    const q = searchQuery.toLowerCase()
-    return openSessions.filter(s => s.title.toLowerCase().includes(q))
-  }, [openSessions, searchQuery])
+  const filterByQuery = useCallback(
+    (list: SessionListItem[]) => {
+      const q = searchQuery.trim().toLowerCase()
+      if (!q) return list
+      return list.filter(s => s.title.toLowerCase().includes(q))
+    },
+    [searchQuery],
+  )
 
-  const openCount = openSessions.length
+  const filteredOpen = useMemo(() => filterByQuery(openSessions), [filterByQuery, openSessions])
+  const filteredReviewed = useMemo(() => filterByQuery(reviewedSessions), [filterByQuery, reviewedSessions])
+
+  const hasQuery = searchQuery.trim().length > 0
+  const activeList = activeTab === 'open' ? filteredOpen : filteredReviewed
+  const otherTab: ReviewTab = activeTab === 'open' ? 'reviewed' : 'open'
+  const otherList = activeTab === 'open' ? filteredReviewed : filteredOpen
+  const otherTabLabel = t(otherTab === 'open' ? 'review.tab.open' : 'review.tab.reviewed')
+
+  function renderTab(tab: ReviewTab, label: string, count: number) {
+    const isActive = activeTab === tab
+    return (
+      <button
+        type="button"
+        onClick={() => setActiveTab(tab)}
+        data-testid={`tab-${tab}`}
+        className={`px-1 py-2.5 mr-6 text-sm font-medium border-b-2 -mb-px transition-colors ${
+          isActive
+            ? 'border-accent-primary text-text-primary'
+            : 'border-transparent text-text-secondary hover:text-text-primary'
+        }`}
+      >
+        {label}
+        <span
+          className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium tabular-nums transition-colors ${
+            isActive
+              ? 'bg-accent-primary/15 text-accent-primary'
+              : 'bg-surface-elevated text-text-tertiary'
+          }`}
+          data-testid={`tab-${tab}-count`}
+        >
+          {count}
+        </span>
+      </button>
+    )
+  }
+
+  // The active list is empty: decide between a search-recovery line and the
+  // genuine no-query empty states. Wrapped in a top-bordered box so the tab
+  // underline keeps its baseline even when no SessionList renders.
+  function renderEmpty() {
+    if (hasQuery) {
+      if (otherList.length > 0) {
+        return (
+          <p className="text-base leading-relaxed text-text-secondary text-pretty">
+            {t('review.search.noneHere')}{' '}
+            <button
+              type="button"
+              onClick={() => setActiveTab(otherTab)}
+              data-testid="search-see-other"
+              className="font-semibold text-accent-primary border-b border-accent-primary/35 pb-px transition-colors hover:border-accent-primary"
+            >
+              {t('review.search.seeOther', { count: otherList.length, tab: otherTabLabel })}
+            </button>
+          </p>
+        )
+      }
+      return (
+        <p className="text-base leading-relaxed text-text-secondary text-pretty" data-testid="search-no-matches">
+          {t('review.search.noMatches', { query: searchQuery.trim() })}
+        </p>
+      )
+    }
+
+    if (activeTab === 'open') {
+      return (
+        <p className="max-w-prose text-base leading-relaxed text-text-secondary text-pretty">
+          {t('review.emptyLine')}
+          <br />
+          <Link
+            href="/"
+            className="font-semibold text-accent-primary border-b border-accent-primary/35 pb-px transition-colors hover:border-accent-primary"
+          >
+            {t('review.emptyCta')}
+          </Link>
+        </p>
+      )
+    }
+
+    return (
+      <p className="text-base text-text-secondary">
+        {t('review.tab.reviewedEmpty')}
+      </p>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -160,92 +253,35 @@ export function ReviewClient({ initialSessions }: Props) {
         </h1>
       </header>
 
-      <div className="border-b border-border-subtle">
-        <div className="flex">
-          <button
-            type="button"
-            onClick={() => setActiveTab('open')}
-            data-testid="tab-open"
-            className={`px-1 py-2.5 mr-6 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === 'open'
-                ? 'border-accent-primary text-text-primary'
-                : 'border-transparent text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            {t('review.tab.open')}
-            {openCount > 0 && (
-              <span
-                className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-accent-primary/15 text-accent-primary font-medium tabular-nums"
-                data-testid="tab-open-count"
-              >
-                {openCount}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('reviewed')}
-            data-testid="tab-reviewed"
-            className={`px-1 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === 'reviewed'
-                ? 'border-accent-primary text-text-primary'
-                : 'border-transparent text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            {t('review.tab.reviewed')}
-          </button>
+      <div className="space-y-3">
+        <FilterBar
+          searchQuery={searchQuery}
+          searchPlaceholder={t('review.filter.searchPlaceholder')}
+          filterOptions={[]}
+          activeFilters={[]}
+          onSearchChange={setSearchQuery}
+          onFilterAdd={() => {}}
+          onFilterRemove={() => {}}
+        />
+
+        <div>
+          <div className="flex" role="tablist">
+            {renderTab('open', t('review.tab.open'), filteredOpen.length)}
+            {renderTab('reviewed', t('review.tab.reviewed'), filteredReviewed.length)}
+          </div>
+
+          {activeList.length === 0 ? (
+            <div className="border-t border-border-subtle pt-6">{renderEmpty()}</div>
+          ) : (
+            <SessionList
+              sessions={activeList}
+              onDeleted={handleSessionDeleted}
+              onToggleRead={handleToggleRead}
+              onMarkReviewed={handleMarkReviewed}
+            />
+          )}
         </div>
       </div>
-
-      {activeTab === 'open' && (
-        <div className="space-y-6">
-          <FilterBar
-            searchQuery={searchQuery}
-            searchPlaceholder={t('review.filter.searchPlaceholder')}
-            filterOptions={[]}
-            activeFilters={[]}
-            onSearchChange={setSearchQuery}
-            onFilterAdd={() => {}}
-            onFilterRemove={() => {}}
-          />
-          {filteredOpenSessions.length === 0 ? (
-            <p className="max-w-prose text-base leading-relaxed text-text-secondary text-pretty">
-              {t('review.emptyLine')}
-              <br />
-              <Link
-                href="/"
-                className="font-semibold text-accent-primary border-b border-accent-primary/35 pb-px transition-colors hover:border-accent-primary"
-              >
-                {t('review.emptyCta')}
-              </Link>
-            </p>
-          ) : (
-            <SessionList
-              sessions={filteredOpenSessions}
-              onDeleted={handleSessionDeleted}
-              onToggleRead={handleToggleRead}
-              onMarkReviewed={handleMarkReviewed}
-            />
-          )}
-        </div>
-      )}
-
-      {activeTab === 'reviewed' && (
-        <div className="space-y-6">
-          {reviewedSessions.length === 0 ? (
-            <p className="text-base text-text-secondary">
-              {t('review.tab.reviewedEmpty')}
-            </p>
-          ) : (
-            <SessionList
-              sessions={reviewedSessions}
-              onDeleted={handleSessionDeleted}
-              onToggleRead={handleToggleRead}
-              onMarkReviewed={handleMarkReviewed}
-            />
-          )}
-        </div>
-      )}
     </div>
   )
 }
