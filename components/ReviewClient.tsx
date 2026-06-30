@@ -8,14 +8,13 @@
 // explicitly closes it from the row menu or from inside the transcript
 // view — the same model as GitHub PR open/closed.
 //
-// Search spans BOTH pools: each tab filters its own pool and carries a
-// live match-count badge, so a hit hiding in the inactive tab stays
-// visible. When the active tab has no matches but the other does, a
-// recovery line offers to switch.
+// Search matches session TITLES across both pools: each tab filters its
+// own pool by title and carries a live match-count badge, so a title hit
+// hiding in the inactive tab stays visible. When the active tab has no
+// matches but the other does, a recovery line offers to switch.
 
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SessionList } from '@/components/SessionList'
 import { FilterBar } from '@/components/FilterBar'
@@ -36,10 +35,14 @@ interface Props {
 
 export function ReviewClient({ initialSessions }: Props) {
   const { t } = useTranslation()
-  useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions)
   const [activeTab, setActiveTab] = useState<ReviewTab>('open')
   const [searchQuery, setSearchQuery] = useState('')
+
+  const tabRefs = useRef<Record<ReviewTab, HTMLButtonElement | null>>({
+    open: null,
+    reviewed: null,
+  })
 
   const pollTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const pollAttempts = useRef<Map<string, number>>(new Map())
@@ -168,14 +171,44 @@ export function ReviewClient({ initialSessions }: Props) {
   const otherList = activeTab === 'open' ? filteredReviewed : filteredOpen
   const otherTabLabel = t(otherTab === 'open' ? 'review.tab.open' : 'review.tab.reviewed')
 
-  function renderTab(tab: ReviewTab, label: string, count: number) {
+  const TAB_ORDER: ReviewTab[] = ['open', 'reviewed']
+
+  // Roving-focus keyboard nav for the WAI-ARIA tabs pattern: arrows move
+  // and activate, Home/End jump to the ends. Focus follows selection.
+  function handleTabKeyDown(e: React.KeyboardEvent, tab: ReviewTab) {
+    const i = TAB_ORDER.indexOf(tab)
+    let next: ReviewTab | null = null
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      next = TAB_ORDER[(i + 1) % TAB_ORDER.length]
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      next = TAB_ORDER[(i - 1 + TAB_ORDER.length) % TAB_ORDER.length]
+    } else if (e.key === 'Home') {
+      next = TAB_ORDER[0]
+    } else if (e.key === 'End') {
+      next = TAB_ORDER[TAB_ORDER.length - 1]
+    }
+    if (next) {
+      e.preventDefault()
+      setActiveTab(next)
+      tabRefs.current[next]?.focus()
+    }
+  }
+
+  function renderTab(tab: ReviewTab, label: string, count: number, total: number) {
     const isActive = activeTab === tab
     return (
       <button
         type="button"
+        role="tab"
+        id={`review-tab-${tab}`}
+        aria-selected={isActive}
+        aria-controls="review-tabpanel"
+        tabIndex={isActive ? 0 : -1}
+        ref={el => { tabRefs.current[tab] = el }}
         onClick={() => setActiveTab(tab)}
+        onKeyDown={e => handleTabKeyDown(e, tab)}
         data-testid={`tab-${tab}`}
-        className={`px-1 py-2.5 mr-6 text-sm font-medium border-b-2 -mb-px transition-colors ${
+        className={`inline-flex items-center min-h-[44px] px-1 py-2.5 mr-6 text-base font-medium border-b-2 -mb-px transition-colors ${
           isActive
             ? 'border-accent-primary text-text-primary'
             : 'border-transparent text-text-secondary hover:text-text-primary'
@@ -183,12 +216,13 @@ export function ReviewClient({ initialSessions }: Props) {
       >
         {label}
         <span
-          className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium tabular-nums transition-colors ${
+          className={`ml-2 text-sm px-1.5 py-0.5 rounded-full font-medium tabular-nums transition-colors ${
             isActive
               ? 'bg-accent-primary/15 text-accent-primary'
-              : 'bg-surface-elevated text-text-tertiary'
+              : 'bg-surface-elevated text-text-secondary'
           }`}
           data-testid={`tab-${tab}-count`}
+          title={hasQuery ? `${count}/${total}` : undefined}
         >
           {count}
         </span>
@@ -239,7 +273,7 @@ export function ReviewClient({ initialSessions }: Props) {
     }
 
     return (
-      <p className="text-base text-text-secondary">
+      <p className="max-w-prose text-base leading-relaxed text-text-secondary text-pretty">
         {t('review.tab.reviewedEmpty')}
       </p>
     )
@@ -265,21 +299,28 @@ export function ReviewClient({ initialSessions }: Props) {
         />
 
         <div>
-          <div className="flex" role="tablist">
-            {renderTab('open', t('review.tab.open'), filteredOpen.length)}
-            {renderTab('reviewed', t('review.tab.reviewed'), filteredReviewed.length)}
+          <div className="flex" role="tablist" aria-label={t('review.title')}>
+            {renderTab('open', t('review.tab.open'), filteredOpen.length, openSessions.length)}
+            {renderTab('reviewed', t('review.tab.reviewed'), filteredReviewed.length, reviewedSessions.length)}
           </div>
 
-          {activeList.length === 0 ? (
-            <div className="border-t border-border-subtle pt-6">{renderEmpty()}</div>
-          ) : (
-            <SessionList
-              sessions={activeList}
-              onDeleted={handleSessionDeleted}
-              onToggleRead={handleToggleRead}
-              onMarkReviewed={handleMarkReviewed}
-            />
-          )}
+          <div
+            id="review-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`review-tab-${activeTab}`}
+            tabIndex={0}
+          >
+            {activeList.length === 0 ? (
+              <div className="border-t border-border-subtle pt-6">{renderEmpty()}</div>
+            ) : (
+              <SessionList
+                sessions={activeList}
+                onDeleted={handleSessionDeleted}
+                onToggleRead={handleToggleRead}
+                onMarkReviewed={handleMarkReviewed}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
