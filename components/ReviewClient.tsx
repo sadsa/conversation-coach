@@ -2,53 +2,27 @@
 //
 // Client island for /review — the inbox of recorded conversations.
 //
-// History: this code used to live in `<HomeClient>` and back the dashboard
-// at `/`. The Practise-as-home redesign moved the methodology entry point
-// (mode-picker) to the root URL and pushed the inbox out to its own route.
-// Behaviour preserved: polling for in-flight sessions with visibility-aware
-// backoff, optimistic delete + 5s undo, swipe-to-toggle-read, an
-// in-progress strip above the list, and the full list of past
-// conversations below.
-//
-// Header now names the surface directly:
-//   - The warm time-of-day greeting ("Buenos días") is HOME ONLY now —
-//     that's the home's peak-end moment after onboarding and the warm
-//     "I'm back" beat on every return. Duplicating it on /review was
-//     stealing the home's moment and made the inbox feel like a second
-//     home page instead of a focused list.
-//   - The methodology eyebrow (Practise → Review → Study) appears beneath
-//     the H1, with Review in accent so a user landing here via deep link
-//     or share-target still has the three-pillar mental model the home
-//     introduced.
-//   - The write-down reminder widget that used to sit at the top of this
-//     page was dropped — the bottom-nav Study tab is the single home of
-//     the "items waiting" signal; a second repeat on /review was visual
-//     noise on what should be a focused inbox.
-//
-// The share-target pickup (IndexedDB → POST /api/sessions → /sessions/[id]/status)
-// now lives in `<PractiseClient>` on `/`, since that's the route the
-// service worker redirects to when a file is shared from another app. We
-// don't duplicate the pickup here.
+// Two tabs: "Needs review" (reviewed_at === null) and "Reviewed"
+// (reviewed_at !== null). A session stays open until the user explicitly
+// closes it from the row menu or from inside the transcript view —
+// the same model as GitHub PR open/closed.
 
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { DashboardInProgress } from '@/components/DashboardInProgress'
-import { DashboardRecentSessions } from '@/components/DashboardRecentSessions'
+import Link from 'next/link'
+import { SessionList } from '@/components/SessionList'
 import { FilterBar } from '@/components/FilterBar'
 import { useTranslation } from '@/components/LanguageProvider'
-import { filterSessions, type SessionFilterState, type SessionStatusFilter } from '@/lib/session-filter'
 import type { SessionListItem, SessionStatus } from '@/lib/types'
 
 const TERMINAL_STATUSES = new Set<SessionStatus>(['ready', 'error'])
 
-// Polling cadence — starts tight (so a freshly-uploaded clip flips to
-// `ready` quickly when transcribing finishes) but backs off if the server
-// keeps reporting the same status. Capped well under the typical pipeline
-// duration so users never wait minutes between updates.
 const POLL_BASE_MS = 3000
 const POLL_BACKOFF = 1.5
 const POLL_MAX_MS = 30_000
+
+type ReviewTab = 'open' | 'reviewed'
 
 interface Props {
   initialSessions: SessionListItem[]
@@ -56,19 +30,11 @@ interface Props {
 
 export function ReviewClient({ initialSessions }: Props) {
   const { t } = useTranslation()
-  // Router only retained for parity with HomeClient ergonomics — no
-  // route changes are triggered from this component today; remove if
-  // future versions never need it.
   useRouter()
   const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions)
-  const [filterState, setFilterState] = useState<SessionFilterState>({
-    statusFilters: [],
-    searchQuery: '',
-  })
+  const [activeTab, setActiveTab] = useState<ReviewTab>('open')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // One pending timeout per polled session, plus per-session attempt count
-  // for exponential backoff. Refs so the polling loop can read its own
-  // latest state without re-binding on every render.
   const pollTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const pollAttempts = useRef<Map<string, number>>(new Map())
 
@@ -87,9 +53,6 @@ export function ReviewClient({ initialSessions }: Props) {
 
   const startPolling = useCallback((sessionId: string) => {
     if (pollTimeouts.current.has(sessionId)) return
-    // No point burning poll cycles when the tab is hidden — the user can't
-    // see the result. The visibility listener below restarts these when
-    // focus returns.
     if (typeof document !== 'undefined' && document.hidden) return
 
     const attempt = pollAttempts.current.get(sessionId) ?? 0
@@ -108,11 +71,6 @@ export function ReviewClient({ initialSessions }: Props) {
 
         if (TERMINAL_STATUSES.has(status)) {
           pollAttempts.current.delete(sessionId)
-          // Pull the canonical record once we know the pipeline finished.
-          // We don't re-fetch the dashboard summary here: the pipeline
-          // never auto-creates practice_items (CLAUDE.md gotcha — they're
-          // only added by users inside /sessions/[id]), so the Study
-          // count can't change as a side-effect of a session landing.
           const listRes = await fetch('/api/sessions')
           if (listRes.ok) setSessions(await listRes.json())
         } else {
@@ -130,9 +88,6 @@ export function ReviewClient({ initialSessions }: Props) {
     pollTimeouts.current.set(sessionId, timeoutId)
   }, [])
 
-  // Initial poll fan-out for any sessions the server told us are still
-  // in flight. The list itself came from the parent RSC so we don't
-  // have to wait on a client fetch first.
   useEffect(() => {
     initialSessions.forEach(s => {
       if (!TERMINAL_STATUSES.has(s.status)) startPolling(s.id)
@@ -141,7 +96,6 @@ export function ReviewClient({ initialSessions }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Pause polling when the tab is hidden, resume when it comes back.
   useEffect(() => {
     function onVisibilityChange() {
       if (document.hidden) {
@@ -171,58 +125,127 @@ export function ReviewClient({ initialSessions }: Props) {
     )
   }, [])
 
-  const inProgressSessions = useMemo(
-    () => sessions.filter(s => !TERMINAL_STATUSES.has(s.status)),
+  const handleMarkReviewed = useCallback((id: string, reviewed: boolean) => {
+    setSessions(prev =>
+      prev.map(s =>
+        s.id === id
+          ? { ...s, reviewed_at: reviewed ? new Date().toISOString() : null }
+          : s,
+      ),
+    )
+  }, [])
+
+  const openSessions = useMemo(
+    () => sessions.filter(s => s.reviewed_at === null),
     [sessions],
   )
-  const terminalSessions = useMemo(
-    () => sessions.filter(s => TERMINAL_STATUSES.has(s.status)),
+  const reviewedSessions = useMemo(
+    () => sessions.filter(s => s.reviewed_at !== null),
     [sessions],
-  )
-  const filteredTerminalSessions = useMemo(
-    () => filterSessions(terminalSessions, filterState),
-    [terminalSessions, filterState],
   )
 
-  const filterOptions = [
-    { value: 'partial', label: t('review.filter.inProgress') },
-    { value: 'ready_to_study', label: t('review.filter.readyToStudy') },
-  ]
+  const filteredOpenSessions = useMemo(() => {
+    if (!searchQuery.trim()) return openSessions
+    const q = searchQuery.toLowerCase()
+    return openSessions.filter(s => s.title.toLowerCase().includes(q))
+  }, [openSessions, searchQuery])
+
+  const openCount = openSessions.length
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
+    <div className="space-y-6">
+      <header>
         <h1 className="text-page-title">
           {t('review.title')}
         </h1>
       </header>
 
-      {inProgressSessions.length > 0 && (
-        <DashboardInProgress sessions={inProgressSessions} />
+      <div className="border-b border-border-subtle">
+        <div className="flex">
+          <button
+            type="button"
+            onClick={() => setActiveTab('open')}
+            data-testid="tab-open"
+            className={`px-1 py-2.5 mr-6 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'open'
+                ? 'border-accent-primary text-text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            {t('review.tab.open')}
+            {openCount > 0 && (
+              <span
+                className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-accent-primary/15 text-accent-primary font-medium tabular-nums"
+                data-testid="tab-open-count"
+              >
+                {openCount}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('reviewed')}
+            data-testid="tab-reviewed"
+            className={`px-1 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'reviewed'
+                ? 'border-accent-primary text-text-primary'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            {t('review.tab.reviewed')}
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'open' && (
+        <div className="space-y-6">
+          <FilterBar
+            searchQuery={searchQuery}
+            searchPlaceholder={t('review.filter.searchPlaceholder')}
+            filterOptions={[]}
+            activeFilters={[]}
+            onSearchChange={setSearchQuery}
+            onFilterAdd={() => {}}
+            onFilterRemove={() => {}}
+          />
+          {filteredOpenSessions.length === 0 ? (
+            <p className="max-w-prose text-base leading-relaxed text-text-secondary text-pretty">
+              {t('review.emptyLine')}
+              <br />
+              <Link
+                href="/"
+                className="font-semibold text-accent-primary border-b border-accent-primary/35 pb-px transition-colors hover:border-accent-primary"
+              >
+                {t('review.emptyCta')}
+              </Link>
+            </p>
+          ) : (
+            <SessionList
+              sessions={filteredOpenSessions}
+              onDeleted={handleSessionDeleted}
+              onToggleRead={handleToggleRead}
+              onMarkReviewed={handleMarkReviewed}
+            />
+          )}
+        </div>
       )}
 
-      <FilterBar
-        searchQuery={filterState.searchQuery}
-        searchPlaceholder={t('review.filter.searchPlaceholder')}
-        filterOptions={filterOptions}
-        activeFilters={filterState.statusFilters}
-        onSearchChange={q => setFilterState(prev => ({ ...prev, searchQuery: q }))}
-        onFilterAdd={v => setFilterState(prev => ({
-          ...prev,
-          statusFilters: [...prev.statusFilters, v as SessionStatusFilter],
-        }))}
-        onFilterRemove={v => setFilterState(prev => ({
-          ...prev,
-          statusFilters: prev.statusFilters.filter(f => f !== v),
-        }))}
-        filterButtonLabel={t('review.filter.button')}
-      />
-
-      <DashboardRecentSessions
-        sessions={filteredTerminalSessions}
-        onDeleted={handleSessionDeleted}
-        onToggleRead={handleToggleRead}
-      />
+      {activeTab === 'reviewed' && (
+        <div className="space-y-6">
+          {reviewedSessions.length === 0 ? (
+            <p className="text-base text-text-secondary">
+              {t('review.tab.reviewedEmpty')}
+            </p>
+          ) : (
+            <SessionList
+              sessions={reviewedSessions}
+              onDeleted={handleSessionDeleted}
+              onToggleRead={handleToggleRead}
+              onMarkReviewed={handleMarkReviewed}
+            />
+          )}
+        </div>
+      )}
     </div>
   )
 }

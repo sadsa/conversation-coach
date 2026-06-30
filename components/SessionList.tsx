@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Toast } from '@/components/Toast'
 import { RowActionsMenu, type RowAction } from '@/components/RowActionsMenu'
 import { useTranslation } from '@/components/LanguageProvider'
-import type { SessionListItem, SessionReviewState } from '@/lib/types'
+import type { SessionListItem } from '@/lib/types'
 import type { UiLanguage } from '@/lib/i18n'
 
 function statusLabel(status: string, t: (key: string) => string): string {
@@ -22,12 +22,6 @@ function statusLabel(status: string, t: (key: string) => string): string {
 const STATUS_COLOUR: Record<string, string> = {
   ready: 'text-status-ready',
   error: 'text-status-error',
-}
-
-const BADGE_CLASSES: Record<SessionReviewState, string> = {
-  partial: 'bg-accent-chip text-on-accent-chip border border-accent-chip-border',
-  ready_to_study: 'bg-study-badge-bg text-on-study-badge',
-  nothing_kept: 'bg-surface-elevated text-text-tertiary border border-border-subtle',
 }
 
 const TERMINAL_STATUSES = new Set(['ready', 'error'])
@@ -72,10 +66,12 @@ function SessionItem({
   session,
   onDelete,
   onToggleRead,
+  onMarkReviewed,
 }: {
   session: SessionListItem
   onDelete: (id: string) => void
   onToggleRead: (id: string, makeRead: boolean) => void
+  onMarkReviewed?: (id: string, reviewed: boolean) => void
 }) {
   const { t, uiLanguage } = useTranslation()
 
@@ -83,17 +79,9 @@ function SessionItem({
   const isError = session.status === 'error'
   const showStatus = isProcessing || isError
   const isUnread = session.last_viewed_at === null
-  const hasBadgeRow = session.review_state !== null
 
-  // Seed synchronously so the row never paints a blank metadata line, then
-  // re-sync on the client. The label depends on `now` (relative day) and the
-  // user's locale/timezone, so server and client can legitimately differ —
-  // `suppressHydrationWarning` on the rendered span absorbs that.
   const [dateLabel, setDateLabel] = useState<string>(() =>
     formatRowDateTime(new Date(session.created_at), uiLanguage)
-  )
-  const [showDeletePrompt, setShowDeletePrompt] = useState(
-    session.review_state === 'nothing_kept'
   )
   useEffect(() => {
     setDateLabel(formatRowDateTime(new Date(session.created_at), uiLanguage))
@@ -107,6 +95,13 @@ function SessionItem({
           testId: `toggle-read-${session.id}`,
         }]
       : []),
+    ...(TERMINAL_STATUSES.has(session.status) && onMarkReviewed
+      ? [{
+          label: session.reviewed_at ? t('session.markUnreviewed') : t('session.markReviewed'),
+          onSelect: () => onMarkReviewed(session.id, session.reviewed_at === null),
+          testId: `toggle-reviewed-${session.id}`,
+        }]
+      : []),
     {
       label: t('session.delete'),
       onSelect: () => onDelete(session.id),
@@ -117,102 +112,36 @@ function SessionItem({
 
   return (
     <li className="relative group">
-      {isUnread && !isProcessing && (
-        <span
-          aria-hidden
-          className="absolute left-1.5 top-6 z-10 h-2 w-2 rounded-full bg-accent-primary"
-          data-testid={`unread-dot-${session.id}`}
-        />
-      )}
-      <div className={`rounded-xl border border-border-subtle hover:border-border transition-colors overflow-hidden ${
-        isProcessing ? 'bg-accent-chip' : 'bg-surface'
-      }`}>
-        <Link
-          href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
-          className={`block pt-4 ${hasBadgeRow ? 'pb-2' : 'pb-4'} pl-5 pr-12 min-w-0 transition-colors ${
-            isProcessing ? '' : 'hover:bg-surface-elevated'
-          }`}
-        >
-          <p className={`text-lg text-balance ${isUnread ? 'font-semibold text-text-primary' : 'font-normal text-text-secondary'}`}>
-            {session.title}
-          </p>
-          <div className="flex items-baseline gap-3 text-sm text-text-tertiary mt-1 flex-wrap tabular-nums">
-            {showStatus && (
-              <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
-                {isProcessing && (
-                  <svg
-                    className="w-3 h-3 animate-spin text-status-processing"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                )}
-                {statusLabel(session.status, t)}
-              </span>
-            )}
-            <span suppressHydrationWarning>{dateLabel}</span>
-          </div>
-        </Link>
-
-        {hasBadgeRow && (
-          <div className="px-5 pb-4 pt-1 flex items-center flex-wrap gap-x-3 gap-y-1.5">
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium ${BADGE_CLASSES[session.review_state!]}`}
-              data-testid={`review-badge-${session.id}`}
-            >
-              {session.review_state === 'partial' && t('session.badge.partial')}
-              {session.review_state === 'ready_to_study' && t('session.badge.readyToStudy')}
-              {session.review_state === 'nothing_kept' && t('session.badge.nothingKept')}
+      <Link
+        href={session.status === 'ready' ? `/sessions/${session.id}` : `/sessions/${session.id}/status`}
+        className={`block py-3 pl-1 pr-12 min-w-0 rounded-lg transition-colors ${
+          isProcessing ? 'bg-accent-chip' : 'hover:bg-surface-elevated'
+        }`}
+      >
+        <p className={`text-lg text-balance ${isUnread ? 'font-semibold text-text-primary' : 'font-normal text-text-secondary'}`}>
+          {session.title}
+        </p>
+        <div className="flex items-baseline gap-3 text-sm text-text-secondary mt-1 flex-wrap tabular-nums">
+          {showStatus && (
+            <span className={`flex items-center gap-1 ${STATUS_COLOUR[session.status] ?? 'text-text-secondary'}`}>
+              {isProcessing && (
+                <svg
+                  className="w-3 h-3 animate-spin text-status-processing"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              )}
+              {statusLabel(session.status, t)}
             </span>
-
-            {(session.saved_count > 0 || session.due_count > 0) && (
-              <span className="text-xs text-text-tertiary tabular-nums" data-testid={`counts-${session.id}`}>
-                {t('session.counts', { saved: String(session.saved_count), due: String(session.due_count) })}
-              </span>
-            )}
-
-            {/* No standalone "Review →" for partial: the whole card already
-                navigates to /sessions/[id], so a second link to the same
-                destination was redundant. "Study →" stays because it points
-                somewhere the card does not (/study). */}
-            {session.review_state === 'ready_to_study' && (
-              <Link
-                href={`/study?session_id=${session.id}`}
-                className="text-xs font-semibold text-accent-primary hover:text-accent-primary-hover"
-                data-testid={`action-study-${session.id}`}
-              >
-                {t('session.action.study')} →
-              </Link>
-            )}
-
-            {session.review_state === 'nothing_kept' && showDeletePrompt && (
-              <span className="flex items-center gap-2" data-testid={`delete-prompt-${session.id}`}>
-                <span className="text-xs text-text-secondary">{t('session.removePrompt')}</span>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
-                  onClick={() => setShowDeletePrompt(false)}
-                  data-testid={`remove-cancel-${session.id}`}
-                >
-                  {t('session.removeCancel')}
-                </button>
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-danger hover:opacity-80 transition-opacity"
-                  onClick={() => onDelete(session.id)}
-                  data-testid={`remove-confirm-${session.id}`}
-                >
-                  {t('session.removeConfirm')}
-                </button>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+          <span suppressHydrationWarning>{dateLabel}</span>
+        </div>
+      </Link>
 
       <RowActionsMenu
         actions={actions}
@@ -227,6 +156,7 @@ interface Props {
   sessions: SessionListItem[]
   onDeleted?: (id: string) => void
   onToggleRead?: (id: string, makeRead: boolean) => void
+  onMarkReviewed?: (id: string, reviewed: boolean) => void
 }
 
 interface ToastState {
@@ -235,7 +165,7 @@ interface ToastState {
   key: number
 }
 
-export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead }: Props) {
+export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead, onMarkReviewed }: Props) {
   const { t } = useTranslation()
   const [sessions, setSessions] = useState(initialSessions)
   const [toast, setToast] = useState<ToastState | null>(null)
@@ -316,6 +246,22 @@ export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead
     })
   }
 
+  function handleMarkReviewed(id: string, reviewed: boolean) {
+    onMarkReviewed?.(id, reviewed)
+    fetch(`/api/sessions/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reviewed }),
+    }).then(res => {
+      if (!res.ok) {
+        onMarkReviewed?.(id, !reviewed)
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+        setToast({ key: Date.now(), message: t('session.toggleReviewedError') })
+        toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+      }
+    })
+  }
+
   const renderedToast = toast && (
     <Toast
       toastKey={toast.key}
@@ -335,13 +281,14 @@ export function SessionList({ sessions: initialSessions, onDeleted, onToggleRead
 
   return (
     <div>
-      <ul className="space-y-2">
+      <ul className="divide-y divide-border-subtle border-y border-border-subtle">
         {sessions.map(s => (
           <SessionItem
             key={s.id}
             session={s}
             onDelete={deleteSession}
             onToggleRead={handleToggleRead}
+            onMarkReviewed={onMarkReviewed ? handleMarkReviewed : undefined}
           />
         ))}
       </ul>
