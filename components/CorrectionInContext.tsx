@@ -69,7 +69,7 @@ export function CorrectionInContext({
   const wrapperSizeClass =
     size === 'sheet'
       ? 'text-base md:text-lg leading-relaxed'
-      : 'text-base leading-relaxed'
+      : 'text-lg leading-relaxed'
 
   // Sentence body colour — softer than the corrected fragment so the eye
   // lands on the strike → correction pair, not the surrounding context.

@@ -40,14 +40,43 @@ describe('VocabularyRow', () => {
     expect(screen.queryByTestId('row-3-front')).not.toBeInTheDocument()
   })
 
-  it('uses the Source Serif display font on the target sentence', () => {
+  it('matches the review list-row typography (sans, text-lg, balanced) — no display serif', () => {
     render(
       <VocabularyRow
         flashcardBack="[[Fui]] al mercado."
         testId="row-4"
       />,
     )
-    expect(screen.getByTestId('row-4-back').className).toMatch(/font-display/)
+    const cls = screen.getByTestId('row-4-back').className
+    expect(cls).not.toMatch(/font-display/)
+    expect(cls).toMatch(/text-lg/)
+    expect(cls).toMatch(/text-balance/)
+  })
+
+  it('keeps the sentence normal-weight and emphasises only the corrected phrase', () => {
+    const { rerender } = render(
+      <VocabularyRow flashcardBack="[[Fui]] al mercado." testId="row-w" />,
+    )
+    const liveBack = screen.getByTestId('row-w-back')
+    // Sentence body stays normal weight + recedes to the same secondary ink
+    // the review list uses for its rows, so it reads as scaffolding…
+    expect(liveBack.className).not.toMatch(/font-semibold/)
+    expect(liveBack.className).toMatch(/text-text-secondary/)
+    // …the corrected phrase is the only bold, tinted part — and carries no
+    // background chip / horizontal padding.
+    const livePhrase = within(liveBack).getByText('Fui')
+    expect(livePhrase.className).toMatch(/font-semibold/)
+    expect(livePhrase.className).toMatch(/text-correction/)
+    expect(livePhrase.className).not.toMatch(/bg-widget-write-bg/)
+    expect(livePhrase.className).not.toMatch(/px-/)
+
+    // Muted "Studied" archive drops the tint to a lower-contrast secondary.
+    rerender(
+      <VocabularyRow flashcardBack="[[Fui]] al mercado." muted testId="row-w" />,
+    )
+    const mutedBack = screen.getByTestId('row-w-back')
+    expect(mutedBack.className).toMatch(/text-text-secondary/)
+    expect(within(mutedBack).getByText('Fui').className).not.toMatch(/text-correction/)
   })
 
   it('renders the bracketed phrase as a styled span', () => {

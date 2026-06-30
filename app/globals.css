@@ -478,6 +478,20 @@
     animation: coachmark-fade-in 240ms var(--ease-out-quart) both;
   }
 
+  /* Vocabulary buckets settle in when a section first appears — e.g. the
+     "Studied" group materialising after the first item is marked studied, or
+     all groups on initial load. Mount-only (sections persist by key across
+     re-renders), so it acknowledges a structural change rather than replaying
+     on every render. `both` + the global reduced-motion clamp means reduced
+     users snap straight to the resting frame. */
+  @keyframes vocab-bucket-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .vocab-bucket {
+    animation: vocab-bucket-in 320ms var(--ease-out-quart) both;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }

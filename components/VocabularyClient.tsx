@@ -122,6 +122,8 @@ export function VocabularyClient({ initialItems, dueCount }: Props) {
       <VocabularyList
         items={filteredItems}
         enrichingIds={enrichingIds}
+        filterActive={filterState.statusFilters.length > 0 || filterState.searchQuery.trim() !== ''}
+        onClearFilters={() => setFilterState({ statusFilters: [], searchQuery: '' })}
         onDeleted={ids => setItems(prev => prev.filter(i => !ids.includes(i.id)))}
       />
       <WildCaptureSheet

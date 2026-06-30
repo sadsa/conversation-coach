@@ -20,7 +20,7 @@ export function DueWidget({ dueCount }: Props) {
       </p>
       <Link
         href="/study"
-        className="shrink-0 rounded-lg bg-accent-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+        className="shrink-0 rounded-lg bg-accent-primary px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-primary-hover transition-colors"
         data-testid="due-widget-study-link"
       >
         {t('vocabulary.studyNow')}

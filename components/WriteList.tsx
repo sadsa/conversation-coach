@@ -27,6 +27,12 @@ interface RowProps {
 function WriteRow({ item, enriching, onOpen, onDelete }: RowProps) {
   const { t } = useTranslation()
 
+  // Muted is reserved for the Studied archive — reviewed AND not currently
+  // due. An item that's due again is active work, so it keeps the live
+  // (coloured) treatment, matching the "To study" bucket.
+  const dueNow = item.due != null && new Date(item.due).getTime() <= Date.now()
+  const isStudiedArchive = item.reviewed && !dueNow
+
   const actions: RowAction[] = [
     {
       label: t('writeList.menuStudy'),
@@ -43,46 +49,44 @@ function WriteRow({ item, enriching, onOpen, onDelete }: RowProps) {
 
   return (
     <li className="relative group">
-      <div className="rounded-xl border border-border-subtle hover:border-border transition-colors overflow-hidden">
-        <button
-          type="button"
-          onClick={onOpen}
-          data-write-item-id={item.id}
-          data-testid={`write-row-${item.id}`}
-          className={`w-full min-w-0 text-left pl-4 pr-12 py-3 bg-surface hover:bg-surface-elevated transition-colors${!item.reviewed ? ' font-semibold' : ''}`}
-        >
-          {enriching ? (
-            <div className="space-y-1">
-              {item.original && (
-                <span className="block text-sm">{item.original}</span>
-              )}
-              <span className="text-xs text-text-tertiary italic animate-pulse">
-                {t('vocabulary.enriching')}
-              </span>
-            </div>
-          ) : item.flashcard_back ? (
-            <VocabularyRow
-              flashcardBack={item.flashcard_back}
-              muted={item.reviewed}
-              testId={`vocabulary-row-${item.id}`}
-            />
-          ) : item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
-            <CorrectionInContext
-              segmentText={item.segment_text}
-              startChar={item.start_char}
-              endChar={item.end_char}
-              original={item.original}
-              correction={item.correction}
-              testId={`correction-in-context-${item.id}`}
-            />
-          ) : (
-            <StrikeOriginal
-              original={item.original}
-              correction={item.correction}
-            />
-          )}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onOpen}
+        data-write-item-id={item.id}
+        data-testid={`write-row-${item.id}`}
+        className="w-full min-w-0 text-left pl-1 pr-12 py-3 rounded-lg hover:bg-surface-elevated transition-colors"
+      >
+        {enriching ? (
+          <div className="space-y-1">
+            {item.original && (
+              <span className="block text-sm">{item.original}</span>
+            )}
+            <span className="text-xs text-text-tertiary italic animate-pulse">
+              {t('vocabulary.enriching')}
+            </span>
+          </div>
+        ) : item.flashcard_back ? (
+          <VocabularyRow
+            flashcardBack={item.flashcard_back}
+            muted={isStudiedArchive}
+            testId={`vocabulary-row-${item.id}`}
+          />
+        ) : item.segment_text !== null && item.start_char !== null && item.end_char !== null ? (
+          <CorrectionInContext
+            segmentText={item.segment_text}
+            startChar={item.start_char}
+            endChar={item.end_char}
+            original={item.original}
+            correction={item.correction}
+            testId={`correction-in-context-${item.id}`}
+          />
+        ) : (
+          <StrikeOriginal
+            original={item.original}
+            correction={item.correction}
+          />
+        )}
+      </button>
 
       <RowActionsMenu
         actions={actions}
@@ -220,7 +224,7 @@ export function WriteList({ items, enrichingIds, onDeleted, onPractise }: Props)
       {allItems.length === 0 ? (
         <EmptyWrite />
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-border-subtle border-y border-border-subtle">
           {allItems.map(item => (
             <WriteRow
               key={item.id}

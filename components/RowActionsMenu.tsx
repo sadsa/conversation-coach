@@ -44,7 +44,7 @@ export function RowActionsMenu({ actions, triggerLabel, triggerTestId }: Props) 
   }, [open])
 
   return (
-    <div ref={ref} className="absolute top-0 right-0 flex items-start pr-2 pt-2">
+    <div ref={ref} className="absolute inset-y-0 right-0 flex items-center pr-1">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
